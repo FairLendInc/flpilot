@@ -7,12 +7,35 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 /**
- * Get a mortgage by ID with all details
+ * Get a mortgage by ID with all details including signed URLs for images and documents
  */
 export const getMortgage = query({
 	args: { id: v.id("mortgages") },
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.id);
+		const mortgage = await ctx.db.get(args.id);
+		if (!mortgage) return null;
+
+		// Fetch signed URLs for all property images
+		const imagesWithUrls = await Promise.all(
+			mortgage.images.map(async (img) => ({
+				...img,
+				url: await ctx.storage.getUrl(img.storageId),
+			}))
+		);
+
+		// Fetch signed URLs for all documents
+		const documentsWithUrls = await Promise.all(
+			(mortgage.documents ?? []).map(async (doc) => ({
+				...doc,
+				url: await ctx.storage.getUrl(doc.storageId),
+			}))
+		);
+
+		return {
+			...mortgage,
+			images: imagesWithUrls,
+			documents: documentsWithUrls,
+		};
 	},
 });
 
@@ -86,6 +109,11 @@ export const createMortgage = mutation({
 				v.literal("defaulted")
 			)
 		),
+		mortgageType: v.union(
+			v.literal("1st"),
+			v.literal("2nd"),
+			v.literal("other")
+		),
 		previousMortgageId: v.optional(v.id("mortgages")),
 		address: v.object({
 			street: v.string(),
@@ -99,6 +127,11 @@ export const createMortgage = mutation({
 			lng: v.number(),
 		}),
 		propertyType: v.string(),
+		appraisalMarketValue: v.number(),
+		appraisalMethod: v.string(),
+		appraisalCompany: v.string(),
+		appraisalDate: v.string(),
+		ltv: v.number(),
 		images: v.optional(
 			v.array(
 				v.object({
@@ -134,6 +167,12 @@ export const createMortgage = mutation({
 		if (args.interestRate <= 0 || args.interestRate >= 100) {
 			throw new Error("Interest rate must be between 0 and 100");
 		}
+		if (args.ltv < 0 || args.ltv > 100) {
+			throw new Error("LTV must be between 0 and 100");
+		}
+		if (args.appraisalMarketValue <= 0) {
+			throw new Error("Appraisal market value must be greater than 0");
+		}
 
 		// Validate coordinates
 		if (args.location.lat < -90 || args.location.lat > 90) {
@@ -143,13 +182,20 @@ export const createMortgage = mutation({
 			throw new Error("Longitude must be between -180 and 180");
 		}
 
+		// Validate appraisal date is not in the future
+		const appraisalDate = new Date(args.appraisalDate);
+		const now = new Date();
+		if (appraisalDate > now) {
+			throw new Error("Appraisal date cannot be in the future");
+		}
+
 		// Validate borrower exists
 		const borrower = await ctx.db.get(args.borrowerId);
 		if (!borrower) {
 			throw new Error("Borrower not found");
 		}
 
-		// Create mortgage with defaults
+		// Create mortgage with all fields
 		return await ctx.db.insert("mortgages", {
 			borrowerId: args.borrowerId,
 			loanAmount: args.loanAmount,
@@ -157,10 +203,16 @@ export const createMortgage = mutation({
 			originationDate: args.originationDate,
 			maturityDate: args.maturityDate,
 			status: args.status ?? "active",
+			mortgageType: args.mortgageType,
 			previousMortgageId: args.previousMortgageId,
 			address: args.address,
 			location: args.location,
 			propertyType: args.propertyType,
+			appraisalMarketValue: args.appraisalMarketValue,
+			appraisalMethod: args.appraisalMethod,
+			appraisalCompany: args.appraisalCompany,
+			appraisalDate: args.appraisalDate,
+			ltv: args.ltv,
 			images: args.images ?? [],
 			documents: args.documents ?? [],
 		});
