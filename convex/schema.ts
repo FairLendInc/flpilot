@@ -139,6 +139,12 @@ export default defineSchema({
 			v.literal("closed"),
 			v.literal("defaulted")
 		),
+		// Mortgage type classification
+		mortgageType: v.union(
+			v.literal("1st"),
+			v.literal("2nd"),
+			v.literal("other")
+		),
 		// Renewal tracking - links to previous mortgage if this is a renewal
 		previousMortgageId: v.optional(v.id("mortgages")),
 		// Embedded property information
@@ -154,6 +160,13 @@ export default defineSchema({
 			lng: v.number(),
 		}),
 		propertyType: v.string(),
+		// Appraisal data - flattened structure for querying
+		appraisalMarketValue: v.number(), // Current market value of property
+		appraisalMethod: v.string(), // Method used for appraisal
+		appraisalCompany: v.string(), // Company that performed appraisal
+		appraisalDate: v.string(), // ISO date string of appraisal
+		// Loan-to-Value ratio (persisted for filtering)
+		ltv: v.number(), // Percentage (0-100)
 		// Property images (stored in Convex file storage)
 		images: v.array(
 			v.object({
