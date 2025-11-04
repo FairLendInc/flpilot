@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { UserAvatarMenu } from "@/components/auth/UserAvatarMenu";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import { Button } from "@/components/ui/button";
+import { NotificationInboxPopover } from "@/components/ui/notification-inbox-popover";
 import { isNavItemActive, navigationItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { FilterBar } from "../filter-bar";
@@ -120,10 +121,7 @@ export function TwoLevelNav({
 						{/* Right Side - User Controls */}
 						<div className="flex items-center gap-2 md:gap-3">
 							{/* Notifications - Visible on all screen sizes */}
-							<Button className="relative" size="icon" variant="ghost">
-								<Bell className="size-4" />
-								<span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />
-							</Button>
+							<NotificationInboxPopover />
 
 							{/* User Avatar - Visible on all screen sizes */}
 							<UserAvatarMenu />
