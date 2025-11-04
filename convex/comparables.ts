@@ -7,7 +7,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 /**
- * Get all comparables for a mortgage (ordered by distance)
+ * Get all comparables for a mortgage (ordered by distance) with signed URLs for images
  */
 export const getComparablesForMortgage = query({
 	args: { mortgageId: v.id("mortgages") },
@@ -17,8 +17,22 @@ export const getComparablesForMortgage = query({
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
 			.collect();
 
+		// Fetch signed URLs for comparable images
+		const comparablesWithUrls = await Promise.all(
+			comparables.map(async (comp) => {
+				let imageUrl = null;
+				if (comp.imageStorageId) {
+					imageUrl = await ctx.storage.getUrl(comp.imageStorageId);
+				}
+				return {
+					...comp,
+					imageUrl,
+				};
+			})
+		);
+
 		// Sort by distance (closest first)
-		return comparables.sort((a, b) => a.distance - b.distance);
+		return comparablesWithUrls.sort((a, b) => a.distance - b.distance);
 	},
 });
 
