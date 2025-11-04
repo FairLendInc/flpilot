@@ -53,7 +53,7 @@ export function FilterBar() {
 		safeFilters.maturityDate !== undefined;
 
 	return (
-		<div className="z-[10] flex flex-col justify-center gap-x-4">
+		<div className="z-10 flex flex-col justify-center gap-x-4">
 			<div className="flex flex-nowrap items-center justify-start gap-2">
 				<div className="relative md:w-64">
 					<Icon
@@ -75,15 +75,21 @@ export function FilterBar() {
 					onFiltersChange={setFilters}
 				/>
 
-				{hasActiveFilters && (
-					<Button onClick={handleClearFilters} variant="destructive">
-						<Icon className="mr-2" icon="lucide:x" />
-						Clear Filters
-					</Button>
-				)}
+			{hasActiveFilters && (
+				<Button 
+					onClick={handleClearFilters} 
+					variant="destructive"
+					size="sm"
+					className="px-2"
+					aria-label="Clear filters"
+				>
+					<Icon className="size-3.5" icon="lucide:x" />
+					<Icon className="size-3.5" icon="lucide:filter" />
+				</Button>
+			)}
 			</div>
 
-			{hasActiveFilters && (
+			{/* {hasActiveFilters && (
 				<div className="flex flex-wrap gap-2 text-sm">
 					<span className="text-muted-foreground">Active filters:</span>
 
@@ -131,7 +137,7 @@ export function FilterBar() {
 						</span>
 					)}
 				</div>
-			)}
+			)} */}
 		</div>
 	);
 }
