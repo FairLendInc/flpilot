@@ -1,0 +1,265 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+This is a full-stack TypeScript application that combines Convex as the backend, Next.js as the frontend framework, and WorkOS AuthKit for authentication. The project uses modern React patterns with TypeScript, Tailwind CSS for styling, and includes comprehensive testing setup with Vitest and Playwright.
+
+## Development Commands
+
+### Essential Development Commands
+
+```bash
+# Start full development environment (frontend + backend)
+pnpm run dev
+
+# Start only frontend
+pnpm run dev:frontend
+
+# Start only backend (Convex)
+pnpm run dev:backend
+
+# Initial setup - starts Convex and opens dashboard
+pnpm run predev
+```
+
+### Build and Deployment
+
+```bash
+# Build for production
+pnpm run build
+
+# Start production server
+pnpm run start
+```
+
+### Testing Commands
+
+```bash
+# Run unit tests in watch mode
+pnpm run test
+
+# Run unit tests once
+pnpm run test:once
+
+# Run tests with coverage
+pnpm run test:coverage
+
+# Debug tests
+pnpm run test:debug
+
+# Run E2E tests
+pnpm run e2e
+
+# Run E2E tests with UI
+pnpm run e2e:ui
+```
+
+### Code Quality
+
+```bash
+# Lint code
+pnpm run lint
+
+# Format code
+pnpm run format
+
+# Run all checks (lint + format)
+pnpm run check
+
+# Type checking
+pnpm run check-types
+
+# Generate TypeScript types
+pnpm run tsgo
+```
+
+### Storybook
+
+```bash
+# Start Storybook development server
+pnpm run storybook
+
+# Build Storybook
+pnpm run build-storybook
+```
+
+## Architecture Overview
+
+### Core Stack
+
+- **Backend**: Convex (database + serverless functions)
+- **Frontend**: Next.js 15 with App Router
+- **Authentication**: WorkOS AuthKit with redirect-based flow
+- **Styling**: Tailwind CSS v4
+- **UI Components**: HeroUI (custom NextUI fork) + Radix UI primitives
+- **Testing**: Vitest (unit) + Playwright (E2E)
+- **Linting/Formatting**: Biome
+- **Logging**: Custom centralized logging with Pino
+
+### Key Architectural Patterns
+
+#### Authentication Flow
+- WorkOS AuthKit handles authentication via redirect-based flow
+- Middleware (`middleware.ts`) protects routes and manages session state
+- `ConvexClientProvider` bridges WorkOS auth with Convex authentication
+- Unauthenticated paths: `/`, `/sign-in`, `/sign-up`
+
+#### Data Flow
+- Convex schema defined in `convex/schema.ts` (currently minimal)
+- Server functions in `convex/` directory handle backend logic
+- Client components use `useAuth()` and `useAccessToken()` hooks from AuthKit
+- All data queries go through Convex's reactive query system
+
+#### Logging Architecture
+- Centralized logging system with adapter pattern
+- Server: Pino-based structured logging with pretty output in dev
+- Client: Batching adapter that posts to `/api/logs`
+- Convex: Lightweight shim writing to stdout
+- Environment: `LOG_LEVEL`, `LOG_PRETTY`, `LOG_SERVICE_NAME`
+
+#### Toast Notifications
+- **Sonner** is used for all toast notifications (NOT `use-toast` hook)
+- Import from `sonner`: `import { toast } from "sonner"`
+- Usage: `toast.success("Message")`, `toast.error("Message")`, `toast.info("Message")`
+- Toaster component is already configured in the app layout with custom icons
+- Never create or import `@/hooks/use-toast` - use `sonner` directly
+
+#### React Compiler Optimization
+- **This project uses React Compiler for automatic performance optimization**
+- **DO NOT manually use `useMemo` or `useCallback`** - React Compiler handles this automatically
+- Write plain functions and let the compiler optimize them
+- Remove dependency arrays - React Compiler tracks dependencies automatically
+- Benefits:
+  - ✅ Automatic memoization of expensive computations
+  - ✅ Automatic dead code elimination
+  - ✅ Automatic state transition tracking
+  - ✅ Cleaner, more readable code
+  - ✅ Better performance than manual optimization
+
+**Example - DON'T DO THIS (Manual Optimization):**
+```typescript
+// ❌ Manual optimization - NOT needed with React Compiler
+const derivedData = useMemo(() => {
+  return expensiveComputation(data);
+}, [data]);
+
+const handleClick = useCallback((id: string) => {
+  doSomething(id);
+}, [doSomething]);
+```
+
+**Example - DO THIS (React Compiler):**
+```typescript
+// ✅ Let React Compiler handle optimization automatically
+function getDerivedData(data: typeof userData) {
+  return expensiveComputation(data);
+}
+
+function handleClick(id: string) {
+  doSomething(id);
+}
+```
+
+### Project Structure
+
+```
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   └── (auth)/            # Authenticated route groups
+├── components/            # React components
+├── convex/               # Convex backend (schema + functions)
+├── lib/                  # Shared utilities and configurations
+├── hooks/                # Custom React hooks
+├── stories/              # Storybook stories
+├── unit-tests/           # Unit test files
+├── e2e/                  # Playwright E2E tests
+└── docs/                 # Project documentation
+```
+
+### Environment Setup
+
+Copy `.env.local.example` to `.env.local` and configure:
+
+1. **WorkOS Configuration**:
+   - `WORKOS_CLIENT_ID`
+   - `WORKOS_API_KEY`
+   - `WORKOS_COOKIE_PASSWORD` (32+ characters)
+   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI` (e.g., `http://localhost:3000/callback`)
+
+2. **Convex Configuration**:
+   - `NEXT_PUBLIC_CONVEX_URL` (auto-added by `npx convex dev`)
+   - `CONVEX_DEPLOYMENT` (for production)
+
+3. **Logging Configuration**:
+   - `LOG_LEVEL` (default: `info`)
+   - `LOG_PRETTY` (default: `true` in development)
+   - `LOG_SERVICE_NAME` (default: `convex-next-authkit`)
+
+### Development Workflow
+
+1. **Initial Setup**:
+   ```bash
+   pnpm install
+   cp .env.local.example .env.local
+   # Configure environment variables
+   npx convex dev
+   npx convex auth add workos
+   ```
+
+2. **Daily Development**:
+   ```bash
+   pnpm run dev  # Starts both frontend and backend
+   ```
+
+3. **Testing Workflow**:
+   ```bash
+   pnpm run test        # Run unit tests while developing
+   pnpm run e2e         # Run E2E tests before commits
+   pnpm run check-types # Type checking
+   ```
+
+### Key Integration Points
+
+#### WorkOS + Convex Integration
+- `components/ConvexClientProvider.tsx` bridges AuthKit with Convex
+- Custom `useAuthFromAuthKit()` function provides Convex-compatible auth interface
+- Token refresh handled automatically by AuthKit components
+
+#### Middleware Protection
+- `middleware.ts` implements route protection and request ID tracking
+- Eager authentication mode redirects unauthenticated users to sign-in
+- Request IDs automatically added to headers for log correlation
+
+#### Logging Integration
+- Import from `lib/logger.ts` everywhere (server, client, Convex)
+- Use `logger.child()` for request-scoped context
+- Client logs automatically forwarded to server logging infrastructure
+
+## Important Notes
+
+- This is a WorkOS AuthKit template with automatic provisioning enabled
+- Convex schema is optional - the app works without it
+- All authentication state management is handled by AuthKit
+- Logging is centralized and provider-agnostic for easy future migrations
+- The project uses modern React patterns with TypeScript throughout

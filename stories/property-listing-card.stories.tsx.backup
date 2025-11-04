@@ -1,0 +1,445 @@
+import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
+// Mock function for callbacks
+const fn = () => () => {};
+import { AirbnbListingCard, type ListingProps } from "@/components/property-listing-card";
+
+const meta: Meta<typeof AirbnbListingCard> = {
+  title: "Components/PropertyListingCard",
+  component: AirbnbListingCard,
+  parameters: {
+    layout: "centered",
+    docs: {
+      description: {
+        component: "An Airbnb-style property listing card with image carousel, ratings, pricing, and interactive features.",
+      },
+    },
+  },
+  argTypes: {
+    id: {
+      control: "text",
+      description: "Unique identifier for the listing",
+    },
+    title: {
+      control: "text",
+      description: "Title of the property listing",
+    },
+    location: {
+      control: "text",
+      description: "Location of the property",
+    },
+    host: {
+      control: "text",
+      description: "Name of the host",
+    },
+    images: {
+      control: "array",
+      description: "Array of image URLs for the carousel",
+    },
+    rating: {
+      control: { type: "range", min: 0, max: 5, step: 0.1 },
+      description: "Rating of the property (0-5)",
+    },
+    reviewCount: {
+      control: { type: "range", min: 0, max: 1000, step: 1 },
+      description: "Number of reviews",
+    },
+    price: {
+      control: { type: "number", min: 0, step: 10 },
+      description: "Price of the listing",
+    },
+    perNight: {
+      control: "boolean",
+      description: "Whether price is per night",
+    },
+    dates: {
+      control: "text",
+      description: "Available dates string",
+    },
+    isSuperhost: {
+      control: "boolean",
+      description: "Whether the host is a superhost",
+    },
+    isNew: {
+      control: "boolean",
+      description: "Whether this is a new listing",
+    },
+    category: {
+      control: "text",
+      description: "Category of the property",
+    },
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+// Sample image URLs for stories
+const sampleImages = [
+  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=400&fit=crop",
+];
+
+// Default story
+export const Default: Story = {
+  args: {
+    id: "1",
+    title: "Cozy Beach House",
+    location: "Malibu, California",
+    host: "Sarah Johnson",
+    images: [sampleImages[0]],
+    rating: 4.8,
+    reviewCount: 127,
+    price: 250,
+    perNight: true,
+    dates: "Nov 15-20",
+    category: "Beach house",
+  },
+};
+
+// Multi-image carousel
+export const MultiImageCarousel: Story = {
+  args: {
+    id: "2",
+    title: "Modern Downtown Apartment",
+    location: "New York, New York",
+    host: "Michael Chen",
+    images: sampleImages,
+    rating: 4.9,
+    reviewCount: 342,
+    price: 450,
+    perNight: true,
+    dates: "Dec 1-5",
+    category: "Apartment",
+  },
+};
+
+// Superhost listing
+export const Superhost: Story = {
+  args: {
+    id: "3",
+    title: "Luxury Mountain Retreat",
+    location: "Aspen, Colorado",
+    host: "Emily Rodriguez",
+    images: [sampleImages[1]],
+    rating: 5.0,
+    reviewCount: 89,
+    price: 650,
+    perNight: true,
+    dates: "Jan 10-15",
+    isSuperhost: true,
+    category: "Mountain cabin",
+  },
+};
+
+// New listing
+export const NewListing: Story = {
+  args: {
+    id: "4",
+    title: "Charming Cottage",
+    location: "Portland, Oregon",
+    host: "David Kim",
+    images: [sampleImages[2]],
+    rating: 4.6,
+    reviewCount: 12,
+    price: 180,
+    perNight: true,
+    dates: "Feb 20-25",
+    isNew: true,
+    category: "Cottage",
+  },
+};
+
+// Superhost + New listing
+export const SuperhostAndNew: Story = {
+  args: {
+    id: "5",
+    title: "Urban Loft",
+    location: "San Francisco, California",
+    host: "Lisa Wang",
+    images: [sampleImages[3]],
+    rating: 4.9,
+    reviewCount: 28,
+    price: 380,
+    perNight: true,
+    dates: "Mar 5-10",
+    isSuperhost: true,
+    isNew: true,
+    category: "Loft",
+  },
+};
+
+// Budget-friendly option
+export const BudgetFriendly: Story = {
+  args: {
+    id: "6",
+    title: "Simple Room",
+    location: "Austin, Texas",
+    host: "James Miller",
+    images: [sampleImages[0]],
+    rating: 4.2,
+    reviewCount: 45,
+    price: 65,
+    perNight: true,
+    dates: "Apr 1-7",
+    category: "Private room",
+  },
+};
+
+// Premium luxury listing
+export const PremiumLuxury: Story = {
+  args: {
+    id: "7",
+    title: "Villa Paradise",
+    location: "Miami Beach, Florida",
+    host: "Roberto Silva",
+    images: sampleImages,
+    rating: 4.95,
+    reviewCount: 567,
+    price: 1250,
+    perNight: true,
+    dates: "May 15-22",
+    isSuperhost: true,
+    category: "Villa",
+  },
+};
+
+// Monthly rental (not per night)
+export const MonthlyRental: Story = {
+  args: {
+    id: "8",
+    title: "Cozy Studio",
+    location: "Seattle, Washington",
+    host: "Anna Thompson",
+    images: [sampleImages[2]],
+    rating: 4.7,
+    reviewCount: 203,
+    price: 2800,
+    perNight: false,
+    dates: "Jun 1 - Jul 31",
+    category: "Studio apartment",
+  },
+};
+
+// No reviews yet
+export const NoReviews: Story = {
+  args: {
+    id: "9",
+    title: "Hidden Gem",
+    location: "Nashville, Tennessee",
+    host: "Tom Wilson",
+    images: [sampleImages[1]],
+    rating: 0,
+    reviewCount: 0,
+    price: 195,
+    perNight: true,
+    dates: "Jul 10-15",
+    isNew: true,
+    category: "House",
+  },
+};
+
+// Different categories
+export const CategoriesShowcase: Story = {
+  render: () => (
+    <div className="space-y-8 p-8">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Property Categories</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AirbnbListingCard
+            id="10"
+            title="Beachfront Paradise"
+            location="Miami, Florida"
+            host="Carlos Mendez"
+            images={[sampleImages[0]]}
+            rating={4.8}
+            reviewCount={156}
+            price={320}
+            dates="Aug 1-7"
+            category="Beachfront"
+          />
+          <AirbnbListingCard
+            id="11"
+            title="City View Apartment"
+            location="Chicago, Illinois"
+            host="Jennifer Lee"
+            images={[sampleImages[1]]}
+            rating={4.6}
+            reviewCount={89}
+            price={275}
+            dates="Aug 10-15"
+            category="City view"
+          />
+          <AirbnbListingCard
+            id="12"
+            title="Rustic Cabin"
+            location="Denver, Colorado"
+            host="Mark Anderson"
+            images={[sampleImages[2]]}
+            rating={4.9}
+            reviewCount={234}
+            price={425}
+            dates="Aug 20-25"
+            category="Cabin"
+          />
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+// Price range comparison
+export const PriceRangeComparison: Story = {
+  render: () => (
+    <div className="space-y-8 p-8">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Price Range Comparison</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <AirbnbListingCard
+            id="13"
+            title="Budget Room"
+            location="Phoenix, Arizona"
+            host="Alex Brown"
+            images={[sampleImages[3]]}
+            rating={4.1}
+            reviewCount={67}
+            price={45}
+            dates="Sep 1-5"
+            category="Shared room"
+          />
+          <AirbnbListingCard
+            id="14"
+            title="Mid-Range Apartment"
+            location="Boston, Massachusetts"
+            host="Maria Garcia"
+            images={[sampleImages[0]]}
+            rating={4.5}
+            reviewCount={112}
+            price={175}
+            dates="Sep 10-15"
+            category="Apartment"
+          />
+          <AirbnbListingCard
+            id="15"
+            title="Premium Suite"
+            location="Los Angeles, California"
+            host="Robert Taylor"
+            images={[sampleImages[1]]}
+            rating={4.8}
+            reviewCount={298}
+            price={580}
+            dates="Sep 20-25"
+            category="Suite"
+          />
+          <AirbnbListingCard
+            id="16"
+            title="Luxury Estate"
+            location="Beverly Hills, California"
+            host="Victoria White"
+            images={[sampleImages[2]]}
+            rating={5.0}
+            reviewCount={445}
+            price={2500}
+            dates="Oct 1-8"
+            category="Estate"
+          />
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+// Interactive showcase with state management
+export const InteractiveShowcase: Story = {
+  render: () => {
+    const [selectedListing, setSelectedListing] = useState<string | null>(null);
+
+    const listings: ListingProps[] = [
+      {
+        id: "17",
+        title: "Modern Condo",
+        location: "San Diego, California",
+        host: "Kevin Martinez",
+        images: [sampleImages[0]],
+        rating: 4.7,
+        reviewCount: 189,
+        price: 295,
+        dates: "Oct 15-20",
+        isSuperhost: true,
+        category: "Condo",
+      },
+      {
+        id: "18",
+        title: "Historic Home",
+        location: "Charleston, South Carolina",
+        host: "Susan Davis",
+        images: [sampleImages[1]],
+        rating: 4.9,
+        reviewCount: 267,
+        price: 420,
+        dates: "Oct 25-30",
+        category: "Historic home",
+      },
+    ];
+
+    return (
+      <div className="space-y-8 p-8">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Interactive Showcase</h3>
+          <p className="text-gray-600 mb-4">Click on any listing to see it selected</p>
+          {selectedListing && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-blue-800">
+                <strong>Selected Listing ID:</strong> {selectedListing}
+              </p>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {listings.map((listing) => (
+              <div
+                key={listing.id}
+                className={`cursor-pointer transition-all ${
+                  selectedListing === listing.id
+                    ? "ring-4 ring-blue-500 rounded-xl"
+                    : ""
+                }`}
+                onClick={() => setSelectedListing(listing.id)}
+              >
+                <AirbnbListingCard {...listing} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  },
+};
+
+// Responsive design showcase
+export const ResponsiveDesign: Story = {
+  render: () => (
+    <div className="space-y-8 p-8">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Responsive Design</h3>
+        <p className="text-gray-600 mb-4">The card adapts to different screen sizes</p>
+        <div className="flex justify-center">
+          <AirbnbListingCard
+            id="19"
+            title="Responsive Test Property"
+            location="Test City, Test State"
+            host="Test Host"
+            images={sampleImages}
+            rating={4.8}
+            reviewCount={123}
+            price={350}
+            dates="Nov 1-7"
+            isSuperhost: true
+            category="Test property"
+          />
+        </div>
+      </div>
+    </div>
+  ),
+};

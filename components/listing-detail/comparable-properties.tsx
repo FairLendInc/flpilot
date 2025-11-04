@@ -1,0 +1,162 @@
+import { Card, CardContent, Chip } from "@heroui/react";
+import { Icon } from "@iconify/react";
+import { format, parseISO } from "date-fns";
+import Image from "next/image";
+
+type AppraisalComparable = {
+	_id: string;
+	address: {
+		street: string;
+		city: string;
+		state: string;
+		zip: string;
+	};
+	saleAmount: number;
+	saleDate: string; // ISO date
+	distance: number; // in miles
+	squareFeet?: number;
+	bedrooms?: number;
+	bathrooms?: number;
+	propertyType?: string;
+	imageUrl: string;
+};
+
+type ComparablePropertiesProps = {
+	comparables: AppraisalComparable[];
+};
+
+function formatCurrency(amount: number): string {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	}).format(amount);
+}
+
+function formatDistance(miles: number): string {
+	if (miles < 0.1) {
+		return "< 0.1 mi";
+	}
+	return `${miles.toFixed(1)} mi`;
+}
+
+export function ComparableProperties({
+	comparables,
+}: ComparablePropertiesProps) {
+	if (comparables.length === 0) {
+		return null; // Hide section when no comparables
+	}
+
+	return (
+		<div className="space-y-4">
+			<div className="flex items-center gap-2">
+				<Icon className="h-6 w-6 text-primary" icon="lucide:file-text" />
+				<h2 className="font-bold text-2xl">Appraisal Comparables</h2>
+				<Chip>{comparables.length} properties</Chip>
+			</div>
+
+			<p className="text-gray-600 text-sm dark:text-gray-400">
+				Recent sales of similar properties used in the appraisal analysis
+			</p>
+
+			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+				{comparables.map((comp) => {
+					const saleDate = parseISO(comp.saleDate);
+
+					return (
+						<Card.Root
+							className="overflow-hidden transition-shadow hover:shadow-md"
+							key={comp._id}
+						>
+							<CardContent className="p-0">
+								{/* Property Image */}
+								<div className="relative aspect-video w-full overflow-hidden rounded-lg">
+									<Image
+										alt={`${comp.address.street} - Comparable Property`}
+										className="rounded-lg object-cover transition-transform hover:scale-110"
+										fill
+										sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+										src={comp.imageUrl}
+									/>
+									{/* Distance badge */}
+									<div className="absolute top-3 right-3 rounded-full bg-black/60 px-3 py-1 font-medium text-sm text-white backdrop-blur-sm">
+										{formatDistance(comp.distance)}
+									</div>
+								</div>
+
+								<div className="space-y-4 p-5">
+									{/* Header: Sale Amount */}
+									<div>
+										<p className="font-bold text-2xl text-gray-900 dark:text-white">
+											{formatCurrency(comp.saleAmount)}
+										</p>
+										<p className="text-gray-500 text-sm dark:text-gray-400">
+											Sale Price
+										</p>
+									</div>
+
+									{/* Address */}
+									<div className="flex items-start gap-2 border-gray-200 border-t pt-3 dark:border-gray-700">
+										<Icon
+											className="mt-0.5 h-5 w-5 shrink-0 text-gray-400"
+											icon="lucide:map-pin"
+										/>
+										<div className="flex-1">
+											<p className="font-medium text-gray-900 dark:text-white">
+												{comp.address.street}
+											</p>
+											<p className="text-gray-600 text-sm dark:text-gray-400">
+												{comp.address.city}, {comp.address.state}{" "}
+												{comp.address.zip}
+											</p>
+										</div>
+									</div>
+
+									{/* Sale Date */}
+									<div className="flex items-center gap-2 text-gray-600 text-sm dark:text-gray-400">
+										<Icon className="h-4 w-4" icon="lucide:calendar" />
+										<span>Sold: {format(saleDate, "MMMM d, yyyy")}</span>
+									</div>
+
+									{/* Property Details */}
+									{(comp.squareFeet ||
+										comp.bedrooms ||
+										comp.bathrooms ||
+										comp.propertyType) && (
+										<div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-gray-200 border-t pt-3 text-gray-600 text-sm dark:border-gray-700 dark:text-gray-400">
+											{comp.propertyType && (
+												<div className="flex items-center gap-1.5">
+													<Icon className="h-4 w-4" icon="lucide:building" />
+													<span>{comp.propertyType}</span>
+												</div>
+											)}
+											{comp.squareFeet && (
+												<div className="flex items-center gap-1.5">
+													<Icon className="h-4 w-4" icon="lucide:maximize" />
+													<span>{comp.squareFeet.toLocaleString()} sq ft</span>
+												</div>
+											)}
+											{comp.bedrooms && (
+												<div className="flex items-center gap-1.5">
+													<Icon className="h-4 w-4" icon="lucide:bed" />
+													<span>{comp.bedrooms} bed</span>
+												</div>
+											)}
+											{comp.bathrooms && (
+												<div className="flex items-center gap-1.5">
+													<Icon className="h-4 w-4" icon="lucide:bath" />
+													<span>{comp.bathrooms} bath</span>
+												</div>
+											)}
+										</div>
+									)}
+								</div>
+							</CardContent>
+						</Card.Root>
+					);
+				})}
+			</div>
+		</div>
+	);
+}

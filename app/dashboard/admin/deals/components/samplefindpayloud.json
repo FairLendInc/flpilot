@@ -1,0 +1,1216 @@
+{
+  "data": [
+    {
+      "visibility": "EVERYONE",
+      "status": "PENDING",
+      "source": "TEMPLATE",
+      "id": 424857,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Investor Disclosure v2 - Template",
+      "createdAt": "2025-10-20T01:11:51.691Z",
+      "updatedAt": "2025-10-20T01:13:20.895Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_dchzwdsldfizxwml",
+      "documentDataId": "",
+      "templateId": 6243,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_dchzwdsldfizxwml",
+          "role": "APPROVER",
+          "readStatus": "OPENED",
+          "signingStatus": "SIGNED",
+          "sendStatus": "SENT",
+          "id": 562878,
+          "email": "zepplinf13@gmail.com",
+          "name": "Buyer Lawyer",
+          "token": "qZBiaKQXNgPI82FOHgprJ",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": "2025-10-20T04:54:46.594Z",
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 424857,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_dchzwdsldfizxwml",
+          "role": "SIGNER",
+          "readStatus": "OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "SENT",
+          "id": 562879,
+          "email": "connor.beleznay@gmail.com",
+          "name": "Buyer",
+          "token": "NPw64upo423n4d2UAKrKN",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 424857,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_dchzwdsldfizxwml",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 562880,
+          "email": "connor.belez@gmail.com",
+          "name": "Broker",
+          "token": "x8v4ZvSHfQGVGgS_6quC3",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 424857,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348608,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Transfer of Charge",
+      "createdAt": "2025-09-10T23:00:43.564Z",
+      "updatedAt": "2025-09-10T23:00:43.564Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_kstvyfothwudxsks",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_kstvyfothwudxsks",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466390,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "4E2WT8ShfUaRBLWQsD_Lu",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348608,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_kstvyfothwudxsks",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466391,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "B6NWgASE4pXzwLSxw9ama",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348608,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_kstvyfothwudxsks",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466392,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "q7J56qsN4zSwssgaBwt9n",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348608,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_kstvyfothwudxsks",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466389,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "T3Vs5ShyLibi6gi51jgVE",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348608,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348606,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Servicing Agreement",
+      "createdAt": "2025-09-10T23:00:02.468Z",
+      "updatedAt": "2025-09-10T23:00:02.468Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_dhitkcarixhkausv",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_dhitkcarixhkausv",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466385,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "PdefP6UM_blkI8O4w0X2Q",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348606,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_dhitkcarixhkausv",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466383,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "MPZ8T_IIKMYmSctUHScJH",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348606,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_dhitkcarixhkausv",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466386,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "aiVkM-2s87y2bwSDv_W0S",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348606,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_dhitkcarixhkausv",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466384,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "OMDA5s_6DPh3AQTyGc4LD",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348606,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348605,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Investor Disclosure",
+      "createdAt": "2025-09-10T22:59:41.045Z",
+      "updatedAt": "2025-09-10T22:59:41.045Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_omlsunclhizrckxr",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_omlsunclhizrckxr",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466376,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "b-E7ZDB74NJ3Q1hXd8VgL",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348605,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_omlsunclhizrckxr",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466375,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "EXZN8Aa5nWW4FsV5DZBUb",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348605,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_omlsunclhizrckxr",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466377,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "35hPFKk_jWHsaOWsoQepq",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348605,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_omlsunclhizrckxr",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466374,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "m4mdv7EaOa52OOL_rBWHr",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348605,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348604,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Servicing Agreement",
+      "createdAt": "2025-09-10T22:59:12.885Z",
+      "updatedAt": "2025-09-10T22:59:12.885Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_axuwmbkvykwnwkiv",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_axuwmbkvykwnwkiv",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466371,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "iWqHTzH2EA0uv3Eu-SxnF",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348604,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_axuwmbkvykwnwkiv",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466373,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "uGbt62ZtVIfRTTD57vD6Z",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348604,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_axuwmbkvykwnwkiv",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466372,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "QwOYzdXoidO23q_0Esx_9",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348604,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_axuwmbkvykwnwkiv",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466370,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "qPE9nlGzoaTPUsBwQBagF",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348604,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348603,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Closing Package",
+      "createdAt": "2025-09-10T22:58:52.862Z",
+      "updatedAt": "2025-09-10T22:58:52.862Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_kohldrvcmwesndxr",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_kohldrvcmwesndxr",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466368,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "7g0t2ceQbx26ohQRstbza",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348603,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_kohldrvcmwesndxr",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466367,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "ygPy51TnKZ1sVuKwuzuOe",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348603,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_kohldrvcmwesndxr",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466366,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "6txZKyhUxLxH8E__3T6II",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348603,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_kohldrvcmwesndxr",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466369,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "59z6A71ItByjLfMQ6nQEW",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348603,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348601,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Original Mortgage Commitment",
+      "createdAt": "2025-09-10T22:58:22.621Z",
+      "updatedAt": "2025-09-10T22:58:22.621Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_aomnstioxnyinyxu",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_aomnstioxnyinyxu",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466364,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "AympJx0W69GkKrE8GFUAE",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348601,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_aomnstioxnyinyxu",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466362,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "LUjxy5_VKsOn_yw2ns-XD",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348601,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_aomnstioxnyinyxu",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466363,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "35eC2Xj88oVZMtuAIo2d9",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348601,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_aomnstioxnyinyxu",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466365,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "_OTDFGzy3fJQtckLAh0gY",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348601,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348585,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Breaky1",
+      "createdAt": "2025-09-10T22:32:43.872Z",
+      "updatedAt": "2025-09-10T22:32:43.872Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_wrutymowsttumtrl",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_wrutymowsttumtrl",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466336,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "-ICzzx5HlpZiJmF3D9YdZ",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348585,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_wrutymowsttumtrl",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466337,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "Q6riqi_xmkkyLz6OSGF63",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348585,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_wrutymowsttumtrl",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466339,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "YzWG8h-9tXdGTpRrWBMbf",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348585,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_wrutymowsttumtrl",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466338,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "YXTjnvWeXuEVfUq1WzQvh",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348585,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348584,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Breaky 2",
+      "createdAt": "2025-09-10T22:32:42.637Z",
+      "updatedAt": "2025-09-10T22:32:42.637Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_oedhkfmzwtzermfe",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_oedhkfmzwtzermfe",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466333,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "zxJwn5vjFmHepcU7jBnsn",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348584,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_oedhkfmzwtzermfe",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466334,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "CIafVcUUaI9TjXdikeCJD",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348584,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_oedhkfmzwtzermfe",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466335,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "tqx55rZHZUm0Q7BxwYtZM",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348584,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_oedhkfmzwtzermfe",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466332,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "a83eK4pMV2d2NNSJCt9Ct",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348584,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    },
+    {
+      "visibility": "EVERYONE",
+      "status": "DRAFT",
+      "source": "DOCUMENT",
+      "id": 348577,
+      "externalId": null,
+      "userId": 21283,
+      "authOptions": {
+        "globalAccessAuth": [],
+        "globalActionAuth": []
+      },
+      "formValues": null,
+      "title": "Transfer of Charge",
+      "createdAt": "2025-09-10T22:20:57.156Z",
+      "updatedAt": "2025-09-10T22:20:57.156Z",
+      "completedAt": null,
+      "deletedAt": null,
+      "teamId": 19863,
+      "folderId": null,
+      "useLegacyFieldInsertion": false,
+      "envelopeId": "envelope_vhdedfxumtmcwici",
+      "documentDataId": "",
+      "templateId": null,
+      "user": {
+        "id": 21283,
+        "name": "Connor Beleznay",
+        "email": "connor@fairlend.ca"
+      },
+      "recipients": [
+        {
+          "envelopeId": "envelope_vhdedfxumtmcwici",
+          "role": "APPROVER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466323,
+          "email": "buyerlawyer.1@documenso.com",
+          "name": "Buyer Lawyer",
+          "token": "TNVg1XFVRGu7OhRrAL7hz",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 2,
+          "rejectionReason": null,
+          "documentId": 348577,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_vhdedfxumtmcwici",
+          "role": "ASSISTANT",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466326,
+          "email": "system@documenso.com",
+          "name": "SYSTEM",
+          "token": "Kjq6AQ6FGTR6SuBzdt7F5",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 1,
+          "rejectionReason": null,
+          "documentId": 348577,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_vhdedfxumtmcwici",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466325,
+          "email": "broker.3@documenso.com",
+          "name": "Broker",
+          "token": "3lzDQ8JjGos0pqkofDlZq",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 4,
+          "rejectionReason": null,
+          "documentId": 348577,
+          "templateId": null
+        },
+        {
+          "envelopeId": "envelope_vhdedfxumtmcwici",
+          "role": "SIGNER",
+          "readStatus": "NOT_OPENED",
+          "signingStatus": "NOT_SIGNED",
+          "sendStatus": "NOT_SENT",
+          "id": 466324,
+          "email": "buyer.2@documenso.com",
+          "name": "Buyer",
+          "token": "Se9J4TGnD5jpCLSAiiNW8",
+          "documentDeletedAt": null,
+          "expired": null,
+          "signedAt": null,
+          "authOptions": {
+            "accessAuth": [],
+            "actionAuth": []
+          },
+          "signingOrder": 3,
+          "rejectionReason": null,
+          "documentId": 348577,
+          "templateId": null
+        }
+      ],
+      "team": {
+        "id": 19863,
+        "url": "fairlendteam"
+      }
+    }
+  ],
+  "count": 169,
+  "currentPage": 1,
+  "perPage": 10,
+  "totalPages": 17
+}

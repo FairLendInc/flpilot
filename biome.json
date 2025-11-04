@@ -1,0 +1,107 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": false,
+    "clientKind": "git",
+    "useIgnoreFile": false
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "app",
+      "app/",
+      "app/*",
+      "app/**",
+      "components",
+      "components/*",
+      "components/**",
+      "!components/skeletons/",
+      "!components/skeletons/*",
+      "!components/ui",
+      "!components/ui/*",
+      "hooks",
+      "hooks/*",
+      "hooks/**",
+      "lib",
+      "lib/*",
+      "lib/**",
+      "types",
+      "types/*",
+      "types/**",
+      "!node_modules/",
+      "!e2e/",
+      "!e2e/*",
+      "!dist/",
+      "!.convex/",
+      "!playwright-report/",
+      "!playwright-report/*",
+      "!app/globals.css",
+      "!.next/",
+      "!components/__tests__/",
+      "!components/__tests__/*",
+      "!convex/_generated",
+      "!convex/tsconfig.json",
+      "!convex",
+      "!convex/*",
+      "!vitest.config.mts",
+      "!biome.json",
+      "!.storybook",
+      "!.storybook/*",
+      "!ui",
+      "!stories",
+      "!stories/*",
+      "!.storybook",
+      "!convex/_generated/*"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "attributePosition": "auto",
+    "indentStyle": "tab",
+    "indentWidth": 2,
+    "lineWidth": 80,
+    "lineEnding": "lf"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "style": {
+        "noMagicNumbers": "off",
+        "noNestedTernary": "off",
+        "useNumericSeparators": "off",
+        "useBlockStatements": "off",
+        "useFilenamingConvention": "off"
+      },
+      "suspicious": {
+        "noTsIgnore": "off",
+        "noConsole": "off",
+        "useAwait": "off",
+        "noExplicitAny": "off",
+        "noUnknownAtRules": "off",
+        "noBitwiseOperators": "off"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off"
+      },
+      "a11y": {
+        "useSemanticElements": "off"
+      },
+      "recommended": true
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "extends": ["ultracite/core", "ultracite/next", "ultracite/react"]
+}

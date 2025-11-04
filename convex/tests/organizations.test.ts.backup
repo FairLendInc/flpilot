@@ -1,0 +1,336 @@
+import { describe, it, expect } from "vitest";
+import { convexTest } from "convex-test";
+import schema from "../schema";
+import { api } from "../../convex/_generated/api";
+import { internal } from "../../convex/_generated/api";
+
+describe("organization functions", () => {
+	const t = convexTest(schema);
+
+	describe("createOrUpdateOrganization", () => {
+		it("creates a new organization", async () => {
+			const orgId = await t.run(internal.organizations.createOrUpdateOrganization, {
+				id: "org_new_123",
+				name: "New Organization",
+				external_id: "ext_123",
+				metadata: { key: "value" },
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-01T00:00:00Z",
+				domains: [
+					{
+						id: "domain_123",
+						domain: "example.com",
+						organization_id: "org_new_123",
+						object: "organization_domain",
+						created_at: "2025-01-01T00:00:00Z",
+						updated_at: "2025-01-01T00:00:00Z",
+					},
+				],
+			});
+
+			const orgs = await t.db
+				.query("organizations")
+				.withIndex("byWorkosId", (q) => q.eq("id", "org_new_123"))
+				.collect();
+
+			expect(orgs).toHaveLength(1);
+			expect(orgs[0]?.name).toBe("New Organization");
+			expect(orgs[0]?.external_id).toBe("ext_123");
+
+			const domains = await t.db
+				.query("organization_domains")
+				.withIndex("byOrganizationId", (q) => q.eq("organization_id", "org_new_123"))
+				.collect();
+
+			expect(domains).toHaveLength(1);
+			expect(domains[0]?.domain).toBe("example.com");
+		});
+
+		it("updates existing organization", async () => {
+			// Create initial organization
+			await t.db.insert("organizations", {
+				id: "org_update_123",
+				name: "Original Name",
+				external_id: "ext_456",
+			});
+
+			// Update it
+			await t.run(internal.organizations.createOrUpdateOrganization, {
+				id: "org_update_123",
+				name: "Updated Name",
+				external_id: "ext_456",
+				metadata: { key: "new value" },
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-02T00:00:00Z",
+				domains: [],
+			});
+
+			const orgs = await t.db
+				.query("organizations")
+				.withIndex("byWorkosId", (q) => q.eq("id", "org_update_123"))
+				.collect();
+
+			expect(orgs[0]?.name).toBe("Updated Name");
+			expect(orgs[0]?.metadata).toEqual({ key: "new value" });
+		});
+
+		it("handles organization without domains", async () => {
+			await t.run(internal.organizations.createOrUpdateOrganization, {
+				id: "org_no_domains",
+				name: "No Domains Org",
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-01T00:00:00Z",
+				domains: [],
+			});
+
+			const orgs = await t.db
+				.query("organizations")
+				.withIndex("byWorkosId", (q) => q.eq("id", "org_no_domains"))
+				.collect();
+
+			expect(orgs).toHaveLength(1);
+			expect(orgs[0]?.name).toBe("No Domains Org");
+		});
+	});
+
+	describe("createOrUpdateMembership", () => {
+		it("creates a new membership", async () => {
+			// Setup user and organization
+			await t.db.insert("users", {
+				idp_id: "user_member_123",
+				email: "member@example.com",
+				email_verified: true,
+			});
+
+			await t.db.insert("organizations", {
+				id: "org_member_123",
+				name: "Member Org",
+			});
+
+			await t.run(internal.organizations.createOrUpdateMembership, {
+				id: "membership_new_123",
+				user_id: "user_member_123",
+				organization_id: "org_member_123",
+				status: "active",
+				role: { slug: "admin" },
+				roles: [{ slug: "admin" }, { slug: "member" }],
+				object: "organization_membership",
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-01T00:00:00Z",
+			});
+
+			const memberships = await t.db
+				.query("organization_memberships")
+				.withIndex("byMembershipId", (q) => q.eq("id", "membership_new_123"))
+				.collect();
+
+			expect(memberships).toHaveLength(1);
+			expect(memberships[0]?.user_id).toBe("user_member_123");
+			expect(memberships[0]?.organization_id).toBe("org_member_123");
+			expect(memberships[0]?.status).toBe("active");
+			expect(memberships[0]?.role?.slug).toBe("admin");
+			expect(memberships[0]?.roles).toHaveLength(2);
+		});
+
+		it("updates existing membership", async () => {
+			// Setup user, organization, and initial membership
+			await t.db.insert("users", {
+				idp_id: "user_member_update",
+				email: "memberupdate@example.com",
+				email_verified: true,
+			});
+
+			await t.db.insert("organizations", {
+				id: "org_member_update",
+				name: "Member Update Org",
+			});
+
+			await t.db.insert("organization_memberships", {
+				id: "membership_update_123",
+				user_id: "user_member_update",
+				organization_id: "org_member_update",
+				status: "pending",
+				role: { slug: "member" },
+			});
+
+			// Update membership
+			await t.run(internal.organizations.createOrUpdateMembership, {
+				id: "membership_update_123",
+				user_id: "user_member_update",
+				organization_id: "org_member_update",
+				status: "active",
+				role: { slug: "admin" },
+				object: "organization_membership",
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-02T00:00:00Z",
+			});
+
+			const memberships = await t.db
+				.query("organization_memberships")
+				.withIndex("byMembershipId", (q) => q.eq("id", "membership_update_123"))
+				.collect();
+
+			expect(memberships[0]?.status).toBe("active");
+			expect(memberships[0]?.role?.slug).toBe("admin");
+		});
+
+		it("handles membership without role", async () => {
+			await t.db.insert("users", {
+				idp_id: "user_no_role",
+				email: "norole@example.com",
+				email_verified: true,
+			});
+
+			await t.db.insert("organizations", {
+				id: "org_no_role",
+				name: "No Role Org",
+			});
+
+			await t.run(internal.organizations.createOrUpdateMembership, {
+				id: "membership_no_role",
+				user_id: "user_no_role",
+				organization_id: "org_no_role",
+				status: "active",
+				object: "organization_membership",
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-01T00:00:00Z",
+			});
+
+			const memberships = await t.db
+				.query("organization_memberships")
+				.withIndex("byMembershipId", (q) => q.eq("id", "membership_no_role"))
+				.collect();
+
+			expect(memberships).toHaveLength(1);
+			expect(memberships[0]?.role).toBeUndefined();
+		});
+	});
+
+	describe("organization domain management", () => {
+		it("creates multiple domains for an organization", async () => {
+			await t.run(internal.organizations.createOrUpdateOrganization, {
+				id: "org_multi_domains",
+				name: "Multi Domains Org",
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-01T00:00:00Z",
+				domains: [
+					{
+						id: "domain_1",
+						domain: "example.com",
+						organization_id: "org_multi_domains",
+						object: "organization_domain",
+						created_at: "2025-01-01T00:00:00Z",
+						updated_at: "2025-01-01T00:00:00Z",
+					},
+					{
+						id: "domain_2",
+						domain: "another.com",
+						organization_id: "org_multi_domains",
+						object: "organization_domain",
+						created_at: "2025-01-01T00:00:00Z",
+						updated_at: "2025-01-01T00:00:00Z",
+					},
+				],
+			});
+
+			const domains = await t.db
+				.query("organization_domains")
+				.withIndex("byOrganizationId", (q) => q.eq("organization_id", "org_multi_domains"))
+				.collect();
+
+			expect(domains).toHaveLength(2);
+			expect(domains.map((d) => d.domain)).toContain("example.com");
+			expect(domains.map((d) => d.domain)).toContain("another.com");
+		});
+
+		it("queries domains by name", async () => {
+			await t.run(internal.organizations.createOrUpdateOrganization, {
+				id: "org_query_domains",
+				name: "Query Domains Org",
+				created_at: "2025-01-01T00:00:00Z",
+				updated_at: "2025-01-01T00:00:00Z",
+				domains: [
+					{
+						id: "domain_query",
+						domain: "query.com",
+						organization_id: "org_query_domains",
+						object: "organization_domain",
+						created_at: "2025-01-01T00:00:00Z",
+						updated_at: "2025-01-01T00:00:00Z",
+					},
+				],
+			});
+
+			const domains = await t.db
+				.query("organization_domains")
+				.withIndex("byDomainName", (q) => q.eq("domain", "query.com"))
+				.collect();
+
+			expect(domains).toHaveLength(1);
+			expect(domains[0]?.domain).toBe("query.com");
+		});
+	});
+
+	describe("index usage", () => {
+		it("can query organizations by external ID", async () => {
+			await t.db.insert("organizations", {
+				id: "org_index_test",
+				name: "Index Test Org",
+				external_id: "external_123",
+			});
+
+			const orgs = await t.db
+				.query("organizations")
+				.withIndex("byExternalId", (q) => q.eq("external_id", "external_123"))
+				.collect();
+
+			expect(orgs).toHaveLength(1);
+			expect(orgs[0]?.id).toBe("org_index_test");
+		});
+
+		it("can query organizations by name", async () => {
+			await t.db.insert("organizations", {
+				id: "org_name_search",
+				name: "Search by Name Org",
+			});
+
+			const orgs = await t.db
+				.query("organizations")
+				.withIndex("byName", (q) => q.eq("name", "Search by Name Org"))
+				.collect();
+
+			expect(orgs).toHaveLength(1);
+			expect(orgs[0]?.id).toBe("org_name_search");
+		});
+
+		it("can query memberships by user and organization", async () => {
+			await t.db.insert("users", {
+				idp_id: "user_index_test",
+				email: "index@example.com",
+				email_verified: true,
+			});
+
+			await t.db.insert("organizations", {
+				id: "org_index_test_2",
+				name: "Index Test Org 2",
+			});
+
+			await t.db.insert("organization_memberships", {
+				id: "member_index_test",
+				user_id: "user_index_test",
+				organization_id: "org_index_test_2",
+				status: "active",
+			});
+
+			const memberships = await t.db
+				.query("organization_memberships")
+				.withIndex("byUserOrganization", (q) =>
+					q.eq("user_id", "user_index_test").eq("organization_id", "org_index_test_2")
+				)
+				.collect();
+
+			expect(memberships).toHaveLength(1);
+			expect(memberships[0]?.id).toBe("member_index_test");
+		});
+	});
+});
