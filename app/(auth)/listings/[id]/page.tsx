@@ -1,6 +1,7 @@
 import { preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
+import { AppraisalData } from "@/components/listing-detail/appraisal-data";
 import { ComparableProperties } from "@/components/listing-detail/comparable-properties";
 import { DocumentViewerWrapper } from "@/components/listing-detail/document-viewer-wrapper";
 import { FinancialMetrics } from "@/components/listing-detail/financial-metrics";
@@ -9,7 +10,6 @@ import { PaymentHistory } from "@/components/listing-detail/payment-history";
 import { PropertyInfo } from "@/components/listing-detail/property-info";
 import { PropertyMapComponent } from "@/components/listing-detail/property-map";
 import { RequestListingSection } from "@/components/listing-detail/request-listing-section";
-import { AppraisalData } from "@/components/listing-detail/appraisal-data";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type {
@@ -67,8 +67,12 @@ function transformMortgageForComponents(mortgage: Mortgage) {
 	}));
 
 	// Map mortgage type for display
-	const mortgageTypeDisplay = mortgage.mortgageType === "1st" ? "First" :
-		mortgage.mortgageType === "2nd" ? "Second" : "Other";
+	const mortgageTypeDisplay =
+		mortgage.mortgageType === "1st"
+			? "First"
+			: mortgage.mortgageType === "2nd"
+				? "Second"
+				: "Other";
 
 	return {
 		_id: mortgage._id,
@@ -184,7 +188,11 @@ export default async function ListingDetailPage({
 		bedrooms: comp.bedrooms,
 		bathrooms: comp.bathrooms,
 		propertyType: comp.propertyType,
-		imageUrl: comp.imageUrl || (comp.imageStorageId ? `/api/storage/${comp.imageStorageId}` : "/house.jpg"),
+		imageUrl:
+			comp.imageUrl ||
+			(comp.imageStorageId
+				? `/api/storage/${comp.imageStorageId}`
+				: "/house.jpg"),
 	}));
 
 	// Transform payments to match component expectations
