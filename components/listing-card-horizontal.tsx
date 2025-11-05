@@ -14,6 +14,7 @@ export type HorizontalProps = {
 	ltv?: number;
 	apr?: number;
 	principal?: number;
+	marketValue?: number;
 	propertyType?: string;
 	maturityDate?: string;
 };
@@ -26,6 +27,7 @@ export function Horizontal({
 	ltv = 80,
 	apr = 9.5,
 	principal = 350000,
+	marketValue = 500000,
 	propertyType,
 	maturityDate = "01/01/2026",
 }: HorizontalProps = {}) {
@@ -85,7 +87,7 @@ export function Horizontal({
 							<span className="ml-2 flex flex-col justify-around py-1 align-middle">
 								<p className="text-xs">Market Value</p>
 								<p className="font-bold text-sm">
-									{(principal / 1000).toFixed(0)}K
+									{(marketValue / 1000).toFixed(0)}K
 								</p>
 							</span>
 						</span>

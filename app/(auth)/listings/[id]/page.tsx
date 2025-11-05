@@ -1,15 +1,6 @@
+import { preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
-// import {
-// 	AppraisalData,
-// 	ComparableProperties,
-// 	FinancialMetrics,
-// 	ImageCarousel,
-// 	PaymentHistory,
-// 	PropertyInfo,
-// 	PropertyMapComponent,
-// } from "@/components/listing-detail";
-import { AppraisalData } from "@/components/listing-detail/appraisal-data";
 import { ComparableProperties } from "@/components/listing-detail/comparable-properties";
 import { DocumentViewerWrapper } from "@/components/listing-detail/document-viewer-wrapper";
 import { FinancialMetrics } from "@/components/listing-detail/financial-metrics";
@@ -18,11 +9,14 @@ import { PaymentHistory } from "@/components/listing-detail/payment-history";
 import { PropertyInfo } from "@/components/listing-detail/property-info";
 import { PropertyMapComponent } from "@/components/listing-detail/property-map";
 import { RequestListingSection } from "@/components/listing-detail/request-listing-section";
-import {
-	generateComparables,
-	generateListing,
-	generatePayments,
-} from "@/lib/mock-data/listings";
+import { AppraisalData } from "@/components/listing-detail/appraisal-data";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import type {
+	AppraisalComparable,
+	Mortgage,
+	Payment,
+} from "@/lib/types/convex";
 
 type ListingDetailPageProps = {
 	params: Promise<{
@@ -30,24 +24,108 @@ type ListingDetailPageProps = {
 	}>;
 };
 
+/**
+ * Transform Convex Mortgage to mock-like format for components
+ * Uses pre-fetched signed URLs from Convex queries
+ */
+function transformMortgageForComponents(mortgage: Mortgage) {
+	// Use pre-fetched signed URLs from Convex query
+	// TypeScript doesn't know about the runtime-added 'url' property, so we use type assertion
+	const images = mortgage.images.map((img: any, idx) => ({
+		url: img.url || `/api/storage/${img.storageId}`,
+		alt: img.alt ?? `Property view ${idx + 1}`,
+		order: img.order,
+	}));
+
+	// Transform financial data to match component expectations
+	const financials = {
+		purchasePrice: Math.round(mortgage.appraisalMarketValue), // Use actual appraisal value
+		currentValue: mortgage.appraisalMarketValue, // Real market value from appraisal
+		monthlyPayment: Math.round(
+			(mortgage.loanAmount * (mortgage.interestRate / 100)) / 12
+		),
+		interestRate: mortgage.interestRate,
+		loanTerm: 12, // Not stored in schema, using placeholder
+		maturityDate: mortgage.maturityDate,
+		principalLoanAmount: mortgage.loanAmount,
+		propertyType: mortgage.propertyType,
+		ltv: mortgage.ltv, // Real LTV from database
+	};
+
+	// Transform documents - use pre-fetched signed URLs
+	const documents = (mortgage.documents ?? []).map((doc: any) => ({
+		_id: `${mortgage._id}-${doc.type}`,
+		name: doc.name,
+		type: (doc.type === "insurance" ? "loan" : doc.type) as
+			| "appraisal"
+			| "inspection"
+			| "loan"
+			| "title",
+		url: doc.url || `/api/storage/${doc.storageId}`,
+		uploadDate: doc.uploadDate,
+		fileSize: doc.fileSize,
+	}));
+
+	// Map mortgage type for display
+	const mortgageTypeDisplay = mortgage.mortgageType === "1st" ? "First" :
+		mortgage.mortgageType === "2nd" ? "Second" : "Other";
+
+	return {
+		_id: mortgage._id,
+		title: `${mortgage.address.street}`,
+		address: mortgage.address,
+		location: mortgage.location,
+		images,
+		financials,
+		documents,
+		status: mortgage.status,
+		mortgageType: mortgageTypeDisplay,
+		appraisalData: {
+			marketValue: mortgage.appraisalMarketValue,
+			method: mortgage.appraisalMethod,
+			company: mortgage.appraisalCompany,
+			date: mortgage.appraisalDate,
+		},
+		investorBrief: `Investment opportunity at ${mortgage.address.street}, ${mortgage.address.city}. ${mortgageTypeDisplay} ${mortgage.propertyType} with ${mortgage.interestRate}% interest rate. Appraised at $${mortgage.appraisalMarketValue.toLocaleString()} with ${mortgage.ltv}% LTV.`,
+	};
+}
+
 export async function generateMetadata({
 	params,
 }: ListingDetailPageProps): Promise<Metadata> {
 	const { id } = await params;
 
 	try {
-		// Generate mock listing data based on ID
-		const listing = generateListing(id);
+		// Preload mortgage data from Convex
+		const preloadedMortgage = await preloadQuery(api.mortgages.getMortgage, {
+			id: id as Id<"mortgages">,
+		});
+
+		if (!preloadedMortgage) {
+			return {
+				title: "Listing Not Found",
+			};
+		}
+
+		const mortgage = preloadedQueryResult(preloadedMortgage);
+		if (!mortgage) {
+			return {
+				title: "Listing Not Found",
+			};
+		}
+
+		const transformed = transformMortgageForComponents(mortgage);
 
 		return {
-			title: `${listing.title} - Investment Property`,
+			title: `${transformed.title} - Investment Property`,
 			description:
-				listing.investorBrief ||
-				`Property located at ${listing.address.street}, ${listing.address.city}, ${listing.address.state}`,
+				transformed.investorBrief ||
+				`Property located at ${transformed.address.street}, ${transformed.address.city}`,
 			openGraph: {
-				title: listing.title,
-				description: listing.investorBrief,
-				images: listing.images.length > 0 ? [listing.images[0].url] : [],
+				title: transformed.title,
+				description: transformed.investorBrief,
+				images:
+					transformed.images.length > 0 ? [transformed.images[0].url] : [],
 			},
 		};
 	} catch (error) {
@@ -63,10 +141,60 @@ export default async function ListingDetailPage({
 }: ListingDetailPageProps) {
 	const { id } = await params;
 
-	// Generate mock data based on ID (consistent across page loads)
-	const listing = generateListing(id);
-	const payments = generatePayments(id, 12);
-	const comparables = generateComparables(id, 6);
+	// Preload all required data from Convex
+	const [preloadedMortgage, preloadedPayments, preloadedComparables] =
+		await Promise.all([
+			preloadQuery(api.mortgages.getMortgage, {
+				id: id as Id<"mortgages">,
+			}),
+			preloadQuery(api.payments.getPaymentsForMortgage, {
+				mortgageId: id as Id<"mortgages">,
+			}),
+			preloadQuery(api.comparables.getComparablesForMortgage, {
+				mortgageId: id as Id<"mortgages">,
+			}),
+		]);
+
+	// Extract actual data from preloaded results
+	const mortgage = preloadedQueryResult(preloadedMortgage);
+	const payments = (preloadedQueryResult(preloadedPayments) as Payment[]) || [];
+	const comparables =
+		(preloadedQueryResult(preloadedComparables) as AppraisalComparable[]) || [];
+
+	if (!mortgage) {
+		return (
+			<div className="container mx-auto max-w-7xl px-4 py-8">
+				<h1 className="font-bold text-2xl">Listing not found</h1>
+			</div>
+		);
+	}
+
+	// Transform mortgage data for components
+	const listing = transformMortgageForComponents(mortgage);
+
+	// Transform comparables to match component expectations
+	// Use pre-fetched signed URLs from Convex query
+	const transformedComparables = comparables.map((comp: any) => ({
+		_id: comp._id,
+		address: comp.address,
+		saleAmount: comp.saleAmount,
+		saleDate: comp.saleDate,
+		distance: comp.distance,
+		squareFeet: comp.squareFeet,
+		bedrooms: comp.bedrooms,
+		bathrooms: comp.bathrooms,
+		propertyType: comp.propertyType,
+		imageUrl: comp.imageUrl || (comp.imageStorageId ? `/api/storage/${comp.imageStorageId}` : "/house.jpg"),
+	}));
+
+	// Transform payments to match component expectations
+	const transformedPayments = payments.map((payment) => ({
+		...payment,
+		listingId: id,
+		date: payment.processDate,
+		type: "interest" as const, // All payments are interest-only in our schema
+		status: payment.status === "cleared" ? "paid" : (payment.status as any), // Map cleared to paid
+	}));
 
 	return (
 		<ViewTransition name={`listing-${listing._id}`}>
@@ -100,7 +228,7 @@ export default async function ListingDetailPage({
 
 				{/* Payment History */}
 				<div className="mb-12">
-					<PaymentHistory payments={payments} />
+					<PaymentHistory payments={transformedPayments} />
 				</div>
 
 				{/* Document Viewer */}
@@ -110,25 +238,28 @@ export default async function ListingDetailPage({
 					</div>
 				)}
 
-				{/* Appraisal Data (only if available) */}
-				{listing.appraisal && (
-					<div className="mb-12">
-						<AppraisalData
-							appraisal={listing.appraisal}
-							currentValue={listing.financials.currentValue}
-						/>
-					</div>
-				)}
+				{/* Appraisal Data */}
+				<div className="mb-12">
+					<AppraisalData
+						appraisal={{
+							value: listing.appraisalData?.marketValue || 0,
+							date: listing.appraisalData?.date || new Date().toISOString(),
+							appraiser: listing.appraisalData?.company || "Not Available",
+							method: listing.appraisalData?.method || "comparative",
+						}}
+						currentValue={listing.financials?.currentValue || 0}
+					/>
+				</div>
 
 				{/* Comparable Properties */}
-				{comparables.length > 0 && (
+				{transformedComparables.length > 0 && (
 					<div className="mb-12">
-						<ComparableProperties comparables={comparables} />
+						<ComparableProperties comparables={transformedComparables} />
 					</div>
 				)}
 
 				{/* Request Listing Section */}
-				<RequestListingSection listing={listing} />
+				<RequestListingSection listing={listing as any} />
 			</div>
 		</ViewTransition>
 	);

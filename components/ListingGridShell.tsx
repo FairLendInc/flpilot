@@ -38,6 +38,7 @@ export interface FilterableItem extends WithLatLng {
 	ltv?: number;
 	apr?: number;
 	principal?: number;
+	marketValue?: number;
 	mortgageType?: string;
 	propertyType?: string;
 	maturityDate?: Date;

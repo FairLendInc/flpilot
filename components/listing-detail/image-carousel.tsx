@@ -97,7 +97,7 @@ export function ImageCarousel({ images, propertyTitle }: ImageCarouselProps) {
 			<div className="overflow-hidden rounded-lg" ref={emblaRef}>
 				<div className="flex touch-pan-y">
 					{sortedImages.map((image, index) => (
-						<div className="relative min-w-0 flex-[0_0_100%]" key={image.url}>
+						<div className="relative min-w-0 flex-[0_0_100%]" key={`${image.url}-${index}`}>
 							<div className="relative aspect-4/3 w-full">
 								<Image
 									alt={image.alt || `${propertyTitle} - Image ${index + 1}`}
@@ -155,7 +155,7 @@ export function ImageCarousel({ images, propertyTitle }: ImageCarouselProps) {
 									? "ring-2 ring-primary ring-offset-2"
 									: "opacity-60 hover:opacity-100"
 							}`}
-							key={image.url}
+							key={`thumb-${image.url}-${index}`}
 							onClick={() => scrollTo(index)}
 							type="button"
 						>

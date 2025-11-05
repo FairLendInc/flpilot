@@ -42,6 +42,7 @@ export function ListingsClient({ listings }: ListingsClientProps) {
 					id={listing.id}
 					imageSrc={listing.imageSrc}
 					ltv={listing.ltv}
+					marketValue={listing.marketValue}
 					maturityDate={listing.maturityDate?.toLocaleDateString("en-US", {
 						month: "2-digit",
 						day: "2-digit",
