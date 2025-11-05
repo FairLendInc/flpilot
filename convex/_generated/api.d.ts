@@ -8,13 +8,21 @@
  * @module
  */
 
+import type * as borrowers from "../borrowers.js";
+import type * as comparables from "../comparables.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as listings from "../listings.js";
 import type * as logger from "../logger.js";
+import type * as migrations from "../migrations.js";
+import type * as mortgages from "../mortgages.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as organizations from "../organizations.js";
+import type * as ownership from "../ownership.js";
+import type * as payments from "../payments.js";
 import type * as profile from "../profile.js";
 import type * as roles from "../roles.js";
+import type * as seed from "../seed.js";
 import type * as storage from "../storage.js";
 import type * as sync from "../sync.js";
 import type * as syncHelpers from "../syncHelpers.js";
@@ -36,13 +44,21 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  borrowers: typeof borrowers;
+  comparables: typeof comparables;
   crons: typeof crons;
   http: typeof http;
+  listings: typeof listings;
   logger: typeof logger;
+  migrations: typeof migrations;
+  mortgages: typeof mortgages;
   myFunctions: typeof myFunctions;
   organizations: typeof organizations;
+  ownership: typeof ownership;
+  payments: typeof payments;
   profile: typeof profile;
   roles: typeof roles;
+  seed: typeof seed;
   storage: typeof storage;
   sync: typeof sync;
   syncHelpers: typeof syncHelpers;

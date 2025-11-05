@@ -75,18 +75,18 @@ export function FilterBar() {
 					onFiltersChange={setFilters}
 				/>
 
-			{hasActiveFilters && (
-				<Button 
-					onClick={handleClearFilters} 
-					variant="destructive"
-					size="sm"
-					className="px-2"
-					aria-label="Clear filters"
-				>
-					<Icon className="size-3.5" icon="lucide:x" />
-					<Icon className="size-3.5" icon="lucide:filter" />
-				</Button>
-			)}
+				{hasActiveFilters && (
+					<Button
+						aria-label="Clear filters"
+						className="px-2"
+						onClick={handleClearFilters}
+						size="sm"
+						variant="destructive"
+					>
+						<Icon className="size-3.5" icon="lucide:x" />
+						<Icon className="size-3.5" icon="lucide:filter" />
+					</Button>
+				)}
 			</div>
 
 			{/* {hasActiveFilters && (
