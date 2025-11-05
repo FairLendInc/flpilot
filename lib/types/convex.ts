@@ -3,26 +3,30 @@
  * Re-exports generated types and provides convenient type aliases
  */
 
-import type { Doc, Id } from "@/convex/_generated/dataModel";
-
 // Re-export core types
-export type { Doc, Id };
+export type { Doc, Id } from "@/convex/_generated/dataModel";
 
 // Table document type aliases
-export type Borrower = Doc<"borrowers">;
-export type Mortgage = Doc<"mortgages">;
-export type MortgageOwnership = Doc<"mortgage_ownership">;
-export type Listing = Doc<"listings">;
-export type AppraisalComparable = Doc<"appraisal_comparables">;
-export type Payment = Doc<"payments">;
+export type Borrower = import("@/convex/_generated/dataModel").Doc<"borrowers">;
+export type Mortgage = import("@/convex/_generated/dataModel").Doc<"mortgages">;
+export type MortgageOwnership =
+	import("@/convex/_generated/dataModel").Doc<"mortgage_ownership">;
+export type Listing = import("@/convex/_generated/dataModel").Doc<"listings">;
+export type AppraisalComparable =
+	import("@/convex/_generated/dataModel").Doc<"appraisal_comparables">;
+export type Payment = import("@/convex/_generated/dataModel").Doc<"payments">;
 
 // ID type aliases
-export type BorrowerId = Id<"borrowers">;
-export type MortgageId = Id<"mortgages">;
-export type MortgageOwnershipId = Id<"mortgage_ownership">;
-export type ListingId = Id<"listings">;
-export type AppraisalComparableId = Id<"appraisal_comparables">;
-export type PaymentId = Id<"payments">;
+export type BorrowerId =
+	import("@/convex/_generated/dataModel").Id<"borrowers">;
+export type MortgageId =
+	import("@/convex/_generated/dataModel").Id<"mortgages">;
+export type MortgageOwnershipId =
+	import("@/convex/_generated/dataModel").Id<"mortgage_ownership">;
+export type ListingId = import("@/convex/_generated/dataModel").Id<"listings">;
+export type AppraisalComparableId =
+	import("@/convex/_generated/dataModel").Id<"appraisal_comparables">;
+export type PaymentId = import("@/convex/_generated/dataModel").Id<"payments">;
 
 // Utility types for common patterns
 export type MortgageWithBorrower = Mortgage & {
@@ -107,17 +111,23 @@ export function getLTVCategory(ltv: number): "low" | "medium" | "high" {
 }
 
 // Mortgage type utilities
-export function isValidMortgageType(type: string): type is "1st" | "2nd" | "other" {
+export function isValidMortgageType(
+	type: string
+): type is "1st" | "2nd" | "other" {
 	return type === "1st" || type === "2nd" || type === "other";
 }
 
-export function getMortgageTypeDisplayName(type: "1st" | "2nd" | "other"): string {
+export function getMortgageTypeDisplayName(
+	type: "1st" | "2nd" | "other"
+): string {
 	switch (type) {
 		case "1st":
 			return "First Mortgage";
 		case "2nd":
 			return "Second Mortgage";
 		case "other":
+			return "Other";
+		default:
 			return "Other";
 	}
 }

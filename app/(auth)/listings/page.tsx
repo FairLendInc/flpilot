@@ -18,10 +18,10 @@ export const metadata: Metadata = {
 };
 
 // Mortgage types for random assignment - must match listing-filters.ts
-const MORTGAGE_TYPES = ["First", "Second", "Other"] as const;
+const _MORTGAGE_TYPES = ["First", "Second", "Other"] as const;
 
 // Property types for random assignment - must match listing-filters.ts
-const PROPERTY_TYPES = [
+const _PROPERTY_TYPES = [
 	"Detached Home",
 	"Duplex",
 	"Triplex",
@@ -36,7 +36,7 @@ const PROPERTY_TYPES = [
 /**
  * Seeded random selection helper
  */
-function selectFromArray<T>(arr: readonly T[], seed: string): T {
+function _selectFromArray<T>(arr: readonly T[], seed: string): T {
 	let hash = 0;
 	for (let i = 0; i < seed.length; i += 1) {
 		hash = (hash << 5) - hash + seed.charCodeAt(i);
@@ -50,7 +50,7 @@ function selectFromArray<T>(arr: readonly T[], seed: string): T {
 /**
  * Seeded random number generator for consistent results
  */
-function seededRandomNumber(seed: string, min: number, max: number): number {
+function _seededRandomNumber(seed: string, min: number, max: number): number {
 	let hash = 0;
 	for (let i = 0; i < seed.length; i += 1) {
 		hash = (hash << 5) - hash + seed.charCodeAt(i);
@@ -85,6 +85,8 @@ function mapMortgageType(mortgageType: "1st" | "2nd" | "other"): string {
 			return "Second";
 		case "other":
 			return "Other";
+		default:
+			return "Other";
 	}
 }
 
@@ -117,7 +119,9 @@ function transformMortgage(mortgage: Mortgage): ListingItem {
 	// Get first image or use fallback - use pre-fetched signed URL
 	// TypeScript doesn't know about the runtime-added 'url' property, so we use type assertion
 	const imageSrc =
-		images.length > 0 ? ((images[0] as any).url || `/api/storage/${images[0].storageId}`) : "/house.jpg";
+		images.length > 0
+			? (images[0] as any).url || `/api/storage/${images[0].storageId}`
+			: "/house.jpg";
 
 	return {
 		id: mortgage._id,
@@ -140,7 +144,6 @@ function transformMortgage(mortgage: Mortgage): ListingItem {
  * Listings page - displays all available investment properties
  */
 export default async function ListingsPage() {
-
 	// Preload Convex query for server-side rendering
 	const preloadedListings = await preloadQuery(
 		api.listings.getAvailableListingsWithMortgages
