@@ -9,6 +9,8 @@ import {
 	Shield,
 	TrendingUp,
 	Users,
+	Edit3,
+	Home,
 } from "lucide-react";
 
 export type NavItem = {
@@ -58,6 +60,16 @@ export const ROLE_NAVIGATION: Record<UserRole, NavItem[]> = {
 			title: "Listings",
 			url: "/dashboard/admin/listings",
 			icon: FileText,
+		},
+		{
+			title: "Manage Listings",
+			url: "/dashboard/admin/listings/manage",
+			icon: Edit3,
+		},
+		{
+			title: "Manage Mortgages",
+			url: "/dashboard/admin/mortgages/manage",
+			icon: Home,
 		},
 		{
 			title: "Settings",

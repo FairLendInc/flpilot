@@ -454,24 +454,150 @@ export const updateListingVisibility = mutation({
 });
 
 /**
- * Delete a listing from marketplace
+ * Admin-only: Update listing properties
+ * Can update visible, locked state, and maintains audit trail
  */
-export const deleteListing = mutation({
-	args: { listingId: v.id("listings") },
+export const updateListing = mutation({
+	args: {
+		listingId: v.id("listings"),
+		visible: v.optional(v.boolean()),
+		locked: v.optional(v.boolean()),
+		lockedBy: v.optional(v.id("users")),
+	},
+	returns: v.id("listings"),
 	handler: async (ctx, args) => {
+		// Validate admin authorization
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges are required");
+		}
+
+		// Get existing listing
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			throw new Error("Listing not found");
 		}
 
-		// Prevent deletion of locked listings (active deals)
-		if (listing.locked) {
+		// Build update object
+		const updates: Partial<{
+			visible: boolean;
+			locked: boolean;
+			lockedBy: Id<"users"> | undefined;
+			lockedAt: number | undefined;
+		}> = {};
+
+		// Update visible if provided
+		if (args.visible !== undefined) {
+			updates.visible = args.visible;
+		}
+
+		// Update lock state if provided
+		if (args.locked !== undefined) {
+			updates.locked = args.locked;
+			if (args.locked) {
+				// Locking: set lockedBy and lockedAt
+				updates.lockedBy = args.lockedBy;
+				updates.lockedAt = Date.now();
+			} else {
+				// Unlocking: clear lockedBy and lockedAt
+				updates.lockedBy = undefined;
+				updates.lockedAt = undefined;
+			}
+		}
+
+		// Apply updates
+		await ctx.db.patch(args.listingId, updates);
+
+		// TODO: Add audit trail logging
+		console.log("Listing updated by admin:", {
+			adminId: identity.subject,
+			listingId: args.listingId,
+			updates,
+			timestamp: Date.now(),
+		});
+
+		return args.listingId;
+	},
+});
+
+/**
+ * Admin-only: Delete a listing from marketplace
+ * Includes cascade deletion of related data and rollback on failure
+ */
+export const deleteListing = mutation({
+	args: { 
+		listingId: v.id("listings"),
+		force: v.optional(v.boolean()),
+	},
+	returns: v.id("listings"),
+	handler: async (ctx, args) => {
+		// Validate admin authorization
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges are required");
+		}
+
+		const listing = await ctx.db.get(args.listingId);
+		if (!listing) {
+			throw new Error("Listing not found");
+		}
+
+		// Check if locked (unless force flag is set)
+		if (listing.locked && !args.force) {
 			throw new Error(
-				"Cannot delete locked listing. Unlock first or complete the deal."
+				"Cannot delete locked listing. Use force option or unlock first."
 			);
 		}
 
-		await ctx.db.delete(args.listingId);
-		return args.listingId;
+		try {
+			// Cascade delete comparables linked to this listing's mortgage
+			const comparables = await ctx.db
+				.query("appraisal_comparables")
+				.withIndex("by_mortgage", (q) => q.eq("mortgageId", listing.mortgageId))
+				.collect();
+
+			for (const comparable of comparables) {
+				await ctx.db.delete(comparable._id);
+			}
+
+			// Delete the listing (preserves mortgage)
+			await ctx.db.delete(args.listingId);
+
+			// Audit log
+			console.log("Listing deleted by admin:", {
+				adminId: identity.subject,
+				listingId: args.listingId,
+				mortgageId: listing.mortgageId,
+				comparablesDeleted: comparables.length,
+				timestamp: Date.now(),
+			});
+
+			return args.listingId;
+		} catch (error) {
+			// If any deletion fails, the transaction will automatically rollback
+			throw new Error(
+				`Failed to delete listing: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`
+			);
+		}
 	},
 });
