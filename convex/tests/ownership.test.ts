@@ -53,6 +53,7 @@ async function createTestMortgage(t: ReturnType<typeof createTest>) {
 		ltv: 83.33,
 		images: [],
 		documents: [],
+		externalMortgageId: `test-mortgage-${Date.now()}-${Math.random()}`,
 	});
 
 	return { mortgageId, borrowerId };
@@ -170,6 +171,7 @@ describe("createMortgage", () => {
 				ltv: 83.33,
 				images: [],
 				documents: [],
+				externalMortgageId: `test-invalid-loan-${Date.now()}`,
 			})
 		).rejects.toThrow("Loan amount must be greater than 0");
 	});
@@ -203,6 +205,7 @@ describe("createMortgage", () => {
 				ltv: 150, // Invalid
 				images: [],
 				documents: [],
+				externalMortgageId: `test-invalid-ltv-${Date.now()}`,
 			})
 		).rejects.toThrow("LTV must be between 0 and 100");
 
@@ -231,6 +234,7 @@ describe("createMortgage", () => {
 				ltv: 83.33,
 				images: [],
 				documents: [],
+				externalMortgageId: `test-invalid-coords-${Date.now()}`,
 			})
 		).rejects.toThrow("Latitude must be between -90 and 90");
 	});
