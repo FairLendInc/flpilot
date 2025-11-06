@@ -158,6 +158,33 @@ export const bulkCreatePayments = mutation({
 		),
 	},
 	handler: async (ctx, args) => {
+		// Validate amounts
+		for (const payment of args.payments) {
+			if (payment.amount <= 0) {
+				throw new Error("Payment amount must be greater than 0");
+			}
+		}
+
+		// Collect unique mortgage IDs
+		const uniqueMortgageIds = Array.from(
+			new Set(args.payments.map((p) => p.mortgageId))
+		);
+
+		// Fetch all referenced mortgages
+		const mortgages = await Promise.all(
+			uniqueMortgageIds.map((id) => ctx.db.get(id))
+		);
+
+		// Check if any mortgage is missing
+		const missingMortgageIds = uniqueMortgageIds.filter(
+			(id, index) => !mortgages[index]
+		);
+
+		if (missingMortgageIds.length > 0) {
+			throw new Error("Mortgage not found");
+		}
+
+		// Insert all payments
 		const ids = await Promise.all(
 			args.payments.map((payment) => ctx.db.insert("payments", payment))
 		);

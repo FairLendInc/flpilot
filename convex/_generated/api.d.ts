@@ -14,6 +14,7 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as listings from "../listings.js";
 import type * as logger from "../logger.js";
+import type * as migrations_fix_ownership_user_references from "../migrations/fix_ownership_user_references.js";
 import type * as migrations from "../migrations.js";
 import type * as mortgages from "../mortgages.js";
 import type * as myFunctions from "../myFunctions.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   listings: typeof listings;
   logger: typeof logger;
+  "migrations/fix_ownership_user_references": typeof migrations_fix_ownership_user_references;
   migrations: typeof migrations;
   mortgages: typeof mortgages;
   myFunctions: typeof myFunctions;
