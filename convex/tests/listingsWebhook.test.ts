@@ -2,6 +2,7 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import schema from "../schema";
+import type { Id, Doc } from "../_generated/dataModel";
 
 // Ensure webhook configuration is present before modules load
 process.env.LISTINGS_WEBHOOK_API_KEY = "test-webhook-key";
@@ -312,5 +313,373 @@ describe("/listings/create webhook", () => {
 		expect(comparableErrors.find((e) => e.path.includes("saleAmount"))).toBeDefined();
 		expect(comparableErrors.find((e) => e.path.includes("saleDate"))).toBeDefined();
 		expect(comparableErrors.find((e) => e.path.includes("distance"))).toBeDefined();
+	});
+});
+
+describe("/listings/update webhook", () => {
+	test("updates listing when payload and key are valid", async () => {
+		const t = createTest();
+
+		// First create a listing
+		const createResponse = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+
+		expect(createResponse.status).toBe(201);
+		const createBody = (await createResponse.json()) as {
+			code: string;
+			result: { created: boolean; listingId: string };
+		};
+		const listingId = createBody.result.listingId;
+
+		// Now update the listing
+		const updateResponse = await t.fetch("/listings/update", {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({
+				listingId,
+				visible: false,
+				locked: true,
+			}),
+		});
+
+		expect(updateResponse.status).toBe(200);
+		const updateBody = (await updateResponse.json()) as {
+			code: string;
+			listingId: string;
+		};
+		expect(updateBody.code).toBe("listing_updated");
+		expect(updateBody.listingId).toBe(listingId);
+
+		// Verify the update
+		const listing = await t.run(async (ctx) => {
+			return await ctx.db.get(listingId as Id<"listings">) as Doc<"listings"> | null;
+		});
+		expect(listing?.visible).toBe(false);
+		expect(listing?.locked).toBe(true);
+	});
+
+	test("rejects requests with invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/update", {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "wrong-key",
+			},
+			body: JSON.stringify({
+				listingId: "some-id",
+				visible: false,
+			}),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects requests with missing listingId", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/update", {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({
+				visible: false,
+			}),
+		});
+
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("missing_listing_id");
+	});
+});
+
+describe("/listings/delete webhook", () => {
+	test("deletes listing when payload and key are valid", async () => {
+		const t = createTest();
+
+		// First create a listing
+		const createResponse = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+
+		expect(createResponse.status).toBe(201);
+		const createBody = (await createResponse.json()) as {
+			code: string;
+			result: { created: boolean; listingId: string };
+		};
+		const listingId = createBody.result.listingId;
+
+		// Now delete the listing
+		const deleteResponse = await t.fetch("/listings/delete", {
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({
+				listingId,
+			}),
+		});
+
+		expect(deleteResponse.status).toBe(200);
+		const deleteBody = (await deleteResponse.json()) as {
+			code: string;
+			listingId: string;
+		};
+		expect(deleteBody.code).toBe("listing_deleted");
+		expect(deleteBody.listingId).toBe(listingId);
+
+		// Verify the deletion
+		const listing = await t.run(async (ctx) => {
+			return await ctx.db.get(listingId as any);
+		});
+		expect(listing).toBeNull();
+	});
+
+	test("rejects requests with invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/delete", {
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "wrong-key",
+			},
+			body: JSON.stringify({
+				listingId: "some-id",
+			}),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects requests with missing listingId", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/delete", {
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({}),
+		});
+
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("missing_listing_id");
+	});
+});
+
+describe("/mortgages/update webhook", () => {
+	test("updates mortgage when payload and key are valid", async () => {
+		const t = createTest();
+
+		// First create a listing (which creates a mortgage)
+		const createResponse = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+
+		expect(createResponse.status).toBe(201);
+		const createBody = (await createResponse.json()) as {
+			code: string;
+			result: { created: boolean; mortgageId: string };
+		};
+		const mortgageId = createBody.result.mortgageId;
+
+		// Now update the mortgage
+		const updateResponse = await t.fetch("/mortgages/update", {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({
+				mortgageId,
+				loanAmount: 500000,
+				interestRate: 5.5,
+				status: "renewed",
+			}),
+		});
+
+		expect(updateResponse.status).toBe(200);
+		const updateBody = (await updateResponse.json()) as {
+			code: string;
+			mortgageId: string;
+		};
+		expect(updateBody.code).toBe("mortgage_updated");
+		expect(updateBody.mortgageId).toBe(mortgageId);
+
+		// Verify the update
+		const mortgage = await t.run(async (ctx) => {
+			return await ctx.db.get(mortgageId as Id<"mortgages">) as Doc<"mortgages"> | null;
+		});
+		expect(mortgage?.loanAmount).toBe(500000);
+		expect(mortgage?.interestRate).toBe(5.5);
+		expect(mortgage?.status).toBe("renewed");
+	});
+
+	test("rejects requests with invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/update", {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "wrong-key",
+			},
+			body: JSON.stringify({
+				mortgageId: "some-id",
+				loanAmount: 500000,
+			}),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects requests with missing mortgageId", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/update", {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({
+				loanAmount: 500000,
+			}),
+		});
+
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("missing_mortgage_id");
+	});
+});
+
+describe("/mortgages/delete webhook", () => {
+	test("deletes mortgage and cascade dependencies when payload and key are valid", async () => {
+		const t = createTest();
+
+		// First create a listing (which creates a mortgage)
+		const createResponse = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+
+		expect(createResponse.status).toBe(201);
+		const createBody = (await createResponse.json()) as {
+			code: string;
+			result: { created: boolean; mortgageId: string; listingId: string };
+		};
+		const mortgageId = createBody.result.mortgageId;
+		const listingId = createBody.result.listingId;
+
+		// Now delete the mortgage
+		const deleteResponse = await t.fetch("/mortgages/delete", {
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({
+				mortgageId,
+			}),
+		});
+
+		expect(deleteResponse.status).toBe(200);
+		const deleteBody = (await deleteResponse.json()) as {
+			code: string;
+			mortgageId: string;
+			deletedCounts: {
+				listings: number;
+				comparables: number;
+				ownership: number;
+				payments: number;
+			};
+		};
+		expect(deleteBody.code).toBe("mortgage_deleted");
+		expect(deleteBody.mortgageId).toBe(mortgageId);
+		expect(deleteBody.deletedCounts.listings).toBe(1);
+
+		// Verify the deletion
+		const mortgage = await t.run(async (ctx) => {
+			return await ctx.db.get(mortgageId as any);
+		});
+		expect(mortgage).toBeNull();
+
+		// Verify listing was deleted
+		const listing = await t.run(async (ctx) => {
+			return await ctx.db.get(listingId as any);
+		});
+		expect(listing).toBeNull();
+	});
+
+	test("rejects requests with invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/delete", {
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "wrong-key",
+			},
+			body: JSON.stringify({
+				mortgageId: "some-id",
+			}),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects requests with missing mortgageId", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/delete", {
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify({}),
+		});
+
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("missing_mortgage_id");
 	});
 });
