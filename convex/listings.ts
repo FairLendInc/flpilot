@@ -43,13 +43,13 @@ export const getAvailableListingsWithMortgages = query({
 				const mortgage = await ctx.db.get(listing.mortgageId);
 				if (!mortgage) return null;
 
-				// Fetch signed URLs for all property images
-				const imagesWithUrls = await Promise.all(
-					mortgage.images.map(async (img) => ({
-						...img,
-						url: await ctx.storage.getUrl(img.storageId as any),
-					}))
-				);
+			// Fetch signed URLs for all property images
+			const imagesWithUrls = await Promise.all(
+				mortgage.images.map(async (img) => ({
+					...img,
+					url: await ctx.storage.getUrl(img.storageId),
+				}))
+			);
 
 				return {
 					listing,

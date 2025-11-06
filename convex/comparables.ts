@@ -75,7 +75,7 @@ export const createComparable = mutation({
 		bedrooms: v.optional(v.number()),
 		bathrooms: v.optional(v.number()),
 		propertyType: v.optional(v.string()),
-		imageStorageId: v.optional(v.string()),
+		imageStorageId: v.optional(v.id("_storage")),
 	},
 	handler: async (ctx, args) => {
 		// Validate numeric constraints
@@ -131,7 +131,7 @@ export const bulkCreateComparables = mutation({
 				bedrooms: v.optional(v.number()),
 				bathrooms: v.optional(v.number()),
 				propertyType: v.optional(v.string()),
-				imageStorageId: v.optional(v.string()),
+				imageStorageId: v.optional(v.id("_storage")),
 			})
 		),
 	},
@@ -177,7 +177,7 @@ export const updateComparable = mutation({
 		bedrooms: v.optional(v.number()),
 		bathrooms: v.optional(v.number()),
 		propertyType: v.optional(v.string()),
-		imageStorageId: v.optional(v.string()),
+		imageStorageId: v.optional(v.id("_storage")),
 	},
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;
