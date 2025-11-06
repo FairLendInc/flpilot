@@ -4,7 +4,27 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+
+/**
+ * Validator for comparable property data
+ */
+export const comparablePayloadValidator = v.object({
+	address: v.object({
+		street: v.string(),
+		city: v.string(),
+		state: v.string(),
+		zip: v.string(),
+	}),
+	saleAmount: v.number(),
+	saleDate: v.string(),
+	distance: v.number(),
+	squareFeet: v.optional(v.number()),
+	bedrooms: v.optional(v.number()),
+	bathrooms: v.optional(v.number()),
+	propertyType: v.optional(v.string()),
+	imageStorageId: v.optional(v.id("_storage")),
+});
 
 /**
  * Get all comparables for a mortgage (ordered by distance) with signed URLs for images
@@ -111,9 +131,9 @@ export const createComparable = mutation({
 });
 
 /**
- * Bulk create comparables for a mortgage
+ * Bulk create comparables for a mortgage (internal)
  */
-export const bulkCreateComparables = mutation({
+export const bulkCreateComparables = internalMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		comparables: v.array(
