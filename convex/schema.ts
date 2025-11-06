@@ -170,7 +170,7 @@ export default defineSchema({
 		// Property images (stored in Convex file storage)
 		images: v.array(
 			v.object({
-				storageId: v.string(), // Convex storage ID
+				storageId: v.id("_storage"), // Convex storage ID
 				alt: v.optional(v.string()), // Image description
 				order: v.number(), // Display order (0-indexed)
 			})
@@ -186,7 +186,7 @@ export default defineSchema({
 					v.literal("loan_agreement"),
 					v.literal("insurance")
 				),
-				storageId: v.string(), // Convex storage ID
+				storageId: v.id("_storage"), // Convex storage ID
 				uploadDate: v.string(), // ISO date string
 				fileSize: v.optional(v.number()), // bytes
 			})
@@ -244,7 +244,7 @@ export default defineSchema({
 		bathrooms: v.optional(v.number()),
 		propertyType: v.optional(v.string()),
 		// Property image (stored in Convex file storage)
-		imageStorageId: v.optional(v.string()),
+		imageStorageId: v.optional(v.id("_storage")),
 	})
 		.index("by_mortgage", ["mortgageId"])
 		.index("by_sale_date", ["saleDate"]),

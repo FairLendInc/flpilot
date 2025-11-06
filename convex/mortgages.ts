@@ -134,32 +134,32 @@ export const createMortgage = mutation({
 		appraisalCompany: v.string(),
 		appraisalDate: v.string(),
 		ltv: v.number(),
-		images: v.optional(
-			v.array(
-				v.object({
-					storageId: v.string(),
-					alt: v.optional(v.string()),
-					order: v.number(),
-				})
-			)
-		),
-		documents: v.optional(
-			v.array(
-				v.object({
-					name: v.string(),
-					type: v.union(
-						v.literal("appraisal"),
-						v.literal("title"),
-						v.literal("inspection"),
-						v.literal("loan_agreement"),
-						v.literal("insurance")
-					),
-					storageId: v.string(),
-					uploadDate: v.string(),
-					fileSize: v.optional(v.number()),
-				})
-			)
-		),
+	images: v.optional(
+		v.array(
+			v.object({
+				storageId: v.id("_storage"),
+				alt: v.optional(v.string()),
+				order: v.number(),
+			})
+		)
+	),
+	documents: v.optional(
+		v.array(
+			v.object({
+				name: v.string(),
+				type: v.union(
+					v.literal("appraisal"),
+					v.literal("title"),
+					v.literal("inspection"),
+					v.literal("loan_agreement"),
+					v.literal("insurance")
+				),
+				storageId: v.id("_storage"),
+				uploadDate: v.string(),
+				fileSize: v.optional(v.number()),
+			})
+		)
+	),
 	},
 	handler: async (ctx, args) => {
 		// Validate numeric constraints
@@ -269,18 +269,18 @@ export const addDocumentToMortgage = mutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		document: v.object({
-			name: v.string(),
-			type: v.union(
-				v.literal("appraisal"),
-				v.literal("title"),
-				v.literal("inspection"),
-				v.literal("loan_agreement"),
-				v.literal("insurance")
-			),
-			storageId: v.string(),
-			uploadDate: v.string(),
-			fileSize: v.optional(v.number()),
-		}),
+		name: v.string(),
+		type: v.union(
+			v.literal("appraisal"),
+			v.literal("title"),
+			v.literal("inspection"),
+			v.literal("loan_agreement"),
+			v.literal("insurance")
+		),
+		storageId: v.id("_storage"),
+		uploadDate: v.string(),
+		fileSize: v.optional(v.number()),
+	}),
 	},
 	handler: async (ctx, args) => {
 		const mortgage = await ctx.db.get(args.mortgageId);
