@@ -72,7 +72,7 @@ const mortgageDetailsFields = {
 	ltv: v.number(),
 	images: v.optional(v.array(mortgageImageValidator)),
 	documents: v.optional(v.array(mortgageDocumentValidator)),
-	externalMortgageId: v.optional(v.string()),
+	externalMortgageId: v.string(),
 } as const;
 
 export const mortgageDetailsValidator = v.object(mortgageDetailsFields);
@@ -151,30 +151,44 @@ export const ensureMortgage = async (
 	const normalized = normalizeMortgageDetails(details);
 	const { externalMortgageId } = details;
 
-	if (externalMortgageId) {
-		const existing = await ctx.db
-			.query("mortgages")
-			.withIndex("by_external_mortgage_id", (q) =>
-				q.eq("externalMortgageId", externalMortgageId)
-			)
-			.first();
+	const existing = await ctx.db
+		.query("mortgages")
+		.withIndex("by_external_mortgage_id", (q) =>
+			q.eq("externalMortgageId", externalMortgageId)
+		)
+		.first();
 
-		if (existing) {
-			if (existing.borrowerId !== borrowerId) {
-				throw new Error(
-					"Mortgage with this externalMortgageId is linked to a different borrower"
-				);
-			}
-
-			const patchData: Partial<Doc<"mortgages">> = {
-				borrowerId,
-				...normalized,
-			};
-			patchData.externalMortgageId = externalMortgageId;
-
-			await ctx.db.patch(existing._id, patchData);
-			return existing._id;
+	if (existing) {
+		if (existing.borrowerId !== borrowerId) {
+			throw new Error(
+				"Mortgage with this externalMortgageId is linked to a different borrower"
+			);
 		}
+
+		// Build patch data, excluding images/documents unless explicitly provided
+		const patchData: Partial<Doc<"mortgages">> = {
+			borrowerId,
+			...normalized,
+		};
+		
+		// Only include images/documents if they were present in the incoming details
+		// This preserves existing media on partial/replayed updates
+		if (details.images !== undefined) {
+			patchData.images = normalized.images;
+		} else {
+			delete patchData.images;
+		}
+		
+		if (details.documents !== undefined) {
+			patchData.documents = normalized.documents;
+		} else {
+			delete patchData.documents;
+		}
+		
+		patchData.externalMortgageId = externalMortgageId;
+
+		await ctx.db.patch(existing._id, patchData);
+		return existing._id;
 	}
 
 	const insertData = {

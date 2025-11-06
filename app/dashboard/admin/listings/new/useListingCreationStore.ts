@@ -114,6 +114,18 @@ const removeError = (errors: Record<string, string>, field: string) => {
 	return rest;
 };
 
+// Regex: requires non-space/non-@ chars before @, @, non-space/non-@ chars after @, dot, and non-space/non-@ chars after dot
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Validates an email address using a simple regex pattern.
+ * Requires non-space/non-@ characters before and after @, and a dot in the domain.
+ */
+const isValidEmail = (email: string): boolean => {
+	const trimmed = email.trim();
+	return EMAIL_REGEX.test(trimmed);
+};
+
 type ListingCreationStore = {
 	borrower: BorrowerFormState;
 	mortgage: MortgageFormState;
@@ -166,10 +178,17 @@ export const useListingCreationStore = create<ListingCreationStore>(
 		errors: {},
 		isSubmitting: false,
 		setBorrowerField: (field, value) =>
-			set((state) => ({
-				borrower: { ...state.borrower, [field]: value },
-				errors: removeError(state.errors, `borrower.${String(field)}`),
-			})),
+			set((state) => {
+				// Normalize email: trim and lowercase
+				const normalizedValue =
+					field === "email" && typeof value === "string"
+						? value.trim().toLowerCase()
+						: value;
+				return {
+					borrower: { ...state.borrower, [field]: normalizedValue },
+					errors: removeError(state.errors, `borrower.${String(field)}`),
+				};
+			}),
 		applyBorrowerSuggestion: (suggestion) =>
 			set((state) => {
 				const nextErrors = [
@@ -180,7 +199,7 @@ export const useListingCreationStore = create<ListingCreationStore>(
 				return {
 					borrower: {
 						name: suggestion.name,
-						email: suggestion.email,
+						email: suggestion.email.trim().toLowerCase(),
 						rotessaCustomerId: suggestion.rotessaCustomerId,
 					},
 					errors: nextErrors,
@@ -277,9 +296,10 @@ export const validateListingForm = ({
 	if (!borrower.name.trim()) {
 		errors["borrower.name"] = "Borrower name is required";
 	}
-	if (!borrower.email.trim()) {
+	const trimmedEmail = borrower.email.trim();
+	if (!trimmedEmail) {
 		errors["borrower.email"] = "Borrower email is required";
-	} else if (!borrower.email.includes("@")) {
+	} else if (!isValidEmail(trimmedEmail)) {
 		errors["borrower.email"] = "Borrower email must be valid";
 	}
 	if (!borrower.rotessaCustomerId.trim()) {

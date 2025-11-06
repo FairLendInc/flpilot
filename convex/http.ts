@@ -144,8 +144,7 @@ const mortgageWebhookSchema = z
 	documents: z.array(documentWebhookSchema).optional(),
 	externalMortgageId: z
 		.string()
-		.min(1, "mortgage.externalMortgageId.required")
-		.optional(),
+		.min(1, "mortgage.externalMortgageId.required"),
 })
 	.superRefine((value, ctx) => {
 		const origination = Date.parse(value.originationDate);
