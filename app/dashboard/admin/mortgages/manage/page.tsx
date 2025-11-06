@@ -18,9 +18,8 @@ export default function AdminMortgagesManagePage() {
 	// Query all mortgages with borrower information
 	const allMortgages = useQuery(api.mortgages.listAllMortgagesWithBorrowers);
 
-	const [editingMortgageId, setEditingMortgageId] = useState<Id<"mortgages"> | null>(
-		null
-	);
+	const [editingMortgageId, setEditingMortgageId] =
+		useState<Id<"mortgages"> | null>(null);
 	const [deletingMortgage, setDeletingMortgage] = useState<{
 		id: Id<"mortgages">;
 		address: string;

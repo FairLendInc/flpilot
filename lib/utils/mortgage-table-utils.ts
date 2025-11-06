@@ -74,15 +74,20 @@ export function sortMortgages(
 				const aName = a.borrower?.name.toLowerCase() ?? "";
 				const bName = b.borrower?.name.toLowerCase() ?? "";
 				// Handle null borrowers - place at end for ascending, beginning for descending
-				if (!a.borrower && !b.borrower) {
+				if (!(a.borrower || b.borrower)) {
 					comparison = 0;
 				} else if (!a.borrower) {
 					comparison = direction === "asc" ? 1 : -1;
-				} else if (!b.borrower) {
-					comparison = direction === "asc" ? -1 : 1;
-				} else {
+				} else if (b.borrower) {
 					comparison = aName.localeCompare(bName);
+				} else {
+					comparison = direction === "asc" ? -1 : 1;
 				}
+				break;
+			}
+			default: {
+				// All columns are covered, but TypeScript requires default case
+				comparison = 0;
 				break;
 			}
 		}
@@ -127,4 +132,3 @@ export function searchMortgages(
 		return addressMatch || statusMatch || borrowerMatch;
 	});
 }
-

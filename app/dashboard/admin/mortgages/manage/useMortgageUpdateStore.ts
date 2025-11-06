@@ -123,7 +123,12 @@ type MortgageUpdateStore = {
 	isLoading: boolean;
 
 	// Actions
-	setField: <K extends keyof Omit<ReturnType<typeof createInitialMortgage>, "address" | "location" | "mortgageId">>(
+	setField: <
+		K extends keyof Omit<
+			ReturnType<typeof createInitialMortgage>,
+			"address" | "location" | "mortgageId"
+		>,
+	>(
 		field: K,
 		value: ReturnType<typeof createInitialMortgage>[K]
 	) => void;
@@ -141,7 +146,10 @@ type MortgageUpdateStore = {
 	moveImageUp: (index: number) => void;
 	moveImageDown: (index: number) => void;
 	addDocument: (entry: MortgageDocumentEntry) => void;
-	updateDocument: (index: number, entry: Partial<MortgageDocumentEntry>) => void;
+	updateDocument: (
+		index: number,
+		entry: Partial<MortgageDocumentEntry>
+	) => void;
 	removeDocument: (index: number) => void;
 	loadFromMortgage: (mortgage: {
 		_id: Id<"mortgages">;
@@ -204,11 +212,14 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 		isLoading: false,
 
 		setField: (field, value) =>
-			set((state) => ({
-				...state,
-				[field]: value,
-				errors: removeError(state.errors, String(field)),
-			}) as MortgageUpdateStore),
+			set(
+				(state) =>
+					({
+						...state,
+						[field]: value,
+						errors: removeError(state.errors, String(field)),
+					}) as MortgageUpdateStore
+			),
 
 		setAddressField: (field, value) =>
 			set((state) => ({
@@ -385,8 +396,7 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 					!(Number.isNaN(origination) || Number.isNaN(maturity)) &&
 					origination > maturity
 				) {
-					errors.maturityDate =
-						"Maturity date must be after origination date";
+					errors.maturityDate = "Maturity date must be after origination date";
 				}
 			}
 
@@ -395,10 +405,7 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 			}
 
 			const appraisalMarketValue = Number(state.appraisalMarketValue);
-			if (
-				!Number.isFinite(appraisalMarketValue) ||
-				appraisalMarketValue <= 0
-			) {
+			if (!Number.isFinite(appraisalMarketValue) || appraisalMarketValue <= 0) {
 				errors.appraisalMarketValue = "Appraisal value must be positive";
 			}
 
@@ -466,4 +473,3 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 		},
 	})
 );
-

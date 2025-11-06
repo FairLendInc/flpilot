@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 
 export type SortColumn =
 	| "address"
@@ -14,13 +14,18 @@ export type SortDirection = "asc" | "desc";
 
 export function useMortgageTableFilters() {
 	const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
-	const [sortDirection, setSortDirection] = useState<SortDirection | null>(null);
+	const [sortDirection, setSortDirection] = useState<SortDirection | null>(
+		null
+	);
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const setSort = useCallback((column: SortColumn, direction: SortDirection) => {
-		setSortColumn(column);
-		setSortDirection(direction);
-	}, []);
+	const setSort = useCallback(
+		(column: SortColumn, direction: SortDirection) => {
+			setSortColumn(column);
+			setSortDirection(direction);
+		},
+		[]
+	);
 
 	const toggleSort = useCallback(
 		(column: SortColumn) => {
@@ -68,4 +73,3 @@ export function useMortgageTableFilters() {
 		reset,
 	};
 }
-

@@ -1,6 +1,14 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ChevronUp, Edit, Search, Trash2, X } from "lucide-react";
+import {
+	ChevronDown,
+	ChevronRight,
+	ChevronUp,
+	Edit,
+	Search,
+	Trash2,
+	X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,12 +21,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { useMortgageTableFilters, type SortColumn } from "@/hooks/use-mortgage-table-filters";
+import type { Id } from "@/convex/_generated/dataModel";
+import {
+	type SortColumn,
+	useMortgageTableFilters,
+} from "@/hooks/use-mortgage-table-filters";
 import {
 	searchMortgages,
 	sortMortgages,
 } from "@/lib/utils/mortgage-table-utils";
-import type { Id } from "@/convex/_generated/dataModel";
 
 export type MortgageData = {
 	_id: Id<"mortgages">;
@@ -55,7 +66,7 @@ function SortButton({
 	onClick: () => void;
 }) {
 	const isActive = currentColumn === column;
-	
+
 	// Determine which icon to show
 	let Icon = ChevronRight;
 	if (isActive) {
@@ -63,12 +74,7 @@ function SortButton({
 	}
 
 	return (
-		<Button
-			className="h-6 w-6 p-0"
-			onClick={onClick}
-			size="sm"
-			variant="ghost"
-		>
+		<Button className="h-6 w-6 p-0" onClick={onClick} size="sm" variant="ghost">
 			<Icon
 				className={`h-4 w-4 ${isActive ? "text-foreground" : "text-muted-foreground opacity-50"}`}
 			/>
@@ -124,16 +130,16 @@ export function MortgageManagementTable({
 		<div className="space-y-4">
 			{/* Search Bar */}
 			<div className="relative">
-				<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+				<Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
 				<Input
-					className="pl-9 pr-9"
+					className="pr-9 pl-9"
 					onChange={(e) => setSearchQuery(e.target.value)}
 					placeholder="Search by address, status, or borrower name..."
 					value={searchQuery}
 				/>
 				{searchQuery && (
 					<Button
-						className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0"
+						className="-translate-y-1/2 absolute top-1/2 right-1 h-7 w-7 p-0"
 						onClick={clearSearch}
 						size="sm"
 						variant="ghost"
