@@ -25,10 +25,10 @@ test.describe("Profile Management", () => {
 	test("profile form fields render", async ({ page }) => {
 		await page.goto("/profilev2");
 
-		await expect(page.getByLabelText("First name")).toBeVisible();
-		await expect(page.getByLabelText("Last name")).toBeVisible();
-		await expect(page.getByLabelText("Phone number")).toBeVisible();
-		await expect(page.getByLabelText("Email")).toBeVisible();
+		await expect(page.getByLabel("First name")).toBeVisible();
+		await expect(page.getByLabel("Last name")).toBeVisible();
+		await expect(page.getByLabel("Phone number")).toBeVisible();
+		await expect(page.getByLabel("Email")).toBeVisible();
 	});
 
 	test("organization switcher displays", async ({ page }) => {

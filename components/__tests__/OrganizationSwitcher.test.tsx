@@ -8,12 +8,30 @@ describe("OrganizationSwitcher", () => {
 		{
 			organizationId: "org_1",
 			organizationName: "Acme Corp",
+			organizationExternalId: "ext_org_1",
+			organizationMetadata: {},
+			organizationCreatedAt: "2023-01-01T00:00:00Z",
+			memberShipId: "member_1",
+			membershipOrgId: "org_1",
+			membershipRole: { slug: "admin" },
+			membershipRoles: [{ slug: "admin" }],
 			roleDetails: [{ slug: "admin", name: "Administrator", permissions: [] }],
+			primaryRoleSlug: "admin",
+			membershipCreatedAt: "2023-01-01T00:00:00Z",
 		},
 		{
 			organizationId: "org_2",
 			organizationName: "Tech Solutions",
+			organizationExternalId: "ext_org_2",
+			organizationMetadata: {},
+			organizationCreatedAt: "2023-02-01T00:00:00Z",
+			memberShipId: "member_2",
+			membershipOrgId: "org_2",
+			membershipRole: { slug: "member" },
+			membershipRoles: [{ slug: "member" }],
 			roleDetails: [{ slug: "member", name: "Member", permissions: [] }],
+			primaryRoleSlug: "member",
+			membershipCreatedAt: "2023-02-01T00:00:00Z",
 		},
 	];
 
@@ -113,8 +131,18 @@ describe("OrganizationSwitcher", () => {
 	it("displays organization metadata if available", () => {
 		const membershipsWithMetadata = [
 			{
-				...mockMemberships[0],
+				organizationId: "org_1",
+				organizationName: "Acme Corp",
+				organizationExternalId: "ext_org_1",
 				organizationMetadata: { plan: "enterprise" },
+				organizationCreatedAt: "2023-01-01T00:00:00Z",
+				memberShipId: "member_1",
+				membershipOrgId: "org_1",
+				membershipRole: { slug: "admin" },
+				membershipRoles: [{ slug: "admin" }],
+				roleDetails: [{ slug: "admin", name: "Administrator", permissions: [] }],
+				primaryRoleSlug: "admin",
+				membershipCreatedAt: "2023-01-01T00:00:00Z",
 			},
 		];
 
