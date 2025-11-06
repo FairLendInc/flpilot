@@ -20,8 +20,8 @@ type Payment = {
 	listingId: string;
 	amount: number;
 	date: string;
-	status: "paid" | "pending" | "late";
-	type: "principal" | "interest" | "escrow";
+	status: string;
+	type: string;
 };
 
 type PaymentHistoryProps = {

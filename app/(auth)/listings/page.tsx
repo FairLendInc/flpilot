@@ -1,5 +1,6 @@
 import { preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { ViewTransition } from "react";
 import type { FilterableItem } from "@/components/ListingGridShell";
 import { api } from "@/convex/_generated/api";
@@ -32,34 +33,6 @@ const _PROPERTY_TYPES = [
 	"Commercial",
 	"Mixed-Use",
 ] as const;
-
-/**
- * Seeded random selection helper
- */
-function _selectFromArray<T>(arr: readonly T[], seed: string): T {
-	let hash = 0;
-	for (let i = 0; i < seed.length; i += 1) {
-		hash = (hash << 5) - hash + seed.charCodeAt(i);
-		hash &= hash;
-	}
-	const x = Math.sin(hash) * 10000;
-	const random = x - Math.floor(x);
-	return arr[Math.floor(random * arr.length)];
-}
-
-/**
- * Seeded random number generator for consistent results
- */
-function _seededRandomNumber(seed: string, min: number, max: number): number {
-	let hash = 0;
-	for (let i = 0; i < seed.length; i += 1) {
-		hash = (hash << 5) - hash + seed.charCodeAt(i);
-		hash &= hash;
-	}
-	const x = Math.sin(hash) * 10000;
-	const random = x - Math.floor(x);
-	return Math.floor(random * (max - min + 1)) + min;
-}
 
 /**
  * Map property type from schema to frontend display types
@@ -144,6 +117,10 @@ function transformMortgage(mortgage: Mortgage): ListingItem {
  * Listings page - displays all available investment properties
  */
 export default async function ListingsPage() {
+	// Make this page dynamic by accessing headers
+	// This prevents Next.js from trying to statically prerender during build
+	await headers();
+
 	// Preload Convex query for server-side rendering
 	const preloadedListings = await preloadQuery(
 		api.listings.getAvailableListingsWithMortgages

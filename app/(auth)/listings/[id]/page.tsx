@@ -196,12 +196,12 @@ export default async function ListingDetailPage({
 	}));
 
 	// Transform payments to match component expectations
-        const transformedPayments = payments.map((payment) => ({
-                ...payment,
-                listingId: id,
-                date: payment.processDate,
-                type: "interest" as const, // All payments are interest-only in our schema
-        }));
+	const transformedPayments = payments.map((payment) => ({
+		...payment,
+		listingId: id,
+		date: payment.processDate,
+		type: "interest" as const, // All payments are interest-only in our schema
+	}));
 
 	return (
 		<ViewTransition name={`listing-${listing._id}`}>
