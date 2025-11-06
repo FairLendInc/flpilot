@@ -28,6 +28,7 @@ export interface RbacOptions {
 	required_roles?: string[];
 	required_permissions?: string[];
 	required_orgs?: string[];
+	//Todo: type this based on WorkOSIdentity type
 	user_identity: any; // UserIdentity from ctx.auth.getUserIdentity()
 }
 

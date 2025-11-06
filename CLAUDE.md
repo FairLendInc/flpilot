@@ -1,22 +1,3 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-
-These instructions are for AI assistants working in this project.
-
-Always open `@/openspec/AGENTS.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `@/openspec/AGENTS.md` to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
-
-<!-- OPENSPEC:END -->
-
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -126,10 +107,24 @@ pnpm run build-storybook
 - Unauthenticated paths: `/`, `/sign-in`, `/sign-up`
 
 #### Data Flow
-- Convex schema defined in `convex/schema.ts` (currently minimal)
-- Server functions in `convex/` directory handle backend logic
+- Convex schema defined in `convex/schema.ts` with 6 core tables:
+  - `mortgages` - Core loan + property records with borrower reference
+  - `borrowers` - Minimal borrower profiles with Rotessa integration
+  - `mortgage_ownership` - Cap table tracking fractional ownership (100% invariant enforced)
+  - `listings` - Marketplace visibility and lock state for mortgages
+  - `appraisal_comparables` - Comparable property data linked to appraisals
+  - `payments` - Payment history tracking (interest-only, Rotessa-integrated)
+- Server functions in `convex/` directory handle all backend logic
 - Client components use `useAuth()` and `useAccessToken()` hooks from AuthKit
 - All data queries go through Convex's reactive query system
+- **100% Ownership Invariant**: Every mortgage has exactly 100% ownership, with FairLend as the default remainder owner
+
+#### Convex Best Practices
+- **Always consult `.cursor/rules/convex_rules.mdc`** for Convex development patterns and guidelines
+- **Use `ctx.auth.getUserIdentity()` for all user role/permission checks** - WorkOS is the source of truth for authentication and authorization
+- Follow the new Convex function syntax with `args` and `returns` validators
+- Use the OpenSpec spec-driven development workflow for all new features
+- Leverage the 100% ownership invariant when working with mortgage ownership operations
 
 #### Logging Architecture
 - Centralized logging system with adapter pattern
@@ -189,12 +184,24 @@ function handleClick(id: string) {
 │   └── (auth)/            # Authenticated route groups
 ├── components/            # React components
 ├── convex/               # Convex backend (schema + functions)
+│   ├── schema.ts         # Database schema with 6 tables
+│   ├── mortgages.ts      # Mortgage operations
+│   ├── borrowers.ts      # Borrower profiles
+│   ├── ownership.ts      # Ownership cap table (100% invariant)
+│   ├── listings.ts       # Marketplace listings
+│   ├── comparables.ts    # Appraisal comparables
+│   └── payments.ts       # Payment history
 ├── lib/                  # Shared utilities and configurations
 ├── hooks/                # Custom React hooks
 ├── stories/              # Storybook stories
 ├── unit-tests/           # Unit test files
 ├── e2e/                  # Playwright E2E tests
-└── docs/                 # Project documentation
+├── docs/                 # Project documentation
+└── openspec/             # Spec-driven development
+    ├── AGENTS.md         # OpenSpec instructions
+    ├── specs/            # Current specifications (6 capabilities)
+    ├── changes/          # Active change proposals
+    └── changes/archive/  # Completed changes
 ```
 
 ### Environment Setup
@@ -259,7 +266,10 @@ Copy `.env.local.example` to `.env.local` and configure:
 ## Important Notes
 
 - This is a WorkOS AuthKit template with automatic provisioning enabled
-- Convex schema is optional - the app works without it
+- **Convex database**: Full schema with 6 tables (mortgages, borrowers, ownership, listings, comparables, payments)
 - All authentication state management is handled by AuthKit
+- **100% Ownership Invariant**: Every mortgage has exactly 100% ownership; FairLend owns remainder by default
+- **Spec-driven development**: All new features require OpenSpec change proposals - see `openspec/AGENTS.md`
+- Current specifications in `openspec/specs/` define the 6 core capabilities
 - Logging is centralized and provider-agnostic for easy future migrations
 - The project uses modern React patterns with TypeScript throughout
