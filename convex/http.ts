@@ -58,6 +58,13 @@ const addressWebhookSchema = z.object({
 	country: z.string().min(1, "mortgage.address.country.required"),
 });
 
+const comparableAddressWebhookSchema = z.object({
+	street: z.string().min(1, "comparable.address.street.required"),
+	city: z.string().min(1, "comparable.address.city.required"),
+	state: z.string().min(1, "comparable.address.state.required"),
+	zip: z.string().min(1, "comparable.address.zip.required"),
+});
+
 const storageIdSchema = z.string().min(1, "storageId.required");
 
 const imageWebhookSchema = z.object({
@@ -87,6 +94,44 @@ const documentWebhookSchema = z.object({
 		),
 	fileSize: z.number().nonnegative("mortgage.documents.fileSize.range").optional(),
 });
+
+const comparableWebhookSchema = z
+	.object({
+		address: comparableAddressWebhookSchema,
+		saleAmount: z.number().gt(0, "comparable.saleAmount.positive"),
+		saleDate: z
+			.string()
+			.refine(
+				(value) => !Number.isNaN(Date.parse(value)),
+				"comparable.saleDate.invalid"
+			)
+			.refine(
+				(value) => Date.parse(value) <= Date.now(),
+				"comparable.saleDate.future"
+			),
+		distance: z.number().gte(0, "comparable.distance.range"),
+		squareFeet: z.number().positive("comparable.squareFeet.positive").optional(),
+		bedrooms: z.number().int().min(0, "comparable.bedrooms.range").optional(),
+		bathrooms: z.number().min(0, "comparable.bathrooms.range").optional(),
+		propertyType: z.string().optional(),
+		imageStorageId: storageIdSchema.optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.bedrooms !== undefined && value.bedrooms < 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["bedrooms"],
+				message: "comparable.bedrooms.range",
+			});
+		}
+		if (value.bathrooms !== undefined && value.bathrooms < 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["bathrooms"],
+				message: "comparable.bathrooms.range",
+			});
+		}
+	});
 
 const mortgageWebhookSchema = z
 	.object({
@@ -168,6 +213,7 @@ const listingCreationWebhookSchema = z.object({
 	borrower: borrowerWebhookSchema,
 	mortgage: mortgageWebhookSchema,
 	listing: listingWebhookSchema,
+	comparables: z.array(comparableWebhookSchema).optional(),
 });
 
 type ListingWebhookPayload = z.infer<typeof listingCreationWebhookSchema>;
@@ -188,6 +234,24 @@ const toListingCreationPayload = (
 		})),
 	},
 	listing: payload.listing,
+	comparables: payload.comparables?.map((comp) => ({
+		address: {
+			street: comp.address.street,
+			city: comp.address.city,
+			state: comp.address.state,
+			zip: comp.address.zip,
+		},
+		saleAmount: comp.saleAmount,
+		saleDate: comp.saleDate,
+		distance: comp.distance,
+		squareFeet: comp.squareFeet,
+		bedrooms: comp.bedrooms,
+		bathrooms: comp.bathrooms,
+		propertyType: comp.propertyType,
+		imageStorageId: comp.imageStorageId
+			? (comp.imageStorageId as Id<"_storage">)
+			: undefined,
+	})),
 });
 
 const formatValidationIssues = (issues: z.ZodIssue[]) =>
@@ -288,6 +352,310 @@ http.route({
 			const message =
 				error instanceof Error ? error.message : "Unknown processing error";
 			logger.error("Listing webhook processing failed", { message });
+			return corsJsonResponse(400, {
+				code: "processing_error",
+				message,
+			});
+		}
+	}),
+});
+
+// Listing update webhook
+const listingUpdateWebhookSchema = z.object({
+	listingId: z.string().min(1, "listingId.required"),
+	visible: z.boolean().optional(),
+	locked: z.boolean().optional(),
+	metadata: z.record(z.unknown()).optional(),
+});
+
+http.route({
+	path: "/listings/update",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/listings/update",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		if (!LISTINGS_WEBHOOK_API_KEY) {
+			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
+			return corsJsonResponse(500, {
+				code: "configuration_error",
+				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
+			});
+		}
+
+		const providedKey = request.headers.get("x-api-key");
+		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
+			return corsJsonResponse(401, {
+				code: "invalid_api_key",
+				message: "Missing or invalid API key",
+			});
+		}
+
+		let rawPayload: unknown;
+		try {
+			rawPayload = await request.json();
+		} catch (_err) {
+			return corsJsonResponse(400, {
+				code: "invalid_json",
+				message: "Request body must be valid JSON",
+			});
+		}
+
+		const parsedPayload = listingUpdateWebhookSchema.safeParse(rawPayload);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		try {
+			await ctx.runMutation(internal.listings.updateListingInternal, {
+				listingId: parsedPayload.data.listingId as Id<"listings">,
+				visible: parsedPayload.data.visible,
+				locked: parsedPayload.data.locked,
+				metadata: parsedPayload.data.metadata,
+			});
+
+			return corsJsonResponse(200, {
+				code: "listing_updated",
+				message: "Listing updated successfully",
+			});
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unknown processing error";
+			logger.error("Listing update webhook processing failed", { message });
+			return corsJsonResponse(400, {
+				code: "processing_error",
+				message,
+			});
+		}
+	}),
+});
+
+// Listing delete webhook
+const listingDeleteWebhookSchema = z.object({
+	listingId: z.string().min(1, "listingId.required"),
+	force: z.boolean().optional(),
+});
+
+http.route({
+	path: "/listings/delete",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/listings/delete",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		if (!LISTINGS_WEBHOOK_API_KEY) {
+			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
+			return corsJsonResponse(500, {
+				code: "configuration_error",
+				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
+			});
+		}
+
+		const providedKey = request.headers.get("x-api-key");
+		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
+			return corsJsonResponse(401, {
+				code: "invalid_api_key",
+				message: "Missing or invalid API key",
+			});
+		}
+
+		let rawPayload: unknown;
+		try {
+			rawPayload = await request.json();
+		} catch (_err) {
+			return corsJsonResponse(400, {
+				code: "invalid_json",
+				message: "Request body must be valid JSON",
+			});
+		}
+
+		const parsedPayload = listingDeleteWebhookSchema.safeParse(rawPayload);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		try {
+			await ctx.runMutation(internal.listings.deleteListingInternal, {
+				listingId: parsedPayload.data.listingId as Id<"listings">,
+				force: parsedPayload.data.force ?? false,
+			});
+
+			return corsJsonResponse(200, {
+				code: "listing_deleted",
+				message: "Listing deleted successfully",
+			});
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unknown processing error";
+			logger.error("Listing delete webhook processing failed", { message });
+			return corsJsonResponse(400, {
+				code: "processing_error",
+				message,
+			});
+		}
+	}),
+});
+
+// Mortgage update webhook
+const mortgageUpdateWebhookSchema = z.object({
+	mortgageId: z.string().min(1, "mortgageId.required"),
+	loanAmount: z.number().gt(0).optional(),
+	interestRate: z.number().gt(0).lt(100).optional(),
+	status: z.enum(["active", "renewed", "closed", "defaulted"]).optional(),
+	mortgageType: z.enum(["1st", "2nd", "other"]).optional(),
+	borrowerId: z.string().optional(),
+});
+
+http.route({
+	path: "/mortgages/update",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/mortgages/update",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		if (!LISTINGS_WEBHOOK_API_KEY) {
+			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
+			return corsJsonResponse(500, {
+				code: "configuration_error",
+				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
+			});
+		}
+
+		const providedKey = request.headers.get("x-api-key");
+		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
+			return corsJsonResponse(401, {
+				code: "invalid_api_key",
+				message: "Missing or invalid API key",
+			});
+		}
+
+		let rawPayload: unknown;
+		try {
+			rawPayload = await request.json();
+		} catch (_err) {
+			return corsJsonResponse(400, {
+				code: "invalid_json",
+				message: "Request body must be valid JSON",
+			});
+		}
+
+		const parsedPayload = mortgageUpdateWebhookSchema.safeParse(rawPayload);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		try {
+			await ctx.runMutation(internal.mortgages.updateMortgageInternal, {
+				id: parsedPayload.data.mortgageId as Id<"mortgages">,
+				loanAmount: parsedPayload.data.loanAmount,
+				interestRate: parsedPayload.data.interestRate,
+				status: parsedPayload.data.status,
+				mortgageType: parsedPayload.data.mortgageType,
+				borrowerId: parsedPayload.data.borrowerId as Id<"borrowers"> | undefined,
+			});
+
+			return corsJsonResponse(200, {
+				code: "mortgage_updated",
+				message: "Mortgage updated successfully",
+			});
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unknown processing error";
+			logger.error("Mortgage update webhook processing failed", { message });
+			return corsJsonResponse(400, {
+				code: "processing_error",
+				message,
+			});
+		}
+	}),
+});
+
+// Mortgage delete webhook
+const mortgageDeleteWebhookSchema = z.object({
+	mortgageId: z.string().min(1, "mortgageId.required"),
+	force: z.boolean().optional(),
+});
+
+http.route({
+	path: "/mortgages/delete",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/mortgages/delete",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		if (!LISTINGS_WEBHOOK_API_KEY) {
+			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
+			return corsJsonResponse(500, {
+				code: "configuration_error",
+				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
+			});
+		}
+
+		const providedKey = request.headers.get("x-api-key");
+		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
+			return corsJsonResponse(401, {
+				code: "invalid_api_key",
+				message: "Missing or invalid API key",
+			});
+		}
+
+		let rawPayload: unknown;
+		try {
+			rawPayload = await request.json();
+		} catch (_err) {
+			return corsJsonResponse(400, {
+				code: "invalid_json",
+				message: "Request body must be valid JSON",
+			});
+		}
+
+		const parsedPayload = mortgageDeleteWebhookSchema.safeParse(rawPayload);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		try {
+			await ctx.runMutation(internal.mortgages.deleteMortgageInternal, {
+				id: parsedPayload.data.mortgageId as Id<"mortgages">,
+				force: parsedPayload.data.force ?? false,
+			});
+
+			return corsJsonResponse(200, {
+				code: "mortgage_deleted",
+				message: "Mortgage deleted successfully",
+			});
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unknown processing error";
+			logger.error("Mortgage delete webhook processing failed", { message });
 			return corsJsonResponse(400, {
 				code: "processing_error",
 				message,

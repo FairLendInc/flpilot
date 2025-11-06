@@ -11,6 +11,7 @@ import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "./auth.config";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 import { comparablePayloadValidator } from "./comparables";
+import { logger } from "./logger";
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
@@ -298,6 +299,46 @@ export const getAllLockedListings = query({
 });
 
 /**
+ * Get all listings (admin view)
+ */
+export const getAllListings = query({
+	args: {},
+	handler: async (ctx) => {
+		return await ctx.db.query("listings").collect();
+	},
+});
+
+/**
+ * Get listing with mortgage details (admin view)
+ */
+export const getListingWithMortgage = query({
+	args: { listingId: v.id("listings") },
+	handler: async (ctx, args) => {
+		const listing = await ctx.db.get(args.listingId);
+		if (!listing) return null;
+
+		const mortgage = await ctx.db.get(listing.mortgageId);
+		if (!mortgage) return { listing, mortgage: null };
+
+		// Fetch signed URLs for images
+		const imagesWithUrls = await Promise.all(
+			mortgage.images.map(async (img) => ({
+				...img,
+				url: await ctx.storage.getUrl(img.storageId),
+			}))
+		);
+
+		return {
+			listing,
+			mortgage: {
+				...mortgage,
+				images: imagesWithUrls,
+			},
+		};
+	},
+});
+
+/**
  * Check if a listing is available (visible and unlocked)
  */
 export const isListingAvailable = query({
@@ -454,24 +495,270 @@ export const updateListingVisibility = mutation({
 });
 
 /**
- * Delete a listing from marketplace
+ * Admin-only: Update listing properties
+ * Allows admins to update visible state, lock state, and metadata
+ */
+export const updateListing = mutation({
+	args: {
+		listingId: v.id("listings"),
+		visible: v.optional(v.boolean()),
+		locked: v.optional(v.boolean()),
+		metadata: v.optional(v.any()),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges are required");
+		}
+
+		const listing = await ctx.db.get(args.listingId);
+		if (!listing) {
+			throw new Error("Listing not found");
+		}
+
+		// Find the caller's user document for lock operations
+		const caller = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+
+		if (!caller) {
+			throw new Error("User not found");
+		}
+
+		const updates: Partial<{
+			visible: boolean;
+			locked: boolean;
+			lockedBy: Id<"users">;
+			lockedAt: number;
+			metadata: any;
+		}> = {};
+
+		if (args.visible !== undefined) {
+			updates.visible = args.visible;
+		}
+
+		if (args.locked !== undefined) {
+			updates.locked = args.locked;
+			if (args.locked) {
+				// Locking: set lockedBy and lockedAt
+				updates.lockedBy = caller._id;
+				updates.lockedAt = Date.now();
+			} else {
+				// Unlocking: clear lockedBy and lockedAt
+				updates.lockedBy = undefined;
+				updates.lockedAt = undefined;
+			}
+		}
+
+		if (args.metadata !== undefined) {
+			updates.metadata = args.metadata;
+		}
+
+		await ctx.db.patch(args.listingId, updates);
+
+		// Log admin action for audit trail
+		console.log(
+			`[AUDIT] Admin ${caller._id} updated listing ${args.listingId}:`,
+			JSON.stringify(updates)
+		);
+
+		return args.listingId;
+	},
+});
+
+/**
+ * Admin-only: Delete a listing from marketplace
+ * Preserves underlying mortgage but removes listing and cascades comparables
  */
 export const deleteListing = mutation({
-	args: { listingId: v.id("listings") },
+	args: { listingId: v.id("listings"), force: v.optional(v.boolean()) },
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges are required");
+		}
+
+		const listing = await ctx.db.get(args.listingId);
+		if (!listing) {
+			throw new Error("Listing not found");
+		}
+
+		// Find the caller's user document for audit logging
+		const caller = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+
+		if (!caller) {
+			throw new Error("User not found");
+		}
+
+		// Check if listing is locked
+		if (listing.locked && !args.force) {
+			throw new Error(
+				"Cannot delete locked listing. Use force=true to unlock and delete, or unlock first."
+			);
+		}
+
+		// If force is true and listing is locked, unlock it first
+		if (listing.locked && args.force) {
+			await ctx.db.patch(args.listingId, {
+				locked: false,
+				lockedBy: undefined,
+				lockedAt: undefined,
+			});
+		}
+
+		// Delete all comparables linked to the mortgage
+		const comparables = await ctx.db
+			.query("appraisal_comparables")
+			.withIndex("by_mortgage", (q) => q.eq("mortgageId", listing.mortgageId))
+			.collect();
+
+		// Delete comparables (rollback handled by Convex transaction)
+		try {
+			await Promise.all(comparables.map((c) => ctx.db.delete(c._id)));
+		} catch (error) {
+			throw new Error(
+				`Failed to delete comparables: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`
+			);
+		}
+
+		// Delete the listing
+		await ctx.db.delete(args.listingId);
+
+		// Log admin action for audit trail
+		console.log(
+			`[AUDIT] Admin ${caller._id} deleted listing ${args.listingId} (mortgage: ${listing.mortgageId}, comparables deleted: ${comparables.length})`
+		);
+
+		return args.listingId;
+	},
+});
+
+/**
+ * Internal mutation for webhook: Update listing (bypasses auth, webhook authenticates via API key)
+ */
+export const updateListingInternal = internalMutation({
+	args: {
+		listingId: v.id("listings"),
+		visible: v.optional(v.boolean()),
+		locked: v.optional(v.boolean()),
+		metadata: v.optional(v.any()),
+	},
 	handler: async (ctx, args) => {
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			throw new Error("Listing not found");
 		}
 
-		// Prevent deletion of locked listings (active deals)
-		if (listing.locked) {
+		const updates: Partial<{
+			visible: boolean;
+			locked: boolean;
+			lockedBy: Id<"users">;
+			lockedAt: number;
+			metadata: any;
+		}> = {};
+
+		if (args.visible !== undefined) {
+			updates.visible = args.visible;
+		}
+
+		if (args.locked !== undefined) {
+			updates.locked = args.locked;
+			if (args.locked) {
+				// For webhook, we don't have a user ID, so leave lockedBy undefined
+				updates.lockedAt = Date.now();
+			} else {
+				updates.lockedBy = undefined;
+				updates.lockedAt = undefined;
+			}
+		}
+
+		if (args.metadata !== undefined) {
+			updates.metadata = args.metadata;
+		}
+
+		await ctx.db.patch(args.listingId, updates);
+
+		logger.info(`[WEBHOOK] Updated listing ${args.listingId}`, updates);
+
+		return args.listingId;
+	},
+});
+
+/**
+ * Internal mutation for webhook: Delete listing (bypasses auth, webhook authenticates via API key)
+ */
+export const deleteListingInternal = internalMutation({
+	args: { listingId: v.id("listings"), force: v.optional(v.boolean()) },
+	handler: async (ctx, args) => {
+		const listing = await ctx.db.get(args.listingId);
+		if (!listing) {
+			throw new Error("Listing not found");
+		}
+
+		// Check if listing is locked
+		if (listing.locked && !args.force) {
 			throw new Error(
-				"Cannot delete locked listing. Unlock first or complete the deal."
+				"Cannot delete locked listing. Use force=true to unlock and delete, or unlock first."
 			);
 		}
 
+		// If force is true and listing is locked, unlock it first
+		if (listing.locked && args.force) {
+			await ctx.db.patch(args.listingId, {
+				locked: false,
+				lockedBy: undefined,
+				lockedAt: undefined,
+			});
+		}
+
+		// Delete all comparables linked to the mortgage
+		const comparables = await ctx.db
+			.query("appraisal_comparables")
+			.withIndex("by_mortgage", (q) => q.eq("mortgageId", listing.mortgageId))
+			.collect();
+
+		// Delete comparables (rollback handled by Convex transaction)
+		try {
+			await Promise.all(comparables.map((c) => ctx.db.delete(c._id)));
+		} catch (error) {
+			throw new Error(
+				`Failed to delete comparables: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`
+			);
+		}
+
+		// Delete the listing
 		await ctx.db.delete(args.listingId);
+
+		logger.info(
+			`[WEBHOOK] Deleted listing ${args.listingId} (mortgage: ${listing.mortgageId}, comparables deleted: ${comparables.length})`
+		);
+
 		return args.listingId;
 	},
 });

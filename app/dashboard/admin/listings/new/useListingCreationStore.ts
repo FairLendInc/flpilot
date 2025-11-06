@@ -324,6 +324,7 @@ export const useListingCreationStore = create<ListingCreationStore>(
 				listing: createInitialListing(),
 				images: [],
 				documents: [],
+				comparables: [],
 				errors: {},
 				isSubmitting: false,
 			}),
@@ -468,6 +469,8 @@ export const validateListingForm = ({
 	// Validate comparables
 	if (comparables.length === 0) {
 		errors.comparables = "At least one comparable is required";
+	} else if (comparables.length > 10) {
+		errors.comparables = "Maximum 10 comparables allowed";
 	}
 
 	comparables.forEach((comp, index) => {
