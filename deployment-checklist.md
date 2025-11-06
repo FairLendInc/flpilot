@@ -25,6 +25,8 @@
   - [ ] `CONVEX_DEPLOYMENT` - Production deployment ID
   - [ ] `LOG_LEVEL` - Logging level (info, debug, etc.)
   - [ ] `LOG_PRETTY` - Pretty print logs (true/false)
+  - [ ] `LISTINGS_WEBHOOK_API_KEY` - Shared secret for `/listings/create` webhook
+  - [ ] `LISTINGS_WEBHOOK_ALLOWED_ORIGIN` - Optional CORS origin for webhook callers (defaults to `*`)
 
 ## Backend Deployment
 
@@ -124,4 +126,3 @@
 - Production: `pnpm run start`
 - Tests: `pnpm run test:once && pnpm run e2e`
 - Lint: `pnpm run lint`
-

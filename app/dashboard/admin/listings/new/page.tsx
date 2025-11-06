@@ -11,7 +11,8 @@ export default function AdminNewListingPage() {
 				<div>
 					<h1 className="font-semibold text-lg">Create Listing</h1>
 					<p className="text-muted-foreground text-sm">
-						Draft a new marketplace listing and share it with webhook integrations.
+						Draft a new marketplace listing and share it with webhook
+						integrations.
 					</p>
 				</div>
 			</header>
