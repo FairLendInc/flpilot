@@ -96,7 +96,33 @@ export const populateDatabase = mutation({
 
 		console.log("🌱 Starting database seed...");
 
-		// Step 1: Create borrowers (25 borrowers)
+		// Step 1: Create users (20 test users for ownership)
+		console.log("Creating users...");
+		const userIds: Id<"users">[] = [];
+		for (let i = 1; i <= 20; i++) {
+			const firstName = randomChoice(FIRST_NAMES, `user-${i}-first`);
+			const lastName = randomChoice(LAST_NAMES, `user-${i}-last`);
+			const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.investor@example.com`;
+
+			const userId = await ctx.db.insert("users", {
+				idp_id: `test_user_${i}`,
+				email,
+				email_verified: true,
+				first_name: firstName,
+				last_name: lastName,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: {
+					seedData: true,
+					investorNumber: i,
+				},
+			});
+
+			userIds.push(userId);
+		}
+		console.log(`✅ Created ${userIds.length} users`);
+
+		// Step 2: Create borrowers (25 borrowers)
 		console.log("Creating borrowers...");
 		const borrowerIds: Id<"borrowers">[] = [];
 		for (let i = 0; i < 25; i++) {
@@ -115,7 +141,7 @@ export const populateDatabase = mutation({
 		}
 		console.log(`✅ Created ${borrowerIds.length} borrowers`);
 
-		// Step 2: Create mortgages (60 mortgages)
+		// Step 3: Create mortgages (60 mortgages)
 		console.log("Creating mortgages...");
 		const mortgageIds: Id<"mortgages">[] = [];
 		for (let i = 0; i < 60; i++) {
@@ -228,7 +254,7 @@ export const populateDatabase = mutation({
 		}
 		console.log(`✅ Created ${mortgageIds.length} mortgages`);
 
-		// Step 3: Create ownership records
+		// Step 4: Create ownership records
 		console.log("Creating ownership records...");
 		let ownershipCount = 0;
 		for (let i = 0; i < mortgageIds.length; i++) {
@@ -246,10 +272,9 @@ export const populateDatabase = mutation({
 				});
 				ownershipCount++;
 			} else {
-				// Random user owns 100%
-				// In a real system, ownerId would reference users table
-				// For now, we'll use placeholder user IDs
-				const userId = `user_${randomInt(1, 20, `ownership-${i}-user`)}` as Id<"users">;
+				// Random user owns 100% - use actual user from created users
+				const userIndex = randomInt(0, userIds.length - 1, `ownership-${i}-user`);
+				const userId = userIds[userIndex];
 				await ctx.db.insert("mortgage_ownership", {
 					mortgageId,
 					ownerId: userId,
@@ -260,7 +285,7 @@ export const populateDatabase = mutation({
 		}
 		console.log(`✅ Created ${ownershipCount} ownership records`);
 
-		// Step 4: Create listings (only for active mortgages)
+		// Step 5: Create listings (only for active mortgages)
 		console.log("Creating listings...");
 		const listingIds: Id<"listings">[] = [];
 		for (let i = 0; i < mortgageIds.length; i++) {
@@ -286,7 +311,7 @@ export const populateDatabase = mutation({
 		}
 		console.log(`✅ Created ${listingIds.length} listings`);
 
-		// Step 5: Create payment history
+		// Step 6: Create payment history
 		console.log("Creating payment records...");
 		let paymentCount = 0;
 		for (let i = 0; i < mortgageIds.length; i++) {
@@ -327,7 +352,7 @@ export const populateDatabase = mutation({
 		}
 		console.log(`✅ Created ${paymentCount} payment records`);
 
-		// Step 6: Create appraisal comparables
+		// Step 7: Create appraisal comparables
 		console.log("Creating appraisal comparables...");
 		let comparableCount = 0;
 		// Generate comparables for first 30 mortgages (not all need comparables)
@@ -388,6 +413,7 @@ export const populateDatabase = mutation({
 		// Summary
 		console.log("\n🎉 Database seeding complete!");
 		console.log("Summary:");
+		console.log(`  - ${userIds.length} users`);
 		console.log(`  - ${borrowerIds.length} borrowers`);
 		console.log(`  - ${mortgageIds.length} mortgages`);
 		console.log(`  - ${ownershipCount} ownership records`);
@@ -398,6 +424,7 @@ export const populateDatabase = mutation({
 		return {
 			success: true,
 			counts: {
+				users: userIds.length,
 				borrowers: borrowerIds.length,
 				mortgages: mortgageIds.length,
 				ownership: ownershipCount,
