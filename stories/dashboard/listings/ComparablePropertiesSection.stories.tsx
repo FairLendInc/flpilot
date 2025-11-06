@@ -1,0 +1,503 @@
+import type { Meta, StoryObj } from "@storybook/react";
+import { useState, useCallback } from "react";
+import { Card, Button, Input, Chip, addToast } from "@heroui/react";
+import { Icon } from "@iconify/react";
+import { generateComparables } from "@/lib/mock-data/listings";
+import type { ComparableFormState } from "@/app/dashboard/admin/listings/new/useListingCreationStore";
+
+// Mock store implementation for stories
+const createMockStore = (initialComparables: ComparableFormState[] = []) => {
+	return {
+		comparables: initialComparables,
+		addComparable: useCallback((entry: ComparableFormState) => {
+			console.log("addComparable called", entry);
+		}, []),
+		updateComparable: useCallback((index: number, entry: Partial<ComparableFormState>) => {
+			console.log("updateComparable called", index, entry);
+		}, []),
+		removeComparable: useCallback((index: number) => {
+			console.log("removeComparable called", index);
+		}, []),
+	};
+};
+
+// Helper functions to create mock data
+const createEmptyComparable = (): ComparableFormState => ({
+	address: { street: "", city: "", state: "", zip: "" },
+	saleAmount: "",
+	saleDate: "",
+	distance: "",
+});
+
+const createValidComparable = (index: number): ComparableFormState => {
+	const mock = generateComparables(`story-${index}`, 1)[0];
+	return {
+		address: {
+			street: mock.address.street,
+			city: mock.address.city,
+			state: mock.address.state,
+			zip: mock.address.zip,
+		},
+		saleAmount: mock.saleAmount.toString(),
+		saleDate: mock.saleDate.slice(0, 10),
+		distance: mock.distance.toString(),
+		squareFeet: mock.squareFeet?.toString(),
+		bedrooms: mock.bedrooms?.toString(),
+		bathrooms: mock.bathrooms?.toString(),
+		propertyType: mock.propertyType,
+	};
+};
+
+const createInvalidComparable = (): ComparableFormState => ({
+	address: { street: "", city: "", state: "ON", zip: "" },
+	saleAmount: "-100",
+	saleDate: "2030-01-01",
+	distance: "-1",
+	squareFeet: "-100",
+	bedrooms: "-1",
+	bathrooms: "-1",
+});
+
+const createComparableWithOptionalFields = (): ComparableFormState => {
+	const mock = generateComparables("optional-fields", 1)[0];
+	return {
+		address: {
+			street: mock.address.street,
+			city: mock.address.city,
+			state: mock.address.state,
+			zip: mock.address.zip,
+		},
+		saleAmount: mock.saleAmount.toString(),
+		saleDate: mock.saleDate.slice(0, 10),
+		distance: mock.distance.toString(),
+		squareFeet: mock.squareFeet?.toString() ?? "2200",
+		bedrooms: mock.bedrooms?.toString() ?? "3",
+		bathrooms: mock.bathrooms?.toString() ?? "2",
+		propertyType: mock.propertyType ?? "Townhouse",
+	};
+};
+
+// Component to simulate the comparable properties section
+const ComparablePropertiesSection = ({
+	comparables,
+	onAdd,
+	onUpdate,
+	onRemove,
+	errors = {},
+}: {
+	comparables: ComparableFormState[];
+	onAdd: () => void;
+	onUpdate: (index: number, field: string, value: string) => void;
+	onRemove: (index: number) => void;
+	errors?: Record<string, string>;
+}) => {
+	return (
+		<Card className="p-6">
+			<div className="space-y-6">
+				<div className="flex items-center justify-between">
+					<div>
+						<h3 className="text-lg font-semibold">Comparable Properties</h3>
+						<p className="text-sm text-gray-600 dark:text-gray-400">
+							Add comparable property data from the appraisal to support valuation.
+							At least one comparable is required.
+						</p>
+					</div>
+					<Chip color="primary" variant="flat">
+						{comparables.length} {comparables.length === 1 ? "comparable" : "comparables"}
+					</Chip>
+				</div>
+
+				{errors.comparables && (
+					<div className="rounded-md bg-danger-50 p-3 text-sm text-danger">
+						{errors.comparables}
+					</div>
+				)}
+
+				<div className="space-y-4">
+					{comparables.map((comp, index) => (
+						<Card key={index} className="p-4 border-2 border-gray-200 dark:border-gray-700">
+							<div className="space-y-4">
+								<div className="flex items-center justify-between">
+									<h4 className="font-medium">Comparable {index + 1}</h4>
+									<Button
+										size="sm"
+										color="danger"
+										variant="light"
+										startContent={<Icon icon="lucide:trash-2" className="h-4 w-4" />}
+										onPress={() => onRemove(index)}
+									>
+										Remove
+									</Button>
+								</div>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									{/* Address Fields */}
+									<div className="space-y-3">
+										<h5 className="text-sm font-medium">Address</h5>
+										<Input
+											label="Street"
+											value={comp.address.street}
+											onValueChange={(value) => onUpdate(index, "address.street", value)}
+											isInvalid={!!errors[`comparables.${index}.address.street`]}
+											errorMessage={errors[`comparables.${index}.address.street`]}
+											placeholder="123 Main Street"
+										/>
+										<div className="grid grid-cols-2 gap-2">
+											<Input
+												label="City"
+												value={comp.address.city}
+												onValueChange={(value) => onUpdate(index, "address.city", value)}
+												isInvalid={!!errors[`comparables.${index}.address.city`]}
+												errorMessage={errors[`comparables.${index}.address.city`]}
+												placeholder="Toronto"
+											/>
+											<Input
+												label="Province/State"
+												value={comp.address.state}
+												onValueChange={(value) => onUpdate(index, "address.state", value)}
+												isInvalid={!!errors[`comparables.${index}.address.state`]}
+												errorMessage={errors[`comparables.${index}.address.state`]}
+												placeholder="ON"
+											/>
+										</div>
+										<Input
+											label="Postal/ZIP Code"
+											value={comp.address.zip}
+											onValueChange={(value) => onUpdate(index, "address.zip", value)}
+											isInvalid={!!errors[`comparables.${index}.address.zip`]}
+											errorMessage={errors[`comparables.${index}.address.zip`]}
+											placeholder="M5V 3A8"
+										/>
+									</div>
+
+									{/* Sale Information */}
+									<div className="space-y-3">
+										<h5 className="text-sm font-medium">Sale Information</h5>
+										<Input
+											type="number"
+											label="Sale Amount"
+											value={comp.saleAmount}
+											onValueChange={(value) => onUpdate(index, "saleAmount", value)}
+											isInvalid={!!errors[`comparables.${index}.saleAmount`]}
+											errorMessage={errors[`comparables.${index}.saleAmount`]}
+											placeholder="750000"
+											startContent={
+												<span className="text-gray-500 text-sm">$</span>
+											}
+										/>
+										<Input
+											type="date"
+											label="Sale Date"
+											value={comp.saleDate}
+											onValueChange={(value) => onUpdate(index, "saleDate", value)}
+											isInvalid={!!errors[`comparables.${index}.saleDate`]}
+											errorMessage={errors[`comparables.${index}.saleDate`]}
+										/>
+										<Input
+											type="number"
+											label="Distance (miles)"
+											value={comp.distance}
+											onValueChange={(value) => onUpdate(index, "distance", value)}
+											isInvalid={!!errors[`comparables.${index}.distance`]}
+											errorMessage={errors[`comparables.${index}.distance`]}
+											placeholder="0.5"
+											endContent={
+												<span className="text-gray-500 text-sm">mi</span>
+											}
+										/>
+									</div>
+								</div>
+
+								{/* Optional Fields */}
+								<div className="space-y-3">
+									<h5 className="text-sm font-medium">Property Details (Optional)</h5>
+									<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+										<Input
+											type="number"
+											label="Square Feet"
+											value={comp.squareFeet}
+											onValueChange={(value) => onUpdate(index, "squareFeet", value)}
+											isInvalid={!!errors[`comparables.${index}.squareFeet`]}
+											errorMessage={errors[`comparables.${index}.squareFeet`]}
+											placeholder="2200"
+										/>
+										<Input
+											type="number"
+											label="Bedrooms"
+											value={comp.bedrooms}
+											onValueChange={(value) => onUpdate(index, "bedrooms", value)}
+											isInvalid={!!errors[`comparables.${index}.bedrooms`]}
+											errorMessage={errors[`comparables.${index}.bedrooms`]}
+											placeholder="3"
+										/>
+										<Input
+											type="number"
+											label="Bathrooms"
+											value={comp.bathrooms}
+											onValueChange={(value) => onUpdate(index, "bathrooms", value)}
+											isInvalid={!!errors[`comparables.${index}.bathrooms`]}
+											errorMessage={errors[`comparables.${index}.bathrooms`]}
+											placeholder="2"
+										/>
+										<Input
+											label="Property Type"
+											value={comp.propertyType}
+											onValueChange={(value) => onUpdate(index, "propertyType", value)}
+											isInvalid={!!errors[`comparables.${index}.propertyType`]}
+											errorMessage={errors[`comparables.${index}.propertyType`]}
+											placeholder="Townhouse"
+										/>
+									</div>
+								</div>
+							</div>
+						</Card>
+					))}
+				</div>
+
+				<Button
+					color="primary"
+					variant="dashed"
+					startContent={<Icon icon="lucide:plus" className="h-4 w-4" />}
+					onPress={onAdd}
+					isDisabled={comparables.length >= 10}
+					className="w-full"
+				>
+					Add Comparable
+				</Button>
+			</div>
+		</Card>
+	);
+};
+
+const meta: Meta<typeof ComparablePropertiesSection> = {
+	title: "Dashboard/Admin/Listing Creation/ComparableProperties",
+	component: ComparablePropertiesSection,
+	parameters: {
+		layout: "centered",
+		docs: {
+			description: {
+				component:
+					"Comparable properties section for listing creation form. Allows users to add appraisal comparables with address, sale amount, date, distance, and optional property details. Supports add/remove functionality with validation.",
+			},
+		},
+	},
+	decorators: [
+		(Story) => (
+			<div className="w-full max-w-6xl p-4">
+				<Story />
+			</div>
+		),
+	],
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const EmptyState: Story = {
+	args: {
+		comparables: [],
+		errors: { comparables: "At least one comparable is required" },
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Empty state showing add button with validation error. User must add at least one comparable to proceed.",
+			},
+		},
+	},
+};
+
+export const SingleComparable: Story = {
+	args: {
+		comparables: [createValidComparable(1)],
+		errors: {},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Single comparable with all required fields populated. Shows the form layout with one comparable entry.",
+			},
+		},
+	},
+};
+
+export const TwoComparables: Story = {
+	args: {
+		comparables: [createValidComparable(1), createValidComparable(2)],
+		errors: {},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Two comparables showing multiple entries. Demonstrates how multiple comparable blocks are displayed and managed.",
+			},
+		},
+	},
+};
+
+export const MaximumComparables: Story = {
+	args: {
+		comparables: Array.from({ length: 10 }, (_, i) => createValidComparable(i + 1)),
+		errors: {},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Maximum number of comparables (10). Add button is disabled. Shows full grid layout capacity.",
+			},
+		},
+	},
+};
+
+export const ValidationErrorsMissingFields: Story = {
+	args: {
+		comparables: [createEmptyComparable()],
+		errors: {
+			"comparables.0.address.street": "Street is required",
+			"comparables.0.address.city": "City is required",
+			"comparables.0.address.state": "State is required",
+			"comparables.0.address.zip": "Postal/ZIP code is required",
+			"comparables.0.saleAmount": "Sale amount is required",
+			"comparables.0.saleDate": "Sale date is required",
+			"comparables.0.distance": "Distance is required",
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Validation errors for all required fields missing. Shows how field-level validation errors are displayed.",
+			},
+		},
+	},
+};
+
+export const ValidationErrorsInvalidValues: Story = {
+	args: {
+		comparables: [createInvalidComparable()],
+		errors: {
+			"comparables.0.saleAmount": "Sale amount must be a positive number",
+			"comparables.0.distance": "Distance must be 0 or greater",
+			"comparables.0.saleDate": "Sale date cannot be in the future",
+			"comparables.0.squareFeet": "Square feet must be 0 or greater",
+			"comparables.0.bedrooms": "Bedrooms must be 0 or greater",
+			"comparables.0.bathrooms": "Bathrooms must be 0 or greater",
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Validation errors for invalid values. Shows negative numbers, future dates, and invalid inputs.",
+			},
+		},
+	},
+};
+
+export const ValidationErrorExceedsMaximum: Story = {
+	args: {
+		comparables: Array.from({ length: 10 }, (_, i) => createValidComparable(i + 1)),
+		errors: { comparables: "Maximum 10 comparables allowed" },
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Validation error when attempting to exceed maximum count. Add button shows error state and validation message.",
+			},
+		},
+	},
+};
+
+export const WithOptionalFields: Story = {
+	args: {
+		comparables: [createComparableWithOptionalFields()],
+		errors: {},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Single comparable with all optional fields filled. Shows how square feet, bedrooms, bathrooms, and property type are displayed.",
+			},
+		},
+	},
+};
+
+export const MixedPopulatedAndEmpty: Story = {
+	args: {
+		comparables: [createValidComparable(1), createEmptyComparable()],
+		errors: {
+			"comparables.1.address.street": "Street is required",
+			"comparables.1.saleAmount": "Sale amount is required",
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Mixed state with one populated and one partially filled comparable. Shows validation on incomplete entry while others are valid.",
+			},
+		},
+	},
+};
+
+export const AfterRemovingComparable: Story = {
+	render: () => {
+		const [comparables, setComparables] = useState([
+			createValidComparable(1),
+			createValidComparable(2),
+			createValidComparable(3),
+		]);
+		const [errors, setErrors] = useState({});
+
+		const handleAdd = () => {
+			if (comparables.length < 10) {
+				setComparables([...comparables, createValidComparable(comparables.length + 1)]);
+			}
+		};
+
+		const handleUpdate = (index: number, field: string, value: string) => {
+			const newComparables = [...comparables];
+			const fieldPath = field.split(".");
+			if (fieldPath.length === 2) {
+				(newComparables[index] as any)[fieldPath[0]][fieldPath[1]] = value;
+			} else {
+				(newComparables[index] as any)[field] = value;
+			}
+			setComparables(newComparables);
+		};
+
+		const handleRemove = (index: number) => {
+			const newComparables = comparables.filter((_, i) => i !== index);
+			setComparables(newComparables);
+		};
+
+		// Remove the second comparable
+		setTimeout(() => {
+			handleRemove(1);
+		}, 100);
+
+		return (
+			<ComparablePropertiesSection
+				comparables={comparables}
+				onAdd={handleAdd}
+				onUpdate={handleUpdate}
+				onRemove={handleRemove}
+				errors={errors}
+			/>
+		);
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Demonstrates re-indexing behavior after removing a comparable. Shows how the form handles index updates when items are deleted.",
+			},
+		},
+	},
+};

@@ -790,7 +790,7 @@ export default function ListingCreationForm() {
 						Comparable Properties
 					</Fieldset.Legend>
 					<Description className="text-foreground/50">
-						Add comparable property data from the appraisal to support valuation.
+						Add comparable property data from the appraisal to support valuation. At least one comparable is required.
 					</Description>
 					<div className="space-y-4">
 						{errors.comparables && (
