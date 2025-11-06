@@ -197,14 +197,14 @@ export default defineSchema({
 		.index("by_maturity_date", ["maturityDate"]),
 
 	mortgage_ownership: defineTable({
-		// Reference to mortgage
-		mortgageId: v.id("mortgages"),
-		// Owner reference - union type: userId from users table OR "fairlend" literal
-		// Application layer validates: either valid userId or "fairlend" string
-		ownerId: v.string(),
-		// Ownership percentage (0-100, typically 100 for single owner)
-		// Application validates sum of percentages per mortgage = 100
-		ownershipPercentage: v.number(),
+	// Reference to mortgage
+	mortgageId: v.id("mortgages"),
+	// Owner reference - union type: userId from users table OR "fairlend" literal
+	// Convex validates: either valid userId or "fairlend" string
+	ownerId: v.union([v.literal("fairlend"), v.id("users")]),
+	// Ownership percentage (0-100, typically 100 for single owner)
+	// Application validates sum of percentages per mortgage = 100
+	ownershipPercentage: v.number(),
 	})
 		.index("by_mortgage", ["mortgageId"])
 		.index("by_owner", ["ownerId"])
