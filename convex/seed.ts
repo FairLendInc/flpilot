@@ -92,7 +92,7 @@ export const populateDatabase = mutation({
 	args: {},
 	handler: async (ctx) => {
 		// Storage ID for all property images
-		const PROPERTY_IMAGE_STORAGE_ID = "kg25zy583vde1xsem8q17sjf6x7szpf6";
+		const PROPERTY_IMAGE_STORAGE_ID = "kg25zy583vde1xsem8q17sjf6x7szpf6" as Id<"_storage">;
 
 		console.log("🌱 Starting database seed...");
 
@@ -139,7 +139,7 @@ export const populateDatabase = mutation({
 			// Property images (1-3 images all using same storage ID)
 			const imageCount = randomInt(1, 3, `mortgage-${i}-imgcount`);
 			const images = Array.from({ length: imageCount }, (_, imgIdx) => ({
-				storageId: PROPERTY_IMAGE_STORAGE_ID,
+				storageId: PROPERTY_IMAGE_STORAGE_ID as Id<"_storage">,
 				alt: `Property view ${imgIdx + 1}`,
 				order: imgIdx,
 			}));
@@ -217,7 +217,7 @@ export const populateDatabase = mutation({
 					{
 						name: "Mortgage Agreement.pdf",
 						type: "appraisal",
-						storageId: "kg222733sz1pg4gp3qpy9ca5fd7tneqg",
+						storageId: "kg222733sz1pg4gp3qpy9ca5fd7tneqg" as Id<"_storage">,
 						uploadDate: originationDate.toISOString(),
 						fileSize: 250000,
 					},
@@ -249,7 +249,7 @@ export const populateDatabase = mutation({
 				// Random user owns 100%
 				// In a real system, ownerId would reference users table
 				// For now, we'll use placeholder user IDs
-				const userId = `user_${randomInt(1, 20, `ownership-${i}-user`)}`;
+				const userId = `user_${randomInt(1, 20, `ownership-${i}-user`)}` as Id<"users">;
 				await ctx.db.insert("mortgage_ownership", {
 					mortgageId,
 					ownerId: userId,
@@ -377,7 +377,7 @@ export const populateDatabase = mutation({
 					bedrooms: randomInt(2, 5, `${compSeed}-beds`),
 					bathrooms: randomInt(2, 4, `${compSeed}-baths`),
 					propertyType: randomChoice(PROPERTY_TYPES, `${compSeed}-type`),
-					imageStorageId: PROPERTY_IMAGE_STORAGE_ID,
+					imageStorageId: PROPERTY_IMAGE_STORAGE_ID as Id<"_storage">,
 				});
 
 				comparableCount++;
