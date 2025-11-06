@@ -210,7 +210,7 @@ export function ListingMap<T extends LatLng>({
 	}, [items, isMapLoaded, renderPopup]);
 
 	return (
-		<div className={cn("relative h-full w-full", containerClassName)}>
+		<div className={cn("relative md:h-[80vh] h-full w-full", containerClassName)}>
 			<div
 				className={cn("h-full w-full rounded-xl", mapClassName, className)}
 				ref={mapContainerRef}
