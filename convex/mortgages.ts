@@ -79,14 +79,16 @@ export const listMortgagesByStatus = query({
 export const getMortgagesNearingMaturity = query({
 	args: { daysFromNow: v.number() },
 	handler: async (ctx, args) => {
+		const now = new Date().toISOString();
 		const futureDate = new Date();
 		futureDate.setDate(futureDate.getDate() + args.daysFromNow);
 		const futureDateISO = futureDate.toISOString();
 
 		return await ctx.db
 			.query("mortgages")
-			.withIndex("by_maturity_date")
-			.filter((q) => q.lte(q.field("maturityDate"), futureDateISO))
+			.withIndex("by_maturity_date", (q) =>
+				q.gte("maturityDate", now).lte("maturityDate", futureDateISO)
+			)
 			.collect();
 	},
 });
@@ -196,7 +198,7 @@ export const createMortgage = mutation({
 		}
 
 		// Create mortgage with all fields
-		return await ctx.db.insert("mortgages", {
+		const mortgageId = await ctx.db.insert("mortgages", {
 			borrowerId: args.borrowerId,
 			loanAmount: args.loanAmount,
 			interestRate: args.interestRate,
@@ -216,6 +218,16 @@ export const createMortgage = mutation({
 			images: args.images ?? [],
 			documents: args.documents ?? [],
 		});
+
+		// Create initial 100% FairLend ownership
+		// By default, all mortgages are 100% owned by FairLend until sold to investors
+		await ctx.db.insert("mortgage_ownership", {
+			mortgageId,
+			ownerId: "fairlend",
+			ownershipPercentage: 100,
+		});
+
+		return mortgageId;
 	},
 });
 
@@ -276,10 +288,10 @@ export const addDocumentToMortgage = mutation({
 			throw new Error("Mortgage not found");
 		}
 
-		// Append document to existing documents
-		await ctx.db.patch(args.mortgageId, {
-			documents: [...mortgage.documents, args.document],
-		});
+	// Append document to existing documents
+	await ctx.db.patch(args.mortgageId, {
+		documents: [...(mortgage.documents ?? []), args.document],
+	});
 
 		return args.mortgageId;
 	},
