@@ -5,6 +5,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { hasRbacAccess } from "./auth.config";
 
 /**
  * Get all available listings (visible and unlocked)
@@ -200,15 +201,41 @@ export const unlockListing = mutation({
 		userId: v.id("users"),
 	},
 	handler: async (ctx, args) => {
+		// Get caller identity
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Find the caller's user document
+		const caller = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+
+		if (!caller) {
+			throw new Error("User not found");
+		}
+
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			throw new Error("Listing not found");
 		}
 
-		// Verify user is the one who locked it (or is admin)
-		if (listing.lockedBy !== args.userId) {
-			// Application layer should check admin permissions
-			// For now, allowing unlock
+		// Check if caller is the one who locked it
+		const isLocker = listing.lockedBy === caller._id;
+
+		// Check if caller is admin using RBAC helper
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		// Authorization check: must be locker or admin
+		if (!isLocker && !isAdmin) {
+			throw new Error(
+				"Unauthorized: Only the user who locked this listing or an admin can unlock it"
+			);
 		}
 
 		// Unlock the listing
