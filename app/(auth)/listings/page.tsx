@@ -1,9 +1,10 @@
+import { preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { ViewTransition } from "react";
 import type { FilterableItem } from "@/components/ListingGridShell";
-import { generateMultipleListings } from "@/lib/mock-data/generate-multiple-listings";
-import type { MockListing } from "@/lib/mock-data/listings";
+import { api } from "@/convex/_generated/api";
+import type { Mortgage } from "@/lib/types/convex";
 import { ListingsClient } from "./listings-client";
 
 // Extended type with required fields for rendering
@@ -18,10 +19,10 @@ export const metadata: Metadata = {
 };
 
 // Mortgage types for random assignment - must match listing-filters.ts
-const MORTGAGE_TYPES = ["First", "Second", "Other"] as const;
+const _MORTGAGE_TYPES = ["First", "Second", "Other"] as const;
 
 // Property types for random assignment - must match listing-filters.ts
-const PROPERTY_TYPES = [
+const _PROPERTY_TYPES = [
 	"Detached Home",
 	"Duplex",
 	"Triplex",
@@ -34,61 +35,81 @@ const PROPERTY_TYPES = [
 ] as const;
 
 /**
- * Seeded random selection helper
+ * Map property type from schema to frontend display types
  */
-function selectFromArray<T>(arr: readonly T[], seed: string): T {
-	let hash = 0;
-	for (let i = 0; i < seed.length; i += 1) {
-		hash = (hash << 5) - hash + seed.charCodeAt(i);
-		hash &= hash;
-	}
-	const x = Math.sin(hash) * 10000;
-	const random = x - Math.floor(x);
-	return arr[Math.floor(random * arr.length)];
+function mapPropertyType(schemaType: string): string {
+	const mapping: Record<string, string> = {
+		"Residential - Single Family": "Detached Home",
+		"Residential - Condo": "Condo",
+		"Residential - Townhouse": "Townhouse",
+		"Residential - Multi-Family": "Duplex",
+	};
+	return mapping[schemaType] ?? schemaType;
 }
 
 /**
- * Seeded random number generator for consistent results
+ * Map mortgage type from database format to frontend display format
  */
-function seededRandomNumber(seed: string, min: number, max: number): number {
-	let hash = 0;
-	for (let i = 0; i < seed.length; i += 1) {
-		hash = (hash << 5) - hash + seed.charCodeAt(i);
-		hash &= hash;
+function mapMortgageType(mortgageType: "1st" | "2nd" | "other"): string {
+	switch (mortgageType) {
+		case "1st":
+			return "First";
+		case "2nd":
+			return "Second";
+		case "other":
+			return "Other";
+		default:
+			return "Other";
 	}
-	const x = Math.sin(hash) * 10000;
-	const random = x - Math.floor(x);
-	return Math.floor(random * (max - min + 1)) + min;
 }
 
 /**
- * Transform MockListing to ListingItem for ListingGridShell
+ * Transform Convex Mortgage to ListingItem for ListingGridShell
+ * Uses pre-fetched signed URLs from Convex query
  */
-function transformListing(listing: MockListing): ListingItem {
-	const { financials, location, address, images } = listing;
+function transformMortgage(mortgage: Mortgage): ListingItem {
+	const {
+		location,
+		address,
+		images,
+		loanAmount,
+		interestRate,
+		maturityDate,
+		mortgageType,
+		appraisalMarketValue,
+	} = mortgage;
 
-	// Calculate LTV (Loan-to-Value ratio) within expected bounds (30-80%)
-	// LTV = (Loan Amount / Property Value) * 100
-	// Generate a realistic LTV within filter bounds for better filtering UX
-	const ltv = seededRandomNumber(`${listing._id}-ltv`, 30, 80);
+	// Use real LTV and market value from database
+	const ltv = mortgage.ltv;
+	const marketValue = appraisalMarketValue;
 
-	// Select mortgage and property types based on listing ID for consistency
-	const mortgageType = selectFromArray(MORTGAGE_TYPES, listing._id) as string;
-	const propertyType = selectFromArray(PROPERTY_TYPES, listing._id) as string;
+	// Map mortgage type from database (1st, 2nd, other) to display format
+	const mappedMortgageType = mapMortgageType(mortgageType);
+
+	// Map property type from schema to frontend types
+	const propertyType = mapPropertyType(mortgage.propertyType);
+
+	// Get first image or use fallback - use pre-fetched signed URL
+	// TypeScript doesn't know about the runtime-added 'url' property, so we use type assertion
+	const imageSrc =
+		images.length > 0
+			? (images[0] as any).url || `/api/storage/${images[0].storageId}`
+			: "/house.jpg";
 
 	return {
-		id: listing._id,
-		title: listing.title,
+		id: mortgage._id,
+		title: `${address.street}`,
 		address: `${address.city}, ${address.state}`,
-		imageSrc: images.length > 0 ? images[0].url : "/house.jpg",
+		imageSrc,
 		lat: location.lat,
 		lng: location.lng,
 		ltv,
-		apr: financials.interestRate,
-		principal: financials.currentValue,
-		mortgageType,
+		apr: interestRate,
+		principal: loanAmount,
+		marketValue,
+		mortgageType: mappedMortgageType,
 		propertyType,
-		maturityDate: new Date(financials.maturityDate),
+		maturityDate: new Date(maturityDate),
 	};
 }
 
@@ -96,14 +117,23 @@ function transformListing(listing: MockListing): ListingItem {
  * Listings page - displays all available investment properties
  */
 export default async function ListingsPage() {
-	// Access headers to opt-out of static rendering (required for new Date() in mock data)
+	// Make this page dynamic by accessing headers
+	// This prevents Next.js from trying to statically prerender during build
 	await headers();
 
-	// Generate 50 mock listings for Toronto area
-	const mockListings = generateMultipleListings(50);
+	// Preload Convex query for server-side rendering
+	const preloadedListings = await preloadQuery(
+		api.listings.getAvailableListingsWithMortgages
+	);
 
-	// Transform to ListingItem format
-	const listings = mockListings.map(transformListing);
+	// Extract actual data from preloaded result
+	const listingsWithMortgages = preloadedQueryResult(preloadedListings);
+
+	// Transform Convex data to ListingItem format
+	const listings = listingsWithMortgages.map(({ mortgage }) =>
+		transformMortgage(mortgage)
+	);
+
 	return (
 		<ViewTransition name="listings">
 			<div className="min-h-screen">

@@ -13,9 +13,29 @@ Use `@/openspec/AGENTS.md` to learn:
 - Spec format and conventions
 - Project structure and guidelines
 
+Current specifications in this project:
+- `specs/mortgages/` - Core mortgage and property data storage
+- `specs/borrowers/` - Borrower profile management
+- `specs/mortgage-ownership/` - Ownership tracking with 100% invariant
+- `specs/listings/` - Marketplace listing management
+- `specs/appraisal-comparables/` - Property valuation comparables
+- `specs/payments/` - Payment history tracking
+
+Recent changes:
+- **2025-11-05-migrate-mock-data-to-convex-schemas** - Migrated from mock data to Convex database (archived)
+
 Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
+
+## Convex Development Guidelines
+
+**For all Convex-related work:**
+- **Always reference `.cursor/rules/convex_rules.mdc`** for patterns, best practices, and implementation examples
+- **Use `ctx.auth.getUserIdentity()` for all user role/permission checks** - WorkOS is the source of truth for authentication and authorization
+- Follow the new Convex function syntax with `args` and `returns` validators
+- Leverage the 100% ownership invariant when working with mortgage ownership operations
+- The project uses spec-driven development - all new features require OpenSpec change proposals
 
 Avoid `accessKey` attr and distracting els
 No `aria-hidden="true"` on focusable els
