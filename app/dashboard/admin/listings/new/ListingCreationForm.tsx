@@ -111,9 +111,7 @@ export default function ListingCreationForm() {
 	const removeDocument = useListingCreationStore(
 		(state) => state.removeDocument
 	);
-	const addComparable = useListingCreationStore(
-		(state) => state.addComparable
-	);
+	const addComparable = useListingCreationStore((state) => state.addComparable);
 	const updateComparable = useListingCreationStore(
 		(state) => state.updateComparable
 	);
@@ -790,7 +788,8 @@ export default function ListingCreationForm() {
 						Comparable Properties
 					</Fieldset.Legend>
 					<Description className="text-foreground/50">
-						Add comparable property data from the appraisal to support valuation. At least one comparable is required.
+						Add comparable property data from the appraisal to support
+						valuation. At least one comparable is required.
 					</Description>
 					<div className="space-y-4">
 						{errors.comparables && (
@@ -801,7 +800,7 @@ export default function ListingCreationForm() {
 						{comparables.map((comp, index) => (
 							<div
 								className="rounded-md border border-border bg-surface-2 p-4"
-								key={`comparable-${index}`}
+								key={comp.id ?? `comparable-${index}`}
 							>
 								<div className="mb-3 flex items-center justify-between">
 									<h4 className="font-medium text-foreground">
@@ -908,7 +907,10 @@ export default function ListingCreationForm() {
 										<FieldError />
 									</TextField>
 									<div>
-										<TextField isRequired name={`comparables.${index}.saleDate`}>
+										<TextField
+											isRequired
+											name={`comparables.${index}.saleDate`}
+										>
 											<Label>Sale Date</Label>
 											<DatePicker
 												className="w-full"
@@ -927,10 +929,7 @@ export default function ListingCreationForm() {
 											)}
 										</TextField>
 									</div>
-									<TextField
-										isRequired
-										name={`comparables.${index}.distance`}
-									>
+									<TextField isRequired name={`comparables.${index}.distance`}>
 										<Label>Distance (miles)</Label>
 										<Input
 											className="placeholder:text-foreground/50"

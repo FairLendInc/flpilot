@@ -79,6 +79,7 @@ export type ComparableAddressState = {
 };
 
 export type ComparableFormState = {
+	id?: string; // Unique ID for React keys
 	address: ComparableAddressState;
 	saleAmount: string;
 	saleDate: string;
@@ -128,7 +129,8 @@ const createInitialListing = (): ListingFormState => ({
 	visible: true,
 });
 
-const createInitialComparable = (): ComparableFormState => ({
+const _createInitialComparable = (): ComparableFormState => ({
+	id: crypto.randomUUID(),
 	address: {
 		street: "",
 		city: "",
@@ -194,7 +196,10 @@ type ListingCreationStore = {
 	updateDocument: (index: number, entry: Partial<ListingDocumentEntry>) => void;
 	removeDocument: (index: number) => void;
 	addComparable: (entry: ComparableFormState) => void;
-	updateComparable: (index: number, entry: Partial<ComparableFormState>) => void;
+	updateComparable: (
+		index: number,
+		entry: Partial<ComparableFormState>
+	) => void;
 	removeComparable: (index: number) => void;
 	setErrors: (errors: Record<string, string>) => void;
 	clearError: (field: string) => void;
@@ -301,7 +306,12 @@ export const useListingCreationStore = create<ListingCreationStore>(
 				documents: state.documents.filter((_, i) => i !== index),
 			})),
 		addComparable: (entry) =>
-			set((state) => ({ comparables: [...state.comparables, entry] })),
+			set((state) => ({
+				comparables: [
+					...state.comparables,
+					{ ...entry, id: entry.id ?? crypto.randomUUID() },
+				],
+			})),
 		updateComparable: (index, entry) =>
 			set((state) => ({
 				comparables: state.comparables.map((comp, i) =>
@@ -482,7 +492,8 @@ export const validateListingForm = ({
 			errors[`comparables.${index}.address.city`] = "City is required";
 		}
 		if (!comp.address.state.trim()) {
-			errors[`comparables.${index}.address.state`] = "State / Province is required";
+			errors[`comparables.${index}.address.state`] =
+				"State / Province is required";
 		}
 		if (!comp.address.zip.trim()) {
 			errors[`comparables.${index}.address.zip`] = "Postal code is required";
@@ -491,7 +502,8 @@ export const validateListingForm = ({
 		// Validate sale amount
 		const saleAmount = Number(comp.saleAmount);
 		if (!Number.isFinite(saleAmount) || saleAmount <= 0) {
-			errors[`comparables.${index}.saleAmount`] = "Sale amount must be a positive number";
+			errors[`comparables.${index}.saleAmount`] =
+				"Sale amount must be a positive number";
 		}
 
 		// Validate sale date
@@ -500,7 +512,8 @@ export const validateListingForm = ({
 			if (Number.isNaN(parsedDate)) {
 				errors[`comparables.${index}.saleDate`] = "Sale date must be valid";
 			} else if (parsedDate > Date.now()) {
-				errors[`comparables.${index}.saleDate`] = "Sale date cannot be in the future";
+				errors[`comparables.${index}.saleDate`] =
+					"Sale date cannot be in the future";
 			}
 		} else {
 			errors[`comparables.${index}.saleDate`] = "Sale date is required";
@@ -516,19 +529,22 @@ export const validateListingForm = ({
 		if (comp.squareFeet) {
 			const squareFeet = Number(comp.squareFeet);
 			if (!Number.isFinite(squareFeet) || squareFeet <= 0) {
-				errors[`comparables.${index}.squareFeet`] = "Square feet must be positive";
+				errors[`comparables.${index}.squareFeet`] =
+					"Square feet must be positive";
 			}
 		}
 		if (comp.bedrooms !== undefined && comp.bedrooms !== "") {
 			const bedrooms = Number(comp.bedrooms);
 			if (!Number.isFinite(bedrooms) || bedrooms < 0) {
-				errors[`comparables.${index}.bedrooms`] = "Bedrooms must be 0 or greater";
+				errors[`comparables.${index}.bedrooms`] =
+					"Bedrooms must be 0 or greater";
 			}
 		}
 		if (comp.bathrooms !== undefined && comp.bathrooms !== "") {
 			const bathrooms = Number(comp.bathrooms);
 			if (!Number.isFinite(bathrooms) || bathrooms < 0) {
-				errors[`comparables.${index}.bathrooms`] = "Bathrooms must be 0 or greater";
+				errors[`comparables.${index}.bathrooms`] =
+					"Bathrooms must be 0 or greater";
 			}
 		}
 	});
