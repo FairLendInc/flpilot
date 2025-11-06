@@ -28,6 +28,8 @@ After the initial setup (<2 minutes) you'll have a working full-stack app using:
    - In the WorkOS dashboard, add `http://localhost:3000/callback` as a redirect URI
    - Generate a secure password for cookie encryption (minimum 32 characters)
    - Update your `.env.local` file with these values
+   - Add a strong `LISTINGS_WEBHOOK_API_KEY` value for the `/listings/create` webhook (share this secret with upstream integrations)
+   - Optionally set `LISTINGS_WEBHOOK_ALLOWED_ORIGIN` if the webhook should only accept requests from a specific origin
 
 4. Configure Convex:
 
