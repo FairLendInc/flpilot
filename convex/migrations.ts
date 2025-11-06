@@ -6,6 +6,7 @@
 import { mutation } from "./_generated/server";
 
 export const addDocumentsToAllMortgages = mutation({
+	args: {},
 	handler: async (ctx) => {
 		console.log("[MIGRATION] Starting: Add documents to all mortgages");
 
