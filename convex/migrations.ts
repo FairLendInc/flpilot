@@ -4,6 +4,7 @@
  */
 
 import { mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 export const addDocumentsToAllMortgages = mutation({
 	args: {},
@@ -19,7 +20,7 @@ export const addDocumentsToAllMortgages = mutation({
 		const documentData = {
 			name: "Mortgage Agreement.pdf",
 			type: "appraisal" as const,
-			storageId: "kg222733sz1pg4gp3qpy9ca5fd7tneqg",
+			storageId: "kg222733sz1pg4gp3qpy9ca5fd7tneqg" as Id<"_storage">,
 			uploadDate: new Date().toISOString(),
 			fileSize: 250000, // Approximate file size in bytes
 		};

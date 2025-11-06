@@ -29,7 +29,7 @@ export const getMortgageOwnership = query({
  * Get all mortgages owned by a specific investor
  */
 export const getUserPortfolio = query({
-	args: { userId: v.string() },
+	args: { userId: v.union(v.literal("fairlend"), v.id("users")) },
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("mortgage_ownership")
@@ -44,7 +44,7 @@ export const getUserPortfolio = query({
 export const checkOwnership = query({
 	args: {
 		mortgageId: v.id("mortgages"),
-		ownerId: v.string(),
+		ownerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
 		return await ctx.db
@@ -106,7 +106,7 @@ export const getTotalOwnership = query({
 export const createOwnership = mutation({
 	args: {
 		mortgageId: v.id("mortgages"),
-		ownerId: v.string(),
+		ownerId: v.union(v.literal("fairlend"), v.id("users")),
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
@@ -290,7 +290,7 @@ export const updateOwnershipPercentage = mutation({
 export const transferOwnership = mutation({
 	args: {
 		id: v.id("mortgage_ownership"),
-		newOwnerId: v.string(),
+		newOwnerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
 		const ownership = await ctx.db.get(args.id);

@@ -201,7 +201,7 @@ export default defineSchema({
 	mortgageId: v.id("mortgages"),
 	// Owner reference - union type: userId from users table OR "fairlend" literal
 	// Convex validates: either valid userId or "fairlend" string
-	ownerId: v.union([v.literal("fairlend"), v.id("users")]),
+	ownerId: v.union(v.literal("fairlend"), v.id("users")),
 	// Ownership percentage (0-100, typically 100 for single owner)
 	// Application validates sum of percentages per mortgage = 100
 	ownershipPercentage: v.number(),
