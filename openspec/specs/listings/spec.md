@@ -119,40 +119,13 @@ The system SHALL provide query functions for marketplace and lock management.
 - **AND** provides reason if unavailable
 
 ### Requirement: Listing Mutations
+The listing lifecycle SHALL support orchestrated creation that validates upstream mortgage and borrower data.
 
-The system SHALL provide mutation functions for listing lifecycle operations.
-
-#### Scenario: Create new listing
-- **WHEN** creating a listing
-- **THEN** the system validates mortgageId exists
-- **AND** validates no duplicate listing for mortgage
-- **AND** sets default visible = true, locked = false
-- **AND** returns new listing ID
-
-#### Scenario: Lock listing
-- **WHEN** user locks a listing
-- **THEN** the system validates listing is available
-- **AND** atomically updates locked, lockedBy, lockedAt
-- **AND** returns success confirmation
-- **AND** triggers reactive query updates
-
-#### Scenario: Unlock listing
-- **WHEN** unlocking a listing
-- **THEN** the system validates user is lockedBy user or admin
-- **AND** atomically clears locked, lockedBy, lockedAt
-- **AND** returns success confirmation
-
-#### Scenario: Update visibility
-- **WHEN** changing listing visibility
-- **THEN** the system updates visible field
-- **AND** maintains lock state
-- **AND** triggers marketplace query updates
-
-#### Scenario: Delete listing
-- **WHEN** removing listing from marketplace
-- **THEN** the system validates no active lock or deal in progress
-- **AND** deletes listing record
-- **AND** preserves linked mortgage
+#### Scenario: Orchestrated listing creation with mortgage payload
+- **WHEN** the platform receives a create-listing request (from admin UI or webhook)
+- **THEN** the mutation SHALL validate borrower details (email format, Rotessa ID uniqueness) and create or reuse the borrower
+- **AND** it SHALL create the mortgage with all required property, appraisal, and financial fields, applying the same business rules as `mortgages.createMortgage`
+- **AND** it SHALL insert the listing referencing the new mortgage while ensuring the one-listing-per-mortgage invariant
 
 ### Requirement: Type Safety and Validation
 
@@ -264,4 +237,164 @@ The system SHALL maintain audit trail for listing state changes.
 - **THEN** the system updates visible field
 - **AND** logs change for audit
 - **AND** enables marketplace analytics
+
+### Requirement: Admin Listing Update Operations
+
+The system SHALL provide admin-only mutation functions for updating listing properties.
+
+#### Scenario: Admin updates listing visibility
+- **WHEN** admin with proper role updates listing visible field
+- **THEN** the system validates admin authorization
+- **AND** updates visible = true or false
+- **AND** triggers reactive query updates immediately
+- **AND** returns success confirmation
+- **AND** logs the change for audit trail
+
+#### Scenario: Admin toggles listing lock state
+- **WHEN** admin manually locks or unlocks a listing
+- **THEN** the system validates admin authorization
+- **AND** if locking: sets locked = true, lockedBy = admin.id, lockedAt = now
+- **AND** if unlocking: clears locked, lockedBy, lockedAt
+- **AND** overrides existing lock state if admin
+- **AND** returns success confirmation
+
+#### Scenario: Admin updates listing metadata
+- **WHEN** admin updates listing metadata (notes, internal references)
+- **THEN** the system validates admin authorization
+- **AND** updates metadata fields
+- **AND** preserves core listing properties (mortgageId, visible, locked)
+- **AND** returns success confirmation
+
+#### Scenario: Non-admin attempts update
+- **WHEN** non-admin user attempts to update listing
+- **THEN** the system rejects the operation with authorization error
+- **AND** returns 403 Forbidden status
+- **AND** logs unauthorized access attempt
+- **AND** no listing data is modified
+
+### Requirement: Admin Listing Deletion
+
+The system SHALL provide admin-only mutation function for permanently deleting listings.
+
+#### Scenario: Admin deletes listing
+- **WHEN** admin initiates listing deletion
+- **THEN** the system validates admin authorization
+- **AND** validates listing is not currently locked by another user
+- **AND** shows confirmation dialog with deletion impact
+- **AND** on confirmation: deletes listing record
+- **AND** preserves associated mortgage record
+- **AND** triggers reactive query updates
+- **AND** returns success confirmation
+- **AND** logs deletion for audit trail
+
+#### Scenario: Admin attempts to delete locked listing
+- **WHEN** admin attempts to delete a listing locked by another user
+- **THEN** the system validates admin authorization
+- **AND** checks if locked = true
+- **AND** presents option to force unlock and delete
+- **AND** if admin confirms force delete: clears lock and deletes listing
+- **AND** if admin cancels: operation is aborted
+- **AND** returns appropriate success or cancellation message
+
+#### Scenario: Delete listing with active deal
+- **WHEN** admin attempts to delete listing with active deal in progress
+- **THEN** the system validates admin authorization
+- **AND** checks deal status
+- **AND** prevents deletion if deal is in progress
+- **AND** returns error message about active deal
+- **AND** suggests alternative actions (hide listing, wait for deal completion)
+
+#### Scenario: Cascade delete comparables
+- **WHEN** listing is deleted
+- **THEN** the system validates listing deletion is allowed
+- **AND** deletes all appraisal_comparables linked to the mortgage
+- **AND** deletes all comparables associated with the listing
+- **AND** preserves other mortgage data (payments, ownership)
+- **AND** rolls back all changes if any deletion fails
+- **AND** returns success only if all cascade operations succeed
+
+#### Scenario: Non-admin attempts deletion
+- **WHEN** non-admin user attempts to delete listing
+- **THEN** the system rejects the operation with authorization error
+- **AND** returns 403 Forbidden status
+- **AND** logs unauthorized deletion attempt
+- **AND** listing remains unchanged
+
+### Requirement: Admin Authorization Validation
+
+The system SHALL validate admin permissions before executing listing mutations.
+
+#### Scenario: Validate admin role for mutations
+- **WHEN** any admin mutation is attempted on a listing
+- **THEN** the system checks user has admin role
+- **AND** uses ctx.auth.getUserIdentity() to verify authorization
+- **AND** throws validation error if not admin
+- **AND** allows mutation if admin
+
+#### Scenario: Track admin actions
+- **WHEN** admin performs listing mutations (update/delete)
+- **THEN** the system logs the action with admin user ID
+- **AND** records timestamp of the action
+- **AND** includes the changes made or deletion performed
+- **AND** enables audit trail for admin activities
+
+#### Scenario: Audit trail for listing changes
+- **WHEN** admin updates or deletes a listing
+- **THEN** the system creates audit log entry
+- **AND** includes: admin user ID, action type, timestamp, listing ID, changes
+- **AND** stores audit logs for compliance and tracking
+- **AND** audit logs are queryable by admin users
+
+### Requirement: Admin Listing Management UI Components
+
+The system SHALL provide comprehensive UI components for admin listing management with complete Storybook documentation.
+
+#### Scenario: Listing update form component with stories
+- **WHEN** admin listing update form component is created
+- **THEN** the component includes fields for visible toggle, lock control, and metadata
+- **AND** the component validates admin permissions before showing form
+- **AND** Storybook stories demonstrate the form in default state
+- **AND** Storybook stories demonstrate form with validation errors
+- **AND** Storybook stories demonstrate form with success states
+- **AND** all Storybook stories render without console errors
+
+#### Scenario: Listing deletion confirmation UI with stories
+- **WHEN** admin listing deletion confirmation component is created
+- **THEN** the component displays listing details and impact warning
+- **AND** provides confirm/cancel actions for admin
+- **AND** Storybook stories demonstrate confirmation dialog for available listing
+- **AND** Storybook stories demonstrate confirmation dialog for locked listing with force option
+- **AND** Storybook stories demonstrate confirmation dialog with cascade delete warning
+- **AND** all Storybook stories are interactive and accessible
+
+#### Scenario: Listing management page with stories
+- **WHEN** admin listing management page is created
+- **THEN** the page displays all listings with edit and delete actions
+- **AND** includes filtering and search capabilities
+- **AND** shows loading states and empty states
+- **AND** Storybook stories demonstrate the page with listings
+- **AND** Storybook stories demonstrate the page in loading state
+- **AND** Storybook stories demonstrate the page with no listings
+- **AND** Storybook stories demonstrate admin actions on listings
+- **AND** all Storybook stories pass accessibility tests
+
+### Requirement: Listing Creation Webhook
+Convex SHALL expose an authenticated HTTP endpoint that accepts a full listing payload and produces a marketplace listing.
+
+#### Scenario: API key authentication
+- **WHEN** an HTTP request hits `/listings/create`
+- **THEN** the handler SHALL verify a shared secret provided via `x-api-key` header that matches a configured environment value
+- **AND** it SHALL reject missing or invalid keys with a 401 response before reading or mutating data
+
+#### Scenario: Payload validation and error reporting
+- **WHEN** the webhook receives a JSON payload
+- **THEN** it SHALL validate borrower, mortgage, and listing fields using application-level checks (email format, numeric ranges, coordinate bounds, date ordering, LTV within 0-100)
+- **AND** any validation failure SHALL return a 400 response with machine-readable error codes
+- **AND** the webhook SHALL NOT rely solely on Convex type validation to catch bad input
+
+#### Scenario: Reuse borrower and enforce listing uniqueness
+- **WHEN** the payload references a borrower email or Rotessa ID that already exists
+- **THEN** the webhook SHALL reuse that borrower record
+- **AND** it SHALL ensure that no listing already exists for the payload’s mortgage by checking an `externalMortgageId` identifier supplied in the payload
+- **AND** duplicate submissions that reuse the same `externalMortgageId` SHALL return an idempotent success response without creating a second listing
 
