@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createTestListing, deleteTestListing, type TestListingFixture } from "./fixtures/test-listings";
 
 /**
  * E2E tests for lock request authorization (Task 5.4)
@@ -14,6 +15,21 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("Lock Request Authorization", () => {
+	// Test listing fixture - created once per test
+	let testListing: TestListingFixture;
+
+	test.beforeEach(async ({ page }) => {
+		// Create a test listing for authorization tests
+		testListing = await createTestListing(page, { visible: true });
+	});
+
+	test.afterEach(async ({ page }) => {
+		// Clean up test listing after each test
+		if (testListing?.listingId) {
+			await deleteTestListing(page, testListing.listingId);
+		}
+	});
+
 	// Helper function to mock user identity with role
 	async function mockUserRole(
 		page: any,
@@ -68,9 +84,8 @@ test.describe("Lock Request Authorization", () => {
 		test("broker cannot see Request to Lock button", async ({ page }) => {
 			await mockUserRole(page, "broker");
 
-			// Navigate to a listing detail page
-			// Note: In real tests, you'd need a valid listing ID
-			await page.goto("/listings/test-listing-id");
+			// Navigate to the test listing detail page
+			await page.goto(`/listings/${testListing.listingId}`);
 
 			// The RequestListingSection component is visible to all authenticated users
 			// but the backend will reject non-investor requests (tested in 5.4.2)
@@ -84,7 +99,7 @@ test.describe("Lock Request Authorization", () => {
 		test("lawyer cannot see Request to Lock button", async ({ page }) => {
 			await mockUserRole(page, "lawyer");
 
-			await page.goto("/listings/test-listing-id");
+			await page.goto(`/listings/${testListing.listingId}`);
 
 			await expect(page).toHaveURL(/\/listings\//);
 		});
@@ -92,7 +107,7 @@ test.describe("Lock Request Authorization", () => {
 		test("member cannot see Request to Lock button", async ({ page }) => {
 			await mockUserRole(page, "member");
 
-			await page.goto("/listings/test-listing-id");
+			await page.goto(`/listings/${testListing.listingId}`);
 
 			await expect(page).toHaveURL(/\/listings\//);
 		});
@@ -126,7 +141,7 @@ test.describe("Lock Request Authorization", () => {
 				}
 			});
 
-			await page.goto("/listings/test-listing-id");
+			await page.goto(`/listings/${testListing.listingId}`);
 
 			// Verify that if someone tries to call the API directly, it fails
 			// In a real test, you would trigger the mutation and verify the error
@@ -159,7 +174,7 @@ test.describe("Lock Request Authorization", () => {
 				}
 			});
 
-			await page.goto("/listings/test-listing-id");
+			await page.goto(`/listings/${testListing.listingId}`);
 			expect(apiCallIntercepted).toBe(false);
 		});
 
@@ -188,7 +203,7 @@ test.describe("Lock Request Authorization", () => {
 				}
 			});
 
-			await page.goto("/listings/test-listing-id");
+			await page.goto(`/listings/${testListing.listingId}`);
 			expect(apiCallIntercepted).toBe(false);
 		});
 	});
@@ -460,7 +475,7 @@ test.describe("Lock Request Authorization", () => {
 		test("investor can access listing detail page", async ({ page }) => {
 			await mockUserRole(page, "investor");
 
-			await page.goto("/listings/test-listing-id");
+			await page.goto(`/listings/${testListing.listingId}`);
 
 			// Investor should see the request form
 			// Note: In real tests, you'd need a valid listing ID

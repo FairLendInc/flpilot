@@ -1,20 +1,48 @@
 import { test, expect } from "@playwright/test";
+import { createTestListing, deleteTestListing, type TestListingFixture } from "./fixtures/test-listings";
 
 test.describe("Investor Lock Request Flow", () => {
+	// Test listing fixture - created once per test
+	let testListing: TestListingFixture;
+	let lockedListing: TestListingFixture;
+	let hiddenListing: TestListingFixture;
+
 	test.beforeEach(async ({ page }) => {
 		// Mock authentication before each test
 		// Note: In real E2E tests, you'd need actual authentication setup
 		await page.addInitScript(() => {
 			localStorage.setItem("workos-auth-token", "mock-token");
 		});
+
+		// Create test listings for this test suite
+		testListing = await createTestListing(page, { visible: true });
+		hiddenListing = await createTestListing(page, { visible: false });
+		
+		// For locked listing, create a regular listing
+		// Note: Locking requires admin auth, so we'll create it unlocked
+		// and the test will need to handle the locked state differently
+		// or we can lock it via UI in the test itself
+		lockedListing = await createTestListing(page, { visible: true });
+	});
+
+	test.afterEach(async ({ page }) => {
+		// Clean up test listings
+		if (testListing?.listingId) {
+			await deleteTestListing(page, testListing.listingId);
+		}
+		if (lockedListing?.listingId) {
+			await deleteTestListing(page, lockedListing.listingId);
+		}
+		if (hiddenListing?.listingId) {
+			await deleteTestListing(page, hiddenListing.listingId);
+		}
 	});
 
 	test("5.1.1: investor creates lock request with lawyer information", async ({
 		page,
 	}) => {
-		// Navigate to a listing detail page
-		// Note: This assumes a listing exists - in real tests, you'd seed test data
-		await page.goto("/listings/test-listing-id");
+		// Navigate to the test listing detail page
+		await page.goto(`/listings/${testListing.listingId}`);
 
 		// Wait for the request form to be visible
 		await expect(
@@ -49,8 +77,8 @@ test.describe("Investor Lock Request Flow", () => {
 	test("5.1.2: investor creates lock request without notes", async ({
 		page,
 	}) => {
-		// Navigate to a listing detail page
-		await page.goto("/listings/test-listing-id");
+		// Navigate to the test listing detail page
+		await page.goto(`/listings/${testListing.listingId}`);
 
 		// Wait for the request form to be visible
 		await expect(
@@ -85,8 +113,8 @@ test.describe("Investor Lock Request Flow", () => {
 	test("5.1.3: investor sees request submission confirmation", async ({
 		page,
 	}) => {
-		// Navigate to a listing detail page
-		await page.goto("/listings/test-listing-id");
+		// Navigate to the test listing detail page
+		await page.goto(`/listings/${testListing.listingId}`);
 
 		// Submit a lock request
 		await page.getByLabel("Recommended Lawyers").click();
@@ -109,8 +137,8 @@ test.describe("Investor Lock Request Flow", () => {
 	});
 
 	test("5.1.4: investor cancels pending lock request", async ({ page }) => {
-		// Navigate to a listing detail page
-		await page.goto("/listings/test-listing-id");
+		// Navigate to the test listing detail page
+		await page.goto(`/listings/${testListing.listingId}`);
 
 		// Submit a lock request first
 		await page.getByLabel("Recommended Lawyers").click();
@@ -137,9 +165,8 @@ test.describe("Investor Lock Request Flow", () => {
 	test("5.1.5: investor cannot create request for locked listing", async ({
 		page,
 	}) => {
-		// Navigate to a locked listing detail page
-		// Note: This assumes a locked listing exists - in real tests, you'd seed test data
-		await page.goto("/listings/locked-listing-id");
+		// Navigate to the locked listing detail page
+		await page.goto(`/listings/${lockedListing.listingId}`);
 
 		// Verify locked message is displayed instead of request form
 		await expect(
@@ -160,10 +187,10 @@ test.describe("Investor Lock Request Flow", () => {
 	test("5.1.6: investor cannot create request for hidden listing", async ({
 		page,
 	}) => {
-		// Navigate to a hidden listing detail page
+		// Navigate to the hidden listing detail page
 		// Note: Hidden listings typically wouldn't be accessible via direct URL
 		// This test verifies the API-level validation
-		await page.goto("/listings/hidden-listing-id");
+		await page.goto(`/listings/${hiddenListing.listingId}`);
 
 		// If the listing is hidden, it may not be visible or accessible
 		// The form should either not appear or show an error
@@ -174,8 +201,8 @@ test.describe("Investor Lock Request Flow", () => {
 	test("5.1.7: form validation prevents submission without required fields", async ({
 		page,
 	}) => {
-		// Navigate to a listing detail page
-		await page.goto("/listings/test-listing-id");
+		// Navigate to the test listing detail page
+		await page.goto(`/listings/${testListing.listingId}`);
 
 		// Wait for the request form to be visible
 		await expect(
@@ -205,8 +232,8 @@ test.describe("Investor Lock Request Flow", () => {
 	test("5.1.8: email validation prevents invalid email format", async ({
 		page,
 	}) => {
-		// Navigate to a listing detail page
-		await page.goto("/listings/test-listing-id");
+		// Navigate to the test listing detail page
+		await page.goto(`/listings/${testListing.listingId}`);
 
 		// Fill in form with invalid email
 		await page.getByLabel("Recommended Lawyers").click();

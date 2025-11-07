@@ -106,7 +106,7 @@ export function LockRequestDetail({
 	open,
 	onOpenChange,
 	requestData,
-	otherPendingCount = 0,
+	otherPendingCount,
 }: LockRequestDetailProps) {
 	const { request, listing, mortgage, investor, borrower } = requestData;
 
@@ -518,16 +518,15 @@ export function LockRequestDetail({
 						</div>
 
 						{/* View Full Listing Link */}
-						<div className="pt-4">
-							<Link
-								href={`/listings/${mortgage?._id || listing?.mortgageId}`}
-								target="_blank"
-							>
-								<Button className="w-full" variant="outline">
-									View Full Listing
-								</Button>
-							</Link>
-						</div>
+						{listing?._id && (
+							<div className="pt-4">
+								<Link href={`/listings/${listing._id}`} target="_blank">
+									<Button className="w-full" variant="outline">
+										View Full Listing
+									</Button>
+								</Link>
+							</div>
+						)}
 					</div>
 
 					{/* Action Buttons */}

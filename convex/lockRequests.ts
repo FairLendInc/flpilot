@@ -1493,21 +1493,34 @@ export const getLockRequestWithDetails = query({
 			throw new Error("Authentication required");
 		}
 
-		// Check admin authorization
-		const isAdmin = hasRbacAccess({
-			required_roles: ["admin"],
-			user_identity: identity,
-		});
-
-		if (!isAdmin) {
-			throw new Error("Unauthorized: Admin privileges required");
-		}
-
+		// Load request first (before any authorization checks)
 		const request = await ctx.db.get(args.requestId);
 		if (!request) {
 			return null;
 		}
 
+		// Get current user
+		const user = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+
+		if (!user) {
+			return null;
+		}
+
+		// Check authorization: request owner OR admin/broker role
+		const isRequestOwner = request.requestedBy === user._id;
+		const isAdminOrBroker = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isRequestOwner && !isAdminOrBroker) {
+			return null;
+		}
+
+		// Only fetch details if authorized
 		const listing = await ctx.db.get(request.listingId);
 		const mortgage = listing ? await ctx.db.get(listing.mortgageId) : null;
 		const investor = await ctx.db.get(request.requestedBy);

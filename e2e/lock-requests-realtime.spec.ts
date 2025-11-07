@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createTestListing, deleteTestListing, type TestListingFixture } from "./fixtures/test-listings";
 
 /**
  * E2E tests for real-time updates in lock request workflow
@@ -11,26 +12,38 @@ import { test, expect } from "@playwright/test";
  * - Convex dev server running (`npx convex dev`)
  * - Next.js dev server running (`pnpm run dev`)
  * - Test users with investor and admin roles configured
- * - At least one visible, unlocked listing in the database
+ * - NEXT_PUBLIC_CONVEX_URL environment variable set
+ * - LISTINGS_WEBHOOK_API_KEY environment variable set (for test fixtures)
  */
 
 test.describe("Lock Requests - Real-time Updates", () => {
 	// Test data - these should match your test database setup
-	const TEST_LISTING_ID = "test-listing-id"; // Replace with actual test listing ID
 	const INVESTOR_EMAIL = "investor@test.com";
 	const ADMIN_EMAIL = "admin@test.com";
 
+	// Per-test listing fixture to prevent state leakage between tests
+	let testListing: TestListingFixture;
+
 	test.beforeEach(async ({ page }) => {
+		// Create a fresh listing for each test to prevent state leakage
+		testListing = await createTestListing(page, { visible: true });
+
 		// Note: In a real test environment, you would:
 		// 1. Set up proper authentication tokens for test users
-		// 2. Seed test data (listings, users)
-		// 3. Configure Convex test deployment
+		// 2. Configure Convex test deployment
+		// 3. Use actual WorkOS auth tokens
 		
 		// For now, we'll use mock authentication
-		// In production tests, use actual WorkOS auth tokens
 		await page.addInitScript(() => {
 			localStorage.setItem("workos-auth-token", "mock-token");
 		});
+	});
+
+	test.afterEach(async ({ page }) => {
+		// Clean up test listing after each test
+		if (testListing?.listingId) {
+			await deleteTestListing(page, testListing.listingId);
+		}
 	});
 
 	test("5.3.1: Investor sees status update when admin approves request", async ({
@@ -57,7 +70,7 @@ test.describe("Lock Requests - Real-time Updates", () => {
 			});
 
 			// Step 1: Investor navigates to listing detail page
-			await investorPage.goto(`/listings/${TEST_LISTING_ID}`);
+			await investorPage.goto(`/listings/${testListing.listingId}`);
 			
 			// Wait for page to load
 			await investorPage.waitForLoadState("networkidle");
@@ -151,7 +164,7 @@ test.describe("Lock Requests - Real-time Updates", () => {
 			});
 
 			// Step 1: Investor creates lock request
-			await investorPage.goto(`/listings/${TEST_LISTING_ID}`);
+			await investorPage.goto(`/listings/${testListing.listingId}`);
 			await investorPage.waitForLoadState("networkidle");
 
 			const requestButton = investorPage.getByRole("button", {
@@ -248,7 +261,7 @@ test.describe("Lock Requests - Real-time Updates", () => {
 				: 0;
 
 			// Step 2: Investor creates lock request
-			await investorPage.goto(`/listings/${TEST_LISTING_ID}`);
+			await investorPage.goto(`/listings/${testListing.listingId}`);
 			await investorPage.waitForLoadState("networkidle");
 
 			const requestButton = investorPage.getByRole("button", {
@@ -274,7 +287,7 @@ test.describe("Lock Requests - Real-time Updates", () => {
 
 			// Verify new request appears in table
 			await expect(
-				adminPage.getByText(TEST_LISTING_ID)
+				adminPage.getByText(testListing.listingId)
 			).toBeVisible({ timeout: 10000 });
 		} finally {
 			await investorContext.close();
@@ -304,7 +317,7 @@ test.describe("Lock Requests - Real-time Updates", () => {
 			});
 
 			// Step 1: Investor creates request
-			await investorPage.goto(`/listings/${TEST_LISTING_ID}`);
+			await investorPage.goto(`/listings/${testListing.listingId}`);
 			await investorPage.waitForLoadState("networkidle");
 
 			const requestButton = investorPage.getByRole("button", {
@@ -363,7 +376,7 @@ test.describe("Lock Requests - Real-time Updates", () => {
 			// Step 5: Switch to Approved tab and verify request appears
 			await approvedTab.click();
 			await expect(
-				adminPage.getByText(TEST_LISTING_ID)
+				adminPage.getByText(testListing.listingId)
 			).toBeVisible({ timeout: 10000 });
 		} finally {
 			await investorContext.close();
@@ -407,7 +420,7 @@ test.describe("Lock Requests - Real-time Updates", () => {
 			);
 
 			// Step 3: Investor creates request
-			await investorPage.goto(`/listings/${TEST_LISTING_ID}`);
+			await investorPage.goto(`/listings/${testListing.listingId}`);
 			await investorPage.waitForLoadState("networkidle");
 
 			const requestButton = investorPage.getByRole("button", {

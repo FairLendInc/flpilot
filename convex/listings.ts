@@ -597,31 +597,24 @@ async function deleteListingCore(
 		.collect();
 
 	if (lockRequests.length > 0 && !args.force) {
-		const pendingCount = lockRequests.filter(
-			(r) => r.status === "pending"
-		).length;
-		const approvedCount = lockRequests.filter(
-			(r) => r.status === "approved"
-		).length;
-		const rejectedCount = lockRequests.filter(
-			(r) => r.status === "rejected"
-		).length;
+		const statusCounts = lockRequests.reduce<Record<string, number>>(
+			(acc, request) => {
+				acc[request.status] = (acc[request.status] ?? 0) + 1;
+				return acc;
+			},
+			{}
+		);
+		const reasons = Object.entries(statusCounts)
+			.filter(([, count]) => count > 0)
+			.map(([status, count]) => `${count} ${status}`);
 
-		const reasons: string[] = [];
-		if (pendingCount > 0) {
-			reasons.push(`${pendingCount} pending`);
-		}
-		if (approvedCount > 0) {
-			reasons.push(`${approvedCount} approved`);
-		}
-		if (rejectedCount > 0) {
-			reasons.push(`${rejectedCount} rejected`);
-		}
+		const reasonsText =
+			reasons.length > 0
+				? reasons.join(", ")
+				: "no active labels";
 
 		throw new Error(
-			`Cannot delete listing with existing lock requests (${reasons.join(
-				", "
-			)}). Delete requests first or use force option.`
+			`Cannot delete listing with existing lock requests (${reasonsText}). Delete requests first or use force option.`
 		);
 	}
 

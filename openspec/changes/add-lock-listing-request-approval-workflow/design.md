@@ -155,6 +155,7 @@ const isInvestor = hasRbacAccess({
   - ✅ Pro: Clear feedback to investors
   - ⚠️ Con: Automatic rejection may surprise investors
 - **Mitigation:** Clear rejection reason: "Listing was locked"
+- **Implementation:** Sets status = "rejected" (not "expired") with rejectionReason = "Listing was locked"
 
 ### Decision 8: Real-time Updates
 **Choice:** Use Convex React hooks for automatic real-time updates

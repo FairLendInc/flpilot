@@ -28,7 +28,9 @@ The system SHALL define a `lock_requests` table for investor-initiated listing l
 - **THEN** status changes to "approved"
 - **WHEN** admin rejects request
 - **THEN** status changes to "rejected"
-- **WHEN** listing is deleted or locked by another request
+- **WHEN** listing is locked by another request
+- **THEN** status changes to "rejected" with rejectionReason
+- **WHEN** request times out (Phase 2)
 - **THEN** status can become "expired"
 
 ### Requirement: Request Status Management
@@ -59,9 +61,10 @@ The system SHALL track request lifecycle through status field with four states.
 #### Scenario: Expired status
 - **WHEN** request status = "expired"
 - **THEN** request is no longer actionable
-- **AND** occurs when listing becomes locked or deleted
+- **AND** occurs when request times out (Phase 2 - time-based expiration)
 - **AND** maintains audit trail
 - **AND** cannot be approved or rejected
+- **NOTE:** Auto-rejection on listing lock uses "rejected" status, not "expired"
 
 ### Requirement: Request Creation with Validation
 
@@ -294,7 +297,7 @@ The system SHALL maintain referential integrity between requests and listings.
 #### Scenario: Auto-reject pending requests on listing lock
 - **WHEN** listing becomes locked
 - **THEN** the system auto-rejects all pending requests
-- **AND** sets status = "expired"
+- **AND** sets status = "rejected"
 - **AND** sets rejectionReason = "Listing was locked"
 - **AND** cleans up actionable queue
 - **AND** maintains audit trail
