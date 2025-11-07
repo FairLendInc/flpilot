@@ -24,7 +24,7 @@ export default function BlogWithSearch() {
 				<div className="flex w-full max-w-7xl flex-col items-center justify-between pb-20">
 					<div className="relative z-20 py-10 md:pt-40">
 						<h1 className="mt-4 font-bold text-black text-xl tracking-tight md:text-3xl lg:text-5xl dark:text-white">
-							Resources bank
+							FairLend Insights
 						</h1>
 					</div>
 
@@ -283,57 +283,35 @@ type Blog = {
 };
 const blogs: Blog[] = [
 	{
-		title: "Changelog for 2024",
+		title: "MLS for Private Mortgages: Why Brokers Win on FairLend",
 		description:
-			"Explore the latest updates and enhancements in our 2024 changelog. Discover new features and improvements that enhance user experience.",
-		date: "2021-01-01",
-		slug: "changelog-for-2024",
+			"White‑label investor portals, a 0.5% trailer on deployed capital, and on‑rails MIC origination turn broker distribution into durable recurring revenue.",
+		date: "2025-11-07",
+		slug: "mls-for-private-mortgages",
 		image:
-			"https://images.unsplash.com/photo-1696429175928-793a1cdef1d3?q=80&w=3000&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
+			"https://images.unsplash.com/photo-1592496431122-2349e0fbc666?q=80&w=3000&auto=format&fit=crop",
+		author: "FairLend Team",
 		authorAvatar: "https://assets.aceternity.com/manu.png",
 	},
 	{
-		title: "Understanding React Hooks",
+		title: "AI‑Driven Underwriting and Servicing: The Data Flywheel",
 		description:
-			"A comprehensive guide to understanding and using React Hooks in your projects.",
-		date: "2021-02-15",
-		slug: "understanding-react-hooks",
-		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
+			"Hybrid automation with human‑in‑the‑loop powers underwriting, appraisal checks, renewals, and collections. RLHF on real decisions compounds accuracy over time.",
+		date: "2025-11-07",
+		slug: "ai-data-flywheel",
+		image: "/house.jpg",
+		author: "FairLend Team",
 		authorAvatar: "https://assets.aceternity.com/manu.png",
 	},
 	{
-		title: "CSS Grid Layout",
-		description: "Learn how to create complex layouts easily with CSS Grid.",
-		date: "2021-03-10",
-		slug: "css-grid-layout",
-		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
-		authorAvatar: "https://assets.aceternity.com/manu.png",
-	},
-	{
-		title: "JavaScript ES2021 Features",
+		title: "12–18× Capital Velocity: Redeploying MIC Capital in 15–30 Days",
 		description:
-			"An overview of the new features introduced in JavaScript ES2021.",
-		date: "2021-04-05",
-		slug: "javascript-es2021-features",
+			"Originate with the MIC → offload to marketplace investors → redeploy. Faster cycles reduce lockups and scale AUM without being capital‑constrained.",
+		date: "2025-11-07",
+		slug: "capital-velocity-mic",
 		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
-		authorAvatar: "https://assets.aceternity.com/manu.png",
-	},
-	{
-		title: "Building RESTful APIs with Node.js",
-		description:
-			"Step-by-step guide to building RESTful APIs using Node.js and Express.",
-		date: "2021-05-20",
-		slug: "building-restful-apis-with-nodejs",
-		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
+			"https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=3000&auto=format&fit=crop",
+		author: "FairLend Team",
 		authorAvatar: "https://assets.aceternity.com/manu.png",
 	},
 ];
