@@ -5,6 +5,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth } from "./auth.config";
 
 /**
  * Get payment history for a mortgage (ordered by most recent first)
@@ -12,6 +13,7 @@ import { mutation, query } from "./_generated/server";
 export const getPaymentsForMortgage = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -32,6 +34,7 @@ export const getPaymentsByStatus = query({
 		),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_status", (q) => q.eq("status", args.status))
@@ -48,6 +51,7 @@ export const getPaymentsByDateRange = query({
 		endDate: v.string(),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_process_date")
@@ -67,6 +71,7 @@ export const getPaymentsByDateRange = query({
 export const getPaymentByRotessaId = query({
 	args: { paymentId: v.string() },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_payment_id", (q) => q.eq("paymentId", args.paymentId))
@@ -92,6 +97,7 @@ export const createPayment = mutation({
 		transactionScheduleId: v.string(),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		// Validate amount
 		if (args.amount <= 0) {
 			throw new Error("Payment amount must be greater than 0");
@@ -129,6 +135,7 @@ export const updatePaymentStatus = mutation({
 		processDate: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const { id, ...updates } = args;
 
 		await ctx.db.patch(id, updates);
@@ -158,6 +165,7 @@ export const bulkCreatePayments = mutation({
 		),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		// Validate amounts
 		for (const payment of args.payments) {
 			if (payment.amount <= 0) {
@@ -211,6 +219,7 @@ export const syncPaymentFromRotessa = mutation({
 		transactionScheduleId: v.string(),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		// Check if payment already exists
 		const existing = await ctx.db
 			.query("payments")

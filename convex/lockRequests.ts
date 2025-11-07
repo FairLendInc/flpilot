@@ -497,7 +497,35 @@ export const getLockRequest = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.requestId);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		const request = await ctx.db.get(args.requestId);
+		if (!request) {
+			return null;
+		}
+
+		// Check admin authorization or if user is the requester
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			// Allow requester to see their own request
+			const user = await ctx.db
+				.query("users")
+				.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+				.unique();
+
+			if (!user || request.requestedBy !== user._id) {
+				throw new Error("Unauthorized: Admin privileges or ownership required");
+			}
+		}
+
+		return request;
 	},
 });
 
@@ -523,6 +551,21 @@ export const getPendingLockRequests = query({
 		})
 	),
 	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const requests = await ctx.db
 			.query("lock_requests")
 			.withIndex("by_status_requested_at", (q) =>
@@ -631,6 +674,21 @@ export const getPendingLockRequestsWithDetails = query({
 		})
 	),
 	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const requests = await ctx.db
 			.query("lock_requests")
 			.withIndex("by_status_requested_at", (q) =>
@@ -734,6 +792,21 @@ export const getApprovedLockRequests = query({
 		})
 	),
 	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const requests = await ctx.db
 			.query("lock_requests")
 			.withIndex("by_status_requested_at", (q) =>
@@ -843,6 +916,21 @@ export const getApprovedLockRequestsWithDetails = query({
 		})
 	),
 	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const requests = await ctx.db
 			.query("lock_requests")
 			.withIndex("by_status_requested_at", (q) =>
@@ -949,6 +1037,21 @@ export const getRejectedLockRequests = query({
 		})
 	),
 	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const requests = await ctx.db
 			.query("lock_requests")
 			.withIndex("by_status_requested_at", (q) =>
@@ -1060,6 +1163,21 @@ export const getRejectedLockRequestsWithDetails = query({
 		})
 	),
 	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const requests = await ctx.db
 			.query("lock_requests")
 			.withIndex("by_status_requested_at", (q) =>
@@ -1174,6 +1292,21 @@ export const getLockRequestsByListing = query({
 		})
 	),
 	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		return await ctx.db
 			.query("lock_requests")
 			.withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
@@ -1202,6 +1335,21 @@ export const getPendingLockRequestsByListing = query({
 		})
 	),
 	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const requests = await ctx.db
 			.query("lock_requests")
 			.withIndex("by_listing_status", (q) =>
@@ -1340,6 +1488,21 @@ export const getLockRequestWithDetails = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const request = await ctx.db.get(args.requestId);
 		if (!request) {
 			return null;

@@ -14,6 +14,16 @@ const createTest = () => convexTest(schema, modules);
 // ============================================================================
 
 /**
+ * Get an authenticated test instance with admin role
+ */
+function getAuthenticatedTest(t: ReturnType<typeof createTest>) {
+	return t.withIdentity({
+		subject: "test-admin-user",
+		role: "admin",
+	});
+}
+
+/**
  * Create a test borrower
  */
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
@@ -829,7 +839,8 @@ describe("getPendingLockRequests - Query Tests", () => {
 			status: "approved",
 		});
 
-		const pendingRequests = await t.query(
+		const authT = getAuthenticatedTest(t);
+		const pendingRequests = await authT.query(
 			api.lockRequests.getPendingLockRequests
 		);
 
@@ -852,7 +863,8 @@ describe("getPendingLockRequestsWithDetails - Query Tests", () => {
 			status: "pending",
 		});
 
-		const requests = await t.query(
+		const authT = getAuthenticatedTest(t);
+		const requests = await authT.query(
 			api.lockRequests.getPendingLockRequestsWithDetails
 		);
 
@@ -885,7 +897,8 @@ describe("getApprovedLockRequests - Query Tests", () => {
 			status: "pending",
 		});
 
-		const approvedRequests = await t.query(
+		const authT = getAuthenticatedTest(t);
+		const approvedRequests = await authT.query(
 			api.lockRequests.getApprovedLockRequests
 		);
 
@@ -913,7 +926,8 @@ describe("getRejectedLockRequests - Query Tests", () => {
 			status: "pending",
 		});
 
-		const rejectedRequests = await t.query(
+		const authT = getAuthenticatedTest(t);
+		const rejectedRequests = await authT.query(
 			api.lockRequests.getRejectedLockRequests
 		);
 
@@ -946,7 +960,8 @@ describe("getLockRequestsByListing - Query Tests", () => {
 			status: "pending",
 		});
 
-		const requests = await t.query(
+		const authT = getAuthenticatedTest(t);
+		const requests = await authT.query(
 			api.lockRequests.getLockRequestsByListing,
 			{
 				listingId: listingId1,
@@ -981,7 +996,8 @@ describe("getPendingLockRequestsByListing - Query Tests", () => {
 			status: "approved",
 		});
 
-		const requests = await t.query(
+		const authT = getAuthenticatedTest(t);
+		const requests = await authT.query(
 			api.lockRequests.getPendingLockRequestsByListing,
 			{
 				listingId,
@@ -1187,7 +1203,8 @@ describe("Listing-Request Relationship - Integration Tests", () => {
 		expect(request3?.status).toBe("pending");
 
 		// Verify count query returns 3
-		const requests = await t.query(
+		const authT = getAuthenticatedTest(t);
+		const requests = await authT.query(
 			api.lockRequests.getPendingLockRequestsByListing,
 			{
 				listingId,

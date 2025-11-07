@@ -5,6 +5,7 @@
 
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { requireAuth } from "./auth.config";
 
 /**
  * Validator for comparable property data
@@ -32,6 +33,7 @@ export const comparablePayloadValidator = v.object({
 export const getComparablesForMortgage = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -65,6 +67,7 @@ export const getComparablesWithinDistance = query({
 		maxMiles: v.number(),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -98,6 +101,7 @@ export const createComparable = mutation({
 		imageStorageId: v.optional(v.id("_storage")),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		// Validate numeric constraints
 		if (args.saleAmount <= 0) {
 			throw new Error("Sale amount must be greater than 0");
@@ -200,6 +204,7 @@ export const updateComparable = mutation({
 		imageStorageId: v.optional(v.id("_storage")),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const { id, ...updates } = args;
 
 		// Validate numeric constraints if provided
@@ -221,6 +226,7 @@ export const updateComparable = mutation({
 export const deleteComparable = mutation({
 	args: { id: v.id("appraisal_comparables") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		await ctx.db.delete(args.id);
 		return args.id;
 	},
@@ -232,6 +238,7 @@ export const deleteComparable = mutation({
 export const getComparablesCountForListing = query({
 	args: { listingId: v.id("listings") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		// Get the listing to find its mortgageId
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
@@ -254,6 +261,7 @@ export const getComparablesCountForListing = query({
 export const deleteAllComparablesForMortgage = mutation({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))

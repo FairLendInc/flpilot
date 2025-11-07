@@ -48,6 +48,11 @@ export function hasRbacAccess(options: RbacOptions): boolean {
 	// Extract role from identity (with fallback)
 	const userRole = user_identity.role || user_identity.workosRole;
 
+	// Admins bypass all checks
+	if (userRole === "admin") {
+		return true;
+	}
+
 	// Extract permissions from identity (with fallback)
 	const userPermissions =
 		user_identity.permissions || user_identity.workosPermissions || [];
@@ -98,6 +103,11 @@ export function checkRbac(options: RbacOptions): void {
 	// Extract role from identity (with fallback)
 	const userRole = user_identity.role || user_identity.workosRole;
 
+	// Admins bypass all checks
+	if (userRole === "admin") {
+		return;
+	}
+
 	// Extract permissions from identity (with fallback)
 	const userPermissions =
 		user_identity.permissions || user_identity.workosPermissions || [];
@@ -134,4 +144,18 @@ export function checkRbac(options: RbacOptions): void {
 			);
 		}
 	}
+}
+
+/**
+ * Require authentication (any authenticated user allowed)
+ * @param ctx - Convex query/mutation context
+ * @throws Error if not authenticated
+ * @returns UserIdentity if authenticated
+ */
+export async function requireAuth(ctx: any) {
+	const identity = await ctx.auth.getUserIdentity();
+	if (!identity) {
+		throw new Error("Authentication required");
+	}
+	return identity;
 }
