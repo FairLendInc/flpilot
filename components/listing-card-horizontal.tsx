@@ -37,7 +37,7 @@ export function Horizontal({
 }: HorizontalProps = {}) {
 	const CardContent = (
 		<Card.Root
-			className="w-full items-stretch transition-all duration-300 hover:scale-103 hover:shadow-black/10 hover:shadow-lg md:flex-row"
+			className="w-full items-stretch transition-all duration-300 hover:scale-103 hover:shadow-black/10 hover:shadow-lg active:scale-100 md:flex-row"
 			variant="transparent"
 		>
 			<div className="relative aspect-video w-full overflow-hidden rounded-panel md:aspect-square md:max-w-[180px] xl:aspect-auto">
