@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Map as MapIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-// import React from "react";
 import {
 	ListingMap,
 	type ListingMapProps,
@@ -21,6 +20,9 @@ import {
 	DrawerTitle,
 	DrawerTrigger,
 } from "@/components/ui/drawer";
+// import React from "react";
+import { ProgressiveBlur } from "@/components/ui/progressive-blur";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { WithLatLng } from "@/hooks/use-filtered-listings";
 import { useViewportFilteredItems } from "@/hooks/use-filtered-listings";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -304,10 +306,15 @@ export function ListingGridShell<T extends WithLatLng>({
 	}
 
 	return (
-		<div className="flex flex-col">
-			<section className={classNames?.container ?? "flex gap-x-4 px-4 pt-4"}>
-				<div className={classNames?.gridColumn ?? "flex-1"}>
-					<div className="grid 84rem:grid-cols-2 grid-cols-1">
+		<section
+			className={
+				classNames?.container ?? "grid w-screen grid-cols-12 gap-x-4 pt-4 pr-4"
+			}
+		>
+			<div className={classNames?.gridColumn ?? "col-span-8"}>
+				<ScrollArea className="relative h-[calc(100vh-7rem)]">
+					<ProgressiveBlur height="15%" position="bottom" />
+					<div className="grid 84rem:grid-cols-2 grid-cols-1 pr-4">
 						<AnimatePresence mode="popLayout">
 							{filteredItems.map((item) => (
 								<motion.div
@@ -326,24 +333,24 @@ export function ListingGridShell<T extends WithLatLng>({
 							))}
 						</AnimatePresence>
 					</div>
+				</ScrollArea>
+			</div>
+			<div className={classNames?.mapColumn ?? "col-span-4"}>
+				<div
+					className={
+						classNames?.mapWrapper ?? "sticky top-30 h-[calc(100vh-8rem)]"
+					}
+				>
+					<ListingMap
+						className="mt-4 h-[calc(100vh-9rem)]"
+						items={filteredItems}
+						onViewportChange={onViewportChange}
+						renderPopup={renderMapPopup}
+						{...mapProps}
+					/>
 				</div>
-				<div className={classNames?.mapColumn ?? "84rem:w-[35%] w-[40%]"}>
-					<div
-						className={
-							classNames?.mapWrapper ?? "sticky top-30 h-[calc(100vh-7rem)]"
-						}
-					>
-						<ListingMap
-							className="h-full"
-							items={filteredItems}
-							onViewportChange={onViewportChange}
-							renderPopup={renderMapPopup}
-							{...mapProps}
-						/>
-					</div>
-				</div>
-			</section>
-		</div>
+			</div>
+		</section>
 	);
 }
 

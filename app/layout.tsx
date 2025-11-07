@@ -39,7 +39,9 @@ export default function RootLayout({
 					<ConvexClientProvider>
 						{/* <ViewTransition> */}
 						<NavigationProvider>
-							<main className="min-h-screen pt-28">{children}</main>
+							<main className="h-[calc(100vh-6rem)] pt-24" id="main-content">
+								{children}
+							</main>
 							<Toaster />
 						</NavigationProvider>
 						{/* </ViewTransition> */}
