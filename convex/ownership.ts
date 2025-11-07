@@ -6,6 +6,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAuth, hasRbacAccess } from "./auth.config";
+import { logger } from "../lib/logger";
 
 /**
  * Get cap table for a specific mortgage (all ownership records)
@@ -154,17 +155,39 @@ export async function createOwnershipInternal(
 	}
 
 	// Get FairLend's current ownership
-	const fairlendOwnership = await ctx.db
+	let fairlendOwnership = await ctx.db
 		.query("mortgage_ownership")
 		.withIndex("by_mortgage_owner", (q: any) =>
 			q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
 		)
 		.first();
 
+	// Auto-create FairLend ownership if missing (for backward compatibility)
 	if (!fairlendOwnership) {
-		throw new Error(
-			"FairLend ownership record not found. All mortgages must have FairLend as default owner."
-		);
+		logger.warn("Auto-creating missing FairLend ownership record for mortgage", {
+			mortgageId: args.mortgageId.toString(),
+		});
+
+		await ctx.db.insert("mortgage_ownership", {
+			mortgageId: args.mortgageId,
+			ownerId: "fairlend",
+			ownershipPercentage: 100,
+		});
+
+		// Re-fetch the newly created FairLend ownership
+		fairlendOwnership = await ctx.db
+			.query("mortgage_ownership")
+			.withIndex("by_mortgage_owner", (q: any) =>
+				q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
+			)
+			.first();
+
+		// Safety check - if still not found, something is very wrong
+		if (!fairlendOwnership) {
+			throw new Error(
+				"Failed to create FairLend ownership record. This should never happen."
+			);
+		}
 	}
 
 	// Check if FairLend has enough ownership to transfer
@@ -199,6 +222,7 @@ export async function createOwnershipInternal(
 /**
  * Create an ownership record
  * Automatically reduces FairLend's ownership to maintain 100% total
+ * Auto-creates FairLend ownership if missing (for backward compatibility)
  */
 export const createOwnership = mutation({
 	args: {

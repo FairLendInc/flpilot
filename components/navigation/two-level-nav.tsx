@@ -1,14 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Menu, Search, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import Link from "next/link";
 // import React from "react";
 import { useEffect, useState } from "react";
+import { AlertBell } from "@/components/alerts/AlertBell";
 import { UserAvatarMenu } from "@/components/auth/UserAvatarMenu";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import { Button } from "@/components/ui/button";
-import { NotificationInboxPopover } from "@/components/ui/notification-inbox-popover";
 import { isNavItemActive, navigationItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { FilterBar } from "../filter-bar";
@@ -118,13 +118,13 @@ export function TwoLevelNav({
 								);
 							})}
 						</div>
-						{/* Right Side - User Controls */}
-						<div className="flex items-center gap-2 md:gap-3">
-							{/* Notifications - Visible on all screen sizes */}
-							<NotificationInboxPopover />
+					{/* Right Side - User Controls */}
+					<div className="flex items-center gap-2 md:gap-3">
+						{/* Notifications - Visible on all screen sizes */}
+						<AlertBell />
 
-							{/* User Avatar - Visible on all screen sizes */}
-							<UserAvatarMenu />
+						{/* User Avatar - Visible on all screen sizes */}
+						<UserAvatarMenu />
 
 							<Button
 								className="lg:hidden"
@@ -254,27 +254,18 @@ export function TwoLevelNav({
 									{/* Divider */}
 									<div className="my-4 h-px bg-border" />
 
-									{/* Mobile-only actions */}
-									<Button
-										className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
-										onClick={() => {
-											setCommandOpen(true);
-											setMobileMenuOpen(false);
-										}}
-										variant="ghost"
-									>
-										<Search className="size-5" />
-										<span className="text-base">Search</span>
-									</Button>
-
-									<Button
-										className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground sm:hidden"
-										variant="ghost"
-									>
-										<Bell className="size-5" />
-										<span className="text-base">Notifications</span>
-										<span className="ml-auto size-2 rounded-full bg-primary" />
-									</Button>
+								{/* Mobile-only actions */}
+								<Button
+									className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+									onClick={() => {
+										setCommandOpen(true);
+										setMobileMenuOpen(false);
+									}}
+									variant="ghost"
+								>
+									<Search className="size-5" />
+									<span className="text-base">Search</span>
+								</Button>
 								</div>
 							</motion.div>
 						</>

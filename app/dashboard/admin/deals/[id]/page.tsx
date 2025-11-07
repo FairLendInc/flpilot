@@ -633,29 +633,27 @@ export default function DealDetailPage({
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
-							<AlertDialogDescription className="space-y-2">
-								<p>
-									This will transfer <strong>100%</strong> ownership of the
-									mortgage to the investor. This action cannot be undone.
-								</p>
-								{mortgage && investor && (
-									<div className="space-y-1 rounded-md bg-muted p-3 text-sm">
-										<p>
-											<strong>Property:</strong> {mortgage.address.street}
-										</p>
-										<p>
-											<strong>Investor:</strong>{" "}
-											{investor.first_name && investor.last_name
-												? `${investor.first_name} ${investor.last_name}`
-												: investor.email}
-										</p>
-										<p>
-											<strong>Amount:</strong> {formatDealValue(deal.dealValue)}
-										</p>
-									</div>
-								)}
+							<AlertDialogDescription>
+								This will transfer <strong>100%</strong> ownership of the
+								mortgage to the investor. This action cannot be undone.
 							</AlertDialogDescription>
 						</AlertDialogHeader>
+						{mortgage && investor && (
+							<div className="space-y-1 rounded-md bg-muted p-3 text-sm">
+								<div>
+									<strong>Property:</strong> {mortgage.address.street}
+								</div>
+								<div>
+									<strong>Investor:</strong>{" "}
+									{investor.first_name && investor.last_name
+										? `${investor.first_name} ${investor.last_name}`
+										: investor.email}
+								</div>
+								<div>
+									<strong>Amount:</strong> {formatDealValue(deal.dealValue)}
+								</div>
+							</div>
+						)}
 						<AlertDialogFooter>
 							<AlertDialogCancel>Cancel</AlertDialogCancel>
 							<AlertDialogAction onClick={handleTransferOwnership}>
