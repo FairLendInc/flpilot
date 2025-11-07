@@ -106,6 +106,97 @@ export const getTotalOwnership = query({
 });
 
 /**
+ * Internal helper: Create ownership record without authentication checks
+ * Used by mutations that have already performed authentication
+ *
+ * **100% Invariant**: Automatically reduces FairLend ownership by the purchase percentage
+ *
+ * @internal
+ */
+export async function createOwnershipInternal(
+	ctx: any,
+	args: {
+		mortgageId: any;
+		ownerId: any;
+		ownershipPercentage: number;
+	}
+) {
+	// Validate percentage range
+	if (args.ownershipPercentage <= 0 || args.ownershipPercentage > 100) {
+		throw new Error("Ownership percentage must be between 0 and 100");
+	}
+
+	// Cannot create FairLend ownership manually - it's automatic
+	if (args.ownerId === "fairlend") {
+		throw new Error(
+			"FairLend ownership is managed automatically. Use updateOwnershipPercentage to adjust."
+		);
+	}
+
+	// Validate mortgage exists
+	const mortgage = await ctx.db.get(args.mortgageId);
+	if (!mortgage) {
+		throw new Error("Mortgage not found");
+	}
+
+	// Check for duplicate ownership record
+	const existing = await ctx.db
+		.query("mortgage_ownership")
+		.withIndex("by_mortgage_owner", (q: any) =>
+			q.eq("mortgageId", args.mortgageId).eq("ownerId", args.ownerId)
+		)
+		.first();
+
+	if (existing) {
+		throw new Error(
+			"Ownership record already exists for this mortgage and owner"
+		);
+	}
+
+	// Get FairLend's current ownership
+	const fairlendOwnership = await ctx.db
+		.query("mortgage_ownership")
+		.withIndex("by_mortgage_owner", (q: any) =>
+			q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
+		)
+		.first();
+
+	if (!fairlendOwnership) {
+		throw new Error(
+			"FairLend ownership record not found. All mortgages must have FairLend as default owner."
+		);
+	}
+
+	// Check if FairLend has enough ownership to transfer
+	if (fairlendOwnership.ownershipPercentage < args.ownershipPercentage) {
+		throw new Error(
+			`Insufficient FairLend ownership. FairLend owns ${fairlendOwnership.ownershipPercentage.toFixed(2)}%, but ${args.ownershipPercentage.toFixed(2)}% is requested.`
+		);
+	}
+
+	// Reduce FairLend's ownership
+	const newFairlendPercentage =
+		fairlendOwnership.ownershipPercentage - args.ownershipPercentage;
+
+	// If FairLend's ownership becomes 0, delete the record
+	if (newFairlendPercentage === 0) {
+		await ctx.db.delete(fairlendOwnership._id);
+	} else {
+		await ctx.db.patch(fairlendOwnership._id, {
+			ownershipPercentage: newFairlendPercentage,
+		});
+	}
+
+	// Create the new ownership record
+	// Total ownership remains 100% (FairLend reduced, new owner added)
+	return await ctx.db.insert("mortgage_ownership", {
+		mortgageId: args.mortgageId,
+		ownerId: args.ownerId,
+		ownershipPercentage: args.ownershipPercentage,
+	});
+}
+
+/**
  * Create an ownership record
  * Automatically reduces FairLend's ownership to maintain 100% total
  */
@@ -117,7 +208,7 @@ export const createOwnership = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await requireAuth(ctx);
-		
+
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -128,82 +219,8 @@ export const createOwnership = mutation({
 			throw new Error("Unauthorized: Broker or admin privileges required");
 		}
 
-		// Validate percentage range
-		if (
-			args.ownershipPercentage <= 0 ||
-			args.ownershipPercentage > 100
-		) {
-			throw new Error("Ownership percentage must be between 0 and 100");
-		}
-
-		// Cannot create FairLend ownership manually - it's automatic
-		if (args.ownerId === "fairlend") {
-			throw new Error(
-				"FairLend ownership is managed automatically. Use updateOwnershipPercentage to adjust."
-			);
-		}
-
-		// Validate mortgage exists
-		const mortgage = await ctx.db.get(args.mortgageId);
-		if (!mortgage) {
-			throw new Error("Mortgage not found");
-		}
-
-		// Check for duplicate ownership record
-		const existing = await ctx.db
-			.query("mortgage_ownership")
-			.withIndex("by_mortgage_owner", (q) =>
-				q.eq("mortgageId", args.mortgageId).eq("ownerId", args.ownerId)
-			)
-			.first();
-
-		if (existing) {
-			throw new Error(
-				"Ownership record already exists for this mortgage and owner"
-			);
-		}
-
-		// Get FairLend's current ownership
-		const fairlendOwnership = await ctx.db
-			.query("mortgage_ownership")
-			.withIndex("by_mortgage_owner", (q) =>
-				q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
-			)
-			.first();
-
-		if (!fairlendOwnership) {
-			throw new Error(
-				"FairLend ownership record not found. All mortgages must have FairLend as default owner."
-			);
-		}
-
-		// Check if FairLend has enough ownership to transfer
-		if (fairlendOwnership.ownershipPercentage < args.ownershipPercentage) {
-			throw new Error(
-				`Insufficient FairLend ownership. FairLend owns ${fairlendOwnership.ownershipPercentage.toFixed(2)}%, but ${args.ownershipPercentage.toFixed(2)}% is requested.`
-			);
-		}
-
-		// Reduce FairLend's ownership
-		const newFairlendPercentage =
-			fairlendOwnership.ownershipPercentage - args.ownershipPercentage;
-
-		// If FairLend's ownership becomes 0, delete the record
-		if (newFairlendPercentage === 0) {
-			await ctx.db.delete(fairlendOwnership._id);
-		} else {
-			await ctx.db.patch(fairlendOwnership._id, {
-				ownershipPercentage: newFairlendPercentage,
-			});
-		}
-
-		// Create the new ownership record
-		// Total ownership remains 100% (FairLend reduced, new owner added)
-		return await ctx.db.insert("mortgage_ownership", {
-			mortgageId: args.mortgageId,
-			ownerId: args.ownerId,
-			ownershipPercentage: args.ownershipPercentage,
-		});
+		// Delegate to internal helper
+		return await createOwnershipInternal(ctx, args);
 	},
 });
 

@@ -56,46 +56,46 @@ export function BreadcrumbNav({ className, items }: BreadcrumbNavProps) {
 							</BreadcrumbLink>
 						</BreadcrumbItem> */}
 
-					{localItems.map((item, index) => {
-						const isLast = index === localItems.length - 1;
-						// Use index + label for unique keys, fallback to index if label is empty
-						const uniqueKey = `${index}-${item.label || `item-${index}`}`;
-						if (index === 0) {
+						{localItems.map((item, index) => {
+							const isLast = index === localItems.length - 1;
+							// Use index + label for unique keys, fallback to index if label is empty
+							const uniqueKey = `${index}-${item.label || `item-${index}`}`;
+							if (index === 0) {
+								return (
+									<div className="contents" key={uniqueKey}>
+										<BreadcrumbItem>
+											<BreadcrumbLink asChild>
+												<Link
+													aria-label="Go to home"
+													className="flex items-center gap-1.5"
+													href="/"
+												>
+													<Home className="h-4 w-4" />
+													<span className="sr-only md:not-sr-only md:inline">
+														Home
+													</span>
+												</Link>
+											</BreadcrumbLink>
+										</BreadcrumbItem>
+										<BreadcrumbSeparator />
+									</div>
+								);
+							}
 							return (
 								<div className="contents" key={uniqueKey}>
 									<BreadcrumbItem>
-										<BreadcrumbLink asChild>
-											<Link
-												aria-label="Go to home"
-												className="flex items-center gap-1.5"
-												href="/"
-											>
-												<Home className="h-4 w-4" />
-												<span className="sr-only md:not-sr-only md:inline">
-													Home
-												</span>
-											</Link>
-										</BreadcrumbLink>
+										{isLast || !item.href ? (
+											<BreadcrumbPage>{item.label}</BreadcrumbPage>
+										) : (
+											<BreadcrumbLink asChild>
+												<Link href={item.href}>{item.label}</Link>
+											</BreadcrumbLink>
+										)}
 									</BreadcrumbItem>
-									<BreadcrumbSeparator />
+									{!isLast && <BreadcrumbSeparator />}
 								</div>
 							);
-						}
-						return (
-							<div className="contents" key={uniqueKey}>
-								<BreadcrumbItem>
-									{isLast || !item.href ? (
-										<BreadcrumbPage>{item.label}</BreadcrumbPage>
-									) : (
-										<BreadcrumbLink asChild>
-											<Link href={item.href}>{item.label}</Link>
-										</BreadcrumbLink>
-									)}
-								</BreadcrumbItem>
-								{!isLast && <BreadcrumbSeparator />}
-							</div>
-						);
-					})}
+						})}
 					</BreadcrumbList>
 				</Breadcrumb>
 			</div>

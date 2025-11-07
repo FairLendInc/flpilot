@@ -905,7 +905,14 @@ describe("createOwnership - RBAC Authorization", () => {
 		});
 
 		expect(ownershipId).toBeDefined();
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId)
+				)
+				.first()
+		);
 		expect(ownership?.mortgageId).toBe(mortgageId);
 		expect(ownership?.ownerId).toBe(userId);
 		expect(ownership?.ownershipPercentage).toBe(25);
@@ -929,7 +936,14 @@ describe("createOwnership - RBAC Authorization", () => {
 		});
 
 		expect(ownershipId).toBeDefined();
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId)
+				)
+				.first()
+		);
 		expect(ownership?.ownershipPercentage).toBe(25);
 	});
 
@@ -997,7 +1011,14 @@ describe("updateOwnershipPercentage - RBAC Authorization", () => {
 		);
 
 		expect(result).toBe(ownershipId);
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId)
+				)
+				.first()
+		);
 		expect(ownership?.ownershipPercentage).toBe(50);
 	});
 
@@ -1028,7 +1049,14 @@ describe("updateOwnershipPercentage - RBAC Authorization", () => {
 		);
 
 		expect(result).toBe(ownershipId);
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId)
+				)
+				.first()
+		);
 		expect(ownership?.ownershipPercentage).toBe(50);
 	});
 
@@ -1131,7 +1159,14 @@ describe("transferOwnership - RBAC Authorization", () => {
 		});
 
 		expect(result).toBe(ownershipId);
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId2)
+				)
+				.first()
+		);
 		expect(ownership?.ownerId).toBe(userId2);
 	});
 
@@ -1175,7 +1210,14 @@ describe("transferOwnership - RBAC Authorization", () => {
 		});
 
 		expect(result).toBe(ownershipId);
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId2)
+				)
+				.first()
+		);
 		expect(ownership?.ownerId).toBe(userId2);
 	});
 
@@ -1298,7 +1340,14 @@ describe("deleteOwnership - RBAC Authorization", () => {
 		});
 
 		expect(result).toBe(ownershipId);
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId)
+				)
+				.first()
+		);
 		expect(ownership).toBeNull();
 	});
 
@@ -1340,7 +1389,14 @@ describe("deleteOwnership - RBAC Authorization", () => {
 		});
 
 		expect(result).toBe(ownershipId);
-		const ownership = await t.run(async (ctx) => ctx.db.get(ownershipId));
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", userId)
+				)
+				.first()
+		);
 		expect(ownership).toBeNull();
 	});
 

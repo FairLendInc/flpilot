@@ -7,7 +7,7 @@ import {
 } from "@/components/ListingGridShell";
 import { Horizontal } from "@/components/listing-card-horizontal";
 import { ListingMapPopup } from "@/components/listing-map-popup";
-import { api } from "@/convex/_generated/api";
+import type { api } from "@/convex/_generated/api";
 import type { Mortgage } from "@/lib/types/convex";
 
 type ListingItem = FilterableItem & {

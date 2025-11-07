@@ -14,6 +14,7 @@ import { hasRbacAccess } from "./auth.config";
 import { logger } from "../lib/logger";
 import { getInitialSnapshot } from "xstate";
 import { dealMachine, type DealContext, type DealEvent, type DealStateValue } from "./dealStateMachine";
+import { createOwnershipInternal } from "./ownership";
 
 /**
  * Get user document from identity
@@ -906,9 +907,10 @@ export const completeDeal = mutation({
 			throw new Error("Ownership has already been transferred for this deal");
 		}
 
-		// Call ownership.createOwnership to transfer 100% from FairLend to investor
-		// This will automatically reduce FairLend's ownership per the 100% invariant
-		await ctx.runMutation(api.ownership.createOwnership, {
+		// Transfer ownership from FairLend to investor using internal helper
+		// This bypasses authentication since completeDeal already verified admin access
+		// Automatically reduces FairLend's ownership per the 100% invariant
+		await createOwnershipInternal(ctx, {
 			mortgageId: deal.mortgageId,
 			ownerId: deal.investorId,
 			ownershipPercentage: deal.purchasePercentage,

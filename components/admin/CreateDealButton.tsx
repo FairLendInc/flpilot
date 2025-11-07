@@ -132,14 +132,15 @@ export function CreateDealButton({
 									<strong>{investorName}</strong>.
 								</div>
 								<div>
-									This will initiate the deal workflow starting from the "Locked"
-									state. The deal will need to progress through all stages before
-									ownership can be transferred.
+									This will initiate the deal workflow starting from the
+									"Locked" state. The deal will need to progress through all
+									stages before ownership can be transferred.
 								</div>
 								<div className="text-muted-foreground text-sm">
 									Note: For the pilot program, document signing and legal
-									processes happen off-platform. Use the Kanban board to manually
-									progress the deal through each stage as steps are completed.
+									processes happen off-platform. Use the Kanban board to
+									manually progress the deal through each stage as steps are
+									completed.
 								</div>
 							</div>
 						</AlertDialogDescription>

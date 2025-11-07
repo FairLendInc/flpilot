@@ -270,7 +270,7 @@ export function DealKanbanBoard() {
 	};
 
 	// Show loading state while auth is loading or query is pending
-	if (!isAuthReady || !dealsData) {
+	if (!(isAuthReady && dealsData)) {
 		return (
 			<div className="space-y-4">
 				<Skeleton className="h-32 w-full" />
@@ -343,9 +343,7 @@ export function DealKanbanBoard() {
 										{DEAL_STATE_LABELS[transitionTarget.fromState]}
 									</strong>{" "}
 									to{" "}
-									<strong>
-										{DEAL_STATE_LABELS[transitionTarget.toState]}
-									</strong>
+									<strong>{DEAL_STATE_LABELS[transitionTarget.toState]}</strong>
 									.
 								</AlertDialogDescription>
 								<div className="space-y-2 pt-2">
