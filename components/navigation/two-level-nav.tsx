@@ -118,13 +118,13 @@ export function TwoLevelNav({
 								);
 							})}
 						</div>
-					{/* Right Side - User Controls */}
-					<div className="flex items-center gap-2 md:gap-3">
-						{/* Notifications - Visible on all screen sizes */}
-						<AlertBell />
+						{/* Right Side - User Controls */}
+						<div className="flex items-center gap-2 md:gap-3">
+							{/* Notifications - Visible on all screen sizes */}
+							<AlertBell />
 
-						{/* User Avatar - Visible on all screen sizes */}
-						<UserAvatarMenu />
+							{/* User Avatar - Visible on all screen sizes */}
+							<UserAvatarMenu />
 
 							<Button
 								className="lg:hidden"
@@ -254,18 +254,18 @@ export function TwoLevelNav({
 									{/* Divider */}
 									<div className="my-4 h-px bg-border" />
 
-								{/* Mobile-only actions */}
-								<Button
-									className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
-									onClick={() => {
-										setCommandOpen(true);
-										setMobileMenuOpen(false);
-									}}
-									variant="ghost"
-								>
-									<Search className="size-5" />
-									<span className="text-base">Search</span>
-								</Button>
+									{/* Mobile-only actions */}
+									<Button
+										className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+										onClick={() => {
+											setCommandOpen(true);
+											setMobileMenuOpen(false);
+										}}
+										variant="ghost"
+									>
+										<Search className="size-5" />
+										<span className="text-base">Search</span>
+									</Button>
 								</div>
 							</motion.div>
 						</>
