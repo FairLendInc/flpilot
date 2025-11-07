@@ -1,6 +1,7 @@
 "use client";
 import { IconMailFilled } from "@tabler/icons-react";
 import { motion } from "motion/react";
+import Image from "next/image";
 import type React from "react";
 import { useId } from "react";
 import { cn } from "@/lib/utils";
@@ -18,24 +19,30 @@ export default function ContactFormGridWithDetails() {
 					Talk to FairLend
 				</h2>
 				<p className="mt-8 max-w-lg text-center text-base text-neutral-600 md:text-left dark:text-neutral-400">
-					MLS for private mortgages. Request a demo, join the broker pilot,
-					or ask about MIC participation, white‑label investor portals, and
+					MLS for private mortgages. Request a demo, join the broker pilot, or
+					ask about MIC participation, white‑label investor portals, and
 					AI‑driven servicing.
 				</p>
 
 				<div className="mt-10 hidden flex-col items-center gap-4 md:flex-row lg:flex">
-					<p className="text-neutral-500 text-sm dark:text-neutral-400">contact@fairlend.ca</p>
+					<p className="text-neutral-500 text-sm dark:text-neutral-400">
+						contact@fairlend.ca
+					</p>
 
 					<div className="h-1 w-1 rounded-full bg-neutral-500 dark:bg-neutral-400" />
-					<p className="text-neutral-500 text-sm dark:text-neutral-400">+1 (416) 555‑0198</p>
+					<p className="text-neutral-500 text-sm dark:text-neutral-400">
+						+1 (416) 555‑0198
+					</p>
 					<div className="h-1 w-1 rounded-full bg-neutral-500 dark:bg-neutral-400" />
 
-					<p className="text-neutral-500 text-sm dark:text-neutral-400">partnerships@fairlend.ca</p>
+					<p className="text-neutral-500 text-sm dark:text-neutral-400">
+						partnerships@fairlend.ca
+					</p>
 				</div>
 				<div className="div -translate-x-10 sm:-translate-x-0 lg:-translate-x-32 relative mt-20 flex w-[600px] flex-shrink-0 items-center justify-center [perspective:800px] [transform-style:preserve-3d]">
 					<Pin className="top-0 right-1" />
 
-					<img
+					<Image
 						alt="world map"
 						className="[transform:rotateX(45deg)_translateZ(0px)] dark:invert dark:filter"
 						height={500}
@@ -102,7 +109,10 @@ export default function ContactFormGridWithDetails() {
 						rows={5}
 					/>
 				</div>
-				<button type="button" className="relative z-10 flex items-center justify-center rounded-md border border-transparent bg-neutral-800 px-4 py-2 font-medium text-sm text-white shadow-[0px_1px_0px_0px_#FFFFFF20_inset] transition duration-200 hover:bg-neutral-900 md:text-sm">
+				<button
+					className="relative z-10 flex items-center justify-center rounded-md border border-transparent bg-neutral-800 px-4 py-2 font-medium text-sm text-white shadow-[0px_1px_0px_0px_#FFFFFF20_inset] transition duration-200 hover:bg-neutral-900 md:text-sm"
+					type="button"
+				>
 					Submit
 				</button>
 			</div>
@@ -131,55 +141,51 @@ const Pin = ({ className }: { className?: string }) => (
 					transform: "rotateX(70deg) translateZ(0px)",
 				}}
 			>
-				<>
-					<motion.div
-						animate={{
-							opacity: [0, 1, 0.5, 0],
-							scale: 1,
-						}}
-						className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-20 w-20 rounded-[50%] bg-sky-500/[0.08] shadow-[0_8px_16px_rgb(0_0_0/0.4)] dark:bg-sky-500/[0.2]"
-						initial={{ opacity: 0, scale: 0 }}
-						transition={{
-							duration: 6,
-							repeat: Number.POSITIVE_INFINITY,
-							delay: 0,
-						}}
-					/>
-					<motion.div
-						animate={{
-							opacity: [0, 1, 0.5, 0],
-							scale: 1,
-						}}
-						className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-20 w-20 rounded-[50%] bg-sky-500/[0.08] shadow-[0_8px_16px_rgb(0_0_0/0.4)] dark:bg-sky-500/[0.2]"
-						initial={{ opacity: 0, scale: 0 }}
-						transition={{
-							duration: 6,
-							repeat: Number.POSITIVE_INFINITY,
-							delay: 2,
-						}}
-					/>
-					<motion.div
-						animate={{
-							opacity: [0, 1, 0.5, 0],
-							scale: 1,
-						}}
-						className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-20 w-20 rounded-[50%] bg-sky-500/[0.08] shadow-[0_8px_16px_rgb(0_0_0/0.4)] dark:bg-sky-500/[0.2]"
-						initial={{ opacity: 0, scale: 0 }}
-						transition={{
-							duration: 6,
-							repeat: Number.POSITIVE_INFINITY,
-							delay: 4,
-						}}
-					/>
-				</>
+				<motion.div
+					animate={{
+						opacity: [0, 1, 0.5, 0],
+						scale: 1,
+					}}
+					className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-20 w-20 rounded-[50%] bg-sky-500/[0.08] shadow-[0_8px_16px_rgb(0_0_0/0.4)] dark:bg-sky-500/[0.2]"
+					initial={{ opacity: 0, scale: 0 }}
+					transition={{
+						duration: 6,
+						repeat: Number.POSITIVE_INFINITY,
+						delay: 0,
+					}}
+				/>
+				<motion.div
+					animate={{
+						opacity: [0, 1, 0.5, 0],
+						scale: 1,
+					}}
+					className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-20 w-20 rounded-[50%] bg-sky-500/[0.08] shadow-[0_8px_16px_rgb(0_0_0/0.4)] dark:bg-sky-500/[0.2]"
+					initial={{ opacity: 0, scale: 0 }}
+					transition={{
+						duration: 6,
+						repeat: Number.POSITIVE_INFINITY,
+						delay: 2,
+					}}
+				/>
+				<motion.div
+					animate={{
+						opacity: [0, 1, 0.5, 0],
+						scale: 1,
+					}}
+					className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-20 w-20 rounded-[50%] bg-sky-500/[0.08] shadow-[0_8px_16px_rgb(0_0_0/0.4)] dark:bg-sky-500/[0.2]"
+					initial={{ opacity: 0, scale: 0 }}
+					transition={{
+						duration: 6,
+						repeat: Number.POSITIVE_INFINITY,
+						delay: 4,
+					}}
+				/>
 			</div>
 
-			<>
-				<motion.div className="absolute right-1/2 bottom-1/2 h-20 w-px translate-y-[14px] bg-gradient-to-b from-transparent to-blue-500 blur-[2px]" />
-				<motion.div className="absolute right-1/2 bottom-1/2 h-20 w-px translate-y-[14px] bg-gradient-to-b from-transparent to-blue-500" />
-				<motion.div className="absolute right-1/2 bottom-1/2 z-40 h-[4px] w-[4px] translate-x-[1.5px] translate-y-[14px] rounded-full bg-blue-600 blur-[3px]" />
-				<motion.div className="absolute right-1/2 bottom-1/2 z-40 h-[2px] w-[2px] translate-x-[0.5px] translate-y-[14px] rounded-full bg-blue-300" />
-			</>
+			<motion.div className="absolute right-1/2 bottom-1/2 h-20 w-px translate-y-[14px] bg-gradient-to-b from-transparent to-blue-500 blur-[2px]" />
+			<motion.div className="absolute right-1/2 bottom-1/2 h-20 w-px translate-y-[14px] bg-gradient-to-b from-transparent to-blue-500" />
+			<motion.div className="absolute right-1/2 bottom-1/2 z-40 h-[4px] w-[4px] translate-x-[1.5px] translate-y-[14px] rounded-full bg-blue-600 blur-[3px]" />
+			<motion.div className="absolute right-1/2 bottom-1/2 z-40 h-[2px] w-[2px] translate-x-[0.5px] translate-y-[14px] rounded-full bg-blue-300" />
 		</div>
 	</motion.div>
 );
@@ -265,15 +271,21 @@ export function GridPattern({ width, height, x, y, squares, ...props }: any) {
 				width="100%"
 			/>
 			{squares && (
-				<svg className="overflow-visible" x={x} y={y}>
-					{squares.map(([x, y]: any, idx: number) => (
+				<svg
+					aria-label="Grid pattern squares"
+					className="overflow-visible"
+					x={x}
+					y={y}
+				>
+					<title>Grid pattern squares</title>
+					{squares.map(([squareX, squareY]: any) => (
 						<rect
 							height={height + 1}
-							key={`${x}-${y}-${idx}`}
+							key={`${squareX}-${squareY}`}
 							strokeWidth="0"
 							width={width + 1}
-							x={x * width}
-							y={y * height}
+							x={squareX * width}
+							y={squareY * height}
 						/>
 					))}
 				</svg>

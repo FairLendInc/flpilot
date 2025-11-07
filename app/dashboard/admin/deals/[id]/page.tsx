@@ -226,9 +226,6 @@ export default function DealDetailPage({
 				<SidebarTrigger className="-ml-1" />
 				<Separator className="mr-2 h-4" orientation="vertical" />
 				<h1 className="font-semibold text-lg">Deal Details</h1>
-				<div className="ml-auto">
-					<AlertBell />
-				</div>
 			</header>
 
 			<div className="flex flex-1 flex-col gap-6 p-6">

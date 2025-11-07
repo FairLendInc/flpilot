@@ -141,7 +141,8 @@ export function AlertBell() {
 															className={cn(
 																"h-4 w-4",
 																alert.severity === "info" && "text-blue-600",
-																alert.severity === "warning" && "text-yellow-600",
+																alert.severity === "warning" &&
+																	"text-yellow-600",
 																alert.severity === "error" && "text-red-600"
 															)}
 														/>

@@ -39,8 +39,8 @@ export default function RootLayout({
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"
-					enableSystem
 					disableTransitionOnChange
+					enableSystem
 				>
 					<Suspense fallback={<PageSkeleton />}>
 						<ConvexClientProvider>
