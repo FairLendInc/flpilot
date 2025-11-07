@@ -3,9 +3,178 @@
  * Controls visibility and lock state for mortgages available for purchase
  */
 
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v, Infer } from "convex/values";
+import { internalMutation, mutation, query } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "./auth.config";
+import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
+
+const borrowerPayloadValidator = v.object({
+	name: v.string(),
+	email: v.string(),
+	rotessaCustomerId: v.string(),
+});
+
+const listingOptionsValidator = v.object({
+	visible: v.optional(v.boolean()),
+});
+
+const listingCreationPayloadValidator = v.object({
+	borrower: borrowerPayloadValidator,
+	mortgage: mortgageDetailsValidator,
+	listing: listingOptionsValidator,
+});
+
+const listingCreationResultValidator = v.object({
+	borrowerId: v.id("borrowers"),
+	mortgageId: v.id("mortgages"),
+	listingId: v.id("listings"),
+	created: v.boolean(),
+});
+
+type BorrowerPayload = Infer<typeof borrowerPayloadValidator>;
+export type ListingCreationPayload = Infer<typeof listingCreationPayloadValidator>;
+export type ListingCreationResult = Infer<typeof listingCreationResultValidator>;
+
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const ensureBorrowerForPayload = async (
+	ctx: MutationCtx,
+	borrower: BorrowerPayload
+): Promise<Id<"borrowers">> => {
+	if (!EMAIL_PATTERN.test(borrower.email)) {
+		throw new Error("Borrower email must be a valid address");
+	}
+	if (borrower.rotessaCustomerId.trim().length === 0) {
+		throw new Error("Borrower rotessaCustomerId is required");
+	}
+
+	const existingByRotessa = await ctx.db
+		.query("borrowers")
+		.withIndex("by_rotessa_customer_id", (q) =>
+			q.eq("rotessaCustomerId", borrower.rotessaCustomerId)
+		)
+		.first();
+
+	if (existingByRotessa) {
+		const updates: Partial<{ name: string; email: string }> = {};
+		if (existingByRotessa.name !== borrower.name) {
+			updates.name = borrower.name;
+		}
+		if (existingByRotessa.email !== borrower.email) {
+			updates.email = borrower.email;
+		}
+		if (Object.keys(updates).length > 0) {
+			await ctx.db.patch(existingByRotessa._id, updates);
+		}
+		return existingByRotessa._id;
+	}
+
+	const existingByEmail = await ctx.db
+		.query("borrowers")
+		.withIndex("by_email", (q) => q.eq("email", borrower.email))
+		.first();
+
+	if (existingByEmail) {
+		if (existingByEmail.rotessaCustomerId !== borrower.rotessaCustomerId) {
+			throw new Error(
+				"Borrower email is already associated with a different Rotessa customer"
+			);
+		}
+		const updates: Partial<{ name: string }> = {};
+		if (existingByEmail.name !== borrower.name) {
+			updates.name = borrower.name;
+		}
+		if (Object.keys(updates).length > 0) {
+			await ctx.db.patch(existingByEmail._id, updates);
+		}
+		return existingByEmail._id;
+	}
+
+	return await ctx.db.insert("borrowers", {
+		name: borrower.name,
+		email: borrower.email,
+		rotessaCustomerId: borrower.rotessaCustomerId,
+	});
+};
+
+const runListingCreation = async (
+	ctx: MutationCtx,
+	payload: ListingCreationPayload
+): Promise<ListingCreationResult> => {
+	const borrowerId = await ensureBorrowerForPayload(ctx, payload.borrower);
+
+	const mortgageId = await ensureMortgage(ctx, {
+		borrowerId,
+		...payload.mortgage,
+	});
+
+	const existingListing = await ctx.db
+		.query("listings")
+		.withIndex("by_mortgage", (q) => q.eq("mortgageId", mortgageId))
+		.first();
+
+	if (existingListing) {
+		if (
+			payload.listing.visible !== undefined &&
+			existingListing.visible !== payload.listing.visible
+		) {
+			await ctx.db.patch(existingListing._id, {
+				visible: payload.listing.visible,
+			});
+		}
+		return {
+			borrowerId,
+			mortgageId,
+			listingId: existingListing._id,
+			created: false,
+		};
+	}
+
+	const listingId = await ctx.db.insert("listings", {
+		mortgageId,
+		visible: payload.listing.visible ?? true,
+		locked: false,
+	});
+
+	return {
+		borrowerId,
+		mortgageId,
+		listingId,
+		created: true,
+	};
+};
+
+export const createFromPayload = mutation({
+	args: listingCreationPayloadValidator,
+	returns: listingCreationResultValidator,
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges are required");
+		}
+
+		return await runListingCreation(ctx, args);
+	},
+});
+
+export const createFromPayloadInternal = internalMutation({
+	args: listingCreationPayloadValidator,
+	returns: listingCreationResultValidator,
+	handler: async (ctx, args) => {
+		return await runListingCreation(ctx, args);
+	},
+});
 
 /**
  * Get all available listings (visible and unlocked)

@@ -126,6 +126,8 @@ export default defineSchema({
 		.index("by_email", ["email"]),
 
 	mortgages: defineTable({
+		// Optional external identifier for integrations (used for idempotency)
+		externalMortgageId: v.optional(v.string()),
 		// Borrower reference
 		borrowerId: v.id("borrowers"),
 		// Core loan details
@@ -194,7 +196,8 @@ export default defineSchema({
 	})
 		.index("by_borrower", ["borrowerId"])
 		.index("by_status", ["status"])
-		.index("by_maturity_date", ["maturityDate"]),
+		.index("by_maturity_date", ["maturityDate"])
+		.index("by_external_mortgage_id", ["externalMortgageId"]),
 
 	mortgage_ownership: defineTable({
 	// Reference to mortgage
