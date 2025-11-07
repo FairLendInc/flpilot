@@ -46,7 +46,7 @@ export const Default: Story = {
 export const CustomProduct: Story = {
 	args: undefined as never,
 	render: () => (
-		<Card.Root className="w-full items-stretch md:flex-row" variant="flat">
+		<Card.Root className="w-full items-stretch md:flex-row">
 			<img
 				alt="Malibu Beach Duplex thumbnail"
 				className="pointer-events-none aspect-square w-full select-none rounded-panel object-cover md:max-w-[180px]"
@@ -104,7 +104,7 @@ export const CustomProduct: Story = {
 export const HighPriceItem: Story = {
 	args: undefined as never,
 	render: () => (
-		<Card.Root className="w-full items-stretch md:flex-row" variant="flat">
+		<Card.Root className="w-full items-stretch md:flex-row">
 			<img
 				alt="Malibu Beach Duplex thumbnail"
 				className="pointer-events-none aspect-square w-full select-none rounded-panel object-cover md:max-w-[180px]"
@@ -152,7 +152,6 @@ export const BlurredCard: Story = {
 	render: () => (
 		<Card.Root
 			className="w-full items-stretch transition-all duration-300 hover:scale-105 hover:shadow-black/10 hover:shadow-lg md:flex-row"
-			variant="flat"
 		>
 			<img
 				alt="Malibu Beach Detached thumbnail"
@@ -220,7 +219,6 @@ export const MobileGlassCard: Story = {
 	render: () => (
 		<Card.Root
 			className="relative h-96 min-h-[384px] w-80 min-w-[320px] overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10 md:h-[450px] md:w-96"
-			variant="flat"
 		>
 			{/* Background Image */}
 			<img
@@ -293,7 +291,6 @@ export const MobileGlassCardSmall: Story = {
 	render: () => (
 		<Card.Root
 			className="relative h-80 min-h-[320px] w-64 min-w-[256px] overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10"
-			variant="flat"
 		>
 			{/* Background Image */}
 			<img
@@ -389,7 +386,6 @@ export const MobileGlassCardLarge: Story = {
 	render: () => (
 		<Card.Root
 			className="relative h-[500px] min-h-[500px] w-[400px] min-w-[400px] overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10"
-			variant="flat"
 		>
 			{/* Background Image */}
 			<img

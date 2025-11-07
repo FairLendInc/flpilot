@@ -32,10 +32,7 @@ export function Horizontal({
 	maturityDate = "01/01/2026",
 }: HorizontalProps = {}) {
 	const CardContent = (
-		<Card.Root
-			className="w-full items-stretch transition-all duration-300 hover:scale-103 hover:shadow-black/10 hover:shadow-lg md:flex-row"
-			variant="flat"
-		>
+		<Card.Root className="w-full items-stretch transition-all duration-300 hover:scale-103 hover:shadow-black/10 hover:shadow-lg md:flex-row">
 			<div className="relative aspect-video w-full overflow-hidden rounded-panel md:aspect-square md:max-w-[180px] xl:aspect-auto">
 				<Image
 					alt={`${title} thumbnail`}

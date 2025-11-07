@@ -66,6 +66,8 @@ const meta = {
 		mortgageId: "k17mortgage001" as Id<"mortgages">,
 		mortgageAddress: "789 Integration Ave, Ottawa, ON K1A0B1",
 		onConfirm: fn(),
+		open: true,
+		onOpenChange: fn(),
 	},
 } satisfies Meta<typeof MortgageDeleteDialogWrapper>;
 

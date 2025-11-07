@@ -47,6 +47,7 @@ const mockMortgages: MortgageData[] = [
 	{
 		_id: "k17mortgage001" as Id<"mortgages">,
 		borrowerId: "k17borrower001" as Id<"borrowers">,
+		borrower: { name: "John Doe", email: "john.doe@example.com" },
 		loanAmount: 475000,
 		interestRate: 5.5,
 		status: "active",
@@ -62,6 +63,7 @@ const mockMortgages: MortgageData[] = [
 	{
 		_id: "k17mortgage002" as Id<"mortgages">,
 		borrowerId: "k17borrower002" as Id<"borrowers">,
+		borrower: { name: "Jane Smith", email: "jane.smith@example.com" },
 		loanAmount: 650000,
 		interestRate: 6.25,
 		status: "active",
@@ -77,6 +79,7 @@ const mockMortgages: MortgageData[] = [
 	{
 		_id: "k17mortgage003" as Id<"mortgages">,
 		borrowerId: "k17borrower003" as Id<"borrowers">,
+		borrower: { name: "Bob Johnson", email: "bob.johnson@example.com" },
 		loanAmount: 820000,
 		interestRate: 4.75,
 		status: "closed",
@@ -92,6 +95,7 @@ const mockMortgages: MortgageData[] = [
 	{
 		_id: "k17mortgage004" as Id<"mortgages">,
 		borrowerId: "k17borrower004" as Id<"borrowers">,
+		borrower: { name: "Alice Williams", email: "alice.williams@example.com" },
 		loanAmount: 550000,
 		interestRate: 7.0,
 		status: "defaulted",
@@ -136,6 +140,7 @@ export const AllActive: Story = {
 			{
 				_id: "k17mortgage001" as Id<"mortgages">,
 				borrowerId: "k17borrower001" as Id<"borrowers">,
+				borrower: { name: "John Doe", email: "john.doe@example.com" },
 				loanAmount: 500000,
 				interestRate: 5.25,
 				status: "active",
@@ -151,6 +156,7 @@ export const AllActive: Story = {
 			{
 				_id: "k17mortgage002" as Id<"mortgages">,
 				borrowerId: "k17borrower002" as Id<"borrowers">,
+				borrower: { name: "Jane Smith", email: "jane.smith@example.com" },
 				loanAmount: 600000,
 				interestRate: 5.5,
 				status: "active",
@@ -177,6 +183,7 @@ export const MixedStatuses: Story = {
 			{
 				_id: "k17mortgage001" as Id<"mortgages">,
 				borrowerId: "k17borrower001" as Id<"borrowers">,
+				borrower: { name: "John Doe", email: "john.doe@example.com" },
 				loanAmount: 500000,
 				interestRate: 5.0,
 				status: "active",
@@ -192,6 +199,7 @@ export const MixedStatuses: Story = {
 			{
 				_id: "k17mortgage002" as Id<"mortgages">,
 				borrowerId: "k17borrower002" as Id<"borrowers">,
+				borrower: { name: "Jane Smith", email: "jane.smith@example.com" },
 				loanAmount: 450000,
 				interestRate: 5.5,
 				status: "renewed",
@@ -207,6 +215,7 @@ export const MixedStatuses: Story = {
 			{
 				_id: "k17mortgage003" as Id<"mortgages">,
 				borrowerId: "k17borrower003" as Id<"borrowers">,
+				borrower: { name: "Bob Johnson", email: "bob.johnson@example.com" },
 				loanAmount: 400000,
 				interestRate: 6.0,
 				status: "closed",
@@ -222,6 +231,7 @@ export const MixedStatuses: Story = {
 			{
 				_id: "k17mortgage004" as Id<"mortgages">,
 				borrowerId: "k17borrower004" as Id<"borrowers">,
+				borrower: { name: "Alice Williams", email: "alice.williams@example.com" },
 				loanAmount: 550000,
 				interestRate: 7.5,
 				status: "defaulted",
@@ -255,6 +265,10 @@ export const ManyMortgages: Story = {
 		mortgages: Array.from({ length: 10 }, (_, i) => ({
 			_id: `k17mortgage${String(i).padStart(3, "0")}` as Id<"mortgages">,
 			borrowerId: `k17borrower${String(i).padStart(3, "0")}` as Id<"borrowers">,
+			borrower: {
+				name: `Borrower ${i + 1}`,
+				email: `borrower${i + 1}@example.com`,
+			},
 			loanAmount: 400000 + i * 50000,
 			interestRate: 4.5 + i * 0.25,
 			status: (["active", "renewed", "closed", "defaulted"] as const)[i % 4],

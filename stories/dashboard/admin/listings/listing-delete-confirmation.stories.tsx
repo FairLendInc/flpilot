@@ -66,6 +66,8 @@ const meta = {
 		listingId: "k17abc123def456" as Id<"listings">,
 		listingAddress: "789 Integration Ave, Ottawa, ON K1A0B1",
 		onConfirm: fn(),
+		open: true,
+		onOpenChange: fn(),
 	},
 } satisfies Meta<typeof ListingDeleteDialogWrapper>;
 

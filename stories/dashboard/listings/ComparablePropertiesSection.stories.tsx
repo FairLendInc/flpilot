@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState, useCallback } from "react";
-import { Card, Button, Input, Chip, addToast } from "@heroui/react";
+import { Card, Button, Input, Chip } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { generateComparables } from "@/lib/mock-data/listings";
 import type { ComparableFormState } from "@/app/dashboard/admin/listings/new/useListingCreationStore";
@@ -102,7 +102,7 @@ const ComparablePropertiesSection = ({
 							At least one comparable is required.
 						</p>
 					</div>
-					<Chip color="primary" variant="flat">
+					<Chip color="default">
 						{comparables.length} {comparables.length === 1 ? "comparable" : "comparables"}
 					</Chip>
 				</div>
@@ -121,11 +121,10 @@ const ComparablePropertiesSection = ({
 									<h4 className="font-medium">Comparable {index + 1}</h4>
 									<Button
 										size="sm"
-										color="danger"
-										variant="light"
-										startContent={<Icon icon="lucide:trash-2" className="h-4 w-4" />}
+										variant="danger"
 										onPress={() => onRemove(index)}
 									>
+										<Icon icon="lucide:trash-2" className="h-4 w-4" />
 										Remove
 									</Button>
 								</div>
@@ -134,77 +133,107 @@ const ComparablePropertiesSection = ({
 									{/* Address Fields */}
 									<div className="space-y-3">
 										<h5 className="text-sm font-medium">Address</h5>
-										<Input
-											label="Street"
-											value={comp.address.street}
-											onValueChange={(value) => onUpdate(index, "address.street", value)}
-											isInvalid={!!errors[`comparables.${index}.address.street`]}
-											errorMessage={errors[`comparables.${index}.address.street`]}
-											placeholder="123 Main Street"
-										/>
-										<div className="grid grid-cols-2 gap-2">
+										<div>
+											<label className="block text-sm font-medium mb-1">Street</label>
 											<Input
-												label="City"
-												value={comp.address.city}
-												onValueChange={(value) => onUpdate(index, "address.city", value)}
-												isInvalid={!!errors[`comparables.${index}.address.city`]}
-												errorMessage={errors[`comparables.${index}.address.city`]}
-												placeholder="Toronto"
+												value={comp.address.street}
+												onChange={(e) => onUpdate(index, "address.street", e.target.value)}
+												aria-invalid={!!errors[`comparables.${index}.address.street`]}
+												placeholder="123 Main Street"
 											/>
-											<Input
-												label="Province/State"
-												value={comp.address.state}
-												onValueChange={(value) => onUpdate(index, "address.state", value)}
-												isInvalid={!!errors[`comparables.${index}.address.state`]}
-												errorMessage={errors[`comparables.${index}.address.state`]}
-												placeholder="ON"
-											/>
+											{errors[`comparables.${index}.address.street`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.address.street`]}</p>
+											)}
 										</div>
-										<Input
-											label="Postal/ZIP Code"
-											value={comp.address.zip}
-											onValueChange={(value) => onUpdate(index, "address.zip", value)}
-											isInvalid={!!errors[`comparables.${index}.address.zip`]}
-											errorMessage={errors[`comparables.${index}.address.zip`]}
-											placeholder="M5V 3A8"
-										/>
+										<div className="grid grid-cols-2 gap-2">
+											<div>
+												<label className="block text-sm font-medium mb-1">City</label>
+												<Input
+													value={comp.address.city}
+													onChange={(e) => onUpdate(index, "address.city", e.target.value)}
+													aria-invalid={!!errors[`comparables.${index}.address.city`]}
+													placeholder="Toronto"
+												/>
+												{errors[`comparables.${index}.address.city`] && (
+													<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.address.city`]}</p>
+												)}
+											</div>
+											<div>
+												<label className="block text-sm font-medium mb-1">Province/State</label>
+												<Input
+													value={comp.address.state}
+													onChange={(e) => onUpdate(index, "address.state", e.target.value)}
+													aria-invalid={!!errors[`comparables.${index}.address.state`]}
+													placeholder="ON"
+												/>
+												{errors[`comparables.${index}.address.state`] && (
+													<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.address.state`]}</p>
+												)}
+											</div>
+										</div>
+										<div>
+											<label className="block text-sm font-medium mb-1">Postal/ZIP Code</label>
+											<Input
+												value={comp.address.zip}
+												onChange={(e) => onUpdate(index, "address.zip", e.target.value)}
+												aria-invalid={!!errors[`comparables.${index}.address.zip`]}
+												placeholder="M5V 3A8"
+											/>
+											{errors[`comparables.${index}.address.zip`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.address.zip`]}</p>
+											)}
+										</div>
 									</div>
 
 									{/* Sale Information */}
 									<div className="space-y-3">
 										<h5 className="text-sm font-medium">Sale Information</h5>
-										<Input
-											type="number"
-											label="Sale Amount"
-											value={comp.saleAmount}
-											onValueChange={(value) => onUpdate(index, "saleAmount", value)}
-											isInvalid={!!errors[`comparables.${index}.saleAmount`]}
-											errorMessage={errors[`comparables.${index}.saleAmount`]}
-											placeholder="750000"
-											startContent={
-												<span className="text-gray-500 text-sm">$</span>
-											}
-										/>
-										<Input
-											type="date"
-											label="Sale Date"
-											value={comp.saleDate}
-											onValueChange={(value) => onUpdate(index, "saleDate", value)}
-											isInvalid={!!errors[`comparables.${index}.saleDate`]}
-											errorMessage={errors[`comparables.${index}.saleDate`]}
-										/>
-										<Input
-											type="number"
-											label="Distance (miles)"
-											value={comp.distance}
-											onValueChange={(value) => onUpdate(index, "distance", value)}
-											isInvalid={!!errors[`comparables.${index}.distance`]}
-											errorMessage={errors[`comparables.${index}.distance`]}
-											placeholder="0.5"
-											endContent={
-												<span className="text-gray-500 text-sm">mi</span>
-											}
-										/>
+										<div>
+											<label className="block text-sm font-medium mb-1">Sale Amount</label>
+											<div className="relative">
+												<span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+												<Input
+													type="number"
+													value={comp.saleAmount}
+													onChange={(e) => onUpdate(index, "saleAmount", e.target.value)}
+													aria-invalid={!!errors[`comparables.${index}.saleAmount`]}
+													placeholder="750000"
+													className="pl-7"
+												/>
+											</div>
+											{errors[`comparables.${index}.saleAmount`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.saleAmount`]}</p>
+											)}
+										</div>
+										<div>
+											<label className="block text-sm font-medium mb-1">Sale Date</label>
+											<Input
+												type="date"
+												value={comp.saleDate}
+												onChange={(e) => onUpdate(index, "saleDate", e.target.value)}
+												aria-invalid={!!errors[`comparables.${index}.saleDate`]}
+											/>
+											{errors[`comparables.${index}.saleDate`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.saleDate`]}</p>
+											)}
+										</div>
+										<div>
+											<label className="block text-sm font-medium mb-1">Distance (miles)</label>
+											<div className="relative">
+												<Input
+													type="number"
+													value={comp.distance}
+													onChange={(e) => onUpdate(index, "distance", e.target.value)}
+													aria-invalid={!!errors[`comparables.${index}.distance`]}
+													placeholder="0.5"
+													className="pr-10"
+												/>
+												<span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">mi</span>
+											</div>
+											{errors[`comparables.${index}.distance`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.distance`]}</p>
+											)}
+										</div>
 									</div>
 								</div>
 
@@ -212,41 +241,57 @@ const ComparablePropertiesSection = ({
 								<div className="space-y-3">
 									<h5 className="text-sm font-medium">Property Details (Optional)</h5>
 									<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-										<Input
-											type="number"
-											label="Square Feet"
-											value={comp.squareFeet}
-											onValueChange={(value) => onUpdate(index, "squareFeet", value)}
-											isInvalid={!!errors[`comparables.${index}.squareFeet`]}
-											errorMessage={errors[`comparables.${index}.squareFeet`]}
-											placeholder="2200"
-										/>
-										<Input
-											type="number"
-											label="Bedrooms"
-											value={comp.bedrooms}
-											onValueChange={(value) => onUpdate(index, "bedrooms", value)}
-											isInvalid={!!errors[`comparables.${index}.bedrooms`]}
-											errorMessage={errors[`comparables.${index}.bedrooms`]}
-											placeholder="3"
-										/>
-										<Input
-											type="number"
-											label="Bathrooms"
-											value={comp.bathrooms}
-											onValueChange={(value) => onUpdate(index, "bathrooms", value)}
-											isInvalid={!!errors[`comparables.${index}.bathrooms`]}
-											errorMessage={errors[`comparables.${index}.bathrooms`]}
-											placeholder="2"
-										/>
-										<Input
-											label="Property Type"
-											value={comp.propertyType}
-											onValueChange={(value) => onUpdate(index, "propertyType", value)}
-											isInvalid={!!errors[`comparables.${index}.propertyType`]}
-											errorMessage={errors[`comparables.${index}.propertyType`]}
-											placeholder="Townhouse"
-										/>
+										<div>
+											<label className="block text-sm font-medium mb-1">Square Feet</label>
+											<Input
+												type="number"
+												value={comp.squareFeet}
+												onChange={(e) => onUpdate(index, "squareFeet", e.target.value)}
+												aria-invalid={!!errors[`comparables.${index}.squareFeet`]}
+												placeholder="2200"
+											/>
+											{errors[`comparables.${index}.squareFeet`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.squareFeet`]}</p>
+											)}
+										</div>
+										<div>
+											<label className="block text-sm font-medium mb-1">Bedrooms</label>
+											<Input
+												type="number"
+												value={comp.bedrooms}
+												onChange={(e) => onUpdate(index, "bedrooms", e.target.value)}
+												aria-invalid={!!errors[`comparables.${index}.bedrooms`]}
+												placeholder="3"
+											/>
+											{errors[`comparables.${index}.bedrooms`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.bedrooms`]}</p>
+											)}
+										</div>
+										<div>
+											<label className="block text-sm font-medium mb-1">Bathrooms</label>
+											<Input
+												type="number"
+												value={comp.bathrooms}
+												onChange={(e) => onUpdate(index, "bathrooms", e.target.value)}
+												aria-invalid={!!errors[`comparables.${index}.bathrooms`]}
+												placeholder="2"
+											/>
+											{errors[`comparables.${index}.bathrooms`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.bathrooms`]}</p>
+											)}
+										</div>
+										<div>
+											<label className="block text-sm font-medium mb-1">Property Type</label>
+											<Input
+												value={comp.propertyType}
+												onChange={(e) => onUpdate(index, "propertyType", e.target.value)}
+												aria-invalid={!!errors[`comparables.${index}.propertyType`]}
+												placeholder="Townhouse"
+											/>
+											{errors[`comparables.${index}.propertyType`] && (
+												<p className="text-danger text-sm mt-1">{errors[`comparables.${index}.propertyType`]}</p>
+											)}
+										</div>
 									</div>
 								</div>
 							</div>
@@ -255,13 +300,12 @@ const ComparablePropertiesSection = ({
 				</div>
 
 				<Button
-					color="primary"
-					variant="dashed"
-					startContent={<Icon icon="lucide:plus" className="h-4 w-4" />}
+					variant="primary"
 					onPress={onAdd}
 					isDisabled={comparables.length >= 10}
 					className="w-full"
 				>
+					<Icon icon="lucide:plus" className="h-4 w-4" />
 					Add Comparable
 				</Button>
 			</div>

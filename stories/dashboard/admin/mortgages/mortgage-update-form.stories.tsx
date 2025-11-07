@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
 import { useState } from "react";
-import { MortgageUpdateDialog } from "@/components/admin/mortgages/MortgageUpdateDialog";
+import { MortgageUpdateSheet } from "@/components/admin/mortgages/MortgageUpdateSheet";
 import type { Id } from "@/convex/_generated/dataModel";
 
-// Wrapper component to make the dialog visible in Storybook
-function MortgageUpdateDialogWrapper(
-	props: React.ComponentProps<typeof MortgageUpdateDialog>
+// Wrapper component to make the sheet visible in Storybook
+function MortgageUpdateSheetWrapper(
+	props: React.ComponentProps<typeof MortgageUpdateSheet>
 ) {
 	const [open, setOpen] = useState(true);
 
@@ -16,9 +16,9 @@ function MortgageUpdateDialogWrapper(
 				onClick={() => setOpen(true)}
 				className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
 			>
-				Open Update Dialog
+				Open Update Sheet
 			</button>
-			<MortgageUpdateDialog
+			<MortgageUpdateSheet
 				{...props}
 				open={open}
 				onOpenChange={setOpen}
@@ -28,14 +28,14 @@ function MortgageUpdateDialogWrapper(
 }
 
 const meta = {
-	title: "Dashboard/Admin/Mortgages/Update Dialog",
-	component: MortgageUpdateDialogWrapper,
+	title: "Dashboard/Admin/Mortgages/Update Sheet",
+	component: MortgageUpdateSheetWrapper,
 	parameters: {
 		layout: "centered",
 		docs: {
 			description: {
 				component:
-					"Dialog for admin users to update mortgage loan amount and interest rate. Only admin users can access this functionality. This component is used in the admin mortgages management page.",
+					"Sheet component for admin users to update mortgage details. Only admin users can access this functionality. This component is used in the admin mortgages management page.",
 			},
 		},
 	},
@@ -45,35 +45,27 @@ const meta = {
 			control: "text",
 			description: "The ID of the mortgage being updated",
 		},
-		initialLoanAmount: {
-			control: "number",
-			description: "Initial loan amount",
-		},
-		initialInterestRate: {
-			control: "number",
-			description: "Initial interest rate",
-		},
-		onSave: {
-			action: "onSave",
-			description: "Callback when form is submitted",
+		onSaveComplete: {
+			action: "onSaveComplete",
+			description: "Callback when save is completed",
 		},
 	},
 	args: {
 		mortgageId: "k17mortgage001" as Id<"mortgages">,
-		onSave: fn(),
+		onSaveComplete: fn(),
 	},
-} satisfies Meta<typeof MortgageUpdateDialogWrapper>;
+} satisfies Meta<typeof MortgageUpdateSheetWrapper>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * Default state with typical loan amount and interest rate.
+ * Default state with a mortgage ID.
  */
 export const Default: Story = {
 	args: {
-		initialLoanAmount: 500000,
-		initialInterestRate: 5.5,
+		open: true,
+		onOpenChange: fn(),
 	},
 };
 
@@ -82,8 +74,8 @@ export const Default: Story = {
  */
 export const HighLoanAmount: Story = {
 	args: {
-		initialLoanAmount: 1500000,
-		initialInterestRate: 6.25,
+		open: true,
+		onOpenChange: fn(),
 	},
 };
 
@@ -92,8 +84,8 @@ export const HighLoanAmount: Story = {
  */
 export const LowInterestRate: Story = {
 	args: {
-		initialLoanAmount: 450000,
-		initialInterestRate: 3.25,
+		open: true,
+		onOpenChange: fn(),
 	},
 };
 
@@ -102,44 +94,44 @@ export const LowInterestRate: Story = {
  */
 export const SmallLoan: Story = {
 	args: {
-		initialLoanAmount: 250000,
-		initialInterestRate: 4.75,
+		open: true,
+		onOpenChange: fn(),
 	},
 };
 
 /**
  * Interactive example.
- * Try modifying the loan amount and interest rate.
+ * Try modifying the mortgage details.
  */
 export const Interactive: Story = {
 	args: {
-		initialLoanAmount: 600000,
-		initialInterestRate: 5.0,
+		open: true,
+		onOpenChange: fn(),
 	},
 	parameters: {
 		docs: {
 			description: {
 				story:
-					"This interactive story allows you to modify the loan amount and interest rate to see how the form behaves. Click the button to open the dialog.",
+					"This interactive story allows you to modify mortgage details. Click the button to open the sheet.",
 			},
 		},
 	},
 };
 
 /**
- * Authorization example - only admin users should see this dialog.
+ * Authorization example - only admin users should see this sheet.
  * Non-admin users should see an access denied message.
  */
 export const AdminOnly: Story = {
 	args: {
-		initialLoanAmount: 500000,
-		initialInterestRate: 5.5,
+		open: true,
+		onOpenChange: fn(),
 	},
 	parameters: {
 		docs: {
 			description: {
 				story:
-					"This dialog is only accessible to users with admin role. The updateMortgage mutation validates admin privileges using hasRbacAccess.",
+					"This sheet is only accessible to users with admin role. The updateMortgage mutation validates admin privileges using hasRbacAccess.",
 			},
 		},
 	},

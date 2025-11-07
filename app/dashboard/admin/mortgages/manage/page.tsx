@@ -52,11 +52,13 @@ export default function AdminMortgagesManagePage() {
 				`Mortgage deleted successfully. Deleted: ${result.deletedCounts.listings} listings, ${result.deletedCounts.comparables} comparables, ${result.deletedCounts.ownership} ownership records, ${result.deletedCounts.payments} payments`
 			);
 			setDeletingMortgage(null);
+			return result;
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error ? error.message : "Unknown error";
 
 			toast.error(`Failed to delete mortgage: ${errorMessage}`);
+			return;
 		}
 	}
 

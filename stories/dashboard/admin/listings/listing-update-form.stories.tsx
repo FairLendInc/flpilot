@@ -61,6 +61,8 @@ const meta = {
 	args: {
 		listingId: "k17abc123def456" as Id<"listings">,
 		onSave: fn(),
+		open: true,
+		onOpenChange: fn(),
 	},
 } satisfies Meta<typeof ListingUpdateDialogWrapper>;
 
