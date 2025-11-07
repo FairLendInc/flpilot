@@ -23,8 +23,7 @@ type Blog8Props = {
 
 const Blog8 = ({
 	heading = "FairLend Insights",
-	description =
-		"Ideas on the private mortgage exchange: broker distribution economics, AI‑driven underwriting and servicing, and 12–18× capital velocity.",
+	description = "Ideas on the private mortgage exchange: broker distribution economics, AI‑driven underwriting and servicing, and 12–18× capital velocity.",
 	posts = [
 		{
 			id: "post-1",
@@ -122,7 +121,12 @@ const Blog8 = ({
 								</div>
 							</div>
 							<div className="order-first sm:order-last sm:col-span-5">
-									<a className="block" href={post.url} rel="noopener" target="_blank">
+								<a
+									className="block"
+									href={post.url}
+									rel="noopener"
+									target="_blank"
+								>
 									<div className="aspect-[16/9] overflow-clip rounded-lg border border-border">
 										<Image
 											alt={post.title}
