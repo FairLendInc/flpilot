@@ -1,5 +1,7 @@
-import type { LockRequestSortColumn } from "@/hooks/use-lock-requests-filters";
-import type { SortDirection } from "@/hooks/use-lock-requests-filters";
+import type {
+	LockRequestSortColumn,
+	SortDirection,
+} from "@/hooks/use-lock-requests-filters";
 
 // Use a generic type that matches the Convex query return type
 type LockRequestWithDetails = {

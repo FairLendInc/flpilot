@@ -43,12 +43,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
 import {
 	type LockRequestSortColumn,
 	type LockStatusFilter,
@@ -59,7 +60,6 @@ import {
 	searchLockRequests,
 	sortLockRequests,
 } from "@/lib/utils/lock-requests-table-utils";
-import { api } from "@/convex/_generated/api";
 import { LockRequestDetail } from "./LockRequestDetail";
 
 type LockRequestsTableProps = {
@@ -189,7 +189,7 @@ export function LockRequestsTable({
 
 	// Filter by listingId if provided (for task 3.7)
 	const requestsFilteredByListing = useMemo(() => {
-		if (!listingId || !rawRequests) return rawRequests;
+		if (!(listingId && rawRequests)) return rawRequests;
 		return rawRequests.filter((item) => item.listing?._id === listingId);
 	}, [rawRequests, listingId]);
 
@@ -236,7 +236,7 @@ export function LockRequestsTable({
 
 	// Calculate "other pending requests" count for task 3.7
 	const otherPendingCount = useMemo(() => {
-		if (!listingId || !allPendingRequests) return 0;
+		if (!(listingId && allPendingRequests)) return 0;
 		return allPendingRequests.filter((item) => item.listing?._id === listingId)
 			.length;
 	}, [listingId, allPendingRequests]);
@@ -309,8 +309,8 @@ export function LockRequestsTable({
 				</div>
 				{/* Table skeleton */}
 				<div className="space-y-3">
-					{Array.from({ length: 5 }).map((_, i) => (
-						<div key={i} className="flex gap-4">
+					{Array.from({ length: 5 }, (_, i) => `skeleton-${i}`).map((key) => (
+						<div className="flex gap-4" key={key}>
 							<Skeleton className="h-16 flex-1" />
 							<Skeleton className="h-16 w-32" />
 							<Skeleton className="h-16 w-40" />
@@ -330,7 +330,7 @@ export function LockRequestsTable({
 				<AlertCircle className="h-12 w-12 text-destructive" />
 				<div className="text-center">
 					<h3 className="font-semibold text-lg">Failed to load requests</h3>
-					<p className="text-muted-foreground mt-2 text-sm">
+					<p className="mt-2 text-muted-foreground text-sm">
 						There was an error loading lock requests. Please try again.
 					</p>
 				</div>
@@ -427,7 +427,7 @@ export function LockRequestsTable({
 									<h3 className="font-semibold text-lg">
 										No matching requests
 									</h3>
-									<p className="text-muted-foreground mt-2 text-sm">
+									<p className="mt-2 text-muted-foreground text-sm">
 										{searchQuery.trim()
 											? "Try adjusting your search terms or clearing filters."
 											: lockStatusFilter !== "all"
@@ -456,7 +456,7 @@ export function LockRequestsTable({
 									<h3 className="font-semibold text-lg">
 										No {status} requests
 									</h3>
-									<p className="text-muted-foreground mt-2 text-sm">
+									<p className="mt-2 text-muted-foreground text-sm">
 										{status === "pending"
 											? "All lock requests have been reviewed. Check back later for new requests."
 											: status === "approved"
@@ -468,7 +468,7 @@ export function LockRequestsTable({
 						)}
 					</div>
 				) : (
-					<div className="min-w-0 w-full overflow-x-auto">
+					<div className="w-full min-w-0 overflow-x-auto">
 						<Table>
 							<TableHeader>
 								<TableRow>
@@ -562,14 +562,16 @@ export function LockRequestsTable({
 										: "Unknown";
 									const borrowerName = borrower?.name || "N/A";
 									// Split borrower name into first and last name
-									const borrowerFirstName = borrowerName !== "N/A"
-										? borrowerName.split(" ")[0] || borrowerName
-										: "N/A";
-									const borrowerLastName = borrowerName !== "N/A" && borrowerName.includes(" ")
-										? borrowerName.split(" ").slice(1).join(" ")
-										: borrowerName !== "N/A"
-											? ""
+									const borrowerFirstName =
+										borrowerName !== "N/A"
+											? borrowerName.split(" ")[0] || borrowerName
 											: "N/A";
+									const borrowerLastName =
+										borrowerName !== "N/A" && borrowerName.includes(" ")
+											? borrowerName.split(" ").slice(1).join(" ")
+											: borrowerName !== "N/A"
+												? ""
+												: "N/A";
 
 									return (
 										<TableRow key={request._id}>
@@ -628,9 +630,13 @@ export function LockRequestsTable({
 											<TableCell className="hidden md:table-cell">
 												{"borrower" in item && item.borrower ? (
 													<div className="space-y-0.5 text-xs">
-														<div className="font-medium">{borrowerFirstName}</div>
+														<div className="font-medium">
+															{borrowerFirstName}
+														</div>
 														{borrowerLastName && borrowerLastName !== "N/A" && (
-															<div className="text-muted-foreground">{borrowerLastName}</div>
+															<div className="text-muted-foreground">
+																{borrowerLastName}
+															</div>
 														)}
 													</div>
 												) : (
@@ -771,10 +777,10 @@ export function LockRequestsTable({
 			{/* Lock Request Detail Dialog */}
 			{selectedRequestData && (
 				<LockRequestDetail
-					open={detailDialogOpen}
 					onOpenChange={setDetailDialogOpen}
-					requestData={selectedRequestData as any}
+					open={detailDialogOpen}
 					otherPendingCount={otherPendingCount}
+					requestData={selectedRequestData as any}
 				/>
 			)}
 		</>
