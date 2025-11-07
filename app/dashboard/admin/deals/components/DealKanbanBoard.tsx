@@ -215,7 +215,11 @@ export function DealKanbanBoard() {
 		if (!transitionTarget) return;
 
 		// Capture original values before any reassignment for logging
-		const { dealId, fromState: originalFromState, toState: originalToState } = transitionTarget;
+		const {
+			dealId,
+			fromState: originalFromState,
+			toState: originalToState,
+		} = transitionTarget;
 
 		try {
 			// Determine the event type based on the transition
@@ -248,7 +252,9 @@ export function DealKanbanBoard() {
 					notes: "Moved backwards via Kanban board",
 				};
 			} else {
-				throw new Error(`Invalid transition from ${originalFromState} to ${originalToState}`);
+				throw new Error(
+					`Invalid transition from ${originalFromState} to ${originalToState}`
+				);
 			}
 
 			await transitionDealState({ dealId, event });

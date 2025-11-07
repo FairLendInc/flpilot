@@ -240,10 +240,10 @@ export function RecentDealActivityWidget() {
 
 							return (
 								<Link
-									href={`/dashboard/admin/deals/${activity.dealId}`}
-									prefetch={true}
 									className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
+									href={`/dashboard/admin/deals/${activity.dealId}`}
 									key={`${activity.dealId}-${activity.timestamp}`}
+									prefetch={true}
 								>
 									<div className="flex min-w-0 flex-1 items-center gap-3">
 										<div className="flex items-center gap-1">
