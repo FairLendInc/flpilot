@@ -8,9 +8,12 @@
  * @module
  */
 
+import type * as alerts from "../alerts.js";
 import type * as borrowers from "../borrowers.js";
 import type * as comparables from "../comparables.js";
 import type * as crons from "../crons.js";
+import type * as dealStateMachine from "../dealStateMachine.js";
+import type * as deals from "../deals.js";
 import type * as http from "../http.js";
 import type * as listings from "../listings.js";
 import type * as lockRequests from "../lockRequests.js";
@@ -46,9 +49,12 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  alerts: typeof alerts;
   borrowers: typeof borrowers;
   comparables: typeof comparables;
   crons: typeof crons;
+  dealStateMachine: typeof dealStateMachine;
+  deals: typeof deals;
   http: typeof http;
   listings: typeof listings;
   lockRequests: typeof lockRequests;

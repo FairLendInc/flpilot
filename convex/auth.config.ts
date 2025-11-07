@@ -152,10 +152,10 @@ export function checkRbac(options: RbacOptions): void {
  * @throws Error if not authenticated
  * @returns UserIdentity if authenticated
  */
-export async function requireAuth(ctx: any) {
+export async function requireAuth(ctx: any, caller: string|undefined) {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
-		throw new Error("Authentication required");
+		throw new Error(`Authentication required from ${caller}`);
 	}
 	return identity;
 }

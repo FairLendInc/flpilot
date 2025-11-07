@@ -5,6 +5,16 @@ import { TwoLevelNav } from "@/components/navigation/two-level-nav";
 
 vi.mock("next/navigation", () => ({
 	usePathname: () => "/dashboard",
+	useRouter: () => ({
+		push: vi.fn(),
+		replace: vi.fn(),
+		back: vi.fn(),
+		forward: vi.fn(),
+		refresh: vi.fn(),
+		prefetch: vi.fn(),
+	}),
+	useSearchParams: () => new URLSearchParams(),
+	useParams: () => ({}),
 }));
 
 // Mock UserAvatarMenu to avoid pulling in WorkOS AuthKit
@@ -18,6 +28,15 @@ vi.mock("../contexts/pathNameContext", () => ({
 		breadcrumbs: [{ label: "Home", href: "/" }, { label: "Dashboard" }],
 		setPathname: vi.fn(),
 	}),
+}));
+
+// Mock Convex React hooks
+vi.mock("convex/react", () => ({
+	useQuery: () => undefined,
+	useMutation: () => vi.fn(),
+	useAction: () => vi.fn(),
+	useConvex: () => ({}),
+	useConvexAuth: () => ({ isLoading: false, isAuthenticated: false }),
 }));
 
 describe("Navigation", () => {

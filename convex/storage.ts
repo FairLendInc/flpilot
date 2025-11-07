@@ -34,3 +34,36 @@ export const getFileUrl = query({
 	},
 });
 
+/**
+ * Get file metadata and data for proxying
+ * Used by Next.js API routes to avoid signed URL expiration
+ */
+export const getFile = query({
+	args: { storageId: v.id("_storage") },
+	returns: v.union(
+		v.object({
+			signedUrl: v.string(),
+			contentType: v.optional(v.string()),
+		}),
+		v.null()
+	),
+	handler: async (ctx, args) => {
+		//Enforce Authorization
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error("Unauthorized");
+
+		const signedUrl = await ctx.storage.getUrl(args.storageId);
+		if (!signedUrl) {
+			return null;
+		}
+
+		// Try to get storage metadata
+		// Note: Convex doesn't directly expose content type, so we return undefined
+		// The API route will try to infer it from the response
+		return {
+			signedUrl,
+			contentType: undefined,
+		};
+	},
+});
+

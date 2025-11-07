@@ -1,3 +1,4 @@
+import { withAuth } from "@workos-inc/authkit-nextjs";
 import { preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
@@ -98,12 +99,16 @@ export async function generateMetadata({
 	params,
 }: ListingDetailPageProps): Promise<Metadata> {
 	const { id } = await params;
-
+	const { accessToken } = await withAuth();
 	try {
 		// Preload mortgage data from Convex
-		const preloadedMortgage = await preloadQuery(api.mortgages.getMortgage, {
-			id: id as Id<"mortgages">,
-		});
+		const preloadedMortgage = await preloadQuery(
+			api.mortgages.getMortgage,
+			{
+				id: id as Id<"mortgages">,
+			},
+			{ token: accessToken }
+		);
 
 		if (!preloadedMortgage) {
 			return {
@@ -144,7 +149,7 @@ export default async function ListingDetailPage({
 	params,
 }: ListingDetailPageProps) {
 	const { id } = await params;
-
+	const { accessToken } = await withAuth();
 	// Preload all required data from Convex
 	const [
 		preloadedMortgage,
@@ -152,18 +157,34 @@ export default async function ListingDetailPage({
 		preloadedComparables,
 		preloadedListing,
 	] = await Promise.all([
-		preloadQuery(api.mortgages.getMortgage, {
-			id: id as Id<"mortgages">,
-		}),
-		preloadQuery(api.payments.getPaymentsForMortgage, {
-			mortgageId: id as Id<"mortgages">,
-		}),
-		preloadQuery(api.comparables.getComparablesForMortgage, {
-			mortgageId: id as Id<"mortgages">,
-		}),
-		preloadQuery(api.listings.getListingByMortgage, {
-			mortgageId: id as Id<"mortgages">,
-		}),
+		preloadQuery(
+			api.mortgages.getMortgage,
+			{
+				id: id as Id<"mortgages">,
+			},
+			{ token: accessToken }
+		),
+		preloadQuery(
+			api.payments.getPaymentsForMortgage,
+			{
+				mortgageId: id as Id<"mortgages">,
+			},
+			{ token: accessToken }
+		),
+		preloadQuery(
+			api.comparables.getComparablesForMortgage,
+			{
+				mortgageId: id as Id<"mortgages">,
+			},
+			{ token: accessToken }
+		),
+		preloadQuery(
+			api.listings.getListingByMortgage,
+			{
+				mortgageId: id as Id<"mortgages">,
+			},
+			{ token: accessToken }
+		),
 	]);
 
 	// Extract actual data from preloaded results
@@ -276,6 +297,7 @@ export default async function ListingDetailPage({
 				{/* Request Listing Section */}
 				{listingData && (
 					<RequestListingSection
+						isLocked={listingData.locked}
 						listing={listing}
 						listingId={listingData._id}
 					/>

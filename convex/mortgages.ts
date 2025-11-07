@@ -215,7 +215,10 @@ export const ensureMortgage = async (
 export const getMortgage = query({
 	args: { id: v.id("mortgages") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const mortgage = await ctx.db.get(args.id);
 		if (!mortgage) return null;
 
@@ -249,7 +252,10 @@ export const getMortgage = query({
 export const listMortgagesByBorrower = query({
 	args: { borrowerId: v.id("borrowers") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgages")
 			.withIndex("by_borrower", (q) => q.eq("borrowerId", args.borrowerId))
@@ -271,7 +277,10 @@ export const listMortgagesByStatus = query({
 		),
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgages")
 			.withIndex("by_status", (q) => q.eq("status", args.status))
@@ -317,7 +326,10 @@ export const listAllMortgagesWithBorrowers = query({
 export const getMortgagesNearingMaturity = query({
 	args: { daysFromNow: v.number() },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const now = new Date().toISOString();
 		const futureDate = new Date();
 		futureDate.setDate(futureDate.getDate() + args.daysFromNow);
@@ -341,7 +353,10 @@ export const createMortgage = mutation({
 		...mortgageDetailsFields,
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const mortgageId = await ensureMortgage(ctx, args);
 		return mortgageId;
 	},
@@ -361,7 +376,10 @@ export const updateMortgageStatus = mutation({
 		),
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const mortgage = await ctx.db.get(args.id);
 		if (!mortgage) {
 			throw new Error("Mortgage not found");
@@ -400,7 +418,10 @@ export const addDocumentToMortgage = mutation({
 	}),
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const mortgage = await ctx.db.get(args.mortgageId);
 		if (!mortgage) {
 			throw new Error("Mortgage not found");

@@ -1021,9 +1021,14 @@ describe("transferOwnership", () => {
 		});
 
 		// Verify ownership changed
-		const ownership = await t.run(async (ctx) => {
-			return await ctx.db.get(ownershipId);
-		});
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", user2)
+				)
+				.first()
+		);
 
 		expect(ownership?.ownerId).toBe(user2);
 		expect(ownership?.ownershipPercentage).toBe(30);
@@ -1040,14 +1045,20 @@ describe("transferOwnership", () => {
 			ownershipPercentage: 45.67,
 		});
 
+		const user2 = await createTestUser(t, "investor_2");
 		await authT.mutation(api.ownership.transferOwnership, {
 			id: ownershipId,
-			newOwnerId: (await createTestUser(t, "investor_2")),
+			newOwnerId: user2,
 		});
 
-		const ownership = await t.run(async (ctx) => {
-			return await ctx.db.get(ownershipId);
-		});
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", user2)
+				)
+				.first()
+		);
 
 		expect(ownership?.ownershipPercentage).toBe(45.67);
 		await verifyTotalOwnership(t, mortgageId, 100);
@@ -1070,9 +1081,14 @@ describe("transferOwnership", () => {
 			newOwnerId: "fairlend",
 		});
 
-		const ownership = await t.run(async (ctx) => {
-			return await ctx.db.get(ownershipId);
-		});
+		const ownership = await t.run(async (ctx) =>
+			ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q: any) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", "fairlend")
+				)
+				.first()
+		);
 
 		expect(ownership?.ownerId).toBe("fairlend");
 	});

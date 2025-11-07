@@ -7,6 +7,14 @@ import {
 	Users,
 } from "lucide-react";
 import Link from "next/link";
+import {
+	ActiveDealsMetricCard,
+	DealCompletionTimeCard,
+	DealsByStateWidget,
+	DealsOverviewCards,
+	RecentDealActivityWidget,
+} from "@/components/admin/deals/DealMetricsWidget";
+import { AlertBell } from "@/components/alerts/AlertBell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -19,58 +27,17 @@ export default function AdminDashboardPage() {
 				<SidebarTrigger className="-ml-1" />
 				<Separator className="mr-2 h-4" orientation="vertical" />
 				<h1 className="font-semibold text-lg">Admin Dashboard</h1>
+				<div className="ml-auto">
+					<AlertBell />
+				</div>
 			</header>
 
 			<div className="flex flex-1 flex-col gap-6 p-6">
-				{/* Metrics Cards */}
+				{/* Deal Metrics Cards */}
 				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="font-medium text-sm">Total Users</CardTitle>
-							<Users className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="font-bold text-2xl">1,254</div>
-							<p className="text-muted-foreground text-xs">
-								All platform users
-							</p>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="font-medium text-sm">
-								Active Deals
-							</CardTitle>
-							<Briefcase className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="font-bold text-2xl">87</div>
-							<p className="text-muted-foreground text-xs">Currently active</p>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="font-medium text-sm">Brokers</CardTitle>
-							<Building2 className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="font-bold text-2xl">45</div>
-							<p className="text-muted-foreground text-xs">Active brokers</p>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="font-medium text-sm">Lawyers</CardTitle>
-							<Shield className="h-4 w-4 text-muted-foreground" />
-						</CardHeader>
-						<CardContent>
-							<div className="font-bold text-2xl">23</div>
-							<p className="text-muted-foreground text-xs">Active lawyers</p>
-						</CardContent>
-					</Card>
+					<ActiveDealsMetricCard />
+					<DealCompletionTimeCard />
+					<DealsOverviewCards />
 				</div>
 
 				{/* Recent Users Section */}
@@ -135,67 +102,11 @@ export default function AdminDashboardPage() {
 					</CardContent>
 				</Card>
 
-				{/* Deals Management Section */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Recent Deals</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="space-y-4">
-							{[
-								{
-									id: "1",
-									deal: "Series A Funding",
-									broker: "Acme Brokers",
-									amount: "$2.5M",
-									status: "In Progress",
-								},
-								{
-									id: "2",
-									deal: "Bridge Loan",
-									broker: "Growth Capital",
-									amount: "$500K",
-									status: "Completed",
-								},
-								{
-									id: "3",
-									deal: "Mezzanine Financing",
-									broker: "Venture Partners",
-									amount: "$1.2M",
-									status: "Under Review",
-								},
-							].map((item) => (
-								<div
-									className="flex items-center justify-between rounded-lg border p-4"
-									key={item.id}
-								>
-									<div>
-										<p className="font-medium">{item.deal}</p>
-										<p className="text-muted-foreground text-sm">
-											{item.broker} • {item.amount}
-										</p>
-									</div>
-									<div className="flex items-center gap-2">
-										<span
-											className={`rounded-full px-3 py-1 font-medium text-xs ${
-												item.status === "Completed"
-													? "bg-green-100 text-green-700"
-													: item.status === "In Progress"
-														? "bg-blue-100 text-blue-700"
-														: "bg-yellow-100 text-yellow-700"
-											}`}
-										>
-											{item.status}
-										</span>
-										<Button size="sm" variant="ghost">
-											View
-										</Button>
-									</div>
-								</div>
-							))}
-						</div>
-					</CardContent>
-				</Card>
+				{/* Deal Management Sections */}
+				<div className="grid gap-6 md:grid-cols-2">
+					<DealsByStateWidget />
+					<RecentDealActivityWidget />
+				</div>
 
 				{/* Listings Section */}
 				<Card>

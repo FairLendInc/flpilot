@@ -58,10 +58,12 @@ export function BreadcrumbNav({ className, items }: BreadcrumbNavProps) {
 
 						{localItems.map((item, index) => {
 							const isLast = index === localItems.length - 1;
+							// Use index + label for unique keys, fallback to index if label is empty
+							const uniqueKey = `${index}-${item.label || `item-${index}`}`;
 							if (index === 0) {
 								return (
-									<div className="contents" key={item.label}>
-										<BreadcrumbItem key={item.label}>
+									<div className="contents" key={uniqueKey}>
+										<BreadcrumbItem>
 											<BreadcrumbLink asChild>
 												<Link
 													aria-label="Go to home"
@@ -80,7 +82,7 @@ export function BreadcrumbNav({ className, items }: BreadcrumbNavProps) {
 								);
 							}
 							return (
-								<div className="contents" key={item.label}>
+								<div className="contents" key={uniqueKey}>
 									<BreadcrumbItem>
 										{isLast || !item.href ? (
 											<BreadcrumbPage>{item.label}</BreadcrumbPage>

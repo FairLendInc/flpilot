@@ -89,14 +89,14 @@ export const getCurrentUserProfile = query({
 	const workosOrgId = (identity as any)?.org_id ?? null;
 	const workosRole = (identity as any)?.role ?? null;
 
-	console.debug("PROFILE RETURN PAYLOAD", {
-		user: user,
-		workOsIdentity: identity,
-		memberships: orgMemberships,
-		activeOrganizationId: user.active_organization_id ?? null,
-		workosPermissions,
-		workosOrgId,
-	});
+	// console.debug("PROFILE RETURN PAYLOAD", {
+	// 	user: user,
+	// 	workOsIdentity: identity,
+	// 	memberships: orgMemberships,
+	// 	activeOrganizationId: user.active_organization_id ?? null,
+	// 	workosPermissions,
+	// 	workosOrgId,
+	// });
 
 	return {
 		user: user,

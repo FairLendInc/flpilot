@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CreateDealButton } from "@/components/admin/CreateDealButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -547,6 +548,26 @@ export function LockRequestDetail({
 							>
 								{isSubmitting ? "Processing..." : "Approve"}
 							</Button>
+						</DialogFooter>
+					)}
+
+					{/* Create Deal Button for Approved Requests */}
+					{request.status === "approved" && (
+						<DialogFooter className="gap-2">
+							<CreateDealButton
+								investorName={
+									investor
+										? `${investor.first_name || ""} ${investor.last_name || ""}`.trim() ||
+											investor.email
+										: undefined
+								}
+								listingAddress={
+									mortgage
+										? `${mortgage.address.street}, ${mortgage.address.city}`
+										: undefined
+								}
+								lockRequestId={request._id}
+							/>
 						</DialogFooter>
 					)}
 				</DialogContent>

@@ -6,6 +6,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAuth, hasRbacAccess } from "./auth.config";
+import { logger } from "../lib/logger";
 
 /**
  * Get cap table for a specific mortgage (all ownership records)
@@ -14,7 +15,10 @@ import { requireAuth, hasRbacAccess } from "./auth.config";
 export const getMortgageOwnership = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const ownership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -33,7 +37,10 @@ export const getMortgageOwnership = query({
 export const getUserPortfolio = query({
 	args: { userId: v.union(v.literal("fairlend"), v.id("users")) },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
@@ -50,7 +57,10 @@ export const checkOwnership = query({
 		ownerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage_owner", (q) =>
@@ -66,7 +76,10 @@ export const checkOwnership = query({
 export const getInstitutionalPortfolio = query({
 	args: {},
 	handler: async (ctx) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", "fairlend"))
@@ -81,7 +94,10 @@ export const getInstitutionalPortfolio = query({
 export const getTotalOwnership = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const allOwnership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -106,8 +122,122 @@ export const getTotalOwnership = query({
 });
 
 /**
+ * Internal helper: Create ownership record without authentication checks
+ * Used by mutations that have already performed authentication
+ *
+ * **100% Invariant**: Automatically reduces FairLend ownership by the purchase percentage
+ *
+ * @internal
+ */
+export async function createOwnershipInternal(
+	ctx: any,
+	args: {
+		mortgageId: any;
+		ownerId: any;
+		ownershipPercentage: number;
+	}
+) {
+	// Validate percentage range
+	if (args.ownershipPercentage <= 0 || args.ownershipPercentage > 100) {
+		throw new Error("Ownership percentage must be between 0 and 100");
+	}
+
+	// Cannot create FairLend ownership manually - it's automatic
+	if (args.ownerId === "fairlend") {
+		throw new Error(
+			"FairLend ownership is managed automatically. Use updateOwnershipPercentage to adjust."
+		);
+	}
+
+	// Validate mortgage exists
+	const mortgage = await ctx.db.get(args.mortgageId);
+	if (!mortgage) {
+		throw new Error("Mortgage not found");
+	}
+
+	// Check for duplicate ownership record
+	const existing = await ctx.db
+		.query("mortgage_ownership")
+		.withIndex("by_mortgage_owner", (q: any) =>
+			q.eq("mortgageId", args.mortgageId).eq("ownerId", args.ownerId)
+		)
+		.first();
+
+	if (existing) {
+		throw new Error(
+			"Ownership record already exists for this mortgage and owner"
+		);
+	}
+
+	// Get FairLend's current ownership
+	let fairlendOwnership = await ctx.db
+		.query("mortgage_ownership")
+		.withIndex("by_mortgage_owner", (q: any) =>
+			q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
+		)
+		.first();
+
+	// Auto-create FairLend ownership if missing (for backward compatibility)
+	if (!fairlendOwnership) {
+		logger.warn("Auto-creating missing FairLend ownership record for mortgage", {
+			mortgageId: args.mortgageId.toString(),
+		});
+
+		await ctx.db.insert("mortgage_ownership", {
+			mortgageId: args.mortgageId,
+			ownerId: "fairlend",
+			ownershipPercentage: 100,
+		});
+
+		// Re-fetch the newly created FairLend ownership
+		fairlendOwnership = await ctx.db
+			.query("mortgage_ownership")
+			.withIndex("by_mortgage_owner", (q: any) =>
+				q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
+			)
+			.first();
+
+		// Safety check - if still not found, something is very wrong
+		if (!fairlendOwnership) {
+			throw new Error(
+				"Failed to create FairLend ownership record. This should never happen."
+			);
+		}
+	}
+
+	// Check if FairLend has enough ownership to transfer
+	if (fairlendOwnership.ownershipPercentage < args.ownershipPercentage) {
+		throw new Error(
+			`Insufficient FairLend ownership. FairLend owns ${fairlendOwnership.ownershipPercentage.toFixed(2)}%, but ${args.ownershipPercentage.toFixed(2)}% is requested.`
+		);
+	}
+
+	// Reduce FairLend's ownership
+	const newFairlendPercentage =
+		fairlendOwnership.ownershipPercentage - args.ownershipPercentage;
+
+	// If FairLend's ownership becomes 0, delete the record
+	if (newFairlendPercentage === 0) {
+		await ctx.db.delete(fairlendOwnership._id);
+	} else {
+		await ctx.db.patch(fairlendOwnership._id, {
+			ownershipPercentage: newFairlendPercentage,
+		});
+	}
+
+	// Create the new ownership record
+	// Total ownership remains 100% (FairLend reduced, new owner added)
+	return await ctx.db.insert("mortgage_ownership", {
+		mortgageId: args.mortgageId,
+		ownerId: args.ownerId,
+		ownershipPercentage: args.ownershipPercentage,
+	});
+}
+
+/**
  * Create an ownership record
  * Automatically reduces FairLend's ownership to maintain 100% total
+ * Auto-creates FairLend ownership if missing (for backward compatibility)
  */
 export const createOwnership = mutation({
 	args: {
@@ -116,8 +246,11 @@ export const createOwnership = mutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
-		
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -128,82 +261,8 @@ export const createOwnership = mutation({
 			throw new Error("Unauthorized: Broker or admin privileges required");
 		}
 
-		// Validate percentage range
-		if (
-			args.ownershipPercentage <= 0 ||
-			args.ownershipPercentage > 100
-		) {
-			throw new Error("Ownership percentage must be between 0 and 100");
-		}
-
-		// Cannot create FairLend ownership manually - it's automatic
-		if (args.ownerId === "fairlend") {
-			throw new Error(
-				"FairLend ownership is managed automatically. Use updateOwnershipPercentage to adjust."
-			);
-		}
-
-		// Validate mortgage exists
-		const mortgage = await ctx.db.get(args.mortgageId);
-		if (!mortgage) {
-			throw new Error("Mortgage not found");
-		}
-
-		// Check for duplicate ownership record
-		const existing = await ctx.db
-			.query("mortgage_ownership")
-			.withIndex("by_mortgage_owner", (q) =>
-				q.eq("mortgageId", args.mortgageId).eq("ownerId", args.ownerId)
-			)
-			.first();
-
-		if (existing) {
-			throw new Error(
-				"Ownership record already exists for this mortgage and owner"
-			);
-		}
-
-		// Get FairLend's current ownership
-		const fairlendOwnership = await ctx.db
-			.query("mortgage_ownership")
-			.withIndex("by_mortgage_owner", (q) =>
-				q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
-			)
-			.first();
-
-		if (!fairlendOwnership) {
-			throw new Error(
-				"FairLend ownership record not found. All mortgages must have FairLend as default owner."
-			);
-		}
-
-		// Check if FairLend has enough ownership to transfer
-		if (fairlendOwnership.ownershipPercentage < args.ownershipPercentage) {
-			throw new Error(
-				`Insufficient FairLend ownership. FairLend owns ${fairlendOwnership.ownershipPercentage.toFixed(2)}%, but ${args.ownershipPercentage.toFixed(2)}% is requested.`
-			);
-		}
-
-		// Reduce FairLend's ownership
-		const newFairlendPercentage =
-			fairlendOwnership.ownershipPercentage - args.ownershipPercentage;
-
-		// If FairLend's ownership becomes 0, delete the record
-		if (newFairlendPercentage === 0) {
-			await ctx.db.delete(fairlendOwnership._id);
-		} else {
-			await ctx.db.patch(fairlendOwnership._id, {
-				ownershipPercentage: newFairlendPercentage,
-			});
-		}
-
-		// Create the new ownership record
-		// Total ownership remains 100% (FairLend reduced, new owner added)
-		return await ctx.db.insert("mortgage_ownership", {
-			mortgageId: args.mortgageId,
-			ownerId: args.ownerId,
-			ownershipPercentage: args.ownershipPercentage,
-		});
+		// Delegate to internal helper
+		return await createOwnershipInternal(ctx, args);
 	},
 });
 
@@ -217,7 +276,10 @@ export const updateOwnershipPercentage = mutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
@@ -323,7 +385,10 @@ export const transferOwnership = mutation({
 		newOwnerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
@@ -357,7 +422,10 @@ export const transferOwnership = mutation({
 export const deleteOwnership = mutation({
 	args: { id: v.id("mortgage_ownership") },
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({

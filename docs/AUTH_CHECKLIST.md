@@ -178,7 +178,10 @@ export const someFunction = query({
   args: { ... },
   returns: ...,
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		};
     // ... rest of function logic
   },
 });
