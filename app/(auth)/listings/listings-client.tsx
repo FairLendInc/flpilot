@@ -1,33 +1,108 @@
 "use client";
 
-// import React from "react";
-import { useEffect } from "react";
+import { type Preloaded, usePreloadedQuery } from "convex/react";
 import {
 	type FilterableItem,
 	ListingGridShell,
 } from "@/components/ListingGridShell";
 import { Horizontal } from "@/components/listing-card-horizontal";
 import { ListingMapPopup } from "@/components/listing-map-popup";
+import { api } from "@/convex/_generated/api";
+import type { Mortgage } from "@/lib/types/convex";
 
 type ListingItem = FilterableItem & {
 	id: string;
 	imageSrc: string;
-	locked?: boolean; // Add locked status for badge display
-};
-
-type ListingsClientProps = {
-	listings: ListingItem[];
+	locked?: boolean;
 };
 
 /**
- * Client wrapper for the listings page
- * Handles rendering of listing cards and map popups
+ * Map property type from schema to frontend display types
  */
-export function ListingsClient({ listings }: ListingsClientProps) {
-	useEffect(() => {
-		console.log("[ListingsClient] Received listings:", listings.length);
-		console.log("[ListingsClient] First listing:", listings[0]);
-	}, [listings]);
+function mapPropertyType(schemaType: string): string {
+	const mapping: Record<string, string> = {
+		"Residential - Single Family": "Detached Home",
+		"Residential - Condo": "Condo",
+		"Residential - Townhouse": "Townhouse",
+		"Residential - Multi-Family": "Duplex",
+	};
+	return mapping[schemaType] ?? schemaType;
+}
+
+/**
+ * Map mortgage type from database format to frontend display format
+ */
+function mapMortgageType(mortgageType: "1st" | "2nd" | "other"): string {
+	switch (mortgageType) {
+		case "1st":
+			return "First";
+		case "2nd":
+			return "Second";
+		case "other":
+			return "Other";
+		default:
+			return "Other";
+	}
+}
+
+/**
+ * Transform Convex Mortgage to ListingItem for ListingGridShell
+ */
+function transformMortgage(mortgage: Mortgage): ListingItem {
+	const {
+		location,
+		address,
+		images,
+		loanAmount,
+		interestRate,
+		maturityDate,
+		mortgageType,
+		appraisalMarketValue,
+	} = mortgage;
+
+	const ltv = mortgage.ltv;
+	const marketValue = appraisalMarketValue;
+	const mappedMortgageType = mapMortgageType(mortgageType);
+	const propertyType = mapPropertyType(mortgage.propertyType);
+
+	// Get first image or use fallback - use pre-fetched signed URL
+	const imageSrc =
+		images.length > 0
+			? (images[0] as any).url || `/api/storage/${images[0].storageId}`
+			: "/house.jpg";
+
+	return {
+		id: mortgage._id,
+		title: `${address.street}`,
+		address: `${address.city}, ${address.state}`,
+		imageSrc,
+		lat: location.lat,
+		lng: location.lng,
+		ltv,
+		apr: interestRate,
+		principal: loanAmount,
+		marketValue,
+		mortgageType: mappedMortgageType,
+		propertyType,
+		maturityDate: new Date(maturityDate),
+	};
+}
+
+type ListingsClientProps = {
+	preloaded: Preloaded<typeof api.listings.getAvailableListingsWithMortgages>;
+};
+
+/**
+ * Client component for the listings page
+ * Uses preloaded authenticated data from server
+ */
+export function ListingsClient({ preloaded }: ListingsClientProps) {
+	const listingsWithMortgages = usePreloadedQuery(preloaded);
+
+	const listings: ListingItem[] = listingsWithMortgages.map((item) => ({
+		...transformMortgage(item.mortgage as Mortgage),
+		locked: item.listing.locked,
+	}));
 
 	return (
 		<ListingGridShell

@@ -9,6 +9,7 @@
 
 "use client";
 
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import {
@@ -31,7 +32,11 @@ import {
 } from "@/lib/types/dealTypes";
 
 export function ActiveDealsMetricCard() {
-	const metrics = useQuery(api.deals.getDealMetrics);
+	const { user, loading: authLoading } = useAuth();
+	const metrics = useQuery(
+		api.deals.getDealMetrics,
+		authLoading || !user ? "skip" : {}
+	);
 
 	if (!metrics) {
 		return (
@@ -66,7 +71,11 @@ export function ActiveDealsMetricCard() {
 }
 
 export function DealCompletionTimeCard() {
-	const metrics = useQuery(api.deals.getDealMetrics);
+	const { user, loading: authLoading } = useAuth();
+	const metrics = useQuery(
+		api.deals.getDealMetrics,
+		authLoading || !user ? "skip" : {}
+	);
 
 	if (!metrics) {
 		return (
@@ -110,7 +119,11 @@ export function DealCompletionTimeCard() {
 }
 
 export function DealsByStateWidget() {
-	const metrics = useQuery(api.deals.getDealMetrics);
+	const { user, loading: authLoading } = useAuth();
+	const metrics = useQuery(
+		api.deals.getDealMetrics,
+		authLoading || !user ? "skip" : {}
+	);
 
 	if (!metrics) {
 		return (
@@ -181,7 +194,11 @@ export function DealsByStateWidget() {
 }
 
 export function RecentDealActivityWidget() {
-	const metrics = useQuery(api.deals.getDealMetrics);
+	const { user, loading: authLoading } = useAuth();
+	const metrics = useQuery(
+		api.deals.getDealMetrics,
+		authLoading || !user ? "skip" : {}
+	);
 
 	if (!metrics) {
 		return (
@@ -283,7 +300,11 @@ export function RecentDealActivityWidget() {
 }
 
 export function DealsOverviewCards() {
-	const metrics = useQuery(api.deals.getDealMetrics);
+	const { user, loading: authLoading } = useAuth();
+	const metrics = useQuery(
+		api.deals.getDealMetrics,
+		authLoading || !user ? "skip" : {}
+	);
 
 	if (!metrics) {
 		return (

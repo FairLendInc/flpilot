@@ -8,6 +8,7 @@
 
 "use client";
 
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useMutation, useQuery } from "convex/react";
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -39,18 +40,21 @@ export function CreateDealButton({
 	investorName = "the investor",
 }: CreateDealButtonProps) {
 	const router = useRouter();
+	const { user, loading: authLoading } = useAuth();
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 	const [isCreating, setIsCreating] = useState(false);
 
 	// Check if deal already exists for this lock request
-	const existingDeal = useQuery(api.deals.getDealByLockRequest, {
-		lockRequestId,
-	});
+	// Skip query until auth is fully loaded to prevent race condition
+	const existingDeal = useQuery(
+		api.deals.getDealByLockRequest,
+		authLoading || !user ? "skip" : { lockRequestId }
+	);
 
 	const createDeal = useMutation(api.deals.createDeal);
 
-	// Don't show button if deal already exists or query is loading
-	if (existingDeal === undefined) {
+	// Don't show button if auth is loading or deal query is loading
+	if (authLoading || existingDeal === undefined) {
 		return null; // Loading
 	}
 
@@ -120,22 +124,24 @@ export function CreateDealButton({
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Create Deal</AlertDialogTitle>
-						<AlertDialogDescription className="space-y-2">
-							<p>
-								You are about to create a deal for{" "}
-								<strong>{listingAddress}</strong> with investor{" "}
-								<strong>{investorName}</strong>.
-							</p>
-							<p>
-								This will initiate the deal workflow starting from the "Locked"
-								state. The deal will need to progress through all stages before
-								ownership can be transferred.
-							</p>
-							<p className="text-muted-foreground text-sm">
-								Note: For the pilot program, document signing and legal
-								processes happen off-platform. Use the Kanban board to manually
-								progress the deal through each stage as steps are completed.
-							</p>
+						<AlertDialogDescription>
+							<div className="space-y-2">
+								<div>
+									You are about to create a deal for{" "}
+									<strong>{listingAddress}</strong> with investor{" "}
+									<strong>{investorName}</strong>.
+								</div>
+								<div>
+									This will initiate the deal workflow starting from the "Locked"
+									state. The deal will need to progress through all stages before
+									ownership can be transferred.
+								</div>
+								<div className="text-muted-foreground text-sm">
+									Note: For the pilot program, document signing and legal
+									processes happen off-platform. Use the Kanban board to manually
+									progress the deal through each stage as steps are completed.
+								</div>
+							</div>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

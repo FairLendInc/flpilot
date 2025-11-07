@@ -106,6 +106,54 @@ pnpm run build-storybook
 - `ConvexClientProvider` bridges WorkOS auth with Convex authentication
 - Unauthenticated paths: `/`, `/sign-in`, `/sign-up`
 
+#### Server-Side Data Fetching with Authentication
+For authenticated server components that need to preload Convex data, follow this pattern:
+
+**Server Component (page.tsx):**
+```typescript
+import { withAuth } from "@workos-inc/authkit-nextjs";
+import { preloadQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
+
+export default async function Page() {
+  const { accessToken } = await withAuth();
+
+  // Preload query with auth token
+  const preloaded = await preloadQuery(
+    api.yourFunction.queryName,
+    { /* args */ },
+    { token: accessToken }  // CRITICAL: Pass token for authentication
+  );
+
+  return <ClientComponent preloaded={preloaded} />;
+}
+```
+
+**Client Component:**
+```typescript
+"use client";
+import { type Preloaded, usePreloadedQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+
+type Props = {
+  preloaded: Preloaded<typeof api.yourFunction.queryName>;
+};
+
+export function ClientComponent({ preloaded }: Props) {
+  const data = usePreloadedQuery(preloaded);
+  // Use data...
+}
+```
+
+**Key Points:**
+- Server: Use `withAuth()` to get `accessToken`
+- Server: Pass `{ token: accessToken }` as third argument to `preloadQuery`
+- Client: Import `Preloaded` and `usePreloadedQuery` from `convex/react`
+- Client: Use `usePreloadedQuery()` hook with preloaded data
+- Client: Type preloaded prop as `Preloaded<typeof api.yourFunction.queryName>`
+
+See [app/server/page.tsx](app/server/page.tsx) and [app/(auth)/listings/page.tsx](app/(auth)/listings/page.tsx) for examples.
+
 #### Data Flow
 - Convex schema defined in `convex/schema.ts` with 6 core tables:
   - `mortgages` - Core loan + property records with borrower reference

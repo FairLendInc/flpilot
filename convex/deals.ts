@@ -12,8 +12,8 @@ import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "./auth.config";
 import { logger } from "../lib/logger";
-import { createActor } from "xstate";
-import { dealMachine, type DealContext, type DealEvent } from "./dealStateMachine";
+import { getInitialSnapshot } from "xstate";
+import { dealMachine, type DealContext, type DealEvent, type DealStateValue } from "./dealStateMachine";
 
 /**
  * Get user document from identity
@@ -111,6 +111,7 @@ export const getDeal = query({
 
 /**
  * Get all active deals (non-archived) for Kanban board
+ * Includes related mortgage address and investor name for display
  */
 export const getAllActiveDeals = query({
 	args: {},
@@ -127,6 +128,8 @@ export const getAllActiveDeals = query({
 			createdAt: v.number(),
 			updatedAt: v.number(),
 			completedAt: v.optional(v.number()),
+			mortgageAddress: v.string(),
+			investorName: v.string(),
 		})
 	),
 	handler: async (ctx) => {
@@ -138,19 +141,42 @@ export const getAllActiveDeals = query({
 			.filter((q) => q.neq(q.field("currentState"), "archived"))
 			.collect();
 
-		return deals.map((deal) => ({
-			_id: deal._id,
-			lockRequestId: deal.lockRequestId,
-			listingId: deal.listingId,
-			mortgageId: deal.mortgageId,
-			investorId: deal.investorId,
-			currentState: deal.currentState,
-			purchasePercentage: deal.purchasePercentage,
-			dealValue: deal.dealValue,
-			createdAt: deal.createdAt,
-			updatedAt: deal.updatedAt,
-			completedAt: deal.completedAt,
-		}));
+		// Fetch related data for each deal
+		const dealsWithDetails = await Promise.all(
+			deals.map(async (deal) => {
+				const mortgage = await ctx.db.get(deal.mortgageId);
+				const investor = await ctx.db.get(deal.investorId);
+
+				// Build mortgage address string
+				const mortgageAddress = mortgage
+					? `${mortgage.address.street}, ${mortgage.address.city}, ${mortgage.address.state} ${mortgage.address.zip}`
+					: "Address not available";
+
+				// Build investor name string
+				const investorName =
+					investor && investor.first_name && investor.last_name
+						? `${investor.first_name} ${investor.last_name}`
+						: investor?.email || "Investor not available";
+
+				return {
+					_id: deal._id,
+					lockRequestId: deal.lockRequestId,
+					listingId: deal.listingId,
+					mortgageId: deal.mortgageId,
+					investorId: deal.investorId,
+					currentState: deal.currentState,
+					purchasePercentage: deal.purchasePercentage,
+					dealValue: deal.dealValue,
+					createdAt: deal.createdAt,
+					updatedAt: deal.updatedAt,
+					completedAt: deal.completedAt,
+					mortgageAddress,
+					investorName,
+				};
+			})
+		);
+
+		return dealsWithDetails;
 	},
 });
 
@@ -249,6 +275,7 @@ export const getDealWithDetails = query({
 		v.object({
 			deal: v.object({
 				_id: v.id("deals"),
+				_creationTime: v.number(),
 				lockRequestId: v.id("lock_requests"),
 				listingId: v.id("listings"),
 				mortgageId: v.id("mortgages"),
@@ -655,12 +682,31 @@ export const transitionDealState = mutation({
 		}
 
 		// Parse current state machine state
-		const machineState = JSON.parse(deal.stateMachineState);
-		
-		// Create actor and restore state
-		const actor = createActor(dealMachine, {
-			snapshot: machineState,
-		});
+		const parsedState = JSON.parse(deal.stateMachineState);
+
+		// Get the context from parsed state or fallback to deal data
+		const context: DealContext = parsedState.context || {
+			dealId: deal._id,
+			lockRequestId: deal.lockRequestId,
+			listingId: deal.listingId,
+			mortgageId: deal.mortgageId,
+			investorId: deal.investorId,
+			purchasePercentage: deal.purchasePercentage,
+			dealValue: deal.dealValue,
+			currentState: deal.currentState as DealStateValue,
+			stateHistory: deal.stateHistory,
+		};
+
+		// Get current state value
+		const currentStateValue = parsedState.value || deal.currentState;
+
+		// Get initial snapshot and update it with our context and state
+		const initialSnapshot = getInitialSnapshot(dealMachine);
+		const currentSnapshot = {
+			...initialSnapshot,
+			value: currentStateValue,
+			context,
+		};
 
 		// Send event with admin ID
 		const eventWithAdmin = {
@@ -668,12 +714,20 @@ export const transitionDealState = mutation({
 			adminId: adminUserId,
 		} as DealEvent;
 
-		// Start actor and send event
-		actor.start();
-		actor.send(eventWithAdmin);
-
-		// Get new state
-		const newSnapshot = actor.getSnapshot();
+		// Use synchronous transition with minimal actor scope
+		const newSnapshot = dealMachine.transition(currentSnapshot, eventWithAdmin, {
+			self: {} as any,
+			id: 'temp',
+			sessionId: 'temp',
+			system: {
+				_sendInspectionEvent: () => {},
+			} as any,
+			defer: () => {},
+			emit: () => {},
+			logger: () => {},
+			stopChild: () => {},
+			actionExecutor: {} as any,
+		});
 		const newContext = newSnapshot.context;
 
 		// Update deal in database
@@ -683,9 +737,6 @@ export const transitionDealState = mutation({
 			updatedAt: Date.now(),
 			stateHistory: newContext.stateHistory,
 		});
-
-		// Stop actor
-		actor.stop();
 
 		// Create alert for state change
 		await ctx.db.insert("alerts", {
@@ -743,20 +794,45 @@ export const cancelDeal = mutation({
 		});
 
 		// Update deal to cancelled state
-		const machineState = JSON.parse(deal.stateMachineState);
+		const parsedState = JSON.parse(deal.stateMachineState);
+		const context: DealContext = parsedState.context || {
+			dealId: deal._id,
+			lockRequestId: deal.lockRequestId,
+			listingId: deal.listingId,
+			mortgageId: deal.mortgageId,
+			investorId: deal.investorId,
+			purchasePercentage: deal.purchasePercentage,
+			dealValue: deal.dealValue,
+			currentState: deal.currentState as DealStateValue,
+			stateHistory: deal.stateHistory,
+		};
+		const currentStateValue = parsedState.value || deal.currentState;
+		const initialSnapshot = getInitialSnapshot(dealMachine);
+		const currentSnapshot = {
+			...initialSnapshot,
+			value: currentStateValue,
+			context,
+		};
 		const cancelEvent: DealEvent = {
 			type: "CANCEL",
 			adminId: adminUserId,
 			reason: args.reason,
 		};
 
-		const actor = createActor(dealMachine, {
-			snapshot: machineState,
+		// Use synchronous transition with minimal actor scope
+		const newSnapshot = dealMachine.transition(currentSnapshot, cancelEvent, {
+			self: {} as any,
+			id: 'temp',
+			sessionId: 'temp',
+			system: {
+				_sendInspectionEvent: () => {},
+			} as any,
+			defer: () => {},
+			emit: () => {},
+			logger: () => {},
+			stopChild: () => {},
+			actionExecutor: {} as any,
 		});
-		actor.start();
-		actor.send(cancelEvent);
-
-		const newSnapshot = actor.getSnapshot();
 		const newContext = newSnapshot.context;
 
 		await ctx.db.patch(args.dealId, {
@@ -766,8 +842,6 @@ export const cancelDeal = mutation({
 			completedAt: Date.now(),
 			stateHistory: newContext.stateHistory,
 		});
-
-		actor.stop();
 
 		// Create alerts
 		await ctx.db.insert("alerts", {
@@ -906,19 +980,44 @@ export const archiveDeal = mutation({
 		}
 
 		// Transition to archived state
-		const machineState = JSON.parse(deal.stateMachineState);
+		const parsedState = JSON.parse(deal.stateMachineState);
+		const context: DealContext = parsedState.context || {
+			dealId: deal._id,
+			lockRequestId: deal.lockRequestId,
+			listingId: deal.listingId,
+			mortgageId: deal.mortgageId,
+			investorId: deal.investorId,
+			purchasePercentage: deal.purchasePercentage,
+			dealValue: deal.dealValue,
+			currentState: deal.currentState as DealStateValue,
+			stateHistory: deal.stateHistory,
+		};
+		const currentStateValue = parsedState.value || deal.currentState;
+		const initialSnapshot = getInitialSnapshot(dealMachine);
+		const currentSnapshot = {
+			...initialSnapshot,
+			value: currentStateValue,
+			context,
+		};
 		const archiveEvent: DealEvent = {
 			type: "ARCHIVE",
 			adminId: adminUserId,
 		};
 
-		const actor = createActor(dealMachine, {
-			snapshot: machineState,
+		// Use synchronous transition with minimal actor scope
+		const newSnapshot = dealMachine.transition(currentSnapshot, archiveEvent, {
+			self: {} as any,
+			id: 'temp',
+			sessionId: 'temp',
+			system: {
+				_sendInspectionEvent: () => {},
+			} as any,
+			defer: () => {},
+			emit: () => {},
+			logger: () => {},
+			stopChild: () => {},
+			actionExecutor: {} as any,
 		});
-		actor.start();
-		actor.send(archiveEvent);
-
-		const newSnapshot = actor.getSnapshot();
 		const newContext = newSnapshot.context;
 
 		await ctx.db.patch(args.dealId, {
@@ -928,8 +1027,6 @@ export const archiveDeal = mutation({
 			updatedAt: Date.now(),
 			stateHistory: newContext.stateHistory,
 		});
-
-		actor.stop();
 
 		logger.info("Deal archived", {
 			dealId: args.dealId,

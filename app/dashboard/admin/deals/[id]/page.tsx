@@ -10,6 +10,7 @@
 
 "use client";
 
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import {
@@ -96,13 +97,18 @@ export default function DealDetailPage({
 	const resolvedParams = use(params);
 	const dealId = resolvedParams.id as Id<"deals">;
 	const router = useRouter();
+	const { user, loading: authLoading } = useAuth();
 
 	const [showCancelDialog, setShowCancelDialog] = useState(false);
 	const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 	const [showTransferDialog, setShowTransferDialog] = useState(false);
 	const [cancelReason, setCancelReason] = useState("");
 
-	const dealData = useQuery(api.deals.getDealWithDetails, { dealId });
+	// Skip query until auth is fully loaded to prevent race condition
+	const dealData = useQuery(
+		api.deals.getDealWithDetails,
+		authLoading || !user ? "skip" : { dealId }
+	);
 	const cancelDeal = useMutation(api.deals.cancelDeal);
 	const archiveDeal = useMutation(api.deals.archiveDeal);
 	const completeDeal = useMutation(api.deals.completeDeal);
@@ -168,7 +174,8 @@ export default function DealDetailPage({
 		}
 	};
 
-	if (!dealData) {
+	// Show loading state while auth is loading or query is pending
+	if (authLoading || !dealData) {
 		return (
 			<>
 				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

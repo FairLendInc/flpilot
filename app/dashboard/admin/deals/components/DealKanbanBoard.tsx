@@ -8,6 +8,7 @@
 
 "use client";
 
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useMutation, useQuery } from "convex/react";
 import {
 	ArrowLeft,
@@ -86,6 +87,7 @@ type KanbanColumn = {
 
 export function DealKanbanBoard() {
 	const router = useRouter();
+	const { user, loading: authLoading } = useAuth();
 	const [draggedDeal, setDraggedDeal] = useState<{
 		deal: DealCardData;
 		sourceColumn: DealStateValue;
@@ -98,8 +100,13 @@ export function DealKanbanBoard() {
 		deal: DealCardData;
 	} | null>(null);
 
-	// Fetch all active deals
-	const dealsData = useQuery(api.deals.getAllActiveDeals);
+	// Fetch all active deals - skip until auth is ready
+	// Only execute query when auth is fully loaded AND user exists
+	const isAuthReady = !authLoading && !!user;
+	const dealsData = useQuery(
+		api.deals.getAllActiveDeals,
+		isAuthReady ? {} : "skip"
+	);
 	const transitionDealState = useMutation(api.deals.transitionDealState);
 
 	// Build columns from deal data
@@ -162,9 +169,8 @@ export function DealKanbanBoard() {
 					daysInState: Math.floor(
 						(Date.now() - deal.updatedAt) / (1000 * 60 * 60 * 24)
 					),
-					// TODO: Fetch related mortgage and investor data
-					mortgageAddress: "Loading...", // Placeholder
-					investorName: "Loading...", // Placeholder
+					mortgageAddress: deal.mortgageAddress,
+					investorName: deal.investorName,
 				});
 			}
 		}
@@ -263,7 +269,8 @@ export function DealKanbanBoard() {
 		}
 	};
 
-	if (!dealsData) {
+	// Show loading state while auth is loading or query is pending
+	if (!isAuthReady || !dealsData) {
 		return (
 			<div className="space-y-4">
 				<Skeleton className="h-32 w-full" />
@@ -328,40 +335,40 @@ export function DealKanbanBoard() {
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Confirm State Transition</AlertDialogTitle>
-						<AlertDialogDescription className="space-y-2">
-							{transitionTarget && (
-								<>
-									<p>
-										You are about to move this deal from{" "}
-										<strong>
-											{DEAL_STATE_LABELS[transitionTarget.fromState]}
-										</strong>{" "}
-										to{" "}
-										<strong>
-											{DEAL_STATE_LABELS[transitionTarget.toState]}
-										</strong>
-										.
-									</p>
+						{transitionTarget && (
+							<>
+								<AlertDialogDescription>
+									You are about to move this deal from{" "}
+									<strong>
+										{DEAL_STATE_LABELS[transitionTarget.fromState]}
+									</strong>{" "}
+									to{" "}
+									<strong>
+										{DEAL_STATE_LABELS[transitionTarget.toState]}
+									</strong>
+									.
+								</AlertDialogDescription>
+								<div className="space-y-2 pt-2">
 									<div className="space-y-1 rounded-md bg-muted p-3 text-sm">
-										<p>
+										<div>
 											<strong>Property:</strong>{" "}
 											{transitionTarget.deal.mortgageAddress}
-										</p>
-										<p>
+										</div>
+										<div>
 											<strong>Investor:</strong>{" "}
 											{transitionTarget.deal.investorName}
-										</p>
-										<p>
+										</div>
+										<div>
 											<strong>Deal Value:</strong>{" "}
 											{formatDealValue(transitionTarget.deal.dealValue)}
-										</p>
+										</div>
 									</div>
 									<p className="text-muted-foreground text-xs">
 										This action will be logged in the deal's audit trail.
 									</p>
-								</>
-							)}
-						</AlertDialogDescription>
+								</div>
+							</>
+						)}
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
