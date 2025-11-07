@@ -47,7 +47,7 @@ const ValidationScenario = ({
 							key={index}
 							className="p-3 border border-gray-200 dark:border-gray-700 rounded"
 						>
-							<Chip color="warning" variant="flat" size="sm" className="mb-2">
+							<Chip color="warning" size="sm" className="mb-2">
 								Comparable {index + 1}
 							</Chip>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">

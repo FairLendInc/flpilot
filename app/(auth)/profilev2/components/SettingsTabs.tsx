@@ -6,7 +6,6 @@ import {
 	Tab,
 	TabIndicator,
 	TabList,
-	TabListWrapper,
 	TabPanel,
 	TabsRoot,
 } from "@heroui/react";
@@ -35,20 +34,18 @@ export function SettingsTabs({ onNotificationToggle }: SettingsTabsProps) {
 			</Card.Header>
 			<Card.Content className="p-6">
 				<TabsRoot defaultSelectedKey="security">
-					<TabListWrapper>
-						<TabList aria-label="Settings tabs">
-							<Tab id="security">
-								<Icon className="mr-2 h-4 w-4" icon="gravity-ui:shield-check" />
-								{A11Y.SECURITY_TAB}
-								<TabIndicator />
-							</Tab>
-							<Tab id="notifications">
-								<Icon className="mr-2 h-4 w-4" icon="gravity-ui:bell" />
-								{A11Y.NOTIFICATIONS_TAB}
-								<TabIndicator />
-							</Tab>
-						</TabList>
-					</TabListWrapper>
+					<TabList aria-label="Settings tabs">
+						<Tab id="security">
+							<Icon className="mr-2 h-4 w-4" icon="gravity-ui:shield-check" />
+							{A11Y.SECURITY_TAB}
+							<TabIndicator />
+						</Tab>
+						<Tab id="notifications">
+							<Icon className="mr-2 h-4 w-4" icon="gravity-ui:bell" />
+							{A11Y.NOTIFICATIONS_TAB}
+							<TabIndicator />
+						</Tab>
+					</TabList>
 
 					<TabPanel className="pt-6" id="security">
 						<div className="space-y-6">

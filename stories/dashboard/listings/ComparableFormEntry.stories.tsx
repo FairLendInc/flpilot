@@ -26,7 +26,7 @@ const ComparableFormEntry = ({
 					<h4 className="font-medium">Comparable Property</h4>
 					<div className="flex items-center gap-2">
 						{entry.imageStorageId && (
-							<Chip color="success" variant="flat" size="sm">
+							<Chip color="success" size="sm">
 								<Icon icon="lucide:check" className="h-3 w-3 mr-1" />
 								Image Uploaded
 							</Chip>
@@ -34,8 +34,7 @@ const ComparableFormEntry = ({
 						{showRemoveButton && (
 							<Button
 								size="sm"
-								color="danger"
-								variant="light"
+								variant="danger"
 								isIconOnly
 								onPress={onRemove}
 								aria-label="Remove comparable"
@@ -50,77 +49,107 @@ const ComparableFormEntry = ({
 					{/* Address Fields */}
 					<div className="space-y-3">
 						<h5 className="text-sm font-medium">Address</h5>
-						<Input
-							label="Street"
-							value={entry.address.street}
-							onValueChange={(value) => onUpdate("address.street", value)}
-							isInvalid={!!errors?.["address.street"]}
-							errorMessage={errors?.["address.street"]}
-							placeholder="123 Main Street"
-						/>
-						<div className="grid grid-cols-2 gap-2">
+						<div>
+							<label className="block text-sm font-medium mb-1">Street</label>
 							<Input
-								label="City"
-								value={entry.address.city}
-								onValueChange={(value) => onUpdate("address.city", value)}
-								isInvalid={!!errors?.["address.city"]}
-								errorMessage={errors?.["address.city"]}
-								placeholder="Toronto"
+								value={entry.address.street}
+								onChange={(e) => onUpdate("address.street", e.target.value)}
+								aria-invalid={!!errors?.["address.street"]}
+								placeholder="123 Main Street"
 							/>
-							<Input
-								label="Province/State"
-								value={entry.address.state}
-								onValueChange={(value) => onUpdate("address.state", value)}
-								isInvalid={!!errors?.["address.state"]}
-								errorMessage={errors?.["address.state"]}
-								placeholder="ON"
-							/>
+							{errors?.["address.street"] && (
+								<p className="text-danger text-sm mt-1">{errors["address.street"]}</p>
+							)}
 						</div>
-						<Input
-							label="Postal/ZIP Code"
-							value={entry.address.zip}
-							onValueChange={(value) => onUpdate("address.zip", value)}
-							isInvalid={!!errors?.["address.zip"]}
-							errorMessage={errors?.["address.zip"]}
-							placeholder="M5V 3A8"
-						/>
+						<div className="grid grid-cols-2 gap-2">
+							<div>
+								<label className="block text-sm font-medium mb-1">City</label>
+								<Input
+									value={entry.address.city}
+									onChange={(e) => onUpdate("address.city", e.target.value)}
+									aria-invalid={!!errors?.["address.city"]}
+									placeholder="Toronto"
+								/>
+								{errors?.["address.city"] && (
+									<p className="text-danger text-sm mt-1">{errors["address.city"]}</p>
+								)}
+							</div>
+							<div>
+								<label className="block text-sm font-medium mb-1">Province/State</label>
+								<Input
+									value={entry.address.state}
+									onChange={(e) => onUpdate("address.state", e.target.value)}
+									aria-invalid={!!errors?.["address.state"]}
+									placeholder="ON"
+								/>
+								{errors?.["address.state"] && (
+									<p className="text-danger text-sm mt-1">{errors["address.state"]}</p>
+								)}
+							</div>
+						</div>
+						<div>
+							<label className="block text-sm font-medium mb-1">Postal/ZIP Code</label>
+							<Input
+								value={entry.address.zip}
+								onChange={(e) => onUpdate("address.zip", e.target.value)}
+								aria-invalid={!!errors?.["address.zip"]}
+								placeholder="M5V 3A8"
+							/>
+							{errors?.["address.zip"] && (
+								<p className="text-danger text-sm mt-1">{errors["address.zip"]}</p>
+							)}
+						</div>
 					</div>
 
 					{/* Sale Information */}
 					<div className="space-y-3">
 						<h5 className="text-sm font-medium">Sale Information</h5>
-						<Input
-							type="number"
-							label="Sale Amount"
-							value={entry.saleAmount}
-							onValueChange={(value) => onUpdate("saleAmount", value)}
-							isInvalid={!!errors?.["saleAmount"]}
-							errorMessage={errors?.["saleAmount"]}
-							placeholder="750000"
-							startContent={
-								<span className="text-gray-500 text-sm">$</span>
-							}
-						/>
-						<Input
-							type="date"
-							label="Sale Date"
-							value={entry.saleDate}
-							onValueChange={(value) => onUpdate("saleDate", value)}
-							isInvalid={!!errors?.["saleDate"]}
-							errorMessage={errors?.["saleDate"]}
-						/>
-						<Input
-							type="number"
-							label="Distance (miles)"
-							value={entry.distance}
-							onValueChange={(value) => onUpdate("distance", value)}
-							isInvalid={!!errors?.["distance"]}
-							errorMessage={errors?.["distance"]}
-							placeholder="0.5"
-							endContent={
-								<span className="text-gray-500 text-sm">mi</span>
-							}
-						/>
+						<div>
+							<label className="block text-sm font-medium mb-1">Sale Amount</label>
+							<div className="relative">
+								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+								<Input
+									type="number"
+									value={entry.saleAmount}
+									onChange={(e) => onUpdate("saleAmount", e.target.value)}
+									aria-invalid={!!errors?.["saleAmount"]}
+									placeholder="750000"
+									className="pl-7"
+								/>
+							</div>
+							{errors?.["saleAmount"] && (
+								<p className="text-danger text-sm mt-1">{errors["saleAmount"]}</p>
+							)}
+						</div>
+						<div>
+							<label className="block text-sm font-medium mb-1">Sale Date</label>
+							<Input
+								type="date"
+								value={entry.saleDate}
+								onChange={(e) => onUpdate("saleDate", e.target.value)}
+								aria-invalid={!!errors?.["saleDate"]}
+							/>
+							{errors?.["saleDate"] && (
+								<p className="text-danger text-sm mt-1">{errors["saleDate"]}</p>
+							)}
+						</div>
+						<div>
+							<label className="block text-sm font-medium mb-1">Distance (miles)</label>
+							<div className="relative">
+								<Input
+									type="number"
+									value={entry.distance}
+									onChange={(e) => onUpdate("distance", e.target.value)}
+									aria-invalid={!!errors?.["distance"]}
+									placeholder="0.5"
+									className="pr-10"
+								/>
+								<span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">mi</span>
+							</div>
+							{errors?.["distance"] && (
+								<p className="text-danger text-sm mt-1">{errors["distance"]}</p>
+							)}
+						</div>
 					</div>
 				</div>
 
@@ -128,41 +157,57 @@ const ComparableFormEntry = ({
 				<div className="space-y-3">
 					<h5 className="text-sm font-medium">Property Details (Optional)</h5>
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-						<Input
-							type="number"
-							label="Square Feet"
-							value={entry.squareFeet}
-							onValueChange={(value) => onUpdate("squareFeet", value)}
-							isInvalid={!!errors?.["squareFeet"]}
-							errorMessage={errors?.["squareFeet"]}
-							placeholder="2200"
-						/>
-						<Input
-							type="number"
-							label="Bedrooms"
-							value={entry.bedrooms}
-							onValueChange={(value) => onUpdate("bedrooms", value)}
-							isInvalid={!!errors?.["bedrooms"]}
-							errorMessage={errors?.["bedrooms"]}
-							placeholder="3"
-						/>
-						<Input
-							type="number"
-							label="Bathrooms"
-							value={entry.bathrooms}
-							onValueChange={(value) => onUpdate("bathrooms", value)}
-							isInvalid={!!errors?.["bathrooms"]}
-							errorMessage={errors?.["bathrooms"]}
-							placeholder="2"
-						/>
-						<Input
-							label="Property Type"
-							value={entry.propertyType}
-							onValueChange={(value) => onUpdate("propertyType", value)}
-							isInvalid={!!errors?.["propertyType"]}
-							errorMessage={errors?.["propertyType"]}
-							placeholder="Townhouse"
-						/>
+						<div>
+							<label className="block text-sm font-medium mb-1">Square Feet</label>
+							<Input
+								type="number"
+								value={entry.squareFeet}
+								onChange={(e) => onUpdate("squareFeet", e.target.value)}
+								aria-invalid={!!errors?.["squareFeet"]}
+								placeholder="2200"
+							/>
+							{errors?.["squareFeet"] && (
+								<p className="text-danger text-sm mt-1">{errors["squareFeet"]}</p>
+							)}
+						</div>
+						<div>
+							<label className="block text-sm font-medium mb-1">Bedrooms</label>
+							<Input
+								type="number"
+								value={entry.bedrooms}
+								onChange={(e) => onUpdate("bedrooms", e.target.value)}
+								aria-invalid={!!errors?.["bedrooms"]}
+								placeholder="3"
+							/>
+							{errors?.["bedrooms"] && (
+								<p className="text-danger text-sm mt-1">{errors["bedrooms"]}</p>
+							)}
+						</div>
+						<div>
+							<label className="block text-sm font-medium mb-1">Bathrooms</label>
+							<Input
+								type="number"
+								value={entry.bathrooms}
+								onChange={(e) => onUpdate("bathrooms", e.target.value)}
+								aria-invalid={!!errors?.["bathrooms"]}
+								placeholder="2"
+							/>
+							{errors?.["bathrooms"] && (
+								<p className="text-danger text-sm mt-1">{errors["bathrooms"]}</p>
+							)}
+						</div>
+						<div>
+							<label className="block text-sm font-medium mb-1">Property Type</label>
+							<Input
+								value={entry.propertyType}
+								onChange={(e) => onUpdate("propertyType", e.target.value)}
+								aria-invalid={!!errors?.["propertyType"]}
+								placeholder="Townhouse"
+							/>
+							{errors?.["propertyType"] && (
+								<p className="text-danger text-sm mt-1">{errors["propertyType"]}</p>
+							)}
+						</div>
 					</div>
 				</div>
 

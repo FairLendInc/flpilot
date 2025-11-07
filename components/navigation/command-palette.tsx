@@ -9,7 +9,7 @@ import {
 	Search,
 } from "lucide-react";
 import React from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "../ui/button";
 
@@ -36,6 +36,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 	return (
 		<Dialog onOpenChange={onOpenChange} open={open}>
 			<DialogContent className="max-w-2xl gap-0 p-0">
+				<DialogTitle className="sr-only">Command Palette</DialogTitle>
 				<div className="flex items-center border-border border-b px-4">
 					<Search className="size-4 text-muted-foreground" />
 					<Input

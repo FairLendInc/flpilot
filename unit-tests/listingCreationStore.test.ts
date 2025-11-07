@@ -41,7 +41,12 @@ describe("listing creation store", () => {
 	test("adds comparable to store", () => {
 		const store = useListingCreationStore.getState();
 		store.addComparable({
-			address: { street: "123 Main St", city: "Toronto", state: "ON", zip: "M5J 2N1" },
+			address: {
+				street: "123 Main St",
+				city: "Toronto",
+				state: "ON",
+				zip: "M5J 2N1",
+			},
 			saleAmount: "500000",
 			saleDate: "2023-12-15",
 			distance: "0.5",
@@ -53,7 +58,12 @@ describe("listing creation store", () => {
 
 	test("updates comparable in store", () => {
 		useListingCreationStore.getState().addComparable({
-			address: { street: "123 Main St", city: "Toronto", state: "ON", zip: "M5J 2N1" },
+			address: {
+				street: "123 Main St",
+				city: "Toronto",
+				state: "ON",
+				zip: "M5J 2N1",
+			},
 			saleAmount: "500000",
 			saleDate: "2023-12-15",
 			distance: "0.5",
@@ -71,13 +81,23 @@ describe("listing creation store", () => {
 	test("removes comparable from store", () => {
 		const store = useListingCreationStore.getState();
 		store.addComparable({
-			address: { street: "123 Main St", city: "Toronto", state: "ON", zip: "M5J 2N1" },
+			address: {
+				street: "123 Main St",
+				city: "Toronto",
+				state: "ON",
+				zip: "M5J 2N1",
+			},
 			saleAmount: "500000",
 			saleDate: "2023-12-15",
 			distance: "0.5",
 		});
 		store.addComparable({
-			address: { street: "456 Oak Ave", city: "Toronto", state: "ON", zip: "M5K 1L9" },
+			address: {
+				street: "456 Oak Ave",
+				city: "Toronto",
+				state: "ON",
+				zip: "M5K 1L9",
+			},
 			saleAmount: "520000",
 			saleDate: "2023-11-20",
 			distance: "0.8",
@@ -106,13 +126,20 @@ describe("listing creation store", () => {
 		const errors = validateListingForm(state);
 		expect(errors["comparables.0.address.street"]).toBe("Street is required");
 		expect(errors["comparables.0.address.city"]).toBe("City is required");
-		expect(errors["comparables.0.saleAmount"]).toBe("Sale amount must be a positive number");
+		expect(errors["comparables.0.saleAmount"]).toBe(
+			"Sale amount must be a positive number"
+		);
 	});
 
 	test("validateListingForm validates comparable numeric constraints", () => {
 		const store = useListingCreationStore.getState();
 		store.addComparable({
-			address: { street: "123 Main St", city: "Toronto", state: "ON", zip: "M5J 2N1" },
+			address: {
+				street: "123 Main St",
+				city: "Toronto",
+				state: "ON",
+				zip: "M5J 2N1",
+			},
 			saleAmount: "-100000",
 			saleDate: "2030-01-01",
 			distance: "-1",
@@ -122,18 +149,35 @@ describe("listing creation store", () => {
 		});
 		const state = useListingCreationStore.getState();
 		const errors = validateListingForm(state);
-		expect(errors["comparables.0.saleAmount"]).toBe("Sale amount must be a positive number");
-		expect(errors["comparables.0.saleDate"]).toBe("Sale date cannot be in the future");
-		expect(errors["comparables.0.distance"]).toBe("Distance must be 0 or greater");
-		expect(errors["comparables.0.squareFeet"]).toBe("Square feet must be positive");
-		expect(errors["comparables.0.bedrooms"]).toBe("Bedrooms must be 0 or greater");
-		expect(errors["comparables.0.bathrooms"]).toBe("Bathrooms must be 0 or greater");
+		expect(errors["comparables.0.saleAmount"]).toBe(
+			"Sale amount must be a positive number"
+		);
+		expect(errors["comparables.0.saleDate"]).toBe(
+			"Sale date cannot be in the future"
+		);
+		expect(errors["comparables.0.distance"]).toBe(
+			"Distance must be 0 or greater"
+		);
+		expect(errors["comparables.0.squareFeet"]).toBe(
+			"Square feet must be positive"
+		);
+		expect(errors["comparables.0.bedrooms"]).toBe(
+			"Bedrooms must be 0 or greater"
+		);
+		expect(errors["comparables.0.bathrooms"]).toBe(
+			"Bathrooms must be 0 or greater"
+		);
 	});
 
 	test("validateListingForm passes with valid comparables", () => {
 		const store = useListingCreationStore.getState();
 		store.addComparable({
-			address: { street: "123 Main St", city: "Toronto", state: "ON", zip: "M5J 2N1" },
+			address: {
+				street: "123 Main St",
+				city: "Toronto",
+				state: "ON",
+				zip: "M5J 2N1",
+			},
 			saleAmount: "500000",
 			saleDate: "2023-12-15",
 			distance: "0.5",
@@ -175,7 +219,7 @@ describe("listing creation store", () => {
 	test("validateListingForm limits comparable count to 10", () => {
 		const store = useListingCreationStore.getState();
 		// Add 11 comparables (exceeds limit)
-		for (let i = 0; i < 11; i++) {
+		for (let i = 0; i < 11; i += 1) {
 			store.addComparable({
 				address: {
 					street: `123 ${i} St`,
@@ -196,7 +240,7 @@ describe("listing creation store", () => {
 	test("validateListingForm accepts up to 10 comparables", () => {
 		const store = useListingCreationStore.getState();
 		// Add exactly 10 comparables (at the limit)
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < 10; i += 1) {
 			store.addComparable({
 				address: {
 					street: `123 ${i} St`,
@@ -217,7 +261,12 @@ describe("listing creation store", () => {
 	test("reset clears all comparables", () => {
 		const store = useListingCreationStore.getState();
 		store.addComparable({
-			address: { street: "123 Main St", city: "Toronto", state: "ON", zip: "M5J 2N1" },
+			address: {
+				street: "123 Main St",
+				city: "Toronto",
+				state: "ON",
+				zip: "M5J 2N1",
+			},
 			saleAmount: "500000",
 			saleDate: "2023-12-15",
 			distance: "0.5",

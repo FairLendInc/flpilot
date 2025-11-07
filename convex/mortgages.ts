@@ -4,9 +4,10 @@
  */
 
 import { v, Infer } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { checkRbac } from "./auth.config";
 
 const mortgageStatusValidator = v.union(
 	v.literal("active"),
@@ -276,6 +277,38 @@ export const listMortgagesByStatus = query({
 });
 
 /**
+ * List all mortgages with borrower information (admin only)
+ */
+export const listAllMortgagesWithBorrowers = query({
+	args: {},
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		checkRbac({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		const mortgages = await ctx.db.query("mortgages").collect();
+		const mortgagesWithBorrowers = await Promise.all(
+			mortgages.map(async (mortgage) => {
+				const borrower = await ctx.db.get(mortgage.borrowerId);
+				return {
+					...mortgage,
+					borrower: borrower
+						? { name: borrower.name, email: borrower.email }
+						: null,
+				};
+			})
+		);
+		return mortgagesWithBorrowers;
+	},
+});
+
+/**
  * Get mortgages nearing maturity (within specified days)
  */
 export const getMortgagesNearingMaturity = query({
@@ -372,5 +405,476 @@ export const addDocumentToMortgage = mutation({
 	});
 
 		return args.mortgageId;
+	},
+});
+
+/**
+ * Core business logic for updating a mortgage (without auth checks)
+ * Used by both authenticated mutations and internal webhook handlers
+ */
+async function updateMortgageCore(
+	ctx: MutationCtx,
+	args: {
+		mortgageId: Id<"mortgages">;
+		loanAmount?: number;
+		interestRate?: number;
+		originationDate?: string;
+		maturityDate?: string;
+		status?: "active" | "renewed" | "closed" | "defaulted";
+		mortgageType?: "1st" | "2nd" | "other";
+		address?: {
+			street: string;
+			city: string;
+			state: string;
+			zip: string;
+			country: string;
+		};
+		location?: {
+			lat: number;
+			lng: number;
+		};
+		propertyType?: string;
+		appraisalMarketValue?: number;
+		appraisalMethod?: string;
+		appraisalCompany?: string;
+		appraisalDate?: string;
+		ltv?: number;
+		externalMortgageId?: string;
+		borrowerId?: Id<"borrowers">;
+		images?: Array<{
+			storageId: Id<"_storage">;
+			alt?: string;
+			order: number;
+		}>;
+		documents?: Array<{
+			name: string;
+			type: "appraisal" | "title" | "inspection" | "loan_agreement" | "insurance";
+			storageId: Id<"_storage">;
+			uploadDate: string;
+			fileSize?: number;
+		}>;
+	}
+): Promise<Id<"mortgages">> {
+	// Get existing mortgage
+	const mortgage = await ctx.db.get(args.mortgageId);
+	if (!mortgage) {
+		throw new Error("Mortgage not found");
+	}
+
+	// Build update object
+	const updates: Partial<Doc<"mortgages">> = {};
+
+	// Validate and update loan details
+	if (args.loanAmount !== undefined) {
+		if (args.loanAmount <= 0) {
+			throw new Error("Loan amount must be greater than 0");
+		}
+		updates.loanAmount = args.loanAmount;
+	}
+
+	if (args.interestRate !== undefined) {
+		if (args.interestRate <= 0 || args.interestRate >= 100) {
+			throw new Error("Interest rate must be between 0 and 100");
+		}
+		updates.interestRate = args.interestRate;
+	}
+
+	// Validate and update dates
+	if (args.originationDate !== undefined) {
+		updates.originationDate = args.originationDate;
+	}
+
+	if (args.maturityDate !== undefined) {
+		updates.maturityDate = args.maturityDate;
+	}
+
+	// Ensure maturity date is after origination date
+	const finalOriginationDate = updates.originationDate ?? mortgage.originationDate;
+	const finalMaturityDate = updates.maturityDate ?? mortgage.maturityDate;
+	
+	if (Date.parse(finalMaturityDate) <= Date.parse(finalOriginationDate)) {
+		throw new Error("Maturity date must be after origination date");
+	}
+
+	if (args.status !== undefined) {
+		updates.status = args.status;
+	}
+
+	if (args.mortgageType !== undefined) {
+		if (!["1st", "2nd", "other"].includes(args.mortgageType)) {
+			throw new Error("Mortgage type must be one of: 1st, 2nd, other");
+		}
+		updates.mortgageType = args.mortgageType;
+	}
+
+	// Update property information
+	if (args.address !== undefined) {
+		// Validate all required address fields
+		if (!args.address.street || !args.address.city || !args.address.state || 
+		    !args.address.zip || !args.address.country) {
+			throw new Error("All address fields are required");
+		}
+		updates.address = args.address;
+	}
+
+	if (args.location !== undefined) {
+		// Validate coordinates
+		if (args.location.lat < -90 || args.location.lat > 90) {
+			throw new Error("Latitude must be between -90 and 90");
+		}
+		if (args.location.lng < -180 || args.location.lng > 180) {
+			throw new Error("Longitude must be between -180 and 180");
+		}
+		updates.location = args.location;
+	}
+
+	if (args.propertyType !== undefined) {
+		updates.propertyType = args.propertyType;
+	}
+
+	// Update appraisal information
+	if (args.appraisalMarketValue !== undefined) {
+		if (args.appraisalMarketValue <= 0) {
+			throw new Error("Appraisal market value must be greater than 0");
+		}
+		updates.appraisalMarketValue = args.appraisalMarketValue;
+	}
+
+	if (args.appraisalMethod !== undefined) {
+		updates.appraisalMethod = args.appraisalMethod;
+	}
+
+	if (args.appraisalCompany !== undefined) {
+		updates.appraisalCompany = args.appraisalCompany;
+	}
+
+	if (args.appraisalDate !== undefined) {
+		const parsedDate = Date.parse(args.appraisalDate);
+		if (Number.isNaN(parsedDate)) {
+			throw new Error("Appraisal date must be a valid date");
+		}
+		if (parsedDate > Date.now()) {
+			throw new Error("Appraisal date cannot be in the future");
+		}
+		updates.appraisalDate = args.appraisalDate;
+	}
+
+	if (args.ltv !== undefined) {
+		if (args.ltv < 0 || args.ltv > 100) {
+			throw new Error("LTV must be between 0 and 100");
+		}
+		updates.ltv = args.ltv;
+	}
+
+	if (args.externalMortgageId !== undefined) {
+		// Check for uniqueness - ensure no other mortgage has this externalMortgageId
+		const existing = await ctx.db
+			.query("mortgages")
+			.withIndex("by_external_mortgage_id", (q) =>
+				q.eq("externalMortgageId", args.externalMortgageId)
+			)
+			.first();
+
+		if (existing && existing._id !== args.mortgageId) {
+			throw new Error(
+				"Mortgage with this externalMortgageId already exists"
+			);
+		}
+
+		updates.externalMortgageId = args.externalMortgageId;
+	}
+
+	// Update borrower link
+	if (args.borrowerId !== undefined) {
+		const borrower = await ctx.db.get(args.borrowerId);
+		if (!borrower) {
+			throw new Error("Borrower not found");
+		}
+		updates.borrowerId = args.borrowerId;
+	}
+
+	// Update images
+	if (args.images !== undefined) {
+		// Validate image order values are sequential and start at 0
+		const sortedImages = [...args.images].sort((a, b) => a.order - b.order);
+		for (let i = 0; i < sortedImages.length; i++) {
+			if (sortedImages[i].order !== i) {
+				throw new Error("Image order must be sequential starting from 0");
+			}
+		}
+		updates.images = args.images;
+	}
+
+	// Update documents
+	if (args.documents !== undefined) {
+		// Validate all document types
+		for (const doc of args.documents) {
+			if (!["appraisal", "title", "inspection", "loan_agreement", "insurance"].includes(doc.type)) {
+				throw new Error(`Invalid document type: ${doc.type}`);
+			}
+		}
+		updates.documents = args.documents;
+	}
+
+	// Apply updates
+	await ctx.db.patch(args.mortgageId, updates);
+
+	return args.mortgageId;
+}
+
+/**
+ * Core business logic for deleting a mortgage (without auth checks)
+ * Used by both authenticated mutations and internal webhook handlers
+ */
+async function deleteMortgageCore(
+	ctx: MutationCtx,
+	args: {
+		mortgageId: Id<"mortgages">;
+		force?: boolean;
+	}
+): Promise<{
+	mortgageId: Id<"mortgages">;
+	deletedCounts: {
+		listings: number;
+		comparables: number;
+		ownership: number;
+		payments: number;
+	};
+}> {
+	// Get existing mortgage
+	const mortgage = await ctx.db.get(args.mortgageId);
+	if (!mortgage) {
+		throw new Error("Mortgage not found");
+	}
+
+	try {
+		const deletedCounts = {
+			listings: 0,
+			comparables: 0,
+			ownership: 0,
+			payments: 0,
+		};
+
+		// 1. Check for listings
+		const listings = await ctx.db
+			.query("listings")
+			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
+			.collect();
+
+		// Check if any listings are locked (unless force flag is set)
+		if (!args.force) {
+			const lockedListing = listings.find((l) => l.locked);
+			if (lockedListing) {
+				throw new Error(
+					"Cannot delete mortgage with locked listing. Use force option or unlock first."
+				);
+			}
+		}
+
+		// Delete all listings
+		for (const listing of listings) {
+			await ctx.db.delete(listing._id);
+			deletedCounts.listings++;
+		}
+
+		// 2. Delete all comparables
+		const comparables = await ctx.db
+			.query("appraisal_comparables")
+			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
+			.collect();
+
+		for (const comparable of comparables) {
+			await ctx.db.delete(comparable._id);
+			deletedCounts.comparables++;
+		}
+
+		// 3. Delete all ownership records
+		const ownershipRecords = await ctx.db
+			.query("mortgage_ownership")
+			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
+			.collect();
+
+		for (const record of ownershipRecords) {
+			await ctx.db.delete(record._id);
+			deletedCounts.ownership++;
+		}
+
+		// 4. Delete all payment records
+		const payments = await ctx.db
+			.query("payments")
+			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
+			.collect();
+
+		for (const payment of payments) {
+			await ctx.db.delete(payment._id);
+			deletedCounts.payments++;
+		}
+
+		// 5. Finally, delete the mortgage itself (preserve borrower)
+		await ctx.db.delete(args.mortgageId);
+
+		return {
+			mortgageId: args.mortgageId,
+			deletedCounts,
+		};
+	} catch (error) {
+		// Convex transactions automatically rollback on error
+		throw new Error(
+			`Failed to delete mortgage: ${
+				error instanceof Error ? error.message : "Unknown error"
+			}`
+		);
+	}
+}
+
+/**
+ * Admin-only: Update mortgage properties
+ * Can update loan details, property info, borrower link, and documents
+ */
+export const updateMortgage = mutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+		loanAmount: v.optional(v.number()),
+		interestRate: v.optional(v.number()),
+		originationDate: v.optional(v.string()),
+		maturityDate: v.optional(v.string()),
+		status: v.optional(mortgageStatusValidator),
+		mortgageType: v.optional(mortgageTypeValidator),
+		address: v.optional(mortgageAddressValidator),
+		location: v.optional(mortgageLocationValidator),
+		propertyType: v.optional(v.string()),
+		appraisalMarketValue: v.optional(v.number()),
+		appraisalMethod: v.optional(v.string()),
+		appraisalCompany: v.optional(v.string()),
+		appraisalDate: v.optional(v.string()),
+		ltv: v.optional(v.number()),
+		externalMortgageId: v.optional(v.string()),
+		borrowerId: v.optional(v.id("borrowers")),
+		images: v.optional(v.array(mortgageImageValidator)),
+		documents: v.optional(v.array(mortgageDocumentValidator)),
+	},
+	returns: v.id("mortgages"),
+	handler: async (ctx, args) => {
+		// Validate admin authorization
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		checkRbac({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		const result = await updateMortgageCore(ctx, args);
+
+		// Audit log
+		console.log("Mortgage updated by admin:", {
+			adminId: identity.subject,
+			mortgageId: args.mortgageId,
+			updates: Object.keys(args).filter((k) => k !== "mortgageId"),
+			timestamp: Date.now(),
+		});
+
+		return result;
+	},
+});
+
+/**
+ * Internal mutation: Update mortgage (for webhooks, skips auth)
+ */
+export const updateMortgageInternal = internalMutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+		loanAmount: v.optional(v.number()),
+		interestRate: v.optional(v.number()),
+		originationDate: v.optional(v.string()),
+		maturityDate: v.optional(v.string()),
+		status: v.optional(mortgageStatusValidator),
+		mortgageType: v.optional(mortgageTypeValidator),
+		address: v.optional(mortgageAddressValidator),
+		location: v.optional(mortgageLocationValidator),
+		propertyType: v.optional(v.string()),
+		appraisalMarketValue: v.optional(v.number()),
+		appraisalMethod: v.optional(v.string()),
+		appraisalCompany: v.optional(v.string()),
+		appraisalDate: v.optional(v.string()),
+		ltv: v.optional(v.number()),
+		externalMortgageId: v.optional(v.string()),
+		borrowerId: v.optional(v.id("borrowers")),
+		images: v.optional(v.array(mortgageImageValidator)),
+		documents: v.optional(v.array(mortgageDocumentValidator)),
+	},
+	returns: v.id("mortgages"),
+	handler: async (ctx, args) => {
+		return await updateMortgageCore(ctx, args);
+	},
+});
+
+/**
+ * Admin-only: Delete a mortgage and all associated data
+ * Includes comprehensive cascade deletion with rollback on failure
+ */
+export const deleteMortgage = mutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+		force: v.optional(v.boolean()),
+	},
+	returns: v.object({
+		mortgageId: v.id("mortgages"),
+		deletedCounts: v.object({
+			listings: v.number(),
+			comparables: v.number(),
+			ownership: v.number(),
+			payments: v.number(),
+		}),
+	}),
+	handler: async (ctx, args) => {
+		// Validate admin authorization
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		checkRbac({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		const result = await deleteMortgageCore(ctx, args);
+
+		// Audit log
+		const mortgage = await ctx.db.get(args.mortgageId);
+		console.log("Mortgage deleted by admin:", {
+			adminId: identity.subject,
+			mortgageId: args.mortgageId,
+			borrowerId: mortgage?.borrowerId,
+			deletedCounts: result.deletedCounts,
+			timestamp: Date.now(),
+		});
+
+		return result;
+	},
+});
+
+/**
+ * Internal mutation: Delete mortgage (for webhooks, skips auth)
+ */
+export const deleteMortgageInternal = internalMutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+		force: v.optional(v.boolean()),
+	},
+	returns: v.object({
+		mortgageId: v.id("mortgages"),
+		deletedCounts: v.object({
+			listings: v.number(),
+			comparables: v.number(),
+			ownership: v.number(),
+			payments: v.number(),
+		}),
+	}),
+	handler: async (ctx, args) => {
+		return await deleteMortgageCore(ctx, args);
 	},
 });

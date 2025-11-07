@@ -227,6 +227,28 @@ export const deleteComparable = mutation({
 });
 
 /**
+ * Get comparables count for a listing (via its mortgage)
+ */
+export const getComparablesCountForListing = query({
+	args: { listingId: v.id("listings") },
+	handler: async (ctx, args) => {
+		// Get the listing to find its mortgageId
+		const listing = await ctx.db.get(args.listingId);
+		if (!listing) {
+			return 0;
+		}
+
+		// Count comparables for the mortgage
+		const comparables = await ctx.db
+			.query("appraisal_comparables")
+			.withIndex("by_mortgage", (q) => q.eq("mortgageId", listing.mortgageId))
+			.collect();
+
+		return comparables.length;
+	},
+});
+
+/**
  * Delete all comparables for a mortgage (for clean replacement)
  */
 export const deleteAllComparablesForMortgage = mutation({
