@@ -13,6 +13,7 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from "@/components/ui/pagination";
+import { logger } from "@/lib/logger";
 
 type Payment = {
 	_id: string;
@@ -30,7 +31,7 @@ type PaymentHistoryProps = {
 };
 
 const statusConfig: Record<
-	Payment["status"],
+	Payment["status"] | "unknown",
 	{ label: string; color: "success" | "warning" | "danger"; icon: string }
 > = {
 	paid: {
@@ -48,10 +49,15 @@ const statusConfig: Record<
 		color: "danger",
 		icon: "lucide:alert-circle",
 	},
+	unknown: {
+		label: "Unknown",
+		color: "warning",
+		icon: "lucide:help-circle",
+	},
 };
 
 const typeConfig: Record<
-	Payment["type"],
+	Payment["type"] | "unknown",
 	{ label: string; icon: string; color: string }
 > = {
 	principal: {
@@ -68,6 +74,11 @@ const typeConfig: Record<
 		label: "Escrow",
 		icon: "lucide:shield",
 		color: "text-green-600",
+	},
+	unknown: {
+		label: "Unknown",
+		icon: "lucide:help-circle",
+		color: "text-gray-600",
 	},
 };
 
@@ -168,9 +179,24 @@ export function PaymentHistory({
 
 			<div className="space-y-3">
 				{currentPayments.map((payment, index) => {
-					const statusInfo =
-						statusConfig[payment.status] || statusConfig.pending; // Fallback to pending if status unknown
-					const typeInfo = typeConfig[payment.type] || typeConfig.interest; // Fallback to interest if type unknown
+					const statusKey = payment.status as keyof typeof statusConfig;
+					const statusInfo = statusConfig[statusKey] || statusConfig.unknown;
+					if (!statusConfig[statusKey]) {
+						logger.warn("Unknown payment status encountered", {
+							paymentId: payment._id,
+							status: payment.status,
+						});
+					}
+
+					const typeKey = payment.type as keyof typeof typeConfig;
+					const typeInfo = typeConfig[typeKey] || typeConfig.unknown;
+					if (!typeConfig[typeKey]) {
+						logger.warn("Unknown payment type encountered", {
+							paymentId: payment._id,
+							type: payment.type,
+						});
+					}
+
 					const paymentDate = parseISO(payment.date);
 
 					return (

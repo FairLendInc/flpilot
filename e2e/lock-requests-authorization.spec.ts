@@ -117,94 +117,177 @@ test.describe("Lock Request Authorization", () => {
 		test("broker cannot create lock request", async ({ page }) => {
 			await mockUserRole(page, "broker");
 
-			// Mock Convex API to intercept mutation calls
-			let apiCallIntercepted = false;
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
-
-				// If this is a lock request creation, it should fail
-				if (
-					postData &&
-					postData.includes("createLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					apiCallIntercepted = true;
-					await route.fulfill({
-						status: 200,
-						json: {
-							error: "Unauthorized: Investor role required",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
-
 			await page.goto(`/listings/${testListing.listingId}`);
+			await expect(page).toHaveURL(/\/listings\//);
 
-			// Verify that if someone tries to call the API directly, it fails
-			// In a real test, you would trigger the mutation and verify the error
-			// This test framework verifies the backend authorization check exists
-			expect(apiCallIntercepted).toBe(false); // No call should succeed
+			// Wait for page to load and Convex client to be available
+			await page.waitForLoadState("networkidle");
+
+			// Call the Convex mutation directly and catch the authorization error
+			// We'll use page.evaluate to access the Convex client from the React context
+			// or create a new ConvexReactClient instance to call the mutation
+			const errorMessage = await page.evaluate(
+				async (listingId: string) => {
+					try {
+						// Get Convex URL from window (set by Next.js)
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						// Access the ConvexReactClient from the React context
+						// The ConvexProvider stores it in React context, but we can also
+						// access it via the useConvexClient hook or by accessing the context directly
+						// For testing, we'll use the Convex HTTP API endpoint format
+						// Convex mutations are called via POST to /api/mutation
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include", // Include auth cookies
+							body: JSON.stringify({
+								path: "lockRequests.createLockRequest",
+								args: {
+									listingId,
+									lawyerName: "Test Lawyer",
+									lawyerLSONumber: "12345",
+									lawyerEmail: "lawyer@example.com",
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						// Convex returns errors in the result object
+						if (result.error) {
+							return result.error;
+						}
+						
+						// Check HTTP status
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				testListing.listingId
+			);
+
+			// Assert that the error message contains the authorization error
+			expect(errorMessage).toContain("Investor role required");
 		});
 
 		test("lawyer cannot create lock request", async ({ page }) => {
 			await mockUserRole(page, "lawyer");
 
-			let apiCallIntercepted = false;
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
-
-				if (
-					postData &&
-					postData.includes("createLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					apiCallIntercepted = true;
-					await route.fulfill({
-						status: 200,
-						json: {
-							error: "Unauthorized: Investor role required",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
-
 			await page.goto(`/listings/${testListing.listingId}`);
-			expect(apiCallIntercepted).toBe(false);
+			await expect(page).toHaveURL(/\/listings\//);
+			await page.waitForLoadState("networkidle");
+
+			const errorMessage = await page.evaluate(
+				async (listingId: string) => {
+					try {
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								path: "lockRequests.createLockRequest",
+								args: {
+									listingId,
+									lawyerName: "Test Lawyer",
+									lawyerLSONumber: "12345",
+									lawyerEmail: "lawyer@example.com",
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						if (result.error) {
+							return result.error;
+						}
+						
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				testListing.listingId
+			);
+
+			expect(errorMessage).toContain("Investor role required");
 		});
 
 		test("member cannot create lock request", async ({ page }) => {
 			await mockUserRole(page, "member");
 
-			let apiCallIntercepted = false;
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
-
-				if (
-					postData &&
-					postData.includes("createLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					apiCallIntercepted = true;
-					await route.fulfill({
-						status: 200,
-						json: {
-							error: "Unauthorized: Investor role required",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
-
 			await page.goto(`/listings/${testListing.listingId}`);
-			expect(apiCallIntercepted).toBe(false);
+			await expect(page).toHaveURL(/\/listings\//);
+			await page.waitForLoadState("networkidle");
+
+			const errorMessage = await page.evaluate(
+				async (listingId: string) => {
+					try {
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								path: "lockRequests.createLockRequest",
+								args: {
+									listingId,
+									lawyerName: "Test Lawyer",
+									lawyerLSONumber: "12345",
+									lawyerEmail: "lawyer@example.com",
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						if (result.error) {
+							return result.error;
+						}
+						
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				testListing.listingId
+			);
+
+			expect(errorMessage).toContain("Investor role required");
 		});
 	});
 
@@ -287,117 +370,212 @@ test.describe("Lock Request Authorization", () => {
 		test("investor cannot approve lock request", async ({ page }) => {
 			await mockUserRole(page, "investor");
 
-			let approveCallIntercepted = false;
-			// Mock Convex API to intercept mutation calls
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
+			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
-				if (
-					postData &&
-					postData.includes("approveLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					approveCallIntercepted = true;
-					await route.fulfill({
-						status: 200,
-						json: {
-							error: "Unauthorized: Admin privileges required",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
+			// Use a mock request ID - authorization check happens before request validation
+			const mockRequestId = "kg25zy58test1234567890";
 
-			// In a real test, you would trigger the approve mutation
-			// and verify it fails with authorization error
-			// This test framework verifies the backend authorization check
-			expect(approveCallIntercepted).toBe(false); // No call should succeed
+			const errorMessage = await page.evaluate(
+				async (requestId: string) => {
+					try {
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								path: "lockRequests.approveLockRequest",
+								args: {
+									requestId,
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						if (result.error) {
+							return result.error;
+						}
+						
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				mockRequestId
+			);
+
+			expect(errorMessage).toContain("Admin privileges required");
 		});
 
 		test("investor cannot reject lock request", async ({ page }) => {
 			await mockUserRole(page, "investor");
 
-			let rejectCallIntercepted = false;
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
+			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
-				if (
-					postData &&
-					postData.includes("rejectLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					rejectCallIntercepted = true;
-					await route.fulfill({
-						status: 200,
-						json: {
-							error: "Unauthorized: Admin privileges required",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
+			const mockRequestId = "kg25zy58test1234567890";
 
-			expect(rejectCallIntercepted).toBe(false);
+			const errorMessage = await page.evaluate(
+				async (requestId: string) => {
+					try {
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								path: "lockRequests.rejectLockRequest",
+								args: {
+									requestId,
+									rejectionReason: "Test rejection",
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						if (result.error) {
+							return result.error;
+						}
+						
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				mockRequestId
+			);
+
+			expect(errorMessage).toContain("Admin privileges required");
 		});
 
 		test("broker cannot approve lock request", async ({ page }) => {
 			await mockUserRole(page, "broker");
 
-			let approveCallIntercepted = false;
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
+			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
-				if (
-					postData &&
-					postData.includes("approveLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					approveCallIntercepted = true;
-					await route.fulfill({
-						status: 200,
-						json: {
-							error: "Unauthorized: Admin privileges required",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
+			const mockRequestId = "kg25zy58test1234567890";
 
-			expect(approveCallIntercepted).toBe(false);
+			const errorMessage = await page.evaluate(
+				async (requestId: string) => {
+					try {
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								path: "lockRequests.approveLockRequest",
+								args: {
+									requestId,
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						if (result.error) {
+							return result.error;
+						}
+						
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				mockRequestId
+			);
+
+			expect(errorMessage).toContain("Admin privileges required");
 		});
 
 		test("lawyer cannot reject lock request", async ({ page }) => {
 			await mockUserRole(page, "lawyer");
 
-			let rejectCallIntercepted = false;
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
+			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
-				if (
-					postData &&
-					postData.includes("rejectLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					rejectCallIntercepted = true;
-					await route.fulfill({
-						status: 200,
-						json: {
-							error: "Unauthorized: Admin privileges required",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
+			const mockRequestId = "kg25zy58test1234567890";
 
-			expect(rejectCallIntercepted).toBe(false);
+			const errorMessage = await page.evaluate(
+				async (requestId: string) => {
+					try {
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								path: "lockRequests.rejectLockRequest",
+								args: {
+									requestId,
+									rejectionReason: "Test rejection",
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						if (result.error) {
+							return result.error;
+						}
+						
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				mockRequestId
+			);
+
+			expect(errorMessage).toContain("Admin privileges required");
 		});
 	});
 
@@ -416,35 +594,56 @@ test.describe("Lock Request Authorization", () => {
 				};
 			});
 
-			let cancelCallIntercepted = false;
-			// Mock Convex API to intercept cancellation calls
-			await page.route("**/api/convex/**", async (route) => {
-				const request = route.request();
-				const postData = request.postData();
+			await page.goto(`/listings/${testListing.listingId}`);
+			await page.waitForLoadState("networkidle");
 
-				if (
-					postData &&
-					postData.includes("cancelLockRequest") &&
-					postData.includes("lockRequests")
-				) {
-					cancelCallIntercepted = true;
-					// Simulate trying to cancel a request owned by another user
-					await route.fulfill({
-						status: 200,
-						json: {
-							error:
-								"Unauthorized: You can only cancel your own lock requests",
-						},
-					});
-				} else {
-					await route.continue();
-				}
-			});
+			// Use a mock request ID that belongs to another investor
+			// Authorization check happens before request validation
+			const mockRequestId = "kg25zy58test1234567890";
 
-			// In a real test, you would try to cancel another investor's request
-			// and verify it fails with ownership validation error
-			// This test framework verifies the backend ownership check exists
-			expect(cancelCallIntercepted).toBe(false); // No unauthorized cancellation should succeed
+			const errorMessage = await page.evaluate(
+				async (requestId: string) => {
+					try {
+						const convexUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_CONVEX_URL;
+						
+						if (!convexUrl) {
+							return "Convex URL not found";
+						}
+
+						const response = await fetch(`${convexUrl}/api/mutation`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								path: "lockRequests.cancelLockRequest",
+								args: {
+									requestId,
+								},
+							}),
+						});
+
+						const result = await response.json();
+						
+						if (result.error) {
+							return result.error;
+						}
+						
+						if (!response.ok) {
+							return `HTTP ${response.status}: ${result.message || JSON.stringify(result)}`;
+						}
+						
+						return "No error returned";
+					} catch (error: any) {
+						return error.message || String(error);
+					}
+				},
+				mockRequestId
+			);
+
+			// Assert that the error message contains the ownership validation error
+			expect(errorMessage).toContain("You can only cancel your own lock requests");
 		});
 	});
 

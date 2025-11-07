@@ -217,6 +217,10 @@ test.describe("Admin Lock Request Approval Workflow", () => {
 	test("5.2.3: Admin approves lock request successfully", async ({ page }) => {
 		let approveCalled = false;
 		let approveRequestId: string | null = null;
+		let mutationResolve: () => void;
+		const mutationPromise = new Promise<void>((resolve) => {
+			mutationResolve = resolve;
+		});
 
 		// Setup Convex mock with approve mutation handler
 		setupConvexMock(page, {
@@ -226,6 +230,7 @@ test.describe("Admin Lock Request Approval Workflow", () => {
 			"lockRequests:approveLockRequest": (args: any) => {
 				approveCalled = true;
 				approveRequestId = args?.requestId || null;
+				mutationResolve();
 				return { success: true };
 			},
 		});
@@ -241,10 +246,20 @@ test.describe("Admin Lock Request Approval Workflow", () => {
 		const enabledApproveButton = approveButtons.first();
 		
 		await expect(enabledApproveButton).toBeEnabled();
+		
+		// Wait for mutation response or success toast
+		const mutationWait = mutationPromise;
+		const toastWait = expect(page.getByText(/Request approved/i)).toBeVisible();
+		
 		await enabledApproveButton.click();
+		
+		// Wait for mutation to complete (either via Promise or toast)
+		await Promise.race([
+			mutationWait,
+			toastWait,
+		]);
 
 		// Verify mutation was called
-		await page.waitForTimeout(500); // Wait for mutation to complete
 		expect(approveCalled).toBe(true);
 		expect(approveRequestId).toBeTruthy();
 
@@ -256,6 +271,10 @@ test.describe("Admin Lock Request Approval Workflow", () => {
 		let rejectCalled = false;
 		let rejectRequestId: string | null = null;
 		let rejectReason: string | null = null;
+		let mutationResolve: () => void;
+		const mutationPromise = new Promise<void>((resolve) => {
+			mutationResolve = resolve;
+		});
 
 		// Setup Convex mock with reject mutation handler
 		setupConvexMock(page, {
@@ -266,6 +285,7 @@ test.describe("Admin Lock Request Approval Workflow", () => {
 				rejectCalled = true;
 				rejectRequestId = args?.requestId || null;
 				rejectReason = args?.rejectionReason || null;
+				mutationResolve();
 				return { success: true };
 			},
 		});
@@ -293,10 +313,20 @@ test.describe("Admin Lock Request Approval Workflow", () => {
 
 		// Submit rejection
 		const submitButton = page.getByRole("button", { name: /Reject Request/i });
+		
+		// Wait for mutation response or success toast
+		const mutationWait = mutationPromise;
+		const toastWait = expect(page.getByText(/Request rejected/i)).toBeVisible();
+		
 		await submitButton.click();
+		
+		// Wait for mutation to complete (either via Promise or toast)
+		await Promise.race([
+			mutationWait,
+			toastWait,
+		]);
 
 		// Verify mutation was called with reason
-		await page.waitForTimeout(500);
 		expect(rejectCalled).toBe(true);
 		expect(rejectRequestId).toBeTruthy();
 		expect(rejectReason).toBe("Listing is no longer available");

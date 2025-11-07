@@ -119,7 +119,8 @@ export function LockRequestDetail({
 
 	// Get other pending requests count if not provided
 	const allPendingRequests = useQuery(
-		api.lockRequests.getPendingLockRequestsWithDetails
+		api.lockRequests.getPendingLockRequestsWithDetails,
+		otherPendingCount !== undefined ? "skip" : {}
 	);
 	const actualOtherPendingCount =
 		otherPendingCount ??

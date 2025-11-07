@@ -276,7 +276,7 @@ export default async function ListingDetailPage({
 				{/* Request Listing Section */}
 				{listingData && (
 					<RequestListingSection
-						listing={listing as any}
+						listing={listing}
 						listingId={listingData._id}
 					/>
 				)}

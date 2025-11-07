@@ -8,11 +8,11 @@ import {
 	ChevronRight,
 	ChevronUp,
 	Lock,
-	RefreshCw,
 	Search,
 	User,
 	X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,7 @@ import {
 	filterByLockStatus,
 	searchLockRequests,
 	sortLockRequests,
+	splitName,
 } from "@/lib/utils/lock-requests-table-utils";
 import { LockRequestDetail } from "./LockRequestDetail";
 
@@ -131,6 +132,7 @@ export function LockRequestsTable({
 	status,
 	listingId,
 }: LockRequestsTableProps) {
+	const router = useRouter();
 	const pendingRequests = useQuery(
 		api.lockRequests.getPendingLockRequestsWithDetails
 	);
@@ -141,10 +143,8 @@ export function LockRequestsTable({
 		api.lockRequests.getRejectedLockRequestsWithDetails
 	);
 
-	// Query for "other pending requests" count (task 3.7)
-	const allPendingRequests = useQuery(
-		api.lockRequests.getPendingLockRequestsWithDetails
-	);
+	// Derive pendingRequestsData from existing pendingRequests query
+	const pendingRequestsData = pendingRequests;
 
 	const approveMutation = useMutation(api.lockRequests.approveLockRequest);
 	const rejectMutation = useMutation(api.lockRequests.rejectLockRequest);
@@ -182,7 +182,7 @@ export function LockRequestsTable({
 
 	const rawRequests =
 		status === "pending"
-			? pendingRequests
+			? pendingRequestsData
 			: status === "approved"
 				? approvedRequests
 				: rejectedRequests;
@@ -201,27 +201,17 @@ export function LockRequestsTable({
 
 		// Apply search
 		if (debouncedSearchQuery.trim()) {
-			result = searchLockRequests(
-				result as any,
-				debouncedSearchQuery
-			) as typeof result;
+			result = searchLockRequests(result, debouncedSearchQuery);
 		}
 
 		// Apply lock status filter (only for pending tab)
 		if (status === "pending" && lockStatusFilter !== "all") {
-			result = filterByLockStatus(
-				result as any,
-				lockStatusFilter
-			) as typeof result;
+			result = filterByLockStatus(result, lockStatusFilter);
 		}
 
 		// Apply sort
 		if (sortColumn && sortDirection) {
-			result = sortLockRequests(
-				result as any,
-				sortColumn,
-				sortDirection
-			) as typeof result;
+			result = sortLockRequests(result, sortColumn, sortDirection);
 		}
 
 		return result;
@@ -236,19 +226,13 @@ export function LockRequestsTable({
 
 	// Calculate "other pending requests" count for task 3.7
 	const otherPendingCount = useMemo(() => {
-		if (!(listingId && allPendingRequests)) return 0;
-		return allPendingRequests.filter((item) => item.listing?._id === listingId)
+		if (!(listingId && pendingRequestsData)) return 0;
+		return pendingRequestsData.filter((item) => item.listing?._id === listingId)
 			.length;
-	}, [listingId, allPendingRequests]);
+	}, [listingId, pendingRequestsData]);
 
 	const isLoading = rawRequests === undefined;
 	const hasError = rawRequests === null;
-
-	const handleRetry = () => {
-		// Force refetch by triggering a re-render
-		// Convex queries automatically retry on error
-		window.location.reload();
-	};
 
 	const handleApprove = async (requestId: string) => {
 		try {
@@ -292,9 +276,7 @@ export function LockRequestsTable({
 	};
 
 	const handleViewAllRequests = () => {
-		// Clear listing filter by navigating to the page without listingId
-		// This is a simple implementation - could use router.push if needed
-		window.location.href = "/dashboard/admin/lock-requests";
+		router.push("/dashboard/admin/lock-requests");
 	};
 
 	if (isLoading) {
@@ -331,13 +313,10 @@ export function LockRequestsTable({
 				<div className="text-center">
 					<h3 className="font-semibold text-lg">Failed to load requests</h3>
 					<p className="mt-2 text-muted-foreground text-sm">
-						There was an error loading lock requests. Please try again.
+						There was an error loading lock requests. Convex will automatically
+						retry.
 					</p>
 				</div>
-				<Button onClick={handleRetry} variant="default">
-					<RefreshCw className="mr-2 h-4 w-4" />
-					Retry
-				</Button>
 			</div>
 		);
 	}
@@ -472,17 +451,7 @@ export function LockRequestsTable({
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead className="min-w-[100px]">
-										<div className="flex items-center gap-2">
-											Request ID
-											<SortButton
-												column="date"
-												currentColumn={sortColumn}
-												direction={sortDirection}
-												onClick={() => toggleSort("date")}
-											/>
-										</div>
-									</TableHead>
+									<TableHead className="min-w-[100px]">Request ID</TableHead>
 									<TableHead className="min-w-[120px]">
 										<div className="flex items-center gap-2">
 											Date
@@ -560,18 +529,9 @@ export function LockRequestsTable({
 												.filter(Boolean)
 												.join(" ") || investor.email
 										: "Unknown";
-									const borrowerName = borrower?.name || "N/A";
-									// Split borrower name into first and last name
-									const borrowerFirstName =
-										borrowerName !== "N/A"
-											? borrowerName.split(" ")[0] || borrowerName
-											: "N/A";
-									const borrowerLastName =
-										borrowerName !== "N/A" && borrowerName.includes(" ")
-											? borrowerName.split(" ").slice(1).join(" ")
-											: borrowerName !== "N/A"
-												? ""
-												: "N/A";
+									const borrowerName = borrower?.name || "";
+									const { first: borrowerFirstName, last: borrowerLastName } =
+										splitName(borrowerName);
 
 									return (
 										<TableRow key={request._id}>
@@ -633,7 +593,7 @@ export function LockRequestsTable({
 														<div className="font-medium">
 															{borrowerFirstName}
 														</div>
-														{borrowerLastName && borrowerLastName !== "N/A" && (
+														{borrowerLastName && (
 															<div className="text-muted-foreground">
 																{borrowerLastName}
 															</div>

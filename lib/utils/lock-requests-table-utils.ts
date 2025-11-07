@@ -3,61 +3,57 @@ import type {
 	SortDirection,
 } from "@/hooks/use-lock-requests-filters";
 
-// Use a generic type that matches the Convex query return type
-type LockRequestWithDetails = {
+// Minimal type constraints for the fields actually accessed by utility functions
+type SortableLockRequest = {
 	request: {
-		_id: string;
-		listingId: string;
-		requestedBy: string;
-		status: "pending" | "approved" | "rejected";
 		requestedAt: number;
-		requestNotes?: string;
-		lawyerName: string;
-		lawyerLSONumber: string;
-		lawyerEmail: string;
 	};
-	listing: {
-		_id: string;
-		mortgageId: string;
-		visible: boolean;
-		locked: boolean;
-		lockedBy?: string;
-		lockedAt?: number;
+	investor?: {
+		first_name?: string | null;
+		last_name?: string | null;
+		email?: string | null;
 	} | null;
-	mortgage: {
-		_id: string;
-		borrowerId: string;
-		loanAmount: number;
-		interestRate: number;
+	mortgage?: {
+		address: {
+			street: string;
+			city: string;
+			state: string;
+		};
+	} | null;
+	listing?: {
+		locked?: boolean | null;
+	} | null;
+};
+
+type SearchableLockRequest = {
+	investor?: {
+		first_name?: string | null;
+		last_name?: string | null;
+		email?: string | null;
+	} | null;
+	mortgage?: {
 		address: {
 			street: string;
 			city: string;
 			state: string;
 			zip: string;
-			country: string;
 		};
-		[key: string]: unknown; // Allow additional fields
 	} | null;
-	investor: {
-		_id: string;
-		email: string;
-		first_name?: string;
-		last_name?: string;
-		[key: string]: unknown; // Allow additional fields
-	} | null;
-	borrower?: {
-		_id: string;
-		name: string;
-		email: string;
-		[key: string]: unknown; // Allow additional fields
-	} | null;
-	[key: string]: unknown; // Allow additional fields on the root object
 };
+
+type FilterableLockRequest = {
+	listing?: {
+		locked?: boolean | null;
+	} | null;
+};
+
+// Regex for splitting names on whitespace (moved to top level for performance)
+const WHITESPACE_REGEX = /\s+/;
 
 /**
  * Sort lock requests by the specified column and direction
  */
-export function sortLockRequests<T extends LockRequestWithDetails>(
+export function sortLockRequests<T extends SortableLockRequest>(
 	requests: T[],
 	column: LockRequestSortColumn,
 	direction: SortDirection
@@ -127,7 +123,7 @@ export function sortLockRequests<T extends LockRequestWithDetails>(
  * Search lock requests across multiple fields
  * Searches: investor name/email, property address
  */
-export function searchLockRequests<T extends LockRequestWithDetails>(
+export function searchLockRequests<T extends SearchableLockRequest>(
 	requests: T[],
 	query: string
 ): T[] {
@@ -169,7 +165,7 @@ export function searchLockRequests<T extends LockRequestWithDetails>(
 /**
  * Filter lock requests by lock status
  */
-export function filterByLockStatus<T extends LockRequestWithDetails>(
+export function filterByLockStatus<T extends FilterableLockRequest>(
 	requests: T[],
 	filter: "all" | "locked" | "unlocked"
 ): T[] {
@@ -184,4 +180,34 @@ export function filterByLockStatus<T extends LockRequestWithDetails>(
 		// filter === "unlocked"
 		return item.listing?.locked !== true;
 	});
+}
+
+/**
+ * Split a full name into first and last name components
+ * @param name - Full name string (can be empty, null, or undefined)
+ * @returns Object with first and last name, with "N/A" fallback
+ */
+export function splitName(name: string | null | undefined): {
+	first: string;
+	last: string;
+} {
+	if (!name || name.trim() === "") {
+		return { first: "N/A", last: "N/A" };
+	}
+
+	const trimmed = name.trim();
+	const parts = trimmed.split(WHITESPACE_REGEX);
+
+	if (parts.length === 0) {
+		return { first: "N/A", last: "N/A" };
+	}
+
+	if (parts.length === 1) {
+		return { first: parts[0] || "N/A", last: "" };
+	}
+
+	return {
+		first: parts[0] || "N/A",
+		last: parts.slice(1).join(" ") || "",
+	};
 }

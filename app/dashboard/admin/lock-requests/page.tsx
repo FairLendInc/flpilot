@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,10 +9,6 @@ import { api } from "@/convex/_generated/api";
 import { LockRequestsTable } from "./components/LockRequestsTable";
 
 export default function AdminLockRequestsPage() {
-	const [_activeTab, setActiveTab] = useState<
-		"pending" | "approved" | "rejected"
-	>("pending");
-
 	// Fetch counts for badges
 	const pendingRequests = useQuery(
 		api.lockRequests.getPendingLockRequestsWithDetails
@@ -50,12 +45,7 @@ export default function AdminLockRequestsPage() {
 						<CardTitle>Requests</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<Tabs
-							defaultValue="pending"
-							onValueChange={(value) =>
-								setActiveTab(value as "pending" | "approved" | "rejected")
-							}
-						>
+						<Tabs defaultValue="pending">
 							<TabsList className="grid w-full grid-cols-3">
 								<TabsTrigger value="pending">
 									Pending {pendingCount > 0 && `(${pendingCount})`}

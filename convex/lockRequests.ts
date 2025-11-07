@@ -187,22 +187,10 @@ export const createLockRequest = mutation({
 			throw new Error("Failed to create lock request: no ID returned");
 		}
 
-		// Verify request was actually created
-		const verifiedRequest = await ctx.db.get(requestId);
-		if (!verifiedRequest) {
-			logger.error("Lock request insert failed verification", {
-				requestId,
-				listingId: args.listingId,
-				requestedBy: userId,
-			});
-			throw new Error("Failed to create lock request: verification failed");
-		}
-
-		logger.info("Lock request created and verified", {
+		logger.info("Lock request created", {
 			requestId,
 			listingId: args.listingId,
 			requestedBy: userId,
-			status: verifiedRequest.status,
 		});
 
 		return requestId;
