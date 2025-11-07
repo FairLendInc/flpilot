@@ -6,7 +6,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 
 // Wrapper component to make the dialog visible in Storybook
 function ListingUpdateDialogWrapper(
-	props: React.ComponentProps<typeof ListingUpdateDialog>
+	props: Omit<React.ComponentProps<typeof ListingUpdateDialog>, 'open' | 'onOpenChange'>
 ) {
 	const [open, setOpen] = useState(true);
 
@@ -61,8 +61,6 @@ const meta = {
 	args: {
 		listingId: "k17abc123def456" as Id<"listings">,
 		onSave: fn(),
-		open: true,
-		onOpenChange: fn(),
 	},
 } satisfies Meta<typeof ListingUpdateDialogWrapper>;
 

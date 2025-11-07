@@ -567,6 +567,20 @@ async function updateMortgageCore(
 	}
 
 	if (args.externalMortgageId !== undefined) {
+		// Check for uniqueness - ensure no other mortgage has this externalMortgageId
+		const existing = await ctx.db
+			.query("mortgages")
+			.withIndex("by_external_mortgage_id", (q) =>
+				q.eq("externalMortgageId", args.externalMortgageId)
+			)
+			.first();
+
+		if (existing && existing._id !== args.mortgageId) {
+			throw new Error(
+				"Mortgage with this externalMortgageId already exists"
+			);
+		}
+
 		updates.externalMortgageId = args.externalMortgageId;
 	}
 
