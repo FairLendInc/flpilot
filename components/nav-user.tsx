@@ -6,7 +6,10 @@ import {
 	ChevronsUpDown,
 	CreditCard,
 	LogOut,
+	Moon,
+	Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,6 +27,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { Switch } from "@/components/ui/switch";
 
 export function NavUser({
 	user,
@@ -35,6 +39,8 @@ export function NavUser({
 	};
 }) {
 	const { isMobile } = useSidebar();
+	const { resolvedTheme = "light", setTheme } = useTheme();
+	const isDark = resolvedTheme === "dark";
 
 	return (
 		<SidebarMenu>
@@ -74,7 +80,22 @@ export function NavUser({
 								</div>
 							</div>
 						</DropdownMenuLabel>
-						<DropdownMenuSeparator />
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						onSelect={(event) => event.preventDefault()}
+						className="flex items-center justify-between gap-4"
+					>
+						<div className="flex items-center gap-2 text-sm">
+							{isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}
+							<span>Theme</span>
+						</div>
+						<Switch
+							aria-label="Toggle dark mode"
+							checked={isDark}
+							onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+						/>
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
 						<DropdownMenuGroup>
 							<DropdownMenuItem>
 								<BadgeCheck />
