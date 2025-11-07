@@ -239,20 +239,11 @@ export function RecentDealActivityWidget() {
 								DEAL_STATE_COLORS[activity.toState as DealStateValue];
 
 							return (
-								<div
+								<Link
+									href={`/dashboard/admin/deals/${activity.dealId}`}
+									prefetch={true}
 									className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
 									key={`${activity.dealId}-${activity.timestamp}`}
-									onClick={() => {
-										// TODO: Navigate to deal detail
-									}}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											// TODO: Navigate to deal detail
-										}
-									}}
-									role="button"
-									tabIndex={0}
 								>
 									<div className="flex min-w-0 flex-1 items-center gap-3">
 										<div className="flex items-center gap-1">
@@ -284,12 +275,7 @@ export function RecentDealActivityWidget() {
 											</p>
 										</div>
 									</div>
-									<Button asChild size="sm" variant="ghost">
-										<Link href={`/dashboard/admin/deals/${activity.dealId}`}>
-											View
-										</Link>
-									</Button>
-								</div>
+								</Link>
 							);
 						})}
 					</div>

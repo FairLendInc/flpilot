@@ -11,6 +11,7 @@ import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess, requireAuth } from "./auth.config";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 import { comparablePayloadValidator } from "./comparables";
+import logger from "./logger";
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
@@ -203,7 +204,10 @@ export const createFromPayloadInternal = internalMutation({
 export const getAvailableListings = query({
 	args: {},
 	handler: async (ctx) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("listings")
 			.filter((q) =>
@@ -220,7 +224,10 @@ export const getAvailableListings = query({
 export const getAvailableListingsWithMortgages = query({
 	args: {},
 	handler: async (ctx) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db
 			.query("listings")
@@ -264,7 +271,10 @@ export const getAvailableListingsWithMortgages = query({
 export const getListingByMortgage = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("listings")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -278,7 +288,16 @@ export const getListingByMortgage = query({
 export const getListingById = query({
 	args: { listingId: v.id("listings") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		console.debug("getListingById args", {
+			args: args,
+			ctx: ctx,
+		});
+		// THIS IS RETURNING NULL WHEN THE USER IS SIGNED IN? There's some sort of race condition here. 
+		const identity = await ctx.auth.getUserIdentity();
+		console.debug("getListingById Identity", identity);
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db.get(args.listingId);
 	},
 });
@@ -289,7 +308,10 @@ export const getListingById = query({
 export const getUserLockedListings = query({
 	args: { userId: v.id("users") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("listings")
 			.withIndex("by_locked_user", (q) => q.eq("lockedBy", args.userId))
@@ -303,7 +325,10 @@ export const getUserLockedListings = query({
 export const getAllLockedListings = query({
 	args: {},
 	handler: async (ctx) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("listings")
 			.withIndex("by_locked_status", (q) => q.eq("locked", true))
@@ -317,8 +342,10 @@ export const getAllLockedListings = query({
 export const isListingAvailable = query({
 	args: { listingId: v.id("listings") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
-		const listing = await ctx.db.get(args.listingId);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			return { available: false, reason: "Listing not found" };
 		}
@@ -341,8 +368,10 @@ export const createListing = mutation({
 		visible: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
-		
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -494,7 +523,10 @@ export const updateListingVisibility = mutation({
 		visible: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
@@ -653,7 +685,10 @@ export const updateListing = mutation({
 	returns: v.id("listings"),
 	handler: async (ctx, args) => {
 		// Validate broker/admin authorization
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -710,7 +745,10 @@ export const deleteListing = mutation({
 	returns: v.id("listings"),
 	handler: async (ctx, args) => {
 		// Validate broker/admin authorization
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],

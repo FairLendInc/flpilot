@@ -13,7 +13,10 @@ import { requireAuth } from "./auth.config";
 export const getBorrower = query({
 	args: { id: v.id("borrowers") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+				const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		};
 		return await ctx.db.get(args.id);
 	},
 });
@@ -24,7 +27,10 @@ export const getBorrower = query({
 export const getBorrowerByRotessaId = query({
 	args: { rotessaCustomerId: v.string() },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+				const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		};
 		return await ctx.db
 			.query("borrowers")
 			.withIndex("by_rotessa_customer_id", (q) =>
@@ -40,7 +46,10 @@ export const getBorrowerByRotessaId = query({
 export const listBorrowers = query({
 	args: {},
 	handler: async (ctx) => {
-		await requireAuth(ctx);
+				const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		};
 		return await ctx.db.query("borrowers").collect();
 	},
 });
@@ -51,7 +60,10 @@ export const listBorrowers = query({
 export const searchBorrowersByEmail = query({
 	args: { email: v.string() },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+				const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		};
 		return await ctx.db
 			.query("borrowers")
 			.withIndex("by_email", (q) => q.eq("email", args.email))
@@ -69,7 +81,10 @@ export const createBorrower = mutation({
 		rotessaCustomerId: v.string(),
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+				const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		};
 		// Validate email format
 		if (!args.email.includes("@")) {
 			throw new Error("Invalid email format");
@@ -108,7 +123,10 @@ export const updateBorrower = mutation({
 		email: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+				const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		};
 		const { id, ...updates } = args;
 
 		// Validate email format if provided

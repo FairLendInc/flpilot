@@ -214,46 +214,47 @@ export function DealKanbanBoard() {
 	const handleTransitionConfirm = async () => {
 		if (!transitionTarget) return;
 
-		const { dealId, fromState, toState } = transitionTarget;
+		// Capture original values before any reassignment for logging
+		const { dealId, fromState: originalFromState, toState: originalToState } = transitionTarget;
 
 		try {
 			// Determine the event type based on the transition
 			let event: any;
 
 			// Check if this is a forward or backward transition
-			const nextState = getNextState(fromState);
-			const prevState = getPreviousState(toState);
+			const nextState = getNextState(originalFromState);
+			const prevState = getPreviousState(originalFromState);
 
-			if (nextState === toState) {
+			if (nextState === originalToState) {
 				// Forward transition
-				if (toState === "pending_lawyer") {
+				if (originalToState === "pending_lawyer") {
 					event = { type: "CONFIRM_LAWYER" };
-				} else if (toState === "pending_docs") {
+				} else if (originalToState === "pending_docs") {
 					event = { type: "COMPLETE_DOCS" };
-				} else if (toState === "pending_transfer") {
+				} else if (originalToState === "pending_transfer") {
 					event = { type: "RECEIVE_FUNDS" };
-				} else if (toState === "pending_verification") {
+				} else if (originalToState === "pending_verification") {
 					event = { type: "VERIFY_FUNDS" };
-				} else if (toState === "completed") {
+				} else if (originalToState === "completed") {
 					event = { type: "COMPLETE_DEAL" };
 				} else {
-					throw new Error(`Invalid forward transition to ${toState}`);
+					throw new Error(`Invalid forward transition to ${originalToState}`);
 				}
-			} else if (prevState === fromState) {
+			} else if (prevState === originalToState) {
 				// Backward transition
 				event = {
 					type: "GO_BACK",
-					toState,
+					toState: originalToState,
 					notes: "Moved backwards via Kanban board",
 				};
 			} else {
-				throw new Error(`Invalid transition from ${fromState} to ${toState}`);
+				throw new Error(`Invalid transition from ${originalFromState} to ${originalToState}`);
 			}
 
 			await transitionDealState({ dealId, event });
 
 			toast.success("Deal Updated", {
-				description: `Deal moved from ${DEAL_STATE_LABELS[fromState]} to ${DEAL_STATE_LABELS[toState]}`,
+				description: `Deal moved from ${DEAL_STATE_LABELS[originalFromState]} to ${DEAL_STATE_LABELS[originalToState]}`,
 			});
 		} catch (error) {
 			console.error("Failed to transition deal:", error);

@@ -341,11 +341,20 @@ export default function DealDetailPage({
 									</div>
 								)}
 
-								{deal.completedAt && (
+								{deal.currentState === "completed" && deal.completedAt && (
 									<div className="border-t pt-4">
 										<Badge className="text-sm" variant="success">
 											Ownership Transferred{" "}
 											{format(new Date(deal.completedAt), "MMM d, yyyy")}
+										</Badge>
+									</div>
+								)}
+
+								{deal.currentState === "cancelled" && deal.cancelledAt && (
+									<div className="border-t pt-4">
+										<Badge className="text-sm" variant="destructive">
+											Deal Cancelled{" "}
+											{format(new Date(deal.cancelledAt), "MMM d, yyyy")}
 										</Badge>
 									</div>
 								)}
@@ -488,12 +497,22 @@ export default function DealDetailPage({
 										</span>
 									</div>
 
-									{deal.completedAt && (
+									{deal.currentState === "completed" && deal.completedAt && (
 										<div className="flex items-center gap-2 text-sm">
 											<CheckCircle className="h-4 w-4 text-green-600" />
 											<span className="text-muted-foreground">Completed:</span>
 											<span className="font-medium">
 												{format(new Date(deal.completedAt), "MMM d, yyyy")}
+											</span>
+										</div>
+									)}
+
+									{deal.currentState === "cancelled" && deal.cancelledAt && (
+										<div className="flex items-center gap-2 text-sm">
+											<XCircle className="h-4 w-4 text-red-600" />
+											<span className="text-muted-foreground">Cancelled:</span>
+											<span className="font-medium">
+												{format(new Date(deal.cancelledAt), "MMM d, yyyy")}
 											</span>
 										</div>
 									)}

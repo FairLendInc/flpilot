@@ -148,7 +148,7 @@ export function ImageCarousel({ images, propertyTitle }: ImageCarouselProps) {
 
 			{/* Thumbnail navigation */}
 			{showNavigation && (
-				<div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+				<div className="mt-1 flex justify-end gap-2 overflow-x-auto p-1">
 					{sortedImages.map((image, index) => (
 						<button
 							aria-current={index === selectedIndex}

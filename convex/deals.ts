@@ -12,8 +12,8 @@ import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "./auth.config";
 import { logger } from "../lib/logger";
-import { getInitialSnapshot } from "xstate";
-import { dealMachine, type DealContext, type DealEvent, type DealStateValue } from "./dealStateMachine";
+import { createActor } from "xstate";
+import { dealMachine, type DealContext, type DealEvent } from "./dealStateMachine";
 import { createOwnershipInternal } from "./ownership";
 
 /**
@@ -590,16 +590,32 @@ export const createDeal = mutation({
 			stateHistory: [],
 		};
 
-		// Create the deal
+		// Create initial actor to get proper XState snapshot format
+		// XState v5 requires a proper snapshot structure, not just { value, context }
+		const initialActor = createActor(dealMachine);
+		initialActor.start();
+
+		// Get the initial snapshot structure from XState
+		let initialSnapshot = initialActor.getSnapshot();
+		initialActor.stop();
+
+		// Update the snapshot's context with our initial context (with placeholder ID)
+		const placeholderContext: DealContext = {
+			...initialContext,
+			dealId: "PLACEHOLDER" as Id<"deals">,
+		};
+		initialSnapshot = {
+			...initialSnapshot,
+			context: placeholderContext,
+		};
+
+		// Create the deal with proper XState snapshot
 		const dealId = await ctx.db.insert("deals", {
 			lockRequestId: args.lockRequestId,
 			listingId: lockRequest.listingId,
 			mortgageId: listing.mortgageId,
 			investorId: lockRequest.requestedBy,
-			stateMachineState: JSON.stringify({
-				value: "locked",
-				context: { ...initialContext, dealId: "PLACEHOLDER" },
-			}),
+			stateMachineState: JSON.stringify(initialSnapshot),
 			currentState: "locked",
 			purchasePercentage,
 			dealValue,
@@ -617,19 +633,24 @@ export const createDeal = mutation({
 		});
 
 		// Update state machine context with actual deal ID
-		const deal = await ctx.db.get(dealId);
-		if (deal) {
-			const updatedContext = {
-				...initialContext,
-				dealId,
-			};
-			await ctx.db.patch(dealId, {
-				stateMachineState: JSON.stringify({
-					value: "locked",
-					context: updatedContext,
-				}),
-			});
-		}
+		// Create actor, update context, and get new snapshot
+		const tempActor = createActor(dealMachine);
+		tempActor.start();
+		let updatedSnapshot = tempActor.getSnapshot();
+		tempActor.stop();
+
+		const updatedContext: DealContext = {
+			...initialContext,
+			dealId,
+		};
+		updatedSnapshot = {
+			...updatedSnapshot,
+			context: updatedContext,
+		};
+
+		await ctx.db.patch(dealId, {
+			stateMachineState: JSON.stringify(updatedSnapshot),
+		});
 
 		// Create alert for admin
 		await ctx.db.insert("alerts", {
@@ -683,31 +704,12 @@ export const transitionDealState = mutation({
 		}
 
 		// Parse current state machine state
-		const parsedState = JSON.parse(deal.stateMachineState);
-
-		// Get the context from parsed state or fallback to deal data
-		const context: DealContext = parsedState.context || {
-			dealId: deal._id,
-			lockRequestId: deal.lockRequestId,
-			listingId: deal.listingId,
-			mortgageId: deal.mortgageId,
-			investorId: deal.investorId,
-			purchasePercentage: deal.purchasePercentage,
-			dealValue: deal.dealValue,
-			currentState: deal.currentState as DealStateValue,
-			stateHistory: deal.stateHistory,
-		};
-
-		// Get current state value
-		const currentStateValue = parsedState.value || deal.currentState;
-
-		// Get initial snapshot and update it with our context and state
-		const initialSnapshot = getInitialSnapshot(dealMachine);
-		const currentSnapshot = {
-			...initialSnapshot,
-			value: currentStateValue,
-			context,
-		};
+		const machineState = JSON.parse(deal.stateMachineState);
+		
+		// Create actor and restore state
+		const actor = createActor(dealMachine, {
+			snapshot: machineState,
+		});
 
 		// Send event with admin ID
 		const eventWithAdmin = {
@@ -715,20 +717,12 @@ export const transitionDealState = mutation({
 			adminId: adminUserId,
 		} as DealEvent;
 
-		// Use synchronous transition with minimal actor scope
-		const newSnapshot = dealMachine.transition(currentSnapshot, eventWithAdmin, {
-			self: {} as any,
-			id: 'temp',
-			sessionId: 'temp',
-			system: {
-				_sendInspectionEvent: () => {},
-			} as any,
-			defer: () => {},
-			emit: () => {},
-			logger: () => {},
-			stopChild: () => {},
-			actionExecutor: {} as any,
-		});
+		// Start actor and send event
+		actor.start();
+		actor.send(eventWithAdmin);
+
+		// Get new state
+		const newSnapshot = actor.getSnapshot();
 		const newContext = newSnapshot.context;
 
 		// Update deal in database
@@ -738,6 +732,9 @@ export const transitionDealState = mutation({
 			updatedAt: Date.now(),
 			stateHistory: newContext.stateHistory,
 		});
+
+		// Stop actor
+		actor.stop();
 
 		// Create alert for state change
 		await ctx.db.insert("alerts", {
@@ -795,54 +792,31 @@ export const cancelDeal = mutation({
 		});
 
 		// Update deal to cancelled state
-		const parsedState = JSON.parse(deal.stateMachineState);
-		const context: DealContext = parsedState.context || {
-			dealId: deal._id,
-			lockRequestId: deal.lockRequestId,
-			listingId: deal.listingId,
-			mortgageId: deal.mortgageId,
-			investorId: deal.investorId,
-			purchasePercentage: deal.purchasePercentage,
-			dealValue: deal.dealValue,
-			currentState: deal.currentState as DealStateValue,
-			stateHistory: deal.stateHistory,
-		};
-		const currentStateValue = parsedState.value || deal.currentState;
-		const initialSnapshot = getInitialSnapshot(dealMachine);
-		const currentSnapshot = {
-			...initialSnapshot,
-			value: currentStateValue,
-			context,
-		};
+		const machineState = JSON.parse(deal.stateMachineState);
 		const cancelEvent: DealEvent = {
 			type: "CANCEL",
 			adminId: adminUserId,
 			reason: args.reason,
 		};
 
-		// Use synchronous transition with minimal actor scope
-		const newSnapshot = dealMachine.transition(currentSnapshot, cancelEvent, {
-			self: {} as any,
-			id: 'temp',
-			sessionId: 'temp',
-			system: {
-				_sendInspectionEvent: () => {},
-			} as any,
-			defer: () => {},
-			emit: () => {},
-			logger: () => {},
-			stopChild: () => {},
-			actionExecutor: {} as any,
+		const actor = createActor(dealMachine, {
+			snapshot: machineState,
 		});
+		actor.start();
+		actor.send(cancelEvent);
+
+		const newSnapshot = actor.getSnapshot();
 		const newContext = newSnapshot.context;
 
 		await ctx.db.patch(args.dealId, {
 			stateMachineState: JSON.stringify(newSnapshot),
 			currentState: "cancelled",
 			updatedAt: Date.now(),
-			completedAt: Date.now(),
+			cancelledAt: Date.now(),
 			stateHistory: newContext.stateHistory,
 		});
+
+		actor.stop();
 
 		// Create alerts
 		await ctx.db.insert("alerts", {
@@ -907,9 +881,8 @@ export const completeDeal = mutation({
 			throw new Error("Ownership has already been transferred for this deal");
 		}
 
-		// Transfer ownership from FairLend to investor using internal helper
-		// This bypasses authentication since completeDeal already verified admin access
-		// Automatically reduces FairLend's ownership per the 100% invariant
+		// Call ownership.createOwnershipInternal to transfer 100% from FairLend to investor
+		// This will automatically reduce FairLend's ownership per the 100% invariant
 		await createOwnershipInternal(ctx, {
 			mortgageId: deal.mortgageId,
 			ownerId: deal.investorId,
@@ -982,44 +955,19 @@ export const archiveDeal = mutation({
 		}
 
 		// Transition to archived state
-		const parsedState = JSON.parse(deal.stateMachineState);
-		const context: DealContext = parsedState.context || {
-			dealId: deal._id,
-			lockRequestId: deal.lockRequestId,
-			listingId: deal.listingId,
-			mortgageId: deal.mortgageId,
-			investorId: deal.investorId,
-			purchasePercentage: deal.purchasePercentage,
-			dealValue: deal.dealValue,
-			currentState: deal.currentState as DealStateValue,
-			stateHistory: deal.stateHistory,
-		};
-		const currentStateValue = parsedState.value || deal.currentState;
-		const initialSnapshot = getInitialSnapshot(dealMachine);
-		const currentSnapshot = {
-			...initialSnapshot,
-			value: currentStateValue,
-			context,
-		};
+		const machineState = JSON.parse(deal.stateMachineState);
 		const archiveEvent: DealEvent = {
 			type: "ARCHIVE",
 			adminId: adminUserId,
 		};
 
-		// Use synchronous transition with minimal actor scope
-		const newSnapshot = dealMachine.transition(currentSnapshot, archiveEvent, {
-			self: {} as any,
-			id: 'temp',
-			sessionId: 'temp',
-			system: {
-				_sendInspectionEvent: () => {},
-			} as any,
-			defer: () => {},
-			emit: () => {},
-			logger: () => {},
-			stopChild: () => {},
-			actionExecutor: {} as any,
+		const actor = createActor(dealMachine, {
+			snapshot: machineState,
 		});
+		actor.start();
+		actor.send(archiveEvent);
+
+		const newSnapshot = actor.getSnapshot();
 		const newContext = newSnapshot.context;
 
 		await ctx.db.patch(args.dealId, {
@@ -1029,6 +977,8 @@ export const archiveDeal = mutation({
 			updatedAt: Date.now(),
 			stateHistory: newContext.stateHistory,
 		});
+
+		actor.stop();
 
 		logger.info("Deal archived", {
 			dealId: args.dealId,

@@ -15,7 +15,10 @@ import { logger } from "../lib/logger";
 export const getMortgageOwnership = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const ownership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -34,7 +37,10 @@ export const getMortgageOwnership = query({
 export const getUserPortfolio = query({
 	args: { userId: v.union(v.literal("fairlend"), v.id("users")) },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
@@ -51,7 +57,10 @@ export const checkOwnership = query({
 		ownerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage_owner", (q) =>
@@ -67,7 +76,10 @@ export const checkOwnership = query({
 export const getInstitutionalPortfolio = query({
 	args: {},
 	handler: async (ctx) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", "fairlend"))
@@ -82,7 +94,10 @@ export const getInstitutionalPortfolio = query({
 export const getTotalOwnership = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
-		await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		const allOwnership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -231,7 +246,10 @@ export const createOwnership = mutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
@@ -258,7 +276,10 @@ export const updateOwnershipPercentage = mutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
@@ -364,7 +385,10 @@ export const transferOwnership = mutation({
 		newOwnerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
@@ -398,7 +422,10 @@ export const transferOwnership = mutation({
 export const deleteOwnership = mutation({
 	args: { id: v.id("mortgage_ownership") },
 	handler: async (ctx, args) => {
-		const identity = await requireAuth(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
 		
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({

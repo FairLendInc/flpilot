@@ -1,19 +1,20 @@
 "use client";
 
+import {
+	Description,
+	Header,
+	Label,
+	ListBox,
+	Popover,
+	Separator,
+} from "@heroui/react";
+import { Icon } from "@iconify/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { api } from "@/convex/_generated/api";
 
 // Regex for splitting on whitespace (defined at module level for performance)
@@ -37,6 +38,7 @@ export function UserAvatarMenu() {
 	const { user, loading, signOut } = useAuth();
 	const [showSettings, setShowSettings] = useState(false);
 	const [settingsKey, setSettingsKey] = useState(0);
+	const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 	const router = useRouter();
 
 	// Query user profile from Convex to get custom profile picture
@@ -81,12 +83,29 @@ export function UserAvatarMenu() {
 		);
 	}
 
+	function handleAction(key: string | number) {
+		if (key === "profile") {
+			setIsPopoverOpen(false);
+			router.push("/profile");
+		} else if (key === "admin-panel") {
+			setIsPopoverOpen(false);
+			if (!showSettings) setShowSettings(true);
+			setSettingsKey((k) => k + 1);
+		} else if (key === "logout") {
+			setIsPopoverOpen(false);
+			signOut().then(() => {
+				router.push("/");
+			});
+		}
+	}
+
 	return (
 		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger aria-label="Open user menu" asChild>
+			<Popover.Root isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+				<Popover.Trigger>
 					<button
-						className="inline-flex items-center justify-center rounded-full outline-hidden"
+						aria-label="Open user menu"
+						className="inline-flex cursor-pointer items-center justify-center rounded-full outline-hidden"
 						type="button"
 					>
 						<Avatar>
@@ -97,45 +116,104 @@ export function UserAvatarMenu() {
 							)}
 						</Avatar>
 					</button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="z-200" sideOffset={8}>
-					<DropdownMenuLabel>
-						<div className="flex min-w-40 flex-col">
-							<span className="font-medium text-sm">{displayName}</span>
-							{email ? (
-								<span className="text-muted-foreground text-xs">{email}</span>
-							) : null}
-						</div>
-					</DropdownMenuLabel>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						onSelect={(e) => {
-							e.preventDefault();
-							router.push("/profile");
-						}}
-					>
-						Profile
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onSelect={() => {
-							if (!showSettings) setShowSettings(true);
-							setSettingsKey((k) => k + 1);
-						}}
-					>
-						Admin Panel
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						onSelect={async (e) => {
-							e.preventDefault();
-							await signOut();
-							router.push("/");
-						}}
-					>
-						Logout
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+				</Popover.Trigger>
+				<Popover.Content
+					className="bg-opacity-100"
+					offset={8}
+					placement="bottom end"
+					style={{ zIndex: 200 }}
+				>
+					<Popover.Dialog>
+						<Popover.Arrow />
+						<ListBox
+							aria-label="User menu"
+							className="w-full border-none shadow-none"
+							onAction={handleAction}
+							selectionMode="none"
+						>
+							<ListBox.Section>
+								<Header>
+									<div className="flex min-w-40 flex-col">
+										<Label className="font-semibold text-foreground text-sm">
+											{displayName}
+										</Label>
+										{email ? (
+											<Description className="text-foreground/70 text-xs">
+												{email}
+											</Description>
+										) : null}
+									</div>
+								</Header>
+							</ListBox.Section>
+							<Separator />
+							<ListBox.Section>
+								<Header className="font-semibold text-foreground/60 text-xs uppercase tracking-wider">
+									Account
+								</Header>
+								<ListBox.Item id="profile" textValue="Profile">
+									<div className="flex h-8 items-start justify-center pt-px">
+										<Icon
+											className="size-4 shrink-0 text-foreground/70"
+											icon="gravity-ui:person"
+										/>
+									</div>
+									<div className="flex flex-col">
+										<Label className="font-medium text-foreground">
+											Profile
+										</Label>
+										<Description className="text-foreground/60 text-xs">
+											View your profile
+										</Description>
+									</div>
+								</ListBox.Item>
+								<ListBox.Item id="admin-panel" textValue="Admin Panel">
+									<div className="flex h-8 items-start justify-center pt-px">
+										<Icon
+											className="size-4 shrink-0 text-foreground/70"
+											icon="gravity-ui:gear"
+										/>
+									</div>
+									<div className="flex flex-col">
+										<Label className="font-medium text-foreground">
+											Admin Panel
+										</Label>
+										<Description className="text-foreground/60 text-xs">
+											Manage settings
+										</Description>
+									</div>
+								</ListBox.Item>
+							</ListBox.Section>
+							<Separator />
+							<ListBox.Section>
+								<Header className="font-semibold text-foreground/60 text-xs uppercase tracking-wider">
+									Session
+								</Header>
+								<ListBox.Item
+									className="flex items-center hover:bg-destructive/10"
+									id="logout"
+									textValue="Logout"
+									variant="danger"
+								>
+									<div className="flex h-8 items-start justify-center pt-px">
+										<Icon
+											className="size-4 shrink-0 text-destructive"
+											icon="gravity-ui:arrow-right-from-square"
+										/>
+									</div>
+									<div className="flex flex-col">
+										<Label className="font-medium text-destructive">
+											Logout
+										</Label>
+										<Description className="text-destructive/70 text-xs">
+											Sign out of your account
+										</Description>
+									</div>
+								</ListBox.Item>
+							</ListBox.Section>
+						</ListBox>
+					</Popover.Dialog>
+				</Popover.Content>
+			</Popover.Root>
 			{showSettings ? <SettingsDialog key={settingsKey} /> : null}
 		</>
 	);

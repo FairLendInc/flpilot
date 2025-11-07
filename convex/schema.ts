@@ -339,6 +339,7 @@ export default defineSchema({
 		updatedAt: v.number(),
 		completedAt: v.optional(v.number()),
 		archivedAt: v.optional(v.number()),
+		cancelledAt: v.optional(v.number()),
 
 		// Audit trail - tracks all state transitions
 		stateHistory: v.array(

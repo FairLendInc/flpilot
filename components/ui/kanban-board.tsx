@@ -211,12 +211,21 @@ export default function KanbanBoard() {
 
                       <div className="flex items-center justify-between pt-2 border-t border-neutral-200/30 dark:border-neutral-700/30">
                         <div className="flex items-center gap-4 text-neutral-600 dark:text-neutral-400">
-                          {task.dueDate && (
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              <span className="text-xs font-medium">Jan 15</span>
-                            </div>
-                          )}
+                          {task.dueDate && (() => {
+                            const date = new Date(task.dueDate);
+                            const isValidDate = !Number.isNaN(date.getTime());
+                            return isValidDate ? (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                <span className="text-xs font-medium">
+                                  {date.toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+                            ) : null;
+                          })()}
                           {task.comments && (
                             <div className="flex items-center gap-1">
                               <MessageCircle className="w-4 h-4" />

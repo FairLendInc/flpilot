@@ -8,6 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { hasRbacAccess } from "./auth.config";
 import { logger } from "../lib/logger";
 
 /**
@@ -387,8 +388,14 @@ export const createAlert = mutation({
 			throw new Error("Authentication required");
 		}
 
-		// Note: In a real implementation, we'd check for admin role here
-		// For now, any authenticated user can create alerts
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
 
 		const alertId = await ctx.db.insert("alerts", {
 			userId: args.userId,
