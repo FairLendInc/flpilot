@@ -25,12 +25,8 @@ export default async function ListingsPage() {
 
 	return (
 		<ViewTransition name="listings">
-			<div className="min-h-screen">
-				<div className="container mx-auto flex flex-col py-6">
-					<div className="min-w-[90vw]">
-						<ListingsClient preloaded={preloadedListings} />
-					</div>
-				</div>
+			<div className="container flex w-screen flex-col">
+				<ListingsClient preloaded={preloadedListings} />
 			</div>
 		</ViewTransition>
 	);

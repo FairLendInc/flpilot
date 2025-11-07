@@ -111,91 +111,74 @@ export function AlertBell() {
 					</div>
 				) : (
 					<>
-						<ScrollArea className="max-h-96">
-							{unreadAlerts.slice(0, 5).map((alert) => {
-								const IconComponent = ALERT_ICONS[alert.type] || Bell;
+						<ScrollArea className="h-[384px]">
+							<div className="pr-4">
+								{unreadAlerts.map((alert) => {
+									const IconComponent = ALERT_ICONS[alert.type] || Bell;
 
-								return (
-									<DropdownMenuItem
-										className="cursor-pointer p-3 hover:bg-muted/50"
-										key={alert._id}
-										onClick={() =>
-											handleAlertClick(
-												alert._id,
-												alert.relatedDealId as string | undefined
-											)
-										}
-									>
-										<div className="flex w-full gap-3">
-											<div className="flex-shrink-0">
-												<div
-													className={cn(
-														"rounded-full p-2",
-														alert.severity === "info" && "bg-blue-50",
-														alert.severity === "warning" && "bg-yellow-50",
-														alert.severity === "error" && "bg-red-50"
-													)}
-												>
-													<IconComponent
+									return (
+										<DropdownMenuItem
+											className="cursor-pointer p-3 hover:bg-muted/50"
+											key={alert._id}
+											onClick={() =>
+												handleAlertClick(
+													alert._id,
+													alert.relatedDealId as string | undefined
+												)
+											}
+										>
+											<div className="flex w-full gap-3">
+												<div className="flex-shrink-0">
+													<div
 														className={cn(
-															"h-4 w-4",
-															alert.severity === "info" && "text-blue-600",
-															alert.severity === "warning" && "text-yellow-600",
-															alert.severity === "error" && "text-red-600"
+															"rounded-full p-2",
+															alert.severity === "info" && "bg-blue-50",
+															alert.severity === "warning" && "bg-yellow-50",
+															alert.severity === "error" && "bg-red-50"
 														)}
-													/>
+													>
+														<IconComponent
+															className={cn(
+																"h-4 w-4",
+																alert.severity === "info" && "text-blue-600",
+																alert.severity === "warning" &&
+																	"text-yellow-600",
+																alert.severity === "error" && "text-red-600"
+															)}
+														/>
+													</div>
+												</div>
+												<div className="min-w-0 flex-1">
+													<p className="font-medium text-sm">{alert.title}</p>
+													<p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs">
+														{alert.message}
+													</p>
+													<p className="mt-1 text-muted-foreground text-xs">
+														{getTimeAgo(alert.createdAt)}
+													</p>
 												</div>
 											</div>
-											<div className="min-w-0 flex-1">
-												<p className="font-medium text-sm">{alert.title}</p>
-												<p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs">
-													{alert.message}
-												</p>
-												<p className="mt-1 text-muted-foreground text-xs">
-													{getTimeAgo(alert.createdAt)}
-												</p>
-											</div>
-										</div>
-									</DropdownMenuItem>
-								);
-							})}
+										</DropdownMenuItem>
+									);
+								})}
+							</div>
 						</ScrollArea>
-
-						{unreadAlerts.length > 5 && (
-							<>
-								<DropdownMenuSeparator />
-								<div className="p-2">
-									<Button
-										className="w-full justify-center"
-										onClick={() => {
-											setIsOpen(false);
-											router.push("/dashboard/alerts");
-										}}
-										size="sm"
-										variant="ghost"
-									>
-										View all {unreadCount} notifications
-									</Button>
-								</div>
-							</>
-						)}
+						<DropdownMenuSeparator />
+						<div className="p-2">
+							<Button
+								className="w-full justify-center"
+								onClick={() => {
+									setIsOpen(false);
+									router.push("/dashboard/alerts");
+								}}
+								size="sm"
+								variant="ghost"
+							>
+								View all notifications
+							</Button>
+						</div>
 					</>
 				)}
-
-				<DropdownMenuSeparator />
-				<div className="p-2">
-					<Button
-						className="w-full justify-center"
-						onClick={() => {
-							setIsOpen(false);
-							router.push("/dashboard/alerts");
-						}}
-						size="sm"
-						variant="ghost"
-					>
-						View all notifications
-					</Button>
-				</div>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

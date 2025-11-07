@@ -5,6 +5,7 @@ import "./globals.css";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import NavigationProvider from "@/components/navigation/navigation-provider";
 import { PageSkeleton } from "@/components/skeletons";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -31,20 +32,29 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
-				<Suspense fallback={<PageSkeleton />}>
-					<ConvexClientProvider>
-						{/* <ViewTransition> */}
-						<NavigationProvider>
-							<main className="min-h-screen pt-28">{children}</main>
-							<Toaster />
-						</NavigationProvider>
-						{/* </ViewTransition> */}
-					</ConvexClientProvider>
-				</Suspense>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					disableTransitionOnChange
+					enableSystem
+				>
+					<Suspense fallback={<PageSkeleton />}>
+						<ConvexClientProvider>
+							{/* <ViewTransition> */}
+							<NavigationProvider>
+								<main className="h-[calc(100vh-6rem)] pt-24" id="main-content">
+									{children}
+								</main>
+								<Toaster />
+							</NavigationProvider>
+							{/* </ViewTransition> */}
+						</ConvexClientProvider>
+					</Suspense>
+				</ThemeProvider>
 			</body>
 		</html>
 	);

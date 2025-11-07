@@ -29,13 +29,6 @@ export const navigationItems: NavItem[] = [
 		matchPrefix: true, // Will match /listings, /listings/123, etc.
 	},
 	{
-		id: "server",
-		label: "Server",
-		href: "/server",
-		icon: BookOpen,
-		matchPrefix: false, // Exact match
-	},
-	{
 		id: "blog",
 		label: "Blog",
 		href: "/blog",

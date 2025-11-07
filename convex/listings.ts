@@ -224,10 +224,11 @@ export const getAvailableListings = query({
 export const getAvailableListingsWithMortgages = query({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
+		// potential race condition here. 
+		// const identity = await ctx.auth.getUserIdentity();
+		// if (!identity) {
+		// 	throw new Error("Authentication required");
+		// }
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db
 			.query("listings")

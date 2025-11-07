@@ -6,7 +6,6 @@
  * transition between states.
  */
 
-import { AlertBell } from "@/components/alerts/AlertBell";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { DealKanbanBoard } from "./components/DealKanbanBoard";
@@ -23,9 +22,6 @@ export default function DealsPage() {
 				<SidebarTrigger className="-ml-1" />
 				<Separator className="mr-2 h-4" orientation="vertical" />
 				<h1 className="font-semibold text-lg">Deal Management</h1>
-				<div className="ml-auto">
-					<AlertBell />
-				</div>
 			</header>
 
 			<div className="flex flex-1 flex-col gap-6 p-6">

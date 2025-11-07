@@ -166,14 +166,14 @@ export function TwoLevelNav({
 						{!isListingsPage(pathname) && (
 							<div className="flex items-center gap-2 md:gap-3">
 								{/* Search */}
-								<Button
+								{/* <Button
 									className="flex items-center gap-2 rounded-lg bg-secondary/50 px-2 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-secondary md:px-3"
 									onClick={() => setCommandOpen(true)}
 									variant="ghost"
 								>
 									<Search className="size-4" />
 									<span className="hidden text-xs sm:inline">Search...</span>
-								</Button>
+								</Button> */}
 
 								{/* Feedback - Hidden on small mobile */}
 								<Button
