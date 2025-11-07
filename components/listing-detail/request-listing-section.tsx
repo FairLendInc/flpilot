@@ -1,18 +1,20 @@
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import {
 	Building2,
 	Check,
 	ChevronsUpDown,
 	FileText,
+	Lock,
 	Mail,
 	User,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -36,6 +38,8 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 
 // Mock lawyer data
@@ -65,10 +69,17 @@ type RequestListingSectionProps = {
 			currentValue: number;
 		};
 	};
+	listingId: Id<"listings">;
 };
 
-export function RequestListingSection({ listing }: RequestListingSectionProps) {
+export function RequestListingSection({
+	listing,
+	listingId,
+}: RequestListingSectionProps) {
 	const { user } = useAuth();
+
+	// Reactively check listing lock status
+	const listingData = useQuery(api.listings.getListingById, { listingId });
 
 	// Form state
 	const [selectedLawyer, setSelectedLawyer] = useState<string>("");
@@ -76,6 +87,15 @@ export function RequestListingSection({ listing }: RequestListingSectionProps) {
 	const [lawyerEmail, setLawyerEmail] = useState("");
 	const [disclosureAccepted, setDisclosureAccepted] = useState(false);
 	const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	// Get mutation hook
+	const createRequest = useMutation(api.lockRequests.createLockRequest);
+
+	// Check if listing is locked
+	const isLocked = listingData?.locked ?? false;
+	const isLoadingListing = listingData === undefined;
+	const hasListingError = listingData === null;
 
 	// Get display name for user
 	const displayName = user
@@ -99,20 +119,112 @@ export function RequestListingSection({ listing }: RequestListingSectionProps) {
 		emailRegex.test(lawyerEmail); // Basic email validation
 
 	// Handle form submission
-	const handleSubmit = () => {
-		if (!isFormValid) return;
+	const handleSubmit = async () => {
+		if (!isFormValid || isSubmitting || isLocked) return;
 
-		toast.success("Listing Request Submitted!", {
-			description: `Your request for ${listing.title} has been successfully submitted. We'll notify you once it's processed.`,
-			duration: 5000,
-		});
+		setIsSubmitting(true);
+		try {
+			const requestId = await createRequest({
+				listingId,
+				requestNotes: undefined, // No notes field in this form
+				lawyerName: selectedLawyer,
+				lawyerLSONumber,
+				lawyerEmail,
+			});
 
-		// Reset form
-		setSelectedLawyer("");
-		setLawyerLSONumber("");
-		setLawyerEmail("");
-		setDisclosureAccepted(false);
+			// Verify mutation returned a valid requestId
+			if (!requestId) {
+				throw new Error("Request creation failed: no ID returned");
+			}
+
+			toast.success("Listing Request Submitted!", {
+				description: `Your request for ${listing.title} has been successfully submitted. We'll notify you once it's processed.`,
+				duration: 5000,
+			});
+
+			// Reset form
+			setSelectedLawyer("");
+			setLawyerLSONumber("");
+			setLawyerEmail("");
+			setDisclosureAccepted(false);
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : "Failed to submit request";
+			console.error("Lock request creation error:", error);
+			toast.error("Request failed", {
+				description: errorMessage,
+			});
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
+
+	// Show loading state
+	if (isLoadingListing) {
+		return (
+			<div className="mb-12">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-2xl">Request This Listing</CardTitle>
+						<CardDescription className="text-base">
+							Loading listing information...
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-4">
+							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
+	// Show error state
+	if (hasListingError) {
+		return (
+			<div className="mb-12">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-2xl">Error Loading Listing</CardTitle>
+						<CardDescription className="text-base">
+							Unable to load listing information. Please refresh the page.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button onClick={() => window.location.reload()} variant="default">
+							Refresh Page
+						</Button>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
+	// Show locked message if listing is locked
+	if (isLocked) {
+		return (
+			<div className="mb-12">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-2xl">Listing Locked</CardTitle>
+						<CardDescription className="text-base">
+							This listing has been locked and is no longer available for new
+							requests.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Badge className="gap-2" variant="destructive">
+							<Lock className="h-3 w-3" />
+							Listing is locked
+						</Badge>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
 
 	return (
 		<div className="mb-12">
@@ -362,11 +474,11 @@ export function RequestListingSection({ listing }: RequestListingSectionProps) {
 									{/* Submit Button */}
 									<Button
 										className="w-full"
-										disabled={!isFormValid}
+										disabled={!isFormValid || isSubmitting || isLocked}
 										onClick={handleSubmit}
 										size="lg"
 									>
-										Request Listing
+										{isSubmitting ? "Submitting..." : "Request Listing"}
 									</Button>
 								</CardContent>
 							</Card>

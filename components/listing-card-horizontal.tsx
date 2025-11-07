@@ -2,9 +2,11 @@
 
 import { Button, Card } from "@heroui/react";
 import { Icon } from "@iconify/react";
+import { Lock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { ViewTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 
 export type HorizontalProps = {
 	id?: string;
@@ -17,6 +19,7 @@ export type HorizontalProps = {
 	marketValue?: number;
 	propertyType?: string;
 	maturityDate?: string;
+	locked?: boolean; // Add locked status prop
 };
 
 export function Horizontal({
@@ -30,22 +33,35 @@ export function Horizontal({
 	marketValue = 500000,
 	propertyType,
 	maturityDate = "01/01/2026",
+	locked = false,
 }: HorizontalProps = {}) {
 	const CardContent = (
-		<Card.Root className="w-full items-stretch transition-all duration-300 hover:scale-103 hover:shadow-black/10 hover:shadow-lg md:flex-row">
+		<Card.Root
+			className="w-full items-stretch transition-all duration-300 hover:scale-103 hover:shadow-black/10 hover:shadow-lg md:flex-row"
+			variant="transparent"
+		>
 			<div className="relative aspect-video w-full overflow-hidden rounded-panel md:aspect-square md:max-w-[180px] xl:aspect-auto">
 				<Image
 					alt={`${title} thumbnail`}
-					className="pointer-events-none select-none object-cover transition-all duration-300 hover:scale-105"
+					className="pointer-events-none select-none rounded-xl object-cover transition-all duration-300 hover:scale-105"
 					fill
 					sizes="(max-width: 640px) 100vw, 180px"
 					src={imageSrc}
 				/>
+				{/* Locked badge overlay */}
+				{locked && (
+					<div className="absolute top-2 left-2">
+						<Badge className="gap-1" variant="destructive">
+							<Lock className="h-3 w-3" />
+							Locked
+						</Badge>
+					</div>
+				)}
 			</div>
 			<div className="flex flex-1 flex-col gap-3">
 				<Card.Header className="gap-1">
 					<Card.Title>{title}</Card.Title>
-					<Card.Description className="flex w-full items-center gap-2 align-middle text-foreground/70">
+					<Card.Description className="flex w-full items-center gap-2 text-nowrap align-middle text-foreground/70">
 						<Icon className="h-4 w-4" icon="lucide:map-pin" />
 						{address}
 						{propertyType && ` • ${propertyType}`}

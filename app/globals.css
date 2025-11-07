@@ -53,6 +53,13 @@
 	--radius-xl: calc(var(--radius) + 4px);
 	--color-destructive-foreground: var(--destructive-foreground);
 	--radius: var(----radius);
+	/* HeroUI status colors for badge variants */
+	--color-success: var(--success);
+	--color-success-foreground: var(--success-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-danger: var(--danger);
+	--color-danger-foreground: var(--danger-foreground);
 }
 
 :root {

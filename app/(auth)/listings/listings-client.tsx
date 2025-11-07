@@ -12,6 +12,7 @@ import { ListingMapPopup } from "@/components/listing-map-popup";
 type ListingItem = FilterableItem & {
 	id: string;
 	imageSrc: string;
+	locked?: boolean; // Add locked status for badge display
 };
 
 type ListingsClientProps = {
@@ -41,6 +42,7 @@ export function ListingsClient({ listings }: ListingsClientProps) {
 					apr={listing.apr}
 					id={listing.id}
 					imageSrc={listing.imageSrc}
+					locked={listing.locked}
 					ltv={listing.ltv}
 					marketValue={listing.marketValue}
 					maturityDate={listing.maturityDate?.toLocaleDateString("en-US", {

@@ -14,6 +14,16 @@ const createTest = () => convexTest(schema, modules);
 // ============================================================================
 
 /**
+ * Get an authenticated test instance with broker role
+ */
+function getAuthenticatedTest(t: ReturnType<typeof createTest>) {
+	return t.withIdentity({
+		subject: "test-broker-user",
+		role: "broker",
+	});
+}
+
+/**
  * Create a test mortgage with default values
  */
 async function createTestMortgage(t: ReturnType<typeof createTest>) {
@@ -26,8 +36,9 @@ async function createTestMortgage(t: ReturnType<typeof createTest>) {
 		});
 	});
 
-	// Create mortgage
-	const mortgageId = await t.mutation(api.mortgages.createMortgage, {
+	// Create mortgage with authenticated test instance
+	const authT = getAuthenticatedTest(t);
+	const mortgageId = await authT.mutation(api.mortgages.createMortgage, {
 		borrowerId,
 		loanAmount: 500000,
 		interestRate: 5.5,
@@ -90,7 +101,8 @@ async function verifyTotalOwnership(
 	mortgageId: Id<"mortgages">,
 	expectedTotal = 100
 ) {
-	const result = await t.query(api.ownership.getTotalOwnership, {
+	const authT = getAuthenticatedTest(t);
+	const result = await authT.query(api.ownership.getTotalOwnership, {
 		mortgageId,
 	});
 
@@ -147,8 +159,9 @@ describe("createMortgage", () => {
 		const { borrowerId } = await createTestMortgage(t);
 
 		// Test invalid loan amount
+		const authT = getAuthenticatedTest(t);
 		await expect(
-			t.mutation(api.mortgages.createMortgage, {
+			authT.mutation(api.mortgages.createMortgage, {
 				borrowerId,
 				loanAmount: -1000,
 				interestRate: 5.5,
@@ -181,8 +194,9 @@ describe("createMortgage", () => {
 		const { borrowerId } = await createTestMortgage(t);
 
 		// Invalid LTV
+		const authT = getAuthenticatedTest(t);
 		await expect(
-			t.mutation(api.mortgages.createMortgage, {
+			authT.mutation(api.mortgages.createMortgage, {
 				borrowerId,
 				loanAmount: 500000,
 				interestRate: 5.5,
@@ -211,7 +225,7 @@ describe("createMortgage", () => {
 
 		// Invalid coordinates
 		await expect(
-			t.mutation(api.mortgages.createMortgage, {
+			authT.mutation(api.mortgages.createMortgage, {
 				borrowerId,
 				loanAmount: 500000,
 				interestRate: 5.5,
@@ -252,7 +266,8 @@ describe("createOwnership", () => {
 		const user1 = await createTestUser(t, "investor_1");
 
 		// Create 25% ownership for investor
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: user1,
 			ownershipPercentage: 25,
@@ -277,19 +292,20 @@ describe("createOwnership", () => {
 		const investor3 = await createTestUser(t, "investor_3");
 
 		// Create ownership for 3 investors
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: investor1,
 			ownershipPercentage: 20,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: investor2,
 			ownershipPercentage: 30,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: investor3,
 			ownershipPercentage: 15,
@@ -311,7 +327,8 @@ describe("createOwnership", () => {
 		const investor1 = await createTestUser(t, "investor_1");
 
 		// Sell 100% to an investor
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: investor1,
 			ownershipPercentage: 100,
@@ -331,7 +348,8 @@ describe("createOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Sell 90% first, leaving only 10% with FairLend
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_0")),
 			ownershipPercentage: 90,
@@ -339,7 +357,7 @@ describe("createOwnership", () => {
 
 		// Now try to create 20% ownership (more than FairLend's 10%)
 		await expect(
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_1")),
 				ownershipPercentage: 20,
@@ -353,7 +371,8 @@ describe("createOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create ownership for investor_1
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: user1,
 			ownershipPercentage: 25,
@@ -361,7 +380,7 @@ describe("createOwnership", () => {
 
 		// Try to create again for same investor
 		await expect(
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: user1,
 				ownershipPercentage: 10,
@@ -375,8 +394,9 @@ describe("createOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
+		const authT = getAuthenticatedTest(t);
 		await expect(
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: "fairlend",
 				ownershipPercentage: 50,
@@ -388,8 +408,9 @@ describe("createOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
+		const authT = getAuthenticatedTest(t);
 		await expect(
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_1")),
 				ownershipPercentage: 0,
@@ -397,7 +418,7 @@ describe("createOwnership", () => {
 		).rejects.toThrow("Ownership percentage must be between 0 and 100");
 
 		await expect(
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_1")),
 				ownershipPercentage: -10,
@@ -409,8 +430,9 @@ describe("createOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
+		const authT = getAuthenticatedTest(t);
 		await expect(
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_1")),
 				ownershipPercentage: 150,
@@ -427,8 +449,9 @@ describe("createOwnership", () => {
 			await ctx.db.delete(mortgageId);
 		});
 
+		const authT = getAuthenticatedTest(t);
 		await expect(
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_1")),
 				ownershipPercentage: 25,
@@ -441,7 +464,8 @@ describe("createOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create several ownerships
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 33.33,
@@ -449,7 +473,7 @@ describe("createOwnership", () => {
 
 		await verifyTotalOwnership(t, mortgageId, 100);
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 25.5,
@@ -463,7 +487,8 @@ describe("createOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create ownership with fractional percentage
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 12.345,
@@ -486,14 +511,15 @@ describe("updateOwnershipPercentage", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create initial 25% ownership
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
 		});
 
 		// Update to 40%
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: ownershipId,
 			ownershipPercentage: 40,
 		});
@@ -510,14 +536,15 @@ describe("updateOwnershipPercentage", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create initial 50% ownership
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 50,
 		});
 
 		// Update to 30%
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: ownershipId,
 			ownershipPercentage: 30,
 		});
@@ -538,7 +565,8 @@ describe("updateOwnershipPercentage", () => {
 		expect(fairlendOwnership).toBeTruthy();
 
 		// Update FairLend to 80%
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: fairlendOwnership!._id,
 			ownershipPercentage: 80,
 		});
@@ -553,7 +581,8 @@ describe("updateOwnershipPercentage", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Sell 100% to investor
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 100,
@@ -564,7 +593,7 @@ describe("updateOwnershipPercentage", () => {
 		expect(fairlendOwnership).toBeNull();
 
 		// Update investor to 80% (should create FairLend with 20%)
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: ownershipId,
 			ownershipPercentage: 80,
 		});
@@ -582,14 +611,15 @@ describe("updateOwnershipPercentage", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create 90% ownership for investor
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 90,
 		});
 
 		// Update to 100% (FairLend should be deleted)
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: ownershipId,
 			ownershipPercentage: 100,
 		});
@@ -607,13 +637,14 @@ describe("updateOwnershipPercentage", () => {
 
 		// Create 60% ownership for investor_1 and 30% for investor_2
 		// This leaves FairLend with only 10%
-		const ownershipId1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 60,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 30,
@@ -621,7 +652,7 @@ describe("updateOwnershipPercentage", () => {
 
 		// Try to update investor_1 to 95% (would require FairLend to be -25%)
 		await expect(
-			t.mutation(api.ownership.updateOwnershipPercentage, {
+			authT.mutation(api.ownership.updateOwnershipPercentage, {
 				id: ownershipId1,
 				ownershipPercentage: 95,
 			})
@@ -633,7 +664,8 @@ describe("updateOwnershipPercentage", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create 50% ownership for investor
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 50,
@@ -641,7 +673,7 @@ describe("updateOwnershipPercentage", () => {
 
 		// Try to update to -60% (would require FairLend to be 160%)
 		await expect(
-			t.mutation(api.ownership.updateOwnershipPercentage, {
+			authT.mutation(api.ownership.updateOwnershipPercentage, {
 				id: ownershipId,
 				ownershipPercentage: -60,
 			})
@@ -652,14 +684,15 @@ describe("updateOwnershipPercentage", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 50,
 		});
 
 		await expect(
-			t.mutation(api.ownership.updateOwnershipPercentage, {
+			authT.mutation(api.ownership.updateOwnershipPercentage, {
 				id: ownershipId,
 				ownershipPercentage: -5,
 			})
@@ -670,14 +703,15 @@ describe("updateOwnershipPercentage", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 50,
 		});
 
 		await expect(
-			t.mutation(api.ownership.updateOwnershipPercentage, {
+			authT.mutation(api.ownership.updateOwnershipPercentage, {
 				id: ownershipId,
 				ownershipPercentage: 101,
 			})
@@ -689,15 +723,16 @@ describe("updateOwnershipPercentage", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create and delete an ownership record to get a valid but deleted ID
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
 		});
-		await t.mutation(api.ownership.deleteOwnership, { id: ownershipId });
+		await authT.mutation(api.ownership.deleteOwnership, { id: ownershipId });
 
 		await expect(
-			t.mutation(api.ownership.updateOwnershipPercentage, {
+			authT.mutation(api.ownership.updateOwnershipPercentage, {
 				id: ownershipId,
 				ownershipPercentage: 50,
 			})
@@ -708,26 +743,27 @@ describe("updateOwnershipPercentage", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
 		});
 
 		// Multiple updates
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: ownershipId,
 			ownershipPercentage: 40,
 		});
 		await verifyTotalOwnership(t, mortgageId, 100);
 
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: ownershipId,
 			ownershipPercentage: 15,
 		});
 		await verifyTotalOwnership(t, mortgageId, 100);
 
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: ownershipId,
 			ownershipPercentage: 99.5,
 		});
@@ -738,26 +774,27 @@ describe("updateOwnershipPercentage", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 30,
 		});
 
-		const id2 = await t.mutation(api.ownership.createOwnership, {
+		const id2 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 20,
 		});
 
 		// Update both
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: id1,
 			ownershipPercentage: 35,
 		});
 		await verifyTotalOwnership(t, mortgageId, 100);
 
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: id2,
 			ownershipPercentage: 25,
 		});
@@ -779,14 +816,15 @@ describe("deleteOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create 30% ownership
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 30,
 		});
 
 		// Delete it
-		await t.mutation(api.ownership.deleteOwnership, { id: ownershipId });
+		await authT.mutation(api.ownership.deleteOwnership, { id: ownershipId });
 
 		// Verify FairLend back to 100%
 		const fairlendOwnership = await getFairlendOwnership(t, mortgageId);
@@ -800,13 +838,14 @@ describe("deleteOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create two investors
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 30,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 20,
@@ -817,7 +856,7 @@ describe("deleteOwnership", () => {
 		expect(fairlendOwnership?.ownershipPercentage).toBe(50);
 
 		// Delete investor_1
-		await t.mutation(api.ownership.deleteOwnership, { id: id1 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id1 });
 
 		// FairLend should now have 80%
 		fairlendOwnership = await getFairlendOwnership(t, mortgageId);
@@ -831,13 +870,14 @@ describe("deleteOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Sell 100% to two investors
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 60,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 40,
@@ -848,7 +888,7 @@ describe("deleteOwnership", () => {
 		expect(fairlendOwnership).toBeNull();
 
 		// Delete investor_1
-		await t.mutation(api.ownership.deleteOwnership, { id: id1 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id1 });
 
 		// Verify FairLend now exists with 60%
 		fairlendOwnership = await getFairlendOwnership(t, mortgageId);
@@ -865,8 +905,9 @@ describe("deleteOwnership", () => {
 		const fairlendOwnership = await getFairlendOwnership(t, mortgageId);
 		expect(fairlendOwnership).toBeTruthy();
 
+		const authT = getAuthenticatedTest(t);
 		await expect(
-			t.mutation(api.ownership.deleteOwnership, {
+			authT.mutation(api.ownership.deleteOwnership, {
 				id: fairlendOwnership!._id,
 			})
 		).rejects.toThrow("Cannot delete FairLend ownership record");
@@ -877,15 +918,16 @@ describe("deleteOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create and delete an ownership record to get a valid but deleted ID
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
 		});
-		await t.mutation(api.ownership.deleteOwnership, { id: ownershipId });
+		await authT.mutation(api.ownership.deleteOwnership, { id: ownershipId });
 
 		await expect(
-			t.mutation(api.ownership.deleteOwnership, { id: ownershipId })
+			authT.mutation(api.ownership.deleteOwnership, { id: ownershipId })
 		).rejects.toThrow("Ownership record not found");
 	});
 
@@ -893,22 +935,23 @@ describe("deleteOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
 		});
 
-		const id2 = await t.mutation(api.ownership.createOwnership, {
+		const id2 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 35,
 		});
 
-		await t.mutation(api.ownership.deleteOwnership, { id: id1 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id1 });
 		await verifyTotalOwnership(t, mortgageId, 100);
 
-		await t.mutation(api.ownership.deleteOwnership, { id: id2 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id2 });
 		await verifyTotalOwnership(t, mortgageId, 100);
 	});
 
@@ -917,19 +960,20 @@ describe("deleteOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create 3 investors totaling 100%
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 40,
 		});
 
-		const id2 = await t.mutation(api.ownership.createOwnership, {
+		const id2 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 35,
 		});
 
-		const id3 = await t.mutation(api.ownership.createOwnership, {
+		const id3 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_3")),
 			ownershipPercentage: 25,
@@ -940,9 +984,9 @@ describe("deleteOwnership", () => {
 		expect(fairlendOwnership).toBeNull();
 
 		// Delete all investors
-		await t.mutation(api.ownership.deleteOwnership, { id: id1 });
-		await t.mutation(api.ownership.deleteOwnership, { id: id2 });
-		await t.mutation(api.ownership.deleteOwnership, { id: id3 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id1 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id2 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id3 });
 
 		// Verify FairLend back to 100%
 		fairlendOwnership = await getFairlendOwnership(t, mortgageId);
@@ -962,7 +1006,8 @@ describe("transferOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create ownership for investor_1
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 30,
@@ -970,7 +1015,7 @@ describe("transferOwnership", () => {
 
 		// Transfer to investor_2
 		const user2 = await createTestUser(t, "investor_2");
-		await t.mutation(api.ownership.transferOwnership, {
+		await authT.mutation(api.ownership.transferOwnership, {
 			id: ownershipId,
 			newOwnerId: user2,
 		});
@@ -988,13 +1033,14 @@ describe("transferOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 45.67,
 		});
 
-		await t.mutation(api.ownership.transferOwnership, {
+		await authT.mutation(api.ownership.transferOwnership, {
 			id: ownershipId,
 			newOwnerId: (await createTestUser(t, "investor_2")),
 		});
@@ -1011,14 +1057,15 @@ describe("transferOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 30,
 		});
 
 		// Transfer to fairlend (should work)
-		await t.mutation(api.ownership.transferOwnership, {
+		await authT.mutation(api.ownership.transferOwnership, {
 			id: ownershipId,
 			newOwnerId: "fairlend",
 		});
@@ -1035,15 +1082,16 @@ describe("transferOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create and delete an ownership record to get a valid but deleted ID
-		const ownershipId = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const ownershipId = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
 		});
-		await t.mutation(api.ownership.deleteOwnership, { id: ownershipId });
+		await authT.mutation(api.ownership.deleteOwnership, { id: ownershipId });
 
 		await expect(
-			t.mutation(api.ownership.transferOwnership, {
+			authT.mutation(api.ownership.transferOwnership, {
 				id: ownershipId,
 				newOwnerId: (await createTestUser(t, "investor_2")),
 			})
@@ -1060,7 +1108,8 @@ describe("getTotalOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const result = await t.query(api.ownership.getTotalOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const result = await authT.query(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1078,19 +1127,20 @@ describe("getTotalOwnership", () => {
 		const user1 = await createTestUser(t, "investor_1");
 		const user2 = await createTestUser(t, "investor_2");
 
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: user1,
 			ownershipPercentage: 30,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: user2,
 			ownershipPercentage: 25,
 		});
 
-		const result = await t.query(api.ownership.getTotalOwnership, {
+		const result = await authT.query(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1110,13 +1160,14 @@ describe("getTotalOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 50,
 		});
 
-		const result = await t.query(api.ownership.getTotalOwnership, {
+		const result = await authT.query(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1128,19 +1179,20 @@ describe("getTotalOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 33.33,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 33.33,
 		});
 
-		const result = await t.query(api.ownership.getTotalOwnership, {
+		const result = await authT.query(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1155,19 +1207,20 @@ describe("getMortgageOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 20,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 30,
 		});
 
-		const result = await t.query(api.ownership.getMortgageOwnership, {
+		const result = await authT.query(api.ownership.getMortgageOwnership, {
 			mortgageId,
 		});
 
@@ -1197,7 +1250,8 @@ describe("getMortgageOwnership", () => {
 			await ctx.db.delete(mortgageId);
 		});
 
-		const result = await t.query(api.ownership.getMortgageOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const result = await authT.query(api.ownership.getMortgageOwnership, {
 			mortgageId,
 		});
 
@@ -1215,19 +1269,20 @@ describe("getUserPortfolio", () => {
 		const user1 = await createTestUser(t, "investor_1");
 
 		// Investor owns parts of both
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId: m1,
 			ownerId: user1,
 			ownershipPercentage: 30,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId: m2,
 			ownerId: user1,
 			ownershipPercentage: 40,
 		});
 
-		const result = await t.query(api.ownership.getUserPortfolio, {
+		const result = await authT.query(api.ownership.getUserPortfolio, {
 			userId: user1,
 		});
 
@@ -1241,7 +1296,8 @@ describe("getUserPortfolio", () => {
 		const t = createTest();
 		await createTestMortgage(t);
 
-		const result = await t.query(api.ownership.getUserPortfolio, {
+		const authT = getAuthenticatedTest(t);
+		const result = await authT.query(api.ownership.getUserPortfolio, {
 			userId: (await createTestUser(t, "investor_999")),
 		});
 
@@ -1255,13 +1311,14 @@ describe("checkOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 		const user1 = await createTestUser(t, "investor_1");
 
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: user1,
 			ownershipPercentage: 30,
 		});
 
-		const result = await t.query(api.ownership.checkOwnership, {
+		const result = await authT.query(api.ownership.checkOwnership, {
 			mortgageId,
 			ownerId: user1,
 		});
@@ -1275,7 +1332,8 @@ describe("checkOwnership", () => {
 		const t = createTest();
 		const { mortgageId } = await createTestMortgage(t);
 
-		const result = await t.query(api.ownership.checkOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const result = await authT.query(api.ownership.checkOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_999")),
 		});
@@ -1294,19 +1352,20 @@ describe("getInstitutionalPortfolio", () => {
 		const { mortgageId: m3 } = await createTestMortgage(t);
 
 		// Sell part of m1 and m2, keep m3 100% FairLend
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId: m1,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 50,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId: m2,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 100,
 		});
 
-		const result = await t.query(api.ownership.getInstitutionalPortfolio, {});
+		const result = await authT.query(api.ownership.getInstitutionalPortfolio, {});
 
 		// Should have FairLend ownership for m1 (50%) and m3 (100%)
 		// m2 has no FairLend ownership (100% sold)
@@ -1330,7 +1389,8 @@ describe("ownership invariant integration", () => {
 		// Scenario: Multiple investors buy, sell, and transfer ownership
 
 		// 1. Investor 1 buys 25%
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
@@ -1338,7 +1398,7 @@ describe("ownership invariant integration", () => {
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// 2. Investor 2 buys 30%
-		const id2 = await t.mutation(api.ownership.createOwnership, {
+		const id2 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 30,
@@ -1346,7 +1406,7 @@ describe("ownership invariant integration", () => {
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// 3. Investor 3 buys 15%
-		const id3 = await t.mutation(api.ownership.createOwnership, {
+		const id3 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_3")),
 			ownershipPercentage: 15,
@@ -1354,18 +1414,18 @@ describe("ownership invariant integration", () => {
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// 4. Investor 1 increases to 35%
-		await t.mutation(api.ownership.updateOwnershipPercentage, {
+		await authT.mutation(api.ownership.updateOwnershipPercentage, {
 			id: id1,
 			ownershipPercentage: 35,
 		});
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// 5. Investor 3 sells (deletes)
-		await t.mutation(api.ownership.deleteOwnership, { id: id3 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id3 });
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// 6. Investor 2 transfers to Investor 4
-		await t.mutation(api.ownership.transferOwnership, {
+		await authT.mutation(api.ownership.transferOwnership, {
 			id: id2,
 			newOwnerId: (await createTestUser(t, "investor_4")),
 		});
@@ -1381,18 +1441,19 @@ describe("ownership invariant integration", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create multiple ownerships concurrently
+		const authT = getAuthenticatedTest(t);
 		await Promise.all([
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_1")),
 				ownershipPercentage: 20,
 			}),
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_2")),
 				ownershipPercentage: 30,
 			}),
-			t.mutation(api.ownership.createOwnership, {
+			authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, "investor_3")),
 				ownershipPercentage: 15,
@@ -1403,7 +1464,7 @@ describe("ownership invariant integration", () => {
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// Verify all investors were created
-		const total = await t.query(api.ownership.getTotalOwnership, {
+		const total = await authT.query(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 		expect(total.owners).toBe(4); // 3 investors + FairLend
@@ -1414,13 +1475,14 @@ describe("ownership invariant integration", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create initial ownerships
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 25,
 		});
 
-		const id2 = await t.mutation(api.ownership.createOwnership, {
+		const id2 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 25,
@@ -1428,11 +1490,11 @@ describe("ownership invariant integration", () => {
 
 		// Update both concurrently
 		await Promise.all([
-			t.mutation(api.ownership.updateOwnershipPercentage, {
+			authT.mutation(api.ownership.updateOwnershipPercentage, {
 				id: id1,
 				ownershipPercentage: 30,
 			}),
-			t.mutation(api.ownership.updateOwnershipPercentage, {
+			authT.mutation(api.ownership.updateOwnershipPercentage, {
 				id: id2,
 				ownershipPercentage: 20,
 			}),
@@ -1447,19 +1509,20 @@ describe("ownership invariant integration", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create multiple ownerships
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 20,
 		});
 
-		const id2 = await t.mutation(api.ownership.createOwnership, {
+		const id2 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 30,
 		});
 
-		const id3 = await t.mutation(api.ownership.createOwnership, {
+		const id3 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_3")),
 			ownershipPercentage: 15,
@@ -1467,15 +1530,15 @@ describe("ownership invariant integration", () => {
 
 		// Delete two concurrently
 		await Promise.all([
-			t.mutation(api.ownership.deleteOwnership, { id: id1 }),
-			t.mutation(api.ownership.deleteOwnership, { id: id2 }),
+			authT.mutation(api.ownership.deleteOwnership, { id: id1 }),
+			authT.mutation(api.ownership.deleteOwnership, { id: id2 }),
 		]);
 
 		// Verify total is still 100%
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// Delete the last one
-		await t.mutation(api.ownership.deleteOwnership, { id: id3 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id3 });
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// FairLend should be back to 100%
@@ -1488,9 +1551,10 @@ describe("ownership invariant integration", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Simulate a busy marketplace
+		const authT = getAuthenticatedTest(t);
 		for (let i = 0; i < 5; i++) {
 			// Buy
-			const id = await t.mutation(api.ownership.createOwnership, {
+			const id = await authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, `investor_${i}`)),
 				ownershipPercentage: 10,
@@ -1498,7 +1562,7 @@ describe("ownership invariant integration", () => {
 			await verifyTotalOwnership(t, mortgageId, 100);
 
 			// Sell
-			await t.mutation(api.ownership.deleteOwnership, { id });
+			await authT.mutation(api.ownership.deleteOwnership, { id });
 			await verifyTotalOwnership(t, mortgageId, 100);
 		}
 
@@ -1512,7 +1576,8 @@ describe("ownership invariant integration", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Investor 1 buys 100%
-		const id1 = await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		const id1 = await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 100,
@@ -1524,7 +1589,7 @@ describe("ownership invariant integration", () => {
 		expect(fairlendOwnership).toBeNull();
 
 		// Investor 1 sells back 100%
-		await t.mutation(api.ownership.deleteOwnership, { id: id1 });
+		await authT.mutation(api.ownership.deleteOwnership, { id: id1 });
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// FairLend back to 100%
@@ -1532,7 +1597,7 @@ describe("ownership invariant integration", () => {
 		expect(fairlendOwnership?.ownershipPercentage).toBe(100);
 
 		// Investor 2 buys 100%
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 100,
@@ -1549,25 +1614,26 @@ describe("ownership invariant integration", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create precise fractional ownerships
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 12.5,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 37.5,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_3")),
 			ownershipPercentage: 25.0,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_4")),
 			ownershipPercentage: 25.0,
@@ -1588,15 +1654,16 @@ describe("ownership invariant integration", () => {
 
 		// Create various ownerships and verify after each
 		const percentages = [15.3, 22.7, 31.1, 18.9, 12.0];
+		const authT = getAuthenticatedTest(t);
 
 		for (const pct of percentages) {
-			await t.mutation(api.ownership.createOwnership, {
+			await authT.mutation(api.ownership.createOwnership, {
 				mortgageId,
 				ownerId: (await createTestUser(t, `investor_${pct}`)),
 				ownershipPercentage: pct,
 			});
 
-			const total = await t.query(api.ownership.getTotalOwnership, {
+			const total = await authT.query(api.ownership.getTotalOwnership, {
 				mortgageId,
 			});
 
@@ -1610,25 +1677,26 @@ describe("ownership invariant integration", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		// Create ownerships with difficult fractions
-		await t.mutation(api.ownership.createOwnership, {
+		const authT = getAuthenticatedTest(t);
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_1")),
 			ownershipPercentage: 33.33,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_2")),
 			ownershipPercentage: 33.34,
 		});
 
-		await t.mutation(api.ownership.createOwnership, {
+		await authT.mutation(api.ownership.createOwnership, {
 			mortgageId,
 			ownerId: (await createTestUser(t, "investor_3")),
 			ownershipPercentage: 33.33,
 		});
 
-		const total = await t.query(api.ownership.getTotalOwnership, {
+		const total = await authT.query(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 

@@ -101,10 +101,37 @@ async function createTestUser(t: ReturnType<typeof createTest>) {
 }
 
 // ============================================================================
-// Admin Listing Update Tests
+// Broker/Admin Listing Update Tests
 // ============================================================================
 
-describe("updateListing - Admin Authorization", () => {
+describe("updateListing - Broker/Admin Authorization", () => {
+	test("should update listing visible field with broker role", async () => {
+		const t = createTest();
+
+		// Create test data
+		const borrowerId = await createTestBorrower(t);
+		const mortgageId = await createTestMortgage(t, borrowerId);
+		const listingId = await createTestListing(t, mortgageId);
+
+		// Mock broker identity and use returned instance
+		const brokerT = t.withIdentity({
+			subject: "broker-user-123",
+			role: "broker",
+		});
+
+		// Update listing visibility
+		const result = await brokerT.mutation(api.listings.updateListing, {
+			listingId,
+			visible: false,
+		});
+
+		expect(result).toBe(listingId);
+
+		// Verify the update
+		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		expect(listing?.visible).toBe(false);
+	});
+
 	test("should update listing visible field with admin role", async () => {
 		const t = createTest();
 
@@ -130,6 +157,36 @@ describe("updateListing - Admin Authorization", () => {
 		// Verify the update
 		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
 		expect(listing?.visible).toBe(false);
+	});
+
+	test("should update listing lock state with broker role", async () => {
+		const t = createTest();
+
+		const borrowerId = await createTestBorrower(t);
+		const mortgageId = await createTestMortgage(t, borrowerId);
+		const listingId = await createTestListing(t, mortgageId);
+		const userId = await createTestUser(t);
+
+		// Mock broker identity and use returned instance
+		const brokerT = t.withIdentity({
+			subject: "broker-user-123",
+			role: "broker",
+		});
+
+		// Lock the listing
+		const result = await brokerT.mutation(api.listings.updateListing, {
+			listingId,
+			locked: true,
+			lockedBy: userId,
+		});
+
+		expect(result).toBe(listingId);
+
+		// Verify the lock
+		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		expect(listing?.locked).toBe(true);
+		expect(listing?.lockedBy).toBe(userId);
+		expect(listing?.lockedAt).toBeDefined();
 	});
 
 	test("should update listing lock state with admin role", async () => {
@@ -160,6 +217,43 @@ describe("updateListing - Admin Authorization", () => {
 		expect(listing?.locked).toBe(true);
 		expect(listing?.lockedBy).toBe(userId);
 		expect(listing?.lockedAt).toBeDefined();
+	});
+
+	test("should unlock listing with broker role", async () => {
+		const t = createTest();
+
+		const borrowerId = await createTestBorrower(t);
+		const mortgageId = await createTestMortgage(t, borrowerId);
+		const userId = await createTestUser(t);
+
+		// Create locked listing
+		const listingId = await t.run(async (ctx) => {
+			return await ctx.db.insert("listings", {
+				mortgageId,
+				visible: true,
+				locked: true,
+				lockedBy: userId,
+				lockedAt: Date.now(),
+			});
+		});
+
+		// Mock broker identity and use returned instance
+		const brokerT = t.withIdentity({
+			subject: "broker-user-123",
+			role: "broker",
+		});
+
+		// Unlock the listing
+		await brokerT.mutation(api.listings.updateListing, {
+			listingId,
+			locked: false,
+		});
+
+		// Verify the unlock
+		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		expect(listing?.locked).toBe(false);
+		expect(listing?.lockedBy).toBeUndefined();
+		expect(listing?.lockedAt).toBeUndefined();
 	});
 
 	test("should unlock listing with admin role", async () => {
@@ -215,14 +309,14 @@ describe("updateListing - Admin Authorization", () => {
 		).rejects.toThrow("Authentication required");
 	});
 
-	test("should reject update without admin role", async () => {
+	test("should reject update without broker/admin role", async () => {
 		const t = createTest();
 
 		const borrowerId = await createTestBorrower(t);
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 
-		// Mock non-admin identity and use returned instance
+		// Mock non-broker/admin identity and use returned instance
 		const userT = t.withIdentity({
 			subject: "regular-user-123",
 			role: "user",
@@ -234,15 +328,44 @@ describe("updateListing - Admin Authorization", () => {
 				listingId,
 				visible: false,
 			})
-		).rejects.toThrow("Unauthorized: Admin privileges are required");
+		).rejects.toThrow("Broker or admin privileges are required");
 	});
 });
 
 // ============================================================================
-// Admin Listing Deletion Tests
+// Broker/Admin Listing Deletion Tests
 // ============================================================================
 
-describe("deleteListing - Admin Authorization and Cascade", () => {
+describe("deleteListing - Broker/Admin Authorization and Cascade", () => {
+	test("should delete listing with broker role", async () => {
+		const t = createTest();
+
+		const borrowerId = await createTestBorrower(t);
+		const mortgageId = await createTestMortgage(t, borrowerId);
+		const listingId = await createTestListing(t, mortgageId);
+
+		// Mock broker identity and use returned instance
+		const brokerT = t.withIdentity({
+			subject: "broker-user-123",
+			role: "broker",
+		});
+
+		// Delete listing
+		const result = await brokerT.mutation(api.listings.deleteListing, {
+			listingId,
+		});
+
+		expect(result).toBe(listingId);
+
+		// Verify deletion
+		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		expect(listing).toBeNull();
+
+		// Verify mortgage still exists
+		const mortgage = await t.run(async (ctx) => ctx.db.get(mortgageId));
+		expect(mortgage).not.toBeNull();
+	});
+
 	test("should delete listing with admin role", async () => {
 		const t = createTest();
 
@@ -420,14 +543,14 @@ describe("deleteListing - Admin Authorization and Cascade", () => {
 		).rejects.toThrow("Authentication required");
 	});
 
-	test("should reject deletion without admin role", async () => {
+	test("should reject deletion without broker/admin role", async () => {
 		const t = createTest();
 
 		const borrowerId = await createTestBorrower(t);
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 
-		// Mock non-admin identity and use returned instance
+		// Mock non-broker/admin identity and use returned instance
 		const userT = t.withIdentity({
 			subject: "regular-user-123",
 			role: "user",
@@ -438,7 +561,7 @@ describe("deleteListing - Admin Authorization and Cascade", () => {
 			userT.mutation(api.listings.deleteListing, {
 				listingId,
 			})
-		).rejects.toThrow("Unauthorized: Admin privileges are required");
+		).rejects.toThrow("Broker or admin privileges are required");
 	});
 });
 

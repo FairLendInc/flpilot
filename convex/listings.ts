@@ -8,7 +8,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { hasRbacAccess } from "./auth.config";
+import { hasRbacAccess, requireAuth } from "./auth.config";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 import { comparablePayloadValidator } from "./comparables";
 
@@ -176,13 +176,13 @@ export const createFromPayload = mutation({
 			throw new Error("Authentication required");
 		}
 
-		const isAdmin = hasRbacAccess({
-			required_roles: ["admin"],
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
 			user_identity: identity,
 		});
 
-		if (!isAdmin) {
-			throw new Error("Unauthorized: Admin privileges are required");
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges are required");
 		}
 
 		return await runListingCreation(ctx, args);
@@ -203,6 +203,7 @@ export const createFromPayloadInternal = internalMutation({
 export const getAvailableListings = query({
 	args: {},
 	handler: async (ctx) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("listings")
 			.filter((q) =>
@@ -219,12 +220,11 @@ export const getAvailableListings = query({
 export const getAvailableListingsWithMortgages = query({
 	args: {},
 	handler: async (ctx) => {
-		// Get all visible, unlocked listings
+		await requireAuth(ctx);
+		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db
 			.query("listings")
-			.filter((q) =>
-				q.and(q.eq(q.field("visible"), true), q.eq(q.field("locked"), false))
-			)
+			.filter((q) => q.eq(q.field("visible"), true))
 			.collect();
 
 		// Fetch mortgage data for each listing with signed URLs
@@ -264,10 +264,22 @@ export const getAvailableListingsWithMortgages = query({
 export const getListingByMortgage = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("listings")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
 			.first();
+	},
+});
+
+/**
+ * Get listing by listing ID
+ */
+export const getListingById = query({
+	args: { listingId: v.id("listings") },
+	handler: async (ctx, args) => {
+		await requireAuth(ctx);
+		return await ctx.db.get(args.listingId);
 	},
 });
 
@@ -277,6 +289,7 @@ export const getListingByMortgage = query({
 export const getUserLockedListings = query({
 	args: { userId: v.id("users") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("listings")
 			.withIndex("by_locked_user", (q) => q.eq("lockedBy", args.userId))
@@ -290,6 +303,7 @@ export const getUserLockedListings = query({
 export const getAllLockedListings = query({
 	args: {},
 	handler: async (ctx) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("listings")
 			.withIndex("by_locked_status", (q) => q.eq("locked", true))
@@ -303,6 +317,7 @@ export const getAllLockedListings = query({
 export const isListingAvailable = query({
 	args: { listingId: v.id("listings") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			return { available: false, reason: "Listing not found" };
@@ -326,6 +341,18 @@ export const createListing = mutation({
 		visible: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
+		const identity = await requireAuth(ctx);
+		
+		// Check broker/admin authorization
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges required");
+		}
+
 		// Validate mortgage exists
 		const mortgage = await ctx.db.get(args.mortgageId);
 		if (!mortgage) {
@@ -351,7 +378,11 @@ export const createListing = mutation({
 });
 
 /**
- * Lock a listing for purchase
+ * Lock a listing for purchase (admin-only, bypasses approval workflow)
+ * 
+ * NOTE: This mutation is restricted to admins only. Investors should use
+ * the lock request approval workflow via createLockRequest mutation.
+ * Admins can use this for urgent cases or testing.
  */
 export const lockListing = mutation({
 	args: {
@@ -359,6 +390,21 @@ export const lockListing = mutation({
 		userId: v.id("users"),
 	},
 	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check broker/admin authorization
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges required");
+		}
+
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			throw new Error("Listing not found");
@@ -415,16 +461,16 @@ export const unlockListing = mutation({
 		// Check if caller is the one who locked it
 		const isLocker = listing.lockedBy === caller._id;
 
-		// Check if caller is admin using RBAC helper
-		const isAdmin = hasRbacAccess({
-			required_roles: ["admin"],
+		// Check if caller is broker/admin using RBAC helper
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
 			user_identity: identity,
 		});
 
-		// Authorization check: must be locker or admin
-		if (!isLocker && !isAdmin) {
+		// Authorization check: must be locker or broker/admin
+		if (!isLocker && !isAuthorized) {
 			throw new Error(
-				"Unauthorized: Only the user who locked this listing or an admin can unlock it"
+				"Unauthorized: Only the user who locked this listing, a broker, or an admin can unlock it"
 			);
 		}
 
@@ -448,6 +494,18 @@ export const updateListingVisibility = mutation({
 		visible: v.boolean(),
 	},
 	handler: async (ctx, args) => {
+		const identity = await requireAuth(ctx);
+		
+		// Check broker/admin authorization
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges required");
+		}
+
 		await ctx.db.patch(args.listingId, { visible: args.visible });
 		return args.listingId;
 	},
@@ -532,6 +590,34 @@ async function deleteListingCore(
 		);
 	}
 
+	// Check for existing lock requests (prevents deletion if requests exist)
+	const lockRequests = await ctx.db
+		.query("lock_requests")
+		.withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
+		.collect();
+
+	if (lockRequests.length > 0 && !args.force) {
+		const statusCounts = lockRequests.reduce<Record<string, number>>(
+			(acc, request) => {
+				acc[request.status] = (acc[request.status] ?? 0) + 1;
+				return acc;
+			},
+			{}
+		);
+		const reasons = Object.entries(statusCounts)
+			.filter(([, count]) => count > 0)
+			.map(([status, count]) => `${count} ${status}`);
+
+		const reasonsText =
+			reasons.length > 0
+				? reasons.join(", ")
+				: "no active labels";
+
+		throw new Error(
+			`Cannot delete listing with existing lock requests (${reasonsText}). Delete requests first or use force option.`
+		);
+	}
+
 	try {
 		// Cascade delete comparables linked to this listing's mortgage
 		const comparables = await ctx.db
@@ -566,26 +652,23 @@ export const updateListing = mutation({
 	},
 	returns: v.id("listings"),
 	handler: async (ctx, args) => {
-		// Validate admin authorization
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
+		// Validate broker/admin authorization
+		const identity = await requireAuth(ctx);
 
-		const isAdmin = hasRbacAccess({
-			required_roles: ["admin"],
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
 			user_identity: identity,
 		});
 
-		if (!isAdmin) {
-			throw new Error("Unauthorized: Admin privileges are required");
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges are required");
 		}
 
 		const result = await updateListingCore(ctx, args);
 
 		// TODO: Add audit trail logging
-		console.log("Listing updated by admin:", {
-			adminId: identity.subject,
+		console.log("Listing updated by broker/admin:", {
+			userId: identity.subject,
 			listingId: args.listingId,
 			updates: {
 				visible: args.visible,
@@ -626,27 +709,24 @@ export const deleteListing = mutation({
 	},
 	returns: v.id("listings"),
 	handler: async (ctx, args) => {
-		// Validate admin authorization
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
+		// Validate broker/admin authorization
+		const identity = await requireAuth(ctx);
 
-		const isAdmin = hasRbacAccess({
-			required_roles: ["admin"],
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
 			user_identity: identity,
 		});
 
-		if (!isAdmin) {
-			throw new Error("Unauthorized: Admin privileges are required");
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges are required");
 		}
 
 		const result = await deleteListingCore(ctx, args);
 
 		// Audit log
 		const listing = await ctx.db.get(args.listingId);
-		console.log("Listing deleted by admin:", {
-			adminId: identity.subject,
+		console.log("Listing deleted by broker/admin:", {
+			userId: identity.subject,
 			listingId: args.listingId,
 			mortgageId: listing?.mortgageId,
 			timestamp: Date.now(),

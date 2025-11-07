@@ -5,6 +5,7 @@ import {
 	FileText,
 	Home,
 	LayoutDashboard,
+	Lock,
 	type LucideIcon,
 	PieChart,
 	Settings,
@@ -60,6 +61,11 @@ export const ROLE_NAVIGATION: Record<UserRole, NavItem[]> = {
 			title: "Listings",
 			url: "/dashboard/admin/listings",
 			icon: FileText,
+		},
+		{
+			title: "Lock Requests",
+			url: "/dashboard/admin/lock-requests",
+			icon: Lock,
 		},
 		{
 			title: "Manage Listings",

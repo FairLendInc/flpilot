@@ -5,6 +5,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth, hasRbacAccess } from "./auth.config";
 
 /**
  * Get cap table for a specific mortgage (all ownership records)
@@ -13,6 +14,7 @@ import { mutation, query } from "./_generated/server";
 export const getMortgageOwnership = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const ownership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -31,6 +33,7 @@ export const getMortgageOwnership = query({
 export const getUserPortfolio = query({
 	args: { userId: v.union(v.literal("fairlend"), v.id("users")) },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
@@ -47,6 +50,7 @@ export const checkOwnership = query({
 		ownerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage_owner", (q) =>
@@ -62,6 +66,7 @@ export const checkOwnership = query({
 export const getInstitutionalPortfolio = query({
 	args: {},
 	handler: async (ctx) => {
+		await requireAuth(ctx);
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", "fairlend"))
@@ -76,6 +81,7 @@ export const getInstitutionalPortfolio = query({
 export const getTotalOwnership = query({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
+		await requireAuth(ctx);
 		const allOwnership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -110,6 +116,18 @@ export const createOwnership = mutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
+		const identity = await requireAuth(ctx);
+		
+		// Check broker/admin authorization
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges required");
+		}
+
 		// Validate percentage range
 		if (
 			args.ownershipPercentage <= 0 ||
@@ -199,6 +217,18 @@ export const updateOwnershipPercentage = mutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
+		const identity = await requireAuth(ctx);
+		
+		// Check broker/admin authorization
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges required");
+		}
+
 		// Validate percentage range
 		if (
 			args.ownershipPercentage < 0 ||
@@ -293,6 +323,18 @@ export const transferOwnership = mutation({
 		newOwnerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
+		const identity = await requireAuth(ctx);
+		
+		// Check broker/admin authorization
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges required");
+		}
+
 		const ownership = await ctx.db.get(args.id);
 		if (!ownership) {
 			throw new Error("Ownership record not found");
@@ -315,6 +357,18 @@ export const transferOwnership = mutation({
 export const deleteOwnership = mutation({
 	args: { id: v.id("mortgage_ownership") },
 	handler: async (ctx, args) => {
+		const identity = await requireAuth(ctx);
+		
+		// Check broker/admin authorization
+		const isAuthorized = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		if (!isAuthorized) {
+			throw new Error("Unauthorized: Broker or admin privileges required");
+		}
+
 		const ownershipRecord = await ctx.db.get(args.id);
 		if (!ownershipRecord) {
 			throw new Error("Ownership record not found");
