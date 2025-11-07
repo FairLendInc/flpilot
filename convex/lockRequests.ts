@@ -75,7 +75,46 @@ function validateLawyerEmail(email: string): void {
 }
 
 /**
- * Create a lock request (investor role required)
+ * Create a lock request for a marketplace listing.
+ *
+ * **Authorization**: Requires investor role (admins can also create for testing)
+ * **Validation**:
+ * - Listing must be visible and unlocked
+ * - Request notes must be <= 1000 characters (optional)
+ * - Lawyer information is required (name, LSO number, email)
+ * - Lawyer email must be valid format
+ *
+ * **Behavior**:
+ * - Creates request with status "pending"
+ * - Sets requestedAt to current timestamp
+ * - Returns the created request ID
+ *
+ * **Errors**:
+ * - "Unauthorized: Investor role required" - User doesn't have investor role
+ * - "Listing not found" - Invalid listingId
+ * - "Listing is not visible" - Listing is hidden
+ * - "Listing is already locked" - Listing cannot accept new requests
+ * - "Request notes exceed character limit of 1000" - Notes too long
+ * - "Lawyer name/email/LSO number is required" - Missing lawyer info
+ * - "Invalid lawyer email format" - Email validation failed
+ *
+ * @param args.listingId - ID of the listing to request lock for
+ * @param args.requestNotes - Optional notes from investor (max 1000 chars)
+ * @param args.lawyerName - Name of the lawyer (required)
+ * @param args.lawyerLSONumber - LSO number of the lawyer (required)
+ * @param args.lawyerEmail - Email of the lawyer (required, must be valid format)
+ * @returns The ID of the created lock request
+ *
+ * @example
+ * ```typescript
+ * const requestId = await createLockRequest({
+ *   listingId: "kg25zy58...",
+ *   requestNotes: "Interested in purchasing 50%",
+ *   lawyerName: "John Doe",
+ *   lawyerLSONumber: "12345",
+ *   lawyerEmail: "john@example.com"
+ * });
+ * ```
  */
 export const createLockRequest = mutation({
 	args: {
@@ -171,7 +210,48 @@ export const createLockRequest = mutation({
 });
 
 /**
- * Approve a lock request (admin only, atomic transaction)
+ * Approve a lock request and lock the listing (admin only).
+ *
+ * **Authorization**: Requires admin role
+ * **Atomic Transaction**: This function performs an atomic read-check-update operation
+ * to prevent race conditions when multiple admins approve different requests simultaneously.
+ *
+ * **Race Condition Prevention**:
+ * - Reads request and listing together in single transaction
+ * - Verifies listing is still available (visible && !locked) before updating
+ * - If listing was locked by another admin, throws error instead of double-locking
+ * - Only one approval can succeed per listing
+ *
+ * **Behavior**:
+ * - Updates request status to "approved"
+ * - Sets reviewedAt and reviewedBy fields
+ * - Locks the listing (sets locked=true, lockedBy=request.requestedBy, lockedAt=now)
+ * - Returns the approved request ID
+ *
+ * **Validation**:
+ * - Request must exist and be in "pending" status
+ * - Listing must exist and be visible
+ * - Listing must not already be locked
+ *
+ * **Errors**:
+ * - "Unauthorized: Admin privileges required" - User doesn't have admin role
+ * - "Request not found" - Invalid requestId
+ * - "Request is not pending" - Request already approved/rejected
+ * - "Listing not found" - Listing was deleted
+ * - "Listing is no longer available" - Listing is hidden or already locked (race condition)
+ *
+ * @param args.requestId - ID of the lock request to approve
+ * @returns The ID of the approved request
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const requestId = await approveLockRequest({ requestId: "kg25zy58..." });
+ *   // Request approved, listing is now locked
+ * } catch (error) {
+ *   // Handle race condition: "Listing is no longer available"
+ * }
+ * ```
  */
 export const approveLockRequest = mutation({
 	args: {
@@ -241,7 +321,35 @@ export const approveLockRequest = mutation({
 });
 
 /**
- * Reject a lock request (admin only)
+ * Reject a lock request (admin only).
+ *
+ * **Authorization**: Requires admin role
+ * **Behavior**:
+ * - Updates request status to "rejected"
+ * - Sets reviewedAt and reviewedBy fields
+ * - Sets optional rejectionReason if provided
+ * - Listing remains available (not locked)
+ *
+ * **Validation**:
+ * - Request must exist and be in "pending" status
+ * - Admin must be authenticated
+ *
+ * **Errors**:
+ * - "Unauthorized: Admin privileges required" - User doesn't have admin role
+ * - "Request not found" - Invalid requestId
+ * - "Request is not pending" - Request already approved/rejected
+ *
+ * @param args.requestId - ID of the lock request to reject
+ * @param args.rejectionReason - Optional reason for rejection
+ * @returns The ID of the rejected request
+ *
+ * @example
+ * ```typescript
+ * await rejectLockRequest({
+ *   requestId: "kg25zy58...",
+ *   rejectionReason: "Incomplete documentation"
+ * });
+ * ```
  */
 export const rejectLockRequest = mutation({
 	args: {
@@ -295,7 +403,31 @@ export const rejectLockRequest = mutation({
 });
 
 /**
- * Cancel a lock request (investor can cancel their own pending requests)
+ * Cancel a lock request (investor can cancel their own pending requests).
+ *
+ * **Authorization**: User must own the request (requestedBy === current user)
+ * **Behavior**:
+ * - Deletes the request (not marked as cancelled, just deleted)
+ * - Only works for pending requests
+ *
+ * **Validation**:
+ * - Request must exist
+ * - User must be the one who created the request
+ * - Request must be in "pending" status
+ *
+ * **Errors**:
+ * - "Authentication required" - User not authenticated
+ * - "Request not found" - Invalid requestId
+ * - "Unauthorized: Not your request" - User doesn't own the request
+ * - "Request is not pending" - Request already approved/rejected
+ *
+ * @param args.requestId - ID of the lock request to cancel
+ * @returns The ID of the cancelled request
+ *
+ * @example
+ * ```typescript
+ * await cancelLockRequest({ requestId: "kg25zy58..." });
+ * ```
  */
 export const cancelLockRequest = mutation({
 	args: {
@@ -673,6 +805,15 @@ export const getApprovedLockRequestsWithDetails = query({
 				}),
 				v.null()
 			),
+			borrower: v.union(
+				v.object({
+					_id: v.id("borrowers"),
+					name: v.string(),
+					email: v.string(),
+					rotessaCustomerId: v.string(),
+				}),
+				v.null()
+			),
 			investor: v.union(
 				v.object({
 					_id: v.id("users"),
@@ -701,6 +842,9 @@ export const getApprovedLockRequestsWithDetails = query({
 				const listing = await ctx.db.get(request.listingId);
 				const mortgage = listing
 					? await ctx.db.get(listing.mortgageId)
+					: null;
+				const borrower = mortgage
+					? await ctx.db.get(mortgage.borrowerId)
 					: null;
 				const investor = await ctx.db.get(request.requestedBy);
 
@@ -734,6 +878,14 @@ export const getApprovedLockRequestsWithDetails = query({
 								address: mortgage.address,
 								appraisalMarketValue: mortgage.appraisalMarketValue,
 								ltv: mortgage.ltv,
+							}
+						: null,
+					borrower: borrower
+						? {
+								_id: borrower._id,
+								name: borrower.name,
+								email: borrower.email,
+								rotessaCustomerId: borrower.rotessaCustomerId,
 							}
 						: null,
 					investor: investor
@@ -841,6 +993,15 @@ export const getRejectedLockRequestsWithDetails = query({
 				}),
 				v.null()
 			),
+			borrower: v.union(
+				v.object({
+					_id: v.id("borrowers"),
+					name: v.string(),
+					email: v.string(),
+					rotessaCustomerId: v.string(),
+				}),
+				v.null()
+			),
 			investor: v.union(
 				v.object({
 					_id: v.id("users"),
@@ -869,6 +1030,9 @@ export const getRejectedLockRequestsWithDetails = query({
 				const listing = await ctx.db.get(request.listingId);
 				const mortgage = listing
 					? await ctx.db.get(listing.mortgageId)
+					: null;
+				const borrower = mortgage
+					? await ctx.db.get(mortgage.borrowerId)
 					: null;
 				const investor = await ctx.db.get(request.requestedBy);
 
@@ -899,6 +1063,14 @@ export const getRejectedLockRequestsWithDetails = query({
 						? {
 								_id: mortgage._id,
 								address: mortgage.address,
+							}
+						: null,
+					borrower: borrower
+						? {
+								_id: borrower._id,
+								name: borrower.name,
+								email: borrower.email,
+								rotessaCustomerId: borrower.rotessaCustomerId,
 							}
 						: null,
 					investor: investor

@@ -11,6 +11,7 @@ import { ListingsClient } from "./listings-client";
 type ListingItem = FilterableItem & {
 	id: string;
 	imageSrc: string;
+	locked?: boolean; // Add locked status for badge display
 };
 
 export const metadata: Metadata = {
@@ -130,9 +131,10 @@ export default async function ListingsPage() {
 	const listingsWithMortgages = preloadedQueryResult(preloadedListings);
 
 	// Transform Convex data to ListingItem format
-	const listings = listingsWithMortgages.map(({ mortgage }) =>
-		transformMortgage(mortgage)
-	);
+	const listings = listingsWithMortgages.map(({ listing, mortgage }) => ({
+		...transformMortgage(mortgage),
+		locked: listing.locked, // Include lock status
+	}));
 
 	return (
 		<ViewTransition name="listings">

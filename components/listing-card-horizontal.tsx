@@ -2,9 +2,11 @@
 
 import { Button, Card } from "@heroui/react";
 import { Icon } from "@iconify/react";
+import { Lock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { ViewTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 
 export type HorizontalProps = {
 	id?: string;
@@ -17,6 +19,7 @@ export type HorizontalProps = {
 	marketValue?: number;
 	propertyType?: string;
 	maturityDate?: string;
+	locked?: boolean; // Add locked status prop
 };
 
 export function Horizontal({
@@ -30,6 +33,7 @@ export function Horizontal({
 	marketValue = 500000,
 	propertyType,
 	maturityDate = "01/01/2026",
+	locked = false,
 }: HorizontalProps = {}) {
 	const CardContent = (
 		<Card.Root
@@ -44,6 +48,15 @@ export function Horizontal({
 					sizes="(max-width: 640px) 100vw, 180px"
 					src={imageSrc}
 				/>
+				{/* Locked badge overlay */}
+				{locked && (
+					<div className="absolute top-2 left-2">
+						<Badge className="gap-1" variant="destructive">
+							<Lock className="h-3 w-3" />
+							Locked
+						</Badge>
+					</div>
+				)}
 			</div>
 			<div className="flex flex-1 flex-col gap-3">
 				<Card.Header className="gap-1">

@@ -219,12 +219,10 @@ export const getAvailableListings = query({
 export const getAvailableListingsWithMortgages = query({
 	args: {},
 	handler: async (ctx) => {
-		// Get all visible, unlocked listings
+		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db
 			.query("listings")
-			.filter((q) =>
-				q.and(q.eq(q.field("visible"), true), q.eq(q.field("locked"), false))
-			)
+			.filter((q) => q.eq(q.field("visible"), true))
 			.collect();
 
 		// Fetch mortgage data for each listing with signed URLs

@@ -97,6 +97,8 @@ export function RequestListingSection({
 
 	// Check if listing is locked
 	const isLocked = listingData?.locked ?? false;
+	const isLoadingListing = listingData === undefined;
+	const hasListingError = listingData === null;
 
 	// Get display name for user
 	const displayName = user
@@ -159,6 +161,53 @@ export function RequestListingSection({
 			setIsSubmitting(false);
 		}
 	};
+
+	// Show loading state
+	if (isLoadingListing) {
+		return (
+			<div className="mb-12">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-2xl">Request This Listing</CardTitle>
+						<CardDescription className="text-base">
+							Loading listing information...
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-4">
+							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
+	// Show error state
+	if (hasListingError) {
+		return (
+			<div className="mb-12">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-2xl">Error Loading Listing</CardTitle>
+						<CardDescription className="text-base">
+							Unable to load listing information. Please refresh the page.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button
+							onClick={() => window.location.reload()}
+							variant="default"
+						>
+							Refresh Page
+						</Button>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
 
 	// Show locked message if listing is locked
 	if (isLocked) {
