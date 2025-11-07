@@ -71,31 +71,29 @@ export function sortLockRequests<T extends LockRequestWithDetails>(
 				break;
 			}
 			case "investor": {
-				const aName = [
-					a.investor?.first_name,
-					a.investor?.last_name,
-				]
-					.filter(Boolean)
-					.join(" ")
-					.toLowerCase() || a.investor?.email?.toLowerCase() || "";
-				const bName = [
-					b.investor?.first_name,
-					b.investor?.last_name,
-				]
-					.filter(Boolean)
-					.join(" ")
-					.toLowerCase() || b.investor?.email?.toLowerCase() || "";
+				const aName =
+					[a.investor?.first_name, a.investor?.last_name]
+						.filter(Boolean)
+						.join(" ")
+						.toLowerCase() ||
+					a.investor?.email?.toLowerCase() ||
+					"";
+				const bName =
+					[b.investor?.first_name, b.investor?.last_name]
+						.filter(Boolean)
+						.join(" ")
+						.toLowerCase() ||
+					b.investor?.email?.toLowerCase() ||
+					"";
 				comparison = aName.localeCompare(bName);
 				break;
 			}
 			case "listing": {
 				const aAddress = a.mortgage?.address
-					? `${a.mortgage.address.street} ${a.mortgage.address.city} ${a.mortgage.address.state}`
-							.toLowerCase()
+					? `${a.mortgage.address.street} ${a.mortgage.address.city} ${a.mortgage.address.state}`.toLowerCase()
 					: "";
 				const bAddress = b.mortgage?.address
-					? `${b.mortgage.address.street} ${b.mortgage.address.city} ${b.mortgage.address.state}`
-							.toLowerCase()
+					? `${b.mortgage.address.street} ${b.mortgage.address.city} ${b.mortgage.address.state}`.toLowerCase()
 					: "";
 				comparison = aAddress.localeCompare(bAddress);
 				break;
@@ -139,13 +137,11 @@ export function searchLockRequests<T extends LockRequestWithDetails>(
 
 	return requests.filter((item) => {
 		// Search investor name/email
-		const investorName = [
-			item.investor?.first_name,
-			item.investor?.last_name,
-		]
-			.filter(Boolean)
-			.join(" ")
-			.toLowerCase() || "";
+		const investorName =
+			[item.investor?.first_name, item.investor?.last_name]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase() || "";
 		const investorEmail = item.investor?.email?.toLowerCase() || "";
 		const investorMatch =
 			investorName.includes(normalizedQuery) ||
@@ -187,4 +183,3 @@ export function filterByLockStatus<T extends LockRequestWithDetails>(
 		return item.listing?.locked !== true;
 	});
 }
-

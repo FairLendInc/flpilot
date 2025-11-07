@@ -2,7 +2,17 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { AlertCircle, ChevronDown, ChevronRight, ChevronUp, Lock, RefreshCw, Search, User, X } from "lucide-react";
+import {
+	AlertCircle,
+	ChevronDown,
+	ChevronRight,
+	ChevronUp,
+	Lock,
+	RefreshCw,
+	Search,
+	User,
+	X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +60,7 @@ import {
 	sortLockRequests,
 } from "@/lib/utils/lock-requests-table-utils";
 import { api } from "@/convex/_generated/api";
+import { LockRequestDetail } from "./LockRequestDetail";
 
 type LockRequestsTableProps = {
 	status: "pending" | "approved" | "rejected";
@@ -164,6 +175,10 @@ export function LockRequestsTable({
 		null
 	);
 	const [rejectionReason, setRejectionReason] = useState("");
+	const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+	const [selectedRequestData, setSelectedRequestData] = useState<
+		(typeof filteredAndSortedRequests)[0] | null
+	>(null);
 
 	const rawRequests =
 		status === "pending"
@@ -186,17 +201,27 @@ export function LockRequestsTable({
 
 		// Apply search
 		if (debouncedSearchQuery.trim()) {
-			result = searchLockRequests(result as any, debouncedSearchQuery) as typeof result;
+			result = searchLockRequests(
+				result as any,
+				debouncedSearchQuery
+			) as typeof result;
 		}
 
 		// Apply lock status filter (only for pending tab)
 		if (status === "pending" && lockStatusFilter !== "all") {
-			result = filterByLockStatus(result as any, lockStatusFilter) as typeof result;
+			result = filterByLockStatus(
+				result as any,
+				lockStatusFilter
+			) as typeof result;
 		}
 
 		// Apply sort
 		if (sortColumn && sortDirection) {
-			result = sortLockRequests(result as any, sortColumn, sortDirection) as typeof result;
+			result = sortLockRequests(
+				result as any,
+				sortColumn,
+				sortDirection
+			) as typeof result;
 		}
 
 		return result;
@@ -212,9 +237,8 @@ export function LockRequestsTable({
 	// Calculate "other pending requests" count for task 3.7
 	const otherPendingCount = useMemo(() => {
 		if (!listingId || !allPendingRequests) return 0;
-		return allPendingRequests.filter(
-			(item) => item.listing?._id === listingId
-		).length;
+		return allPendingRequests.filter((item) => item.listing?._id === listingId)
+			.length;
 	}, [listingId, allPendingRequests]);
 
 	const isLoading = rawRequests === undefined;
@@ -279,7 +303,9 @@ export function LockRequestsTable({
 				{/* Search skeleton */}
 				<div className="flex flex-col gap-4 sm:flex-row">
 					<Skeleton className="h-10 flex-1" />
-					{status === "pending" && <Skeleton className="h-10 w-full sm:w-[180px]" />}
+					{status === "pending" && (
+						<Skeleton className="h-10 w-full sm:w-[180px]" />
+					)}
 				</div>
 				{/* Table skeleton */}
 				<div className="space-y-3">
@@ -398,7 +424,9 @@ export function LockRequestsTable({
 							<>
 								<Search className="h-12 w-12 text-muted-foreground" />
 								<div className="text-center">
-									<h3 className="font-semibold text-lg">No matching requests</h3>
+									<h3 className="font-semibold text-lg">
+										No matching requests
+									</h3>
 									<p className="text-muted-foreground mt-2 text-sm">
 										{searchQuery.trim()
 											? "Try adjusting your search terms or clearing filters."
@@ -410,7 +438,13 @@ export function LockRequestsTable({
 									</p>
 								</div>
 								{(searchQuery.trim() || lockStatusFilter !== "all") && (
-									<Button onClick={() => { clearSearch(); setLockStatusFilter("all"); }} variant="outline">
+									<Button
+										onClick={() => {
+											clearSearch();
+											setLockStatusFilter("all");
+										}}
+										variant="outline"
+									>
 										Clear filters
 									</Button>
 								)}
@@ -419,7 +453,9 @@ export function LockRequestsTable({
 							<>
 								<Lock className="h-12 w-12 text-muted-foreground" />
 								<div className="text-center">
-									<h3 className="font-semibold text-lg">No {status} requests</h3>
+									<h3 className="font-semibold text-lg">
+										No {status} requests
+									</h3>
 									<p className="text-muted-foreground mt-2 text-sm">
 										{status === "pending"
 											? "All lock requests have been reviewed. Check back later for new requests."
@@ -497,174 +533,198 @@ export function LockRequestsTable({
 									<TableHead className="hidden min-w-[100px] md:table-cell">
 										Borrower
 									</TableHead>
-									<TableHead className="hidden min-w-[120px] md:table-cell">
-										Mortgage Details
-									</TableHead>
-									<TableHead className="hidden min-w-[150px] lg:table-cell">
-										Notes
-									</TableHead>
 									<TableHead className="min-w-[100px]">Status</TableHead>
 									{status === "pending" && (
 										<TableHead className="min-w-[180px]">Actions</TableHead>
 									)}
+									{status !== "pending" && (
+										<TableHead className="min-w-[120px]">Actions</TableHead>
+									)}
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-							{filteredAndSortedRequests.map((item) => {
-								const request = item.request;
-								const listing = item.listing;
-								const mortgage = item.mortgage;
-								// Borrower only exists on pending requests
-								const borrower = "borrower" in item ? item.borrower : null;
-								const investor = item.investor;
+								{filteredAndSortedRequests.map((item) => {
+									const request = item.request;
+									const listing = item.listing;
+									const mortgage = item.mortgage;
+									// Borrower only exists on pending requests
+									const borrower = "borrower" in item ? item.borrower : null;
+									const investor = item.investor;
 
-								const requestIdShort = request._id.slice(0, 8);
-								const address = mortgage?.address
-									? `${mortgage.address.street}, ${mortgage.address.city}, ${mortgage.address.state}`
-									: "N/A";
-								const investorName = investor
-									? [investor.first_name, investor.last_name]
-											.filter(Boolean)
-											.join(" ") || investor.email
-									: "Unknown";
-								const borrowerName = borrower?.name || "N/A";
+									const requestIdShort = request._id.slice(0, 8);
+									const address = mortgage?.address
+										? `${mortgage.address.street}, ${mortgage.address.city}, ${mortgage.address.state}`
+										: "N/A";
+									const investorName = investor
+										? [investor.first_name, investor.last_name]
+												.filter(Boolean)
+												.join(" ") || investor.email
+										: "Unknown";
+									const borrowerName = borrower?.name || "N/A";
+									// Split borrower name into first and last name
+									const borrowerFirstName = borrowerName !== "N/A"
+										? borrowerName.split(" ")[0] || borrowerName
+										: "N/A";
+									const borrowerLastName = borrowerName !== "N/A" && borrowerName.includes(" ")
+										? borrowerName.split(" ").slice(1).join(" ")
+										: borrowerName !== "N/A"
+											? ""
+											: "N/A";
 
-								return (
-									<TableRow key={request._id}>
-										<TableCell className="font-mono text-xs">
-											{requestIdShort}
-										</TableCell>
-										<TableCell>
-											{format(new Date(request.requestedAt), "MMM d, yyyy HH:mm")}
-										</TableCell>
-										<TableCell className="max-w-[200px] truncate">
-											{address}
-										</TableCell>
-										<TableCell>
-											{listing?.locked ? (
-												<Badge className="gap-1" variant="destructive">
-													<Lock className="h-3 w-3" />
-													Locked
-												</Badge>
-											) : (
-												<Badge variant="outline">Available</Badge>
-											)}
-										</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-2">
-												<User className="h-4 w-4 text-muted-foreground" />
-												<span className="max-w-[150px] truncate">
-													{investorName}
-												</span>
-											</div>
-										</TableCell>
-										<TableCell className="hidden lg:table-cell">
-											<div className="space-y-1 text-xs">
-												<div className="font-medium">{request.lawyerName}</div>
-												<div className="text-muted-foreground">
-													LSO: {request.lawyerLSONumber}
-												</div>
-												<div className="max-w-[150px] truncate text-muted-foreground">
-													{request.lawyerEmail}
-												</div>
-											</div>
-										</TableCell>
-										<TableCell className="hidden md:table-cell">
-											{"borrower" in item && item.borrower
-												? item.borrower.name
-												: "N/A"}
-										</TableCell>
-										<TableCell className="hidden md:table-cell">
-											{mortgage ? (
-												<div className="space-y-1 text-xs">
-													{"loanAmount" in mortgage && mortgage.loanAmount ? (
-														<div>Loan: ${mortgage.loanAmount.toLocaleString()}</div>
-													) : null}
-													{"ltv" in mortgage && mortgage.ltv ? (
-														<div>LTV: {mortgage.ltv.toFixed(1)}%</div>
-													) : (
-														<div className="text-muted-foreground">
-															Limited details
-														</div>
-													)}
-												</div>
-											) : (
-												"N/A"
-											)}
-										</TableCell>
-										<TableCell className="hidden max-w-[200px] lg:table-cell">
-											{request.requestNotes ? (
-												<div
-													className="truncate text-xs"
-													title={request.requestNotes}
+									return (
+										<TableRow key={request._id}>
+											<TableCell className="font-mono text-xs">
+												<Button
+													className="h-auto p-0 font-mono text-xs underline"
+													onClick={() => {
+														setSelectedRequestData(item);
+														setDetailDialogOpen(true);
+													}}
+													variant="link"
 												>
-													{request.requestNotes}
-												</div>
-											) : (
-												<span className="text-muted-foreground text-xs">
-													No notes
-												</span>
-											)}
-										</TableCell>
-										<TableCell>
-											<Badge
-												variant={
-													status === "approved"
-														? "success"
-														: status === "rejected"
-															? "danger"
-															: "warning"
-												}
-											>
-												{status}
-											</Badge>
-										</TableCell>
-										{status === "pending" && (
-											<TableCell className="whitespace-nowrap">
-												<div className="flex flex-col gap-2 sm:flex-row">
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<span>
-																<Button
-																	disabled={listing?.locked}
-																	onClick={() => handleApprove(request._id)}
-																	size="sm"
-																	variant="default"
-																>
-																	Approve
-																</Button>
-															</span>
-														</TooltipTrigger>
-														<TooltipContent>
-															{listing?.locked
-																? "Cannot approve: Listing is already locked"
-																: "Approve this lock request and lock the listing"}
-														</TooltipContent>
-													</Tooltip>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<span>
-																<Button
-																	onClick={() => openRejectDialog(request._id)}
-																	size="sm"
-																	variant="destructive"
-																>
-																	Reject
-																</Button>
-															</span>
-														</TooltipTrigger>
-														<TooltipContent>
-															Reject this lock request
-														</TooltipContent>
-													</Tooltip>
+													{requestIdShort}
+												</Button>
+											</TableCell>
+											<TableCell>
+												{format(
+													new Date(request.requestedAt),
+													"MMM d, yyyy HH:mm"
+												)}
+											</TableCell>
+											<TableCell className="max-w-[200px] truncate">
+												{address}
+											</TableCell>
+											<TableCell>
+												{listing?.locked ? (
+													<Badge className="gap-1" variant="destructive">
+														<Lock className="h-3 w-3" />
+														Locked
+													</Badge>
+												) : (
+													<Badge variant="outline">Available</Badge>
+												)}
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-2">
+													<User className="h-4 w-4 text-muted-foreground" />
+													<span className="max-w-[150px] truncate">
+														{investorName}
+													</span>
 												</div>
 											</TableCell>
-										)}
-									</TableRow>
-								);
-							})}
-						</TableBody>
-					</Table>
+											<TableCell className="hidden lg:table-cell">
+												<div className="space-y-1 text-xs">
+													<div className="font-medium">
+														{request.lawyerName}
+													</div>
+													<div className="text-muted-foreground">
+														LSO: {request.lawyerLSONumber}
+													</div>
+													<div className="max-w-[150px] truncate text-muted-foreground">
+														{request.lawyerEmail}
+													</div>
+												</div>
+											</TableCell>
+											<TableCell className="hidden md:table-cell">
+												{"borrower" in item && item.borrower ? (
+													<div className="space-y-0.5 text-xs">
+														<div className="font-medium">{borrowerFirstName}</div>
+														{borrowerLastName && borrowerLastName !== "N/A" && (
+															<div className="text-muted-foreground">{borrowerLastName}</div>
+														)}
+													</div>
+												) : (
+													<div className="space-y-0.5 text-xs">
+														<div className="text-muted-foreground">N/A</div>
+													</div>
+												)}
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={
+														status === "approved"
+															? "success"
+															: status === "rejected"
+																? "danger"
+																: "warning"
+													}
+												>
+													{status}
+												</Badge>
+											</TableCell>
+											{status === "pending" ? (
+												<TableCell className="whitespace-nowrap">
+													<div className="flex flex-col gap-2 sm:flex-row">
+														<Button
+															className="h-auto px-2 py-1 text-xs"
+															onClick={() => {
+																setSelectedRequestData(item);
+																setDetailDialogOpen(true);
+															}}
+															size="sm"
+															variant="outline"
+														>
+															View Details
+														</Button>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<span>
+																	<Button
+																		disabled={listing?.locked}
+																		onClick={() => handleApprove(request._id)}
+																		size="sm"
+																		variant="default"
+																	>
+																		Approve
+																	</Button>
+																</span>
+															</TooltipTrigger>
+															<TooltipContent>
+																{listing?.locked
+																	? "Cannot approve: Listing is already locked"
+																	: "Approve this lock request and lock the listing"}
+															</TooltipContent>
+														</Tooltip>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<span>
+																	<Button
+																		onClick={() =>
+																			openRejectDialog(request._id)
+																		}
+																		size="sm"
+																		variant="destructive"
+																	>
+																		Reject
+																	</Button>
+																</span>
+															</TooltipTrigger>
+															<TooltipContent>
+																Reject this lock request
+															</TooltipContent>
+														</Tooltip>
+													</div>
+												</TableCell>
+											) : (
+												<TableCell className="whitespace-nowrap">
+													<Button
+														className="h-auto px-2 py-1 text-xs"
+														onClick={() => {
+															setSelectedRequestData(item);
+															setDetailDialogOpen(true);
+														}}
+														size="sm"
+														variant="outline"
+													>
+														View Details
+													</Button>
+												</TableCell>
+											)}
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
 					</div>
 				)}
 			</div>
@@ -707,6 +767,16 @@ export function LockRequestsTable({
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			{/* Lock Request Detail Dialog */}
+			{selectedRequestData && (
+				<LockRequestDetail
+					open={detailDialogOpen}
+					onOpenChange={setDetailDialogOpen}
+					requestData={selectedRequestData as any}
+					otherPendingCount={otherPendingCount}
+				/>
+			)}
 		</>
 	);
 }

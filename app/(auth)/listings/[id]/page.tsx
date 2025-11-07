@@ -146,21 +146,25 @@ export default async function ListingDetailPage({
 	const { id } = await params;
 
 	// Preload all required data from Convex
-	const [preloadedMortgage, preloadedPayments, preloadedComparables, preloadedListing] =
-		await Promise.all([
-			preloadQuery(api.mortgages.getMortgage, {
-				id: id as Id<"mortgages">,
-			}),
-			preloadQuery(api.payments.getPaymentsForMortgage, {
-				mortgageId: id as Id<"mortgages">,
-			}),
-			preloadQuery(api.comparables.getComparablesForMortgage, {
-				mortgageId: id as Id<"mortgages">,
-			}),
-			preloadQuery(api.listings.getListingByMortgage, {
-				mortgageId: id as Id<"mortgages">,
-			}),
-		]);
+	const [
+		preloadedMortgage,
+		preloadedPayments,
+		preloadedComparables,
+		preloadedListing,
+	] = await Promise.all([
+		preloadQuery(api.mortgages.getMortgage, {
+			id: id as Id<"mortgages">,
+		}),
+		preloadQuery(api.payments.getPaymentsForMortgage, {
+			mortgageId: id as Id<"mortgages">,
+		}),
+		preloadQuery(api.comparables.getComparablesForMortgage, {
+			mortgageId: id as Id<"mortgages">,
+		}),
+		preloadQuery(api.listings.getListingByMortgage, {
+			mortgageId: id as Id<"mortgages">,
+		}),
+	]);
 
 	// Extract actual data from preloaded results
 	const mortgage = preloadedQueryResult(preloadedMortgage);

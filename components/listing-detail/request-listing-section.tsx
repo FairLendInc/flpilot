@@ -197,10 +197,7 @@ export function RequestListingSection({
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Button
-							onClick={() => window.location.reload()}
-							variant="default"
-						>
+						<Button onClick={() => window.location.reload()} variant="default">
 							Refresh Page
 						</Button>
 					</CardContent>

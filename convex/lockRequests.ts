@@ -793,6 +793,22 @@ export const getApprovedLockRequestsWithDetails = query({
 			mortgage: v.union(
 				v.object({
 					_id: v.id("mortgages"),
+					borrowerId: v.id("borrowers"),
+					loanAmount: v.number(),
+					interestRate: v.number(),
+					originationDate: v.string(),
+					maturityDate: v.string(),
+					status: v.union(
+						v.literal("active"),
+						v.literal("renewed"),
+						v.literal("closed"),
+						v.literal("defaulted")
+					),
+					mortgageType: v.union(
+						v.literal("1st"),
+						v.literal("2nd"),
+						v.literal("other")
+					),
 					address: v.object({
 						street: v.string(),
 						city: v.string(),
@@ -800,6 +816,7 @@ export const getApprovedLockRequestsWithDetails = query({
 						zip: v.string(),
 						country: v.string(),
 					}),
+					propertyType: v.optional(v.string()),
 					appraisalMarketValue: v.number(),
 					ltv: v.number(),
 				}),
@@ -875,7 +892,15 @@ export const getApprovedLockRequestsWithDetails = query({
 					mortgage: mortgage
 						? {
 								_id: mortgage._id,
+								borrowerId: mortgage.borrowerId,
+								loanAmount: mortgage.loanAmount,
+								interestRate: mortgage.interestRate,
+								originationDate: mortgage.originationDate,
+								maturityDate: mortgage.maturityDate,
+								status: mortgage.status,
+								mortgageType: mortgage.mortgageType,
 								address: mortgage.address,
+								propertyType: mortgage.propertyType,
 								appraisalMarketValue: mortgage.appraisalMarketValue,
 								ltv: mortgage.ltv,
 							}
@@ -977,12 +1002,30 @@ export const getRejectedLockRequestsWithDetails = query({
 					mortgageId: v.id("mortgages"),
 					visible: v.boolean(),
 					locked: v.boolean(),
+					lockedBy: v.optional(v.id("users")),
+					lockedAt: v.optional(v.number()),
 				}),
 				v.null()
 			),
 			mortgage: v.union(
 				v.object({
 					_id: v.id("mortgages"),
+					borrowerId: v.id("borrowers"),
+					loanAmount: v.number(),
+					interestRate: v.number(),
+					originationDate: v.string(),
+					maturityDate: v.string(),
+					status: v.union(
+						v.literal("active"),
+						v.literal("renewed"),
+						v.literal("closed"),
+						v.literal("defaulted")
+					),
+					mortgageType: v.union(
+						v.literal("1st"),
+						v.literal("2nd"),
+						v.literal("other")
+					),
 					address: v.object({
 						street: v.string(),
 						city: v.string(),
@@ -990,6 +1033,9 @@ export const getRejectedLockRequestsWithDetails = query({
 						zip: v.string(),
 						country: v.string(),
 					}),
+					propertyType: v.optional(v.string()),
+					appraisalMarketValue: v.number(),
+					ltv: v.number(),
 				}),
 				v.null()
 			),
@@ -1057,12 +1103,24 @@ export const getRejectedLockRequestsWithDetails = query({
 								mortgageId: listing.mortgageId,
 								visible: listing.visible,
 								locked: listing.locked,
+								lockedBy: listing.lockedBy,
+								lockedAt: listing.lockedAt,
 							}
 						: null,
 					mortgage: mortgage
 						? {
 								_id: mortgage._id,
+								borrowerId: mortgage.borrowerId,
+								loanAmount: mortgage.loanAmount,
+								interestRate: mortgage.interestRate,
+								originationDate: mortgage.originationDate,
+								maturityDate: mortgage.maturityDate,
+								status: mortgage.status,
+								mortgageType: mortgage.mortgageType,
 								address: mortgage.address,
+								propertyType: mortgage.propertyType,
+								appraisalMarketValue: mortgage.appraisalMarketValue,
+								ltv: mortgage.ltv,
 							}
 						: null,
 					borrower: borrower
