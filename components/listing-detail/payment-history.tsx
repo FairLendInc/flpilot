@@ -168,8 +168,9 @@ export function PaymentHistory({
 
 			<div className="space-y-3">
 				{currentPayments.map((payment, index) => {
-					const statusInfo = statusConfig[payment.status];
-					const typeInfo = typeConfig[payment.type];
+					const statusInfo =
+						statusConfig[payment.status] || statusConfig.pending; // Fallback to pending if status unknown
+					const typeInfo = typeConfig[payment.type] || typeConfig.interest; // Fallback to interest if type unknown
 					const paymentDate = parseISO(payment.date);
 
 					return (

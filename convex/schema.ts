@@ -227,6 +227,39 @@ export default defineSchema({
 		.index("by_locked_status", ["locked"])
 		.index("by_locked_user", ["lockedBy"]),
 
+	lock_requests: defineTable({
+		// Reference to listing being requested
+		listingId: v.id("listings"),
+		// User who requested the lock (investor)
+		requestedBy: v.id("users"),
+		// Request status: pending, approved, rejected, expired
+		status: v.union(
+			v.literal("pending"),
+			v.literal("approved"),
+			v.literal("rejected"),
+			v.literal("expired")
+		),
+		// Timestamp when request was created
+		requestedAt: v.number(),
+		// Timestamp when request was reviewed (approved/rejected)
+		reviewedAt: v.optional(v.number()),
+		// Admin user who reviewed the request
+		reviewedBy: v.optional(v.id("users")),
+		// Optional rejection reason from admin
+		rejectionReason: v.optional(v.string()),
+		// Optional notes from investor (max 1000 characters)
+		requestNotes: v.optional(v.string()),
+		// Lawyer information (required for listing requests)
+		lawyerName: v.string(),
+		lawyerLSONumber: v.string(),
+		lawyerEmail: v.string(),
+	})
+		.index("by_listing", ["listingId"])
+		.index("by_status", ["status"])
+		.index("by_requested_by", ["requestedBy"])
+		.index("by_status_requested_at", ["status", "requestedAt"])
+		.index("by_listing_status", ["listingId", "status"]),
+
 	appraisal_comparables: defineTable({
 		// Reference to mortgage
 		mortgageId: v.id("mortgages"),

@@ -272,6 +272,16 @@ export const getListingByMortgage = query({
 });
 
 /**
+ * Get listing by listing ID
+ */
+export const getListingById = query({
+	args: { listingId: v.id("listings") },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.listingId);
+	},
+});
+
+/**
  * Get all listings locked by a specific user
  */
 export const getUserLockedListings = query({
@@ -351,7 +361,11 @@ export const createListing = mutation({
 });
 
 /**
- * Lock a listing for purchase
+ * Lock a listing for purchase (admin-only, bypasses approval workflow)
+ * 
+ * NOTE: This mutation is restricted to admins only. Investors should use
+ * the lock request approval workflow via createLockRequest mutation.
+ * Admins can use this for urgent cases or testing.
  */
 export const lockListing = mutation({
 	args: {
@@ -359,6 +373,21 @@ export const lockListing = mutation({
 		userId: v.id("users"),
 	},
 	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin privileges required");
+		}
+
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			throw new Error("Listing not found");
@@ -529,6 +558,41 @@ async function deleteListingCore(
 	if (listing.locked && !args.force) {
 		throw new Error(
 			"Cannot delete locked listing. Use force option or unlock first."
+		);
+	}
+
+	// Check for existing lock requests (prevents deletion if requests exist)
+	const lockRequests = await ctx.db
+		.query("lock_requests")
+		.withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
+		.collect();
+
+	if (lockRequests.length > 0 && !args.force) {
+		const pendingCount = lockRequests.filter(
+			(r) => r.status === "pending"
+		).length;
+		const approvedCount = lockRequests.filter(
+			(r) => r.status === "approved"
+		).length;
+		const rejectedCount = lockRequests.filter(
+			(r) => r.status === "rejected"
+		).length;
+
+		const reasons: string[] = [];
+		if (pendingCount > 0) {
+			reasons.push(`${pendingCount} pending`);
+		}
+		if (approvedCount > 0) {
+			reasons.push(`${approvedCount} approved`);
+		}
+		if (rejectedCount > 0) {
+			reasons.push(`${rejectedCount} rejected`);
+		}
+
+		throw new Error(
+			`Cannot delete listing with existing lock requests (${reasons.join(
+				", "
+			)}). Delete requests first or use force option.`
 		);
 	}
 

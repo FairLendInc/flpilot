@@ -13,6 +13,7 @@ import type * as comparables from "../comparables.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as listings from "../listings.js";
+import type * as lockRequests from "../lockRequests.js";
 import type * as logger from "../logger.js";
 import type * as migrations_fix_ownership_user_references from "../migrations/fix_ownership_user_references.js";
 import type * as migrations from "../migrations.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   http: typeof http;
   listings: typeof listings;
+  lockRequests: typeof lockRequests;
   logger: typeof logger;
   "migrations/fix_ownership_user_references": typeof migrations_fix_ownership_user_references;
   migrations: typeof migrations;

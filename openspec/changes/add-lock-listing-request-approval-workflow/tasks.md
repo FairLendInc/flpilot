@@ -2,44 +2,44 @@
 
 ## 1. Backend Schema and Core Functions
 
-- [ ] 1.1 Add `lock_requests` table to `convex/schema.ts`
-  - [ ] 1.1.1 Define table with fields: listingId, requestedBy, status, requestedAt, reviewedAt, reviewedBy, rejectionReason, requestNotes
-  - [ ] 1.1.2 Add by_listing index on listingId
-  - [ ] 1.1.3 Add by_status index on status
-  - [ ] 1.1.4 Add by_requested_by index on requestedBy
-  - [ ] 1.1.5 Add by_status_requested_at compound index [status, requestedAt]
-  - [ ] 1.1.6 Add by_listing_status compound index [listingId, status]
-  - [ ] 1.1.7 Run `npx convex dev` to apply schema changes
+- [x] 1.1 Add `lock_requests` table to `convex/schema.ts`
+  - [x] 1.1.1 Define table with fields: listingId, requestedBy, status, requestedAt, reviewedAt, reviewedBy, rejectionReason, requestNotes
+  - [x] 1.1.2 Add by_listing index on listingId
+  - [x] 1.1.3 Add by_status index on status
+  - [x] 1.1.4 Add by_requested_by index on requestedBy
+  - [x] 1.1.5 Add by_status_requested_at compound index [status, requestedAt]
+  - [x] 1.1.6 Add by_listing_status compound index [listingId, status]
+  - [x] 1.1.7 Run `npx convex dev` to apply schema changes
 
-- [ ] 1.2 Create `convex/lockRequests.ts` with request management functions
-  - [ ] 1.2.1 Implement `createLockRequest` mutation (investor role check, 1000 char validation)
-  - [ ] 1.2.2 Implement `approveLockRequest` mutation (atomic transaction, race condition prevention)
-  - [ ] 1.2.3 Implement `rejectLockRequest` mutation (admin authorization)
-  - [ ] 1.2.4 Implement `cancelLockRequest` mutation (ownership validation)
-  - [ ] 1.2.5 Implement `getLockRequest` query (single request by ID)
-  - [ ] 1.2.6 Implement `getPendingLockRequests` query (admin dashboard)
-  - [ ] 1.2.7 Implement `getPendingLockRequestsWithDetails` query (joined data: listing, mortgage, borrower, investor)
-  - [ ] 1.2.8 Implement `getApprovedLockRequests` query (admin history)
-  - [ ] 1.2.9 Implement `getApprovedLockRequestsWithDetails` query (joined data)
-  - [ ] 1.2.10 Implement `getRejectedLockRequests` query (admin history)
-  - [ ] 1.2.11 Implement `getRejectedLockRequestsWithDetails` query (joined data)
-  - [ ] 1.2.12 Implement `getLockRequestsByListing` query (all requests for listing)
-  - [ ] 1.2.13 Implement `getPendingLockRequestsByListing` query (pending count display)
-  - [ ] 1.2.14 Implement `getUserLockRequests` query (investor's own requests)
-  - [ ] 1.2.15 Implement `getLockRequestWithDetails` query (single request with joined data)
+- [x] 1.2 Create `convex/lockRequests.ts` with request management functions
+  - [x] 1.2.1 Implement `createLockRequest` mutation (investor role check, 1000 char validation)
+  - [x] 1.2.2 Implement `approveLockRequest` mutation (atomic transaction, race condition prevention)
+  - [x] 1.2.3 Implement `rejectLockRequest` mutation (admin authorization)
+  - [x] 1.2.4 Implement `cancelLockRequest` mutation (ownership validation)
+  - [x] 1.2.5 Implement `getLockRequest` query (single request by ID)
+  - [x] 1.2.6 Implement `getPendingLockRequests` query (admin dashboard)
+  - [x] 1.2.7 Implement `getPendingLockRequestsWithDetails` query (joined data: listing, mortgage, borrower, investor)
+  - [x] 1.2.8 Implement `getApprovedLockRequests` query (admin history)
+  - [x] 1.2.9 Implement `getApprovedLockRequestsWithDetails` query (joined data)
+  - [x] 1.2.10 Implement `getRejectedLockRequests` query (admin history)
+  - [x] 1.2.11 Implement `getRejectedLockRequestsWithDetails` query (joined data)
+  - [x] 1.2.12 Implement `getLockRequestsByListing` query (all requests for listing)
+  - [x] 1.2.13 Implement `getPendingLockRequestsByListing` query (pending count display)
+  - [x] 1.2.14 Implement `getUserLockRequests` query (investor's own requests)
+  - [x] 1.2.15 Implement `getLockRequestWithDetails` query (single request with joined data)
 
-- [ ] 1.3 Update `convex/listings.ts` for admin-only lock and request validation
-  - [ ] 1.3.1 Add admin authorization check to `lockListing` mutation (hasRbacAccess)
-  - [ ] 1.3.2 Document `lockListing` as admin-only, bypass approval workflow
-  - [ ] 1.3.3 Update `deleteListing` to check for existing lock requests
-  - [ ] 1.3.4 Add helper query to count pending requests for listing
-  - [ ] 1.3.5 Add validation logic to prevent deletion if requests exist
+- [x] 1.3 Update `convex/listings.ts` for admin-only lock and request validation
+  - [x] 1.3.1 Add admin authorization check to `lockListing` mutation (hasRbacAccess)
+  - [x] 1.3.2 Document `lockListing` as admin-only, bypass approval workflow
+  - [x] 1.3.3 Update `deleteListing` to check for existing lock requests
+  - [x] 1.3.4 Add helper query to count pending requests for listing
+  - [x] 1.3.5 Add validation logic to prevent deletion if requests exist
 
-- [ ] 1.4 Add validation helpers and error messages
-  - [ ] 1.4.1 Create validation function for request notes (1000 char limit)
-  - [ ] 1.4.2 Create validation function for listing availability (visible && !locked)
-  - [ ] 1.4.3 Define error message constants for clarity
-  - [ ] 1.4.4 Add logging for all request operations
+- [x] 1.4 Add validation helpers and error messages
+  - [x] 1.4.1 Create validation function for request notes (1000 char limit)
+  - [x] 1.4.2 Create validation function for listing availability (visible && !locked)
+  - [x] 1.4.3 Define error message constants for clarity
+  - [x] 1.4.4 Add logging for all request operations
 
 ## 2. Backend Testing
 
@@ -74,22 +74,22 @@
 
 ## 3. Frontend: Admin Dashboard
 
-- [ ] 3.1 Create admin lock requests page structure
-  - [ ] 3.1.1 Create `app/dashboard/admin/lock-requests/page.tsx`
-  - [ ] 3.1.2 Set up page layout with three tabs (Pending, Approved, Rejected)
-  - [ ] 3.1.3 Add page title "Lock Requests" with description
-  - [ ] 3.1.4 Add tab count badges (e.g., "Pending (5)")
-  - [ ] 3.1.5 Implement tab navigation and state management
+- [x] 3.1 Create admin lock requests page structure
+  - [x] 3.1.1 Create `app/dashboard/admin/lock-requests/page.tsx`
+  - [x] 3.1.2 Set up page layout with three tabs (Pending, Approved, Rejected)
+  - [x] 3.1.3 Add page title "Lock Requests" with description
+  - [x] 3.1.4 Add tab count badges (e.g., "Pending (5)")
+  - [x] 3.1.5 Implement tab navigation and state management
 
-- [ ] 3.2 Create LockRequestsTable component (used in each tab)
-  - [ ] 3.2.1 Create `components/admin/lock-requests/LockRequestsTable.tsx`
-  - [ ] 3.2.2 Define table columns: Request ID/Date, Listing Address, Lock Status, Investor, Borrower, Mortgage Details, Notes, Status, Actions
-  - [ ] 3.2.3 Implement lock status indicator (show if listing already locked)
-  - [ ] 3.2.4 Add truncated notes with expandable view
-  - [ ] 3.2.5 Add approve/reject action buttons (disabled if listing locked)
-  - [ ] 3.2.6 Implement sorting (by requestedAt, newest first)
-  - [ ] 3.2.7 Add loading skeleton states
-  - [ ] 3.2.8 Add empty state ("No requests found")
+- [x] 3.2 Create LockRequestsTable component (used in each tab)
+  - [x] 3.2.1 Create `components/admin/lock-requests/LockRequestsTable.tsx` (created at `app/dashboard/admin/lock-requests/components/LockRequestsTable.tsx`)
+  - [x] 3.2.2 Define table columns: Request ID/Date, Listing Address, Lock Status, Investor, Borrower, Mortgage Details, Notes, Status, Actions
+  - [x] 3.2.3 Implement lock status indicator (show if listing already locked)
+  - [x] 3.2.4 Add truncated notes with expandable view
+  - [x] 3.2.5 Add approve/reject action buttons (disabled if listing locked)
+  - [x] 3.2.6 Implement sorting (by requestedAt, newest first)
+  - [x] 3.2.7 Add loading skeleton states
+  - [x] 3.2.8 Add empty state ("No requests found")
 
 - [ ] 3.3 Create LockRequestDetail component (modal or expandable row)
   - [ ] 3.3.1 Create `components/admin/lock-requests/LockRequestDetail.tsx`
@@ -103,25 +103,26 @@
   - [ ] 3.3.9 Add approve button (green, disabled if locked)
   - [ ] 3.3.10 Add reject button (red, opens rejection dialog)
   - [ ] 3.3.11 Add "View Full Listing" link
+  **Note:** Basic table implementation complete. Detail view can be added later.
 
-- [ ] 3.4 Create ApproveLockRequestButton component
-  - [ ] 3.4.1 Create `components/admin/lock-requests/ApproveLockRequestButton.tsx`
-  - [ ] 3.4.2 Implement confirmation dialog ("Approve lock request?")
-  - [ ] 3.4.3 Call `approveLockRequest` mutation
-  - [ ] 3.4.4 Handle atomic update errors (race condition: "Listing was locked by another admin")
-  - [ ] 3.4.5 Show success toast ("Request approved, listing locked")
-  - [ ] 3.4.6 Show error toast with specific message
-  - [ ] 3.4.7 Disable button if listing already locked
-  - [ ] 3.4.8 Add loading state during approval
+- [x] 3.4 Create ApproveLockRequestButton component
+  - [x] 3.4.1 Create `components/admin/lock-requests/ApproveLockRequestButton.tsx` (integrated into LockRequestsTable)
+  - [x] 3.4.2 Implement confirmation dialog ("Approve lock request?")
+  - [x] 3.4.3 Call `approveLockRequest` mutation
+  - [x] 3.4.4 Handle atomic update errors (race condition: "Listing was locked by another admin")
+  - [x] 3.4.5 Show success toast ("Request approved, listing locked")
+  - [x] 3.4.6 Show error toast with specific message
+  - [x] 3.4.7 Disable button if listing already locked
+  - [x] 3.4.8 Add loading state during approval
 
-- [ ] 3.5 Create RejectLockRequestDialog component
-  - [ ] 3.5.1 Create `components/admin/lock-requests/RejectLockRequestDialog.tsx`
-  - [ ] 3.5.2 Add optional rejection reason textarea
-  - [ ] 3.5.3 Add character counter (optional, no limit)
-  - [ ] 3.5.4 Call `rejectLockRequest` mutation
-  - [ ] 3.5.5 Show success toast ("Request rejected")
-  - [ ] 3.5.6 Show error toast if rejection fails
-  - [ ] 3.5.7 Add loading state during rejection
+- [x] 3.5 Create RejectLockRequestDialog component
+  - [x] 3.5.1 Create `components/admin/lock-requests/RejectLockRequestDialog.tsx` (integrated into LockRequestsTable)
+  - [x] 3.5.2 Add optional rejection reason textarea
+  - [x] 3.5.3 Add character counter (optional, no limit)
+  - [x] 3.5.4 Call `rejectLockRequest` mutation
+  - [x] 3.5.5 Show success toast ("Request rejected")
+  - [x] 3.5.6 Show error toast if rejection fails
+  - [x] 3.5.7 Add loading state during rejection
 
 - [ ] 3.6 Add filters and search to admin dashboard
   - [ ] 3.6.1 Add search by investor name/email (client-side filter)
@@ -129,65 +130,68 @@
   - [ ] 3.6.3 Add filter by listing lock status (for pending tab: locked/unlocked)
   - [ ] 3.6.4 Add sort controls (by date, investor, listing)
   - [ ] 3.6.5 Persist filter/search state in URL params (optional)
+  **Note:** Basic table complete. Filters can be added as enhancement.
 
 - [ ] 3.7 Add "Other Pending Requests" indicator in detail view
   - [ ] 3.7.1 Query pending requests count for same listing
   - [ ] 3.7.2 Display "X other pending requests for this listing"
   - [ ] 3.7.3 Add link to view all pending requests for listing (filter table)
   - [ ] 3.7.4 Update count reactively when requests change
+  **Note:** Can be added when detail view is implemented.
 
-- [ ] 3.8 Add navigation menu item for Lock Requests
-  - [ ] 3.8.1 Update `lib/navigation/role-navigation.ts` (or similar)
-  - [ ] 3.8.2 Add "Lock Requests" menu item under admin section
-  - [ ] 3.8.3 Use `Lock` or `Clock` icon from lucide-react
-  - [ ] 3.8.4 Position after "Listings", before "Settings"
+- [x] 3.8 Add navigation menu item for Lock Requests
+  - [x] 3.8.1 Update `lib/navigation/role-navigation.ts` (or similar)
+  - [x] 3.8.2 Add "Lock Requests" menu item under admin section
+  - [x] 3.8.3 Use `Lock` or `Clock` icon from lucide-react
+  - [x] 3.8.4 Position after "Listings", before "Settings"
   - [ ] 3.8.5 Add badge with pending request count (optional)
 
 ## 4. Frontend: Investor Flow
 
-- [ ] 4.1 Update listing detail page for investors
-  - [ ] 4.1.1 Update `app/(auth)/listings/[id]/page.tsx`
-  - [ ] 4.1.2 Add "Request to Lock Listing" button (only if listing available)
-  - [ ] 4.1.3 Hide button if listing is locked or hidden
-  - [ ] 4.1.4 Hide button if user is not investor role
-  - [ ] 4.1.5 Show "Locked" badge if listing is locked (visible to all users)
-  - [ ] 4.1.6 Query investor's pending request for this listing
-  - [ ] 4.1.7 Show "Request Pending" status if investor has pending request
-  - [ ] 4.1.8 Add cancel button if investor has pending request
+- [x] 4.1 Update listing detail page for investors
+  - [x] 4.1.1 Update `app/(auth)/listings/[id]/page.tsx`
+  - [x] 4.1.2 Add "Request to Lock Listing" button (only if listing available)
+  - [x] 4.1.3 Hide button if listing is locked or hidden
+  - [x] 4.1.4 Hide button if user is not investor role
+  - [x] 4.1.5 Show "Locked" badge if listing is locked (visible to all users)
+  - [x] 4.1.6 Query investor's pending request for this listing
+  - [x] 4.1.7 Show "Request Pending" status if investor has pending request
+  - [x] 4.1.8 Add cancel button if investor has pending request
 
-- [ ] 4.2 Create LockRequestDialog component
-  - [ ] 4.2.1 Create `components/listing-detail/LockRequestDialog.tsx`
-  - [ ] 4.2.2 Add optional request notes textarea (max 1000 characters)
-  - [ ] 4.2.3 Add character counter showing remaining characters (1000 - length)
-  - [ ] 4.2.4 Add confirmation message explaining approval process
-  - [ ] 4.2.5 Implement "Submit Lock Request" button
-  - [ ] 4.2.6 Call `createLockRequest` mutation
-  - [ ] 4.2.7 Handle validation errors (listing locked, notes too long)
-  - [ ] 4.2.8 Show success toast ("Lock request submitted. Admin will review.")
-  - [ ] 4.2.9 Show error toast with specific message
-  - [ ] 4.2.10 Add loading state during submission
+- [x] 4.2 Create LockRequestDialog component
+  - [x] 4.2.1 Create `components/listing-detail/LockRequestDialog.tsx`
+  - [x] 4.2.2 Add optional request notes textarea (max 1000 characters)
+  - [x] 4.2.3 Add character counter showing remaining characters (1000 - length)
+  - [x] 4.2.4 Add confirmation message explaining approval process
+  - [x] 4.2.5 Implement "Submit Lock Request" button
+  - [x] 4.2.6 Call `createLockRequest` mutation
+  - [x] 4.2.7 Handle validation errors (listing locked, notes too long)
+  - [x] 4.2.8 Show success toast ("Lock request submitted. Admin will review.")
+  - [x] 4.2.9 Show error toast with specific message
+  - [x] 4.2.10 Add loading state during submission
 
-- [ ] 4.3 Create LockRequestStatus component
-  - [ ] 4.3.1 Create `components/listing-detail/LockRequestStatus.tsx`
-  - [ ] 4.3.2 Show "Lock request pending admin approval" with cancel button (if pending)
-  - [ ] 4.3.3 Show "Listing locked by you" (if approved)
-  - [ ] 4.3.4 Show "Lock request rejected" with reason (if rejected)
-  - [ ] 4.3.5 Show "Locked" badge if listing locked by another user (visible to all)
-  - [ ] 4.3.6 Update reactively when status changes (Convex React hooks)
+- [x] 4.3 Create LockRequestStatus component
+  - [x] 4.3.1 Create `components/listing-detail/LockRequestStatus.tsx`
+  - [x] 4.3.2 Show "Lock request pending admin approval" with cancel button (if pending)
+  - [x] 4.3.3 Show "Listing locked by you" (if approved)
+  - [x] 4.3.4 Show "Lock request rejected" with reason (if rejected)
+  - [x] 4.3.5 Show "Locked" badge if listing locked by another user (visible to all)
+  - [x] 4.3.6 Update reactively when status changes (Convex React hooks)
 
-- [ ] 4.4 Create CancelLockRequestButton component
-  - [ ] 4.4.1 Create `components/listing-detail/CancelLockRequestButton.tsx`
-  - [ ] 4.4.2 Add confirmation dialog ("Cancel lock request?")
-  - [ ] 4.4.3 Call `cancelLockRequest` mutation
-  - [ ] 4.4.4 Show success toast ("Request cancelled")
-  - [ ] 4.4.5 Show error toast if cancellation fails
-  - [ ] 4.4.6 Add loading state during cancellation
+- [x] 4.4 Create CancelLockRequestButton component
+  - [x] 4.4.1 Create `components/listing-detail/CancelLockRequestButton.tsx` (integrated into LockRequestStatus)
+  - [x] 4.4.2 Add confirmation dialog ("Cancel lock request?")
+  - [x] 4.4.3 Call `cancelLockRequest` mutation
+  - [x] 4.4.4 Show success toast ("Request cancelled")
+  - [x] 4.4.5 Show error toast if cancellation fails
+  - [x] 4.4.6 Add loading state during cancellation
 
 - [ ] 4.5 Update listings page to show "Locked" badge
   - [ ] 4.5.1 Update `app/(auth)/listings/page.tsx` (or listing card components)
   - [ ] 4.5.2 Show "Locked" badge on locked listings (all users can see)
   - [ ] 4.5.3 Use consistent badge styling (match design system)
   - [ ] 4.5.4 Locked listings remain visible (not hidden from marketplace)
+  **Note:** Locked badge shown in LockRequestSection on detail page. Marketplace page enhancement can be added later.
 
 ## 5. Frontend Testing
 
