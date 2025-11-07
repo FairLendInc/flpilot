@@ -22,33 +22,45 @@ type Blog8Props = {
 };
 
 const Blog8 = ({
-	heading = "Blog Posts",
-	description = "Discover the latest insights and tutorials about modern web development, UI design, and component-driven architecture.",
+	heading = "FairLend Insights",
+	description =
+		"Ideas on the private mortgage exchange: broker distribution economics, AI‑driven underwriting and servicing, and 12–18× capital velocity.",
 	posts = [
 		{
 			id: "post-1",
-			title:
-				"Building Modern UIs: A Deep Dive into Shadcn and React Components",
+			title: "MLS for Private Mortgages: Why Brokers Win on FairLend",
 			summary:
-				"Join us for an in-depth exploration of building modern user interfaces using shadcn/ui and React. Learn best practices and advanced techniques.",
-			label: "Web Design",
-			author: "Sarah Chen",
-			published: "15 Feb 2024",
-			url: "https://shadcnblocks.com",
+				"FairLend gives brokers white‑label investor portals, a 0.5% trailer on deployed capital, and on‑rails origination via our MIC—shifting from deal‑by‑deal hustle to durable distribution.",
+			label: "Brokers",
+			author: "FairLend Team",
+			published: "07 Nov 2025",
+			url: "/blog",
 			image: "/images/block/placeholder-dark-1.svg",
-			tags: ["Web Design", "UI Development"],
+			tags: ["Brokers", "Distribution"],
 		},
 		{
 			id: "post-2",
-			title: "Mastering Tailwind CSS: From Basics to Advanced Techniques",
+			title: "AI‑Driven Underwriting and Servicing: The Data Flywheel",
 			summary:
-				"Discover how to leverage the full power of Tailwind CSS to create beautiful, responsive websites with clean and maintainable code.",
-			label: "Web Design",
-			author: "Michael Park",
-			published: "22 Feb 2024",
-			url: "https://shadcnblocks.com",
+				"A hybrid automation stack with human‑in‑the‑loop powers underwriting, appraisal checks, renewals, and collections. RLHF on real decisions compounds accuracy and coverage over time.",
+			label: "AI",
+			author: "FairLend Team",
+			published: "07 Nov 2025",
+			url: "/blog",
 			image: "/images/block/placeholder-dark-1.svg",
-			tags: ["Web Design", "CSS"],
+			tags: ["AI", "Automation"],
+		},
+		{
+			id: "post-3",
+			title: "12–18× Capital Velocity: Redeploying MIC Capital in 15–30 Days",
+			summary:
+				"Originate with the MIC → offload to marketplace investors → redeploy. Faster cycles reduce lockups, unlock liquidity options for investors, and scale AUM without being capital‑constrained.",
+			label: "Scale",
+			author: "FairLend Team",
+			published: "07 Nov 2025",
+			url: "/blog",
+			image: "/images/block/placeholder-dark-1.svg",
+			tags: ["Scale", "Capital"],
 		},
 	],
 }: Blog8Props) => (
@@ -82,6 +94,7 @@ const Blog8 = ({
 									<a
 										className="hover:underline"
 										href={post.url}
+										rel="noopener"
 										target="_blank"
 									>
 										{post.title}
@@ -109,7 +122,7 @@ const Blog8 = ({
 								</div>
 							</div>
 							<div className="order-first sm:order-last sm:col-span-5">
-								<a className="block" href={post.url} target="_blank">
+									<a className="block" href={post.url} rel="noopener" target="_blank">
 									<div className="aspect-[16/9] overflow-clip rounded-lg border border-border">
 										<Image
 											alt={post.title}
