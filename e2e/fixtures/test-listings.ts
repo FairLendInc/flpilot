@@ -146,13 +146,50 @@ async function createTestListingViaClient(
 }
 
 /**
- * Lock a test listing
+ * Lock a test listing via webhook endpoint
+ * 
+ * Uses the /listings/update webhook endpoint with API key authentication.
+ * This bypasses the need for admin user authentication.
  */
-async function lockTestListing(page: Page, listingId: string): Promise<void> {
-	// Locking is handled via Convex mutations which require authentication
-	// For test setup, we'll skip locking and let tests handle it if needed
-	// This keeps the fixture simple and avoids auth complexity
-	console.log(`Note: Listing ${listingId} should be locked via test setup if needed`);
+export async function lockTestListing(
+	page: Page,
+	listingId: string,
+	userId: string = "test-admin-user-id"
+): Promise<void> {
+	const convexURL = process.env.NEXT_PUBLIC_CONVEX_URL;
+	const apiKey = process.env.LISTINGS_WEBHOOK_API_KEY || "test-webhook-key";
+
+	if (!convexURL) {
+		throw new Error("NEXT_PUBLIC_CONVEX_URL environment variable is required");
+	}
+
+	try {
+		const response = await page.request.patch(`${convexURL}/listings/update`, {
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": apiKey,
+			},
+			data: {
+				listingId,
+				locked: true,
+				lockedBy: userId,
+			},
+		});
+
+		if (!response.ok()) {
+			const errorText = await response.text();
+			throw new Error(
+				`Failed to lock test listing: ${response.status()} ${errorText}`
+			);
+		}
+
+		const result = await response.json();
+		if (!result.listingId) {
+			throw new Error("Listing lock response missing listingId");
+		}
+	} catch (error) {
+		throw new Error(`Error locking test listing: ${error}`);
+	}
 }
 
 /**

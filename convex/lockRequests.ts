@@ -271,18 +271,21 @@ export const approveLockRequest = mutation({
 			throw new Error("Request not found");
 		}
 
-		if (request.status !== "pending") {
-			throw new Error("Request is not pending");
-		}
-
 		const listing = await ctx.db.get(request.listingId);
 		if (!listing) {
 			throw new Error("Listing not found");
 		}
 
-		// Verify listing is still available (race condition check)
+		// Verify listing is still available FIRST (handles race conditions correctly)
+		// This must be checked before request status to properly detect when
+		// two admins approve different requests for the same listing simultaneously
 		if (!listing.visible || listing.locked) {
 			throw new Error("Listing is no longer available");
+		}
+
+		// Then check request status
+		if (request.status !== "pending") {
+			throw new Error("Request is not pending");
 		}
 
 		// Atomic update: approve request and lock listing
@@ -292,17 +295,40 @@ export const approveLockRequest = mutation({
 			reviewedBy: adminUserId,
 		});
 
-		await ctx.db.patch(request.listingId, {
-			locked: true,
-			lockedBy: request.requestedBy,
-			lockedAt: Date.now(),
-		});
+	await ctx.db.patch(request.listingId, {
+		locked: true,
+		lockedBy: request.requestedBy,
+		lockedAt: Date.now(),
+	});
 
-		logger.info("Lock request approved", {
-			requestId: args.requestId,
-			listingId: request.listingId,
-			approvedBy: adminUserId,
-		});
+	// Auto-reject all other pending requests for the same listing
+	const otherPendingRequests = await ctx.db
+		.query("lock_requests")
+		.withIndex("by_listing_status", (q) =>
+			q.eq("listingId", request.listingId).eq("status", "pending"),
+		)
+		.collect();
+
+	// Reject all pending requests except the approved one
+	const rejectionPromises = otherPendingRequests
+		.filter((req) => req._id !== args.requestId)
+		.map((req) =>
+			ctx.db.patch(req._id, {
+				status: "rejected",
+				reviewedBy: adminUserId,
+				reviewedAt: Date.now(),
+				rejectionReason: "Listing was locked",
+			}),
+		);
+
+	await Promise.all(rejectionPromises);
+
+	logger.info("Lock request approved", {
+		requestId: args.requestId,
+		listingId: request.listingId,
+		approvedBy: adminUserId,
+		autoRejectedCount: rejectionPromises.length,
+	});
 
 		return args.requestId;
 	},
@@ -1285,20 +1311,20 @@ export const getLockRequestsByListing = query({
 			throw new Error("Authentication required");
 		}
 
-		// Check admin authorization
-		const isAdmin = hasRbacAccess({
-			required_roles: ["admin", "broker"],
-			user_identity: identity,
-		});
+	// Check admin authorization
+	const isAdmin = hasRbacAccess({
+		required_roles: ["admin", "broker"],
+		user_identity: identity,
+	});
 
-		if (!isAdmin) {
-			throw new Error("Unauthorized: Admin privileges required");
-		}
+	if (!isAdmin) {
+		throw new Error("Unauthorized: Admin or broker privileges required");
+	}
 
-		return await ctx.db
-			.query("lock_requests")
-			.withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
-			.collect();
+	return await ctx.db
+		.query("lock_requests")
+		.withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
+		.collect();
 	},
 });
 
@@ -1328,22 +1354,22 @@ export const getPendingLockRequestsByListing = query({
 			throw new Error("Authentication required");
 		}
 
-		// Check admin authorization
-		const isAdmin = hasRbacAccess({
-			required_roles: ["admin", "broker"],
-			user_identity: identity,
-		});
+	// Check admin authorization
+	const isAdmin = hasRbacAccess({
+		required_roles: ["admin", "broker"],
+		user_identity: identity,
+	});
 
-		if (!isAdmin) {
-			throw new Error("Unauthorized: Admin privileges required");
-		}
+	if (!isAdmin) {
+		throw new Error("Unauthorized: Admin or broker privileges required");
+	}
 
-		const requests = await ctx.db
-			.query("lock_requests")
-			.withIndex("by_listing_status", (q) =>
-				q.eq("listingId", args.listingId).eq("status", "pending")
-			)
-			.collect();
+	const requests = await ctx.db
+		.query("lock_requests")
+		.withIndex("by_listing_status", (q) =>
+			q.eq("listingId", args.listingId).eq("status", "pending")
+		)
+		.collect();
 		
 		// Filter to ensure type safety (should already be filtered by index, but TypeScript needs this)
 		return requests.filter((r) => r.status === "pending") as Array<{

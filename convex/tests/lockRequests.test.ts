@@ -497,16 +497,18 @@ describe("approveLockRequest - Unit Tests", () => {
 			})
 		).rejects.toThrow("Listing is no longer available");
 
-		// Verify only first request was approved
-		const request1 = await t.run(async (ctx) => ctx.db.get(requestId1));
-		const request2 = await t.run(async (ctx) => ctx.db.get(requestId2));
-		expect(request1?.status).toBe("approved");
-		expect(request2?.status).toBe("pending"); // Still pending
+	// Verify only first request was approved
+	const request1 = await t.run(async (ctx) => ctx.db.get(requestId1));
+	const request2 = await t.run(async (ctx) => ctx.db.get(requestId2));
+	expect(request1?.status).toBe("approved");
+	// Request 2 was auto-rejected when request 1 was approved (listing was locked)
+	expect(request2?.status).toBe("rejected");
+	expect(request2?.rejectionReason).toBe("Listing was locked");
 
-		// Verify listing is locked
-		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
-		expect(listing?.locked).toBe(true);
-		expect(listing?.lockedBy).toBe(investorId);
+	// Verify listing is locked
+	const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+	expect(listing?.locked).toBe(true);
+	expect(listing?.lockedBy).toBe(investorId);
 	});
 
 	test("2.1.6: should reject approveLockRequest for already locked listing", async () => {

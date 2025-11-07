@@ -87,13 +87,13 @@ test.describe("Lock Request Authorization", () => {
 			// Navigate to the test listing detail page
 			await page.goto(`/listings/${testListing.listingId}`);
 
-			// The RequestListingSection component is visible to all authenticated users
-			// but the backend will reject non-investor requests (tested in 5.4.2)
-			// For UI-level testing, we verify the page loads
+			// Wait for page to load
+			await page.waitForLoadState("networkidle");
 			await expect(page).toHaveURL(/\/listings\//);
 
-			// In a real scenario with role-based UI hiding, we would check:
-			// await expect(page.getByRole("button", { name: /Request to Lock/i })).not.toBeVisible();
+			// Assert that the Request to Lock button is not visible for broker role
+			const requestButton = page.getByRole("button", { name: /Request to Lock/i });
+			await expect(requestButton).toHaveCount(0);
 		});
 
 		test("lawyer cannot see Request to Lock button", async ({ page }) => {
@@ -101,7 +101,13 @@ test.describe("Lock Request Authorization", () => {
 
 			await page.goto(`/listings/${testListing.listingId}`);
 
+			// Wait for page to load
+			await page.waitForLoadState("networkidle");
 			await expect(page).toHaveURL(/\/listings\//);
+
+			// Assert that the Request to Lock button is not visible for lawyer role
+			const requestButton = page.getByRole("button", { name: /Request to Lock/i });
+			await expect(requestButton).toHaveCount(0);
 		});
 
 		test("member cannot see Request to Lock button", async ({ page }) => {
@@ -109,7 +115,13 @@ test.describe("Lock Request Authorization", () => {
 
 			await page.goto(`/listings/${testListing.listingId}`);
 
+			// Wait for page to load
+			await page.waitForLoadState("networkidle");
 			await expect(page).toHaveURL(/\/listings\//);
+
+			// Assert that the Request to Lock button is not visible for member role
+			const requestButton = page.getByRole("button", { name: /Request to Lock/i });
+			await expect(requestButton).toHaveCount(0);
 		});
 	});
 
@@ -299,21 +311,36 @@ test.describe("Lock Request Authorization", () => {
 
 			// Navigate to admin lock requests page
 			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
-			// Should be redirected or see access denied
-			// In a properly protected route, non-admins should be redirected
+			// Assert: Either redirected away OR access denied UI is shown
 			const currentUrl = page.url();
-			const isLockRequestsPage = currentUrl.includes("/lock-requests");
-
-			// If route protection is working, non-admins shouldn't access this page
-			// If still on lock requests page, verify admin content is not functional
-			if (isLockRequestsPage) {
-				// Check that admin-specific actions are not available
-				// The page might load but mutations should fail (tested in 5.4.4)
-				const adminTabs = page.getByRole("tab", { name: /pending/i });
-				// If tabs exist but user can't interact, that's acceptable
-				// The key is that API calls will fail (tested separately)
+			
+			if (currentUrl.includes("/lock-requests")) {
+				// If still on lock requests page, verify access is denied via UI
+				// Option 1: Check for "Access Denied" or similar error message
+				const accessDeniedMessage = page.getByText(/access denied|unauthorized|permission denied/i);
+				const hasAccessDenied = (await accessDeniedMessage.count()) > 0;
+				
+				// Option 2: Verify admin tabs are NOT visible
+				const pendingTab = page.getByRole("tab", { name: /pending/i });
+				const approvedTab = page.getByRole("tab", { name: /approved/i });
+				const rejectedTab = page.getByRole("tab", { name: /rejected/i });
+				
+				const hasPendingTab = (await pendingTab.count()) > 0;
+				const hasApprovedTab = (await approvedTab.count()) > 0;
+				const hasRejectedTab = (await rejectedTab.count()) > 0;
+				const hasAnyAdminTabs = hasPendingTab || hasApprovedTab || hasRejectedTab;
+				
+				// ASSERT: Must have access denied message OR no admin tabs
+				expect(hasAccessDenied || !hasAnyAdminTabs).toBe(true);
+				
+				// If we see admin UI, that's a security violation
+				if (hasAnyAdminTabs && !hasAccessDenied) {
+					throw new Error("SECURITY VIOLATION: Investor can see admin lock requests UI without access denied message");
+				}
 			}
+			// If redirected away, test passes (access was properly denied)
 		});
 
 		test("broker cannot access lock requests dashboard", async ({
@@ -322,14 +349,28 @@ test.describe("Lock Request Authorization", () => {
 			await mockUserRole(page, "broker");
 
 			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
 			const currentUrl = page.url();
-			const isLockRequestsPage = currentUrl.includes("/lock-requests");
-
-			// Verify that even if page loads, admin actions are not available
-			if (isLockRequestsPage) {
-				// Admin actions should fail at API level (tested in 5.4.4)
-				// UI might show content but mutations will be rejected
+			
+			if (currentUrl.includes("/lock-requests")) {
+				const accessDeniedMessage = page.getByText(/access denied|unauthorized|permission denied/i);
+				const hasAccessDenied = (await accessDeniedMessage.count()) > 0;
+				
+				const pendingTab = page.getByRole("tab", { name: /pending/i });
+				const approvedTab = page.getByRole("tab", { name: /approved/i });
+				const rejectedTab = page.getByRole("tab", { name: /rejected/i });
+				
+				const hasPendingTab = (await pendingTab.count()) > 0;
+				const hasApprovedTab = (await approvedTab.count()) > 0;
+				const hasRejectedTab = (await rejectedTab.count()) > 0;
+				const hasAnyAdminTabs = hasPendingTab || hasApprovedTab || hasRejectedTab;
+				
+				expect(hasAccessDenied || !hasAnyAdminTabs).toBe(true);
+				
+				if (hasAnyAdminTabs && !hasAccessDenied) {
+					throw new Error("SECURITY VIOLATION: Broker can see admin lock requests UI without access denied message");
+				}
 			}
 		});
 
@@ -339,13 +380,28 @@ test.describe("Lock Request Authorization", () => {
 			await mockUserRole(page, "lawyer");
 
 			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
 			const currentUrl = page.url();
-			const isLockRequestsPage = currentUrl.includes("/lock-requests");
-
-			// Route protection should prevent access or disable functionality
-			if (isLockRequestsPage) {
-				// API-level protection ensures mutations fail (tested in 5.4.4)
+			
+			if (currentUrl.includes("/lock-requests")) {
+				const accessDeniedMessage = page.getByText(/access denied|unauthorized|permission denied/i);
+				const hasAccessDenied = (await accessDeniedMessage.count()) > 0;
+				
+				const pendingTab = page.getByRole("tab", { name: /pending/i });
+				const approvedTab = page.getByRole("tab", { name: /approved/i });
+				const rejectedTab = page.getByRole("tab", { name: /rejected/i });
+				
+				const hasPendingTab = (await pendingTab.count()) > 0;
+				const hasApprovedTab = (await approvedTab.count()) > 0;
+				const hasRejectedTab = (await rejectedTab.count()) > 0;
+				const hasAnyAdminTabs = hasPendingTab || hasApprovedTab || hasRejectedTab;
+				
+				expect(hasAccessDenied || !hasAnyAdminTabs).toBe(true);
+				
+				if (hasAnyAdminTabs && !hasAccessDenied) {
+					throw new Error("SECURITY VIOLATION: Lawyer can see admin lock requests UI without access denied message");
+				}
 			}
 		});
 
@@ -355,13 +411,28 @@ test.describe("Lock Request Authorization", () => {
 			await mockUserRole(page, "member");
 
 			await page.goto("/dashboard/admin/lock-requests");
+			await page.waitForLoadState("networkidle");
 
 			const currentUrl = page.url();
-			const isLockRequestsPage = currentUrl.includes("/lock-requests");
-
-			// Non-admin users should not have access to admin dashboard
-			if (isLockRequestsPage) {
-				// Even if page loads, functionality should be disabled
+			
+			if (currentUrl.includes("/lock-requests")) {
+				const accessDeniedMessage = page.getByText(/access denied|unauthorized|permission denied/i);
+				const hasAccessDenied = (await accessDeniedMessage.count()) > 0;
+				
+				const pendingTab = page.getByRole("tab", { name: /pending/i });
+				const approvedTab = page.getByRole("tab", { name: /approved/i });
+				const rejectedTab = page.getByRole("tab", { name: /rejected/i });
+				
+				const hasPendingTab = (await pendingTab.count()) > 0;
+				const hasApprovedTab = (await approvedTab.count()) > 0;
+				const hasRejectedTab = (await rejectedTab.count()) > 0;
+				const hasAnyAdminTabs = hasPendingTab || hasApprovedTab || hasRejectedTab;
+				
+				expect(hasAccessDenied || !hasAnyAdminTabs).toBe(true);
+				
+				if (hasAnyAdminTabs && !hasAccessDenied) {
+					throw new Error("SECURITY VIOLATION: Member can see admin lock requests UI without access denied message");
+				}
 			}
 		});
 	});

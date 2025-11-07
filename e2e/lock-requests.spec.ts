@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { createTestListing, deleteTestListing, type TestListingFixture } from "./fixtures/test-listings";
+import { 
+	createTestListing, 
+	deleteTestListing, 
+	lockTestListing,
+	type TestListingFixture 
+} from "./fixtures/test-listings";
 
 test.describe("Investor Lock Request Flow", () => {
 	// Test listing fixture - created once per test
@@ -18,11 +23,10 @@ test.describe("Investor Lock Request Flow", () => {
 		testListing = await createTestListing(page, { visible: true });
 		hiddenListing = await createTestListing(page, { visible: false });
 		
-		// For locked listing, create a regular listing
-		// Note: Locking requires admin auth, so we'll create it unlocked
-		// and the test will need to handle the locked state differently
-		// or we can lock it via UI in the test itself
+		// Create and lock a listing for the locked listing test
+		// Use webhook endpoint to lock the listing (bypasses authentication)
 		lockedListing = await createTestListing(page, { visible: true });
+		await lockTestListing(page, lockedListing.listingId);
 	});
 
 	test.afterEach(async ({ page }) => {

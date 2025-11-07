@@ -50,6 +50,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
 	type LockRequestSortColumn,
 	type LockStatusFilter,
@@ -171,9 +172,8 @@ export function LockRequestsTable({
 	}, [searchQuery]);
 
 	const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-	const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
-		null
-	);
+	const [selectedRequestId, setSelectedRequestId] =
+		useState<Id<"lock_requests"> | null>(null);
 	const [rejectionReason, setRejectionReason] = useState("");
 	const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 	const [selectedRequestData, setSelectedRequestData] = useState<
@@ -234,9 +234,9 @@ export function LockRequestsTable({
 	const isLoading = rawRequests === undefined;
 	const hasError = rawRequests === null;
 
-	const handleApprove = async (requestId: string) => {
+	const handleApprove = async (requestId: Id<"lock_requests">) => {
 		try {
-			await approveMutation({ requestId: requestId as any });
+			await approveMutation({ requestId });
 			toast.success("Request approved", {
 				description: "Listing has been locked for the investor.",
 			});
@@ -252,9 +252,12 @@ export function LockRequestsTable({
 	const handleReject = async () => {
 		if (!selectedRequestId) return;
 
+		// After null check, selectedRequestId is guaranteed to be Id<"lock_requests">
+		const requestId: Id<"lock_requests"> = selectedRequestId;
+
 		try {
 			await rejectMutation({
-				requestId: selectedRequestId as any,
+				requestId,
 				rejectionReason: rejectionReason || undefined,
 			});
 			toast.success("Request rejected");
@@ -270,7 +273,7 @@ export function LockRequestsTable({
 		}
 	};
 
-	const openRejectDialog = (requestId: string) => {
+	const openRejectDialog = (requestId: Id<"lock_requests">) => {
 		setSelectedRequestId(requestId);
 		setRejectDialogOpen(true);
 	};
