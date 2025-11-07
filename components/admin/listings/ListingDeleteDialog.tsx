@@ -31,7 +31,7 @@ export function ListingDeleteDialog({
 	listingId,
 	listingAddress,
 	isLocked = false,
-	comparablesCount = 0,
+	comparablesCount,
 	onConfirm,
 }: ListingDeleteDialogProps) {
 	const [force, setForce] = useState(false);
@@ -81,7 +81,7 @@ export function ListingDeleteDialog({
 					</div>
 				)}
 
-				{comparablesCount > 0 && (
+				{comparablesCount !== undefined && comparablesCount > 0 && (
 					<div className="rounded-md border border-destructive/20 bg-destructive/5 p-3">
 						<p className="text-sm">
 							<strong>Warning:</strong> This will cascade delete{" "}

@@ -3,7 +3,10 @@
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MortgageDeleteDialog } from "@/components/admin/mortgages/MortgageDeleteDialog";
+import {
+	type DeleteResult,
+	MortgageDeleteDialog,
+} from "@/components/admin/mortgages/MortgageDeleteDialog";
 import {
 	type MortgageData,
 	MortgageManagementTable,
@@ -40,7 +43,9 @@ export default function AdminMortgagesManagePage() {
 		setDeletingMortgage({ id: mortgageId, address });
 	}
 
-	async function handleDeleteConfirm(force = false) {
+	async function handleDeleteConfirm(
+		force: boolean
+	): Promise<DeleteResult | undefined> {
 		if (!deletingMortgage) return;
 
 		try {

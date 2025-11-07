@@ -47,6 +47,11 @@ const DOCUMENT_TYPES = [
 	{ key: "insurance", label: "Insurance" },
 ] as const;
 
+// Maximum image file size: 5MB
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// Maximum document file size: 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 export function MortgageUpdateSheet({
 	open,
 	onOpenChange,
@@ -123,15 +128,39 @@ export function MortgageUpdateSheet({
 		}
 	}, [open, reset]);
 
+	// Cleanup: Revoke all object URLs when component unmounts
+	useEffect(() => {
+		return () => {
+			// Revoke all preview URLs on unmount
+			for (const image of images) {
+				if (image.previewUrl) {
+					URL.revokeObjectURL(image.previewUrl);
+				}
+			}
+		};
+	}, [images]); // Include images in deps to capture current state
+
 	const handleImageUpload = async (files: FileList | null) => {
 		if (!files || files.length === 0) return;
 		setIsUploadingMedia(true);
 		try {
 			for (const file of Array.from(files)) {
+				// Client-side MIME type check (server will also validate)
 				if (!file.type.startsWith("image/")) {
 					toast.error(`Unsupported file type for ${file.name}`);
 					continue;
 				}
+
+				// File size validation
+				if (file.size > MAX_IMAGE_BYTES) {
+					const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+					const maxMB = (MAX_IMAGE_BYTES / (1024 * 1024)).toFixed(0);
+					toast.error(
+						`${file.name} is too large (${sizeMB}MB). Maximum size is ${maxMB}MB.`
+					);
+					continue;
+				}
+
 				const uploadUrl = await generateUploadUrl({});
 				const response = await fetch(uploadUrl, {
 					method: "POST",
@@ -162,8 +191,27 @@ export function MortgageUpdateSheet({
 		}
 	};
 
+	const handleRemoveImage = (index: number) => {
+		// Revoke object URL before removing image to prevent memory leaks
+		const imageToRemove = images[index];
+		if (imageToRemove?.previewUrl) {
+			URL.revokeObjectURL(imageToRemove.previewUrl);
+		}
+		removeImage(index);
+	};
+
 	const handleDocumentUpload = async (file: File | null) => {
 		if (!file) return;
+
+		// File size validation
+		if (file.size > MAX_FILE_SIZE) {
+			toast.error("File is too large. Maximum allowed size is 10MB.");
+			if (documentInputRef.current) {
+				documentInputRef.current.value = "";
+			}
+			return;
+		}
+
 		setIsUploadingMedia(true);
 		try {
 			const uploadUrl = await generateUploadUrl({});
@@ -813,7 +861,7 @@ export function MortgageUpdateSheet({
 																</Button>
 																<Button
 																	aria-label={`Remove image ${index + 1}`}
-																	onClick={() => removeImage(index)}
+																	onClick={() => handleRemoveImage(index)}
 																	size="sm"
 																	variant="ghost"
 																>

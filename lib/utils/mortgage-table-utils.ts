@@ -71,8 +71,8 @@ export function sortMortgages(
 				break;
 			}
 			case "borrowerName": {
-				const aName = a.borrower?.name.toLowerCase() ?? "";
-				const bName = b.borrower?.name.toLowerCase() ?? "";
+				const aName = a.borrower?.name?.toLowerCase() ?? "";
+				const bName = b.borrower?.name?.toLowerCase() ?? "";
 				// Handle null borrowers - place at end for ascending, beginning for descending
 				if (!(a.borrower || b.borrower)) {
 					comparison = 0;
@@ -124,9 +124,9 @@ export function searchMortgages(
 		const statusMatch = mortgage.status.toLowerCase().includes(normalizedQuery);
 
 		// Search borrower name
-		const borrowerMatch = mortgage.borrower?.name
-			.toLowerCase()
-			.includes(normalizedQuery);
+		const borrowerMatch = (
+			mortgage.borrower?.name?.toLowerCase() ?? ""
+		).includes(normalizedQuery);
 
 		// Return true if ANY field matches (OR logic)
 		return addressMatch || statusMatch || borrowerMatch;

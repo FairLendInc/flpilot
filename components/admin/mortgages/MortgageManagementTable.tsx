@@ -73,8 +73,42 @@ function SortButton({
 		Icon = direction === "desc" ? ChevronDown : ChevronUp;
 	}
 
+	// Map column names to human-readable labels
+	const columnLabels: Record<SortColumn, string> = {
+		address: "Property Address",
+		borrowerName: "Borrower",
+		loanAmount: "Loan Amount",
+		interestRate: "Interest Rate",
+		status: "Status",
+		maturityDate: "Maturity Date",
+	};
+
+	const columnLabel = columnLabels[column];
+
+	// Generate accessible label based on current state
+	let ariaLabel: string;
+	let title: string;
+	if (!isActive) {
+		ariaLabel = `Change sort for ${columnLabel}`;
+		title = `Sort by ${columnLabel}`;
+	} else if (direction === "desc") {
+		ariaLabel = `Sort by ${columnLabel} ascending`;
+		title = "Currently sorted descending, click to sort ascending";
+	} else {
+		// direction === "asc"
+		ariaLabel = `Sort by ${columnLabel} descending`;
+		title = "Currently sorted ascending, click to sort descending";
+	}
+
 	return (
-		<Button className="h-6 w-6 p-0" onClick={onClick} size="sm" variant="ghost">
+		<Button
+			aria-label={ariaLabel}
+			className="h-6 w-6 p-0"
+			onClick={onClick}
+			size="sm"
+			title={title}
+			variant="ghost"
+		>
 			<Icon
 				className={`h-4 w-4 ${isActive ? "text-foreground" : "text-muted-foreground opacity-50"}`}
 			/>

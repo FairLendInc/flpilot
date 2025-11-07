@@ -22,11 +22,16 @@ export default function AdminListingsManagePage() {
 		id: Id<"listings">;
 		address: string;
 		locked: boolean;
-		comparablesCount: number;
 	} | null>(null);
 
 	const updateListing = useMutation(api.listings.updateListing);
 	const deleteListing = useMutation(api.listings.deleteListing);
+
+	// Fetch comparables count when a listing is selected for deletion
+	const comparablesCount = useQuery(
+		api.comparables.getComparablesCountForListing,
+		deletingListing ? { listingId: deletingListing.id } : "skip"
+	);
 
 	function handleEdit(
 		listingId: Id<"listings">,
@@ -64,9 +69,7 @@ export default function AdminListingsManagePage() {
 		address: string,
 		locked: boolean
 	) {
-		// Count comparables for this listing
-		const comparablesCount = 0; // TODO: Get actual count from query if needed
-		setDeletingListing({ id: listingId, address, locked, comparablesCount });
+		setDeletingListing({ id: listingId, address, locked });
 	}
 
 	async function handleDeleteConfirm(force = false) {
@@ -137,7 +140,7 @@ export default function AdminListingsManagePage() {
 				/>
 
 				<ListingDeleteDialog
-					comparablesCount={deletingListing?.comparablesCount}
+					comparablesCount={comparablesCount}
 					isLocked={deletingListing?.locked}
 					listingAddress={deletingListing?.address}
 					listingId={deletingListing?.id ?? null}

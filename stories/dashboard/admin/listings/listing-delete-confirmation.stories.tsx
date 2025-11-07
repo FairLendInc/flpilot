@@ -6,7 +6,10 @@ import type { Id } from "@/convex/_generated/dataModel";
 
 // Wrapper component to make the dialog visible in Storybook
 function ListingDeleteDialogWrapper(
-	props: React.ComponentProps<typeof ListingDeleteDialog>
+	props: Omit<
+		React.ComponentProps<typeof ListingDeleteDialog>,
+		"open" | "onOpenChange"
+	>
 ) {
 	const [open, setOpen] = useState(true);
 
@@ -66,8 +69,6 @@ const meta = {
 		listingId: "k17abc123def456" as Id<"listings">,
 		listingAddress: "789 Integration Ave, Ottawa, ON K1A0B1",
 		onConfirm: fn(),
-		open: true,
-		onOpenChange: fn(),
 	},
 } satisfies Meta<typeof ListingDeleteDialogWrapper>;
 
