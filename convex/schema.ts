@@ -305,4 +305,102 @@ export default defineSchema({
 		.index("by_status", ["status"])
 		.index("by_process_date", ["processDate"])
 		.index("by_payment_id", ["paymentId"]),
+
+	// ============================================================================
+	// Deal Management Tables (Pilot Program)
+	// ============================================================================
+
+	deals: defineTable({
+		// References to related entities
+		lockRequestId: v.id("lock_requests"),
+		listingId: v.id("listings"),
+		mortgageId: v.id("mortgages"),
+		investorId: v.id("users"),
+
+		// XState machine state (serialized JSON)
+		stateMachineState: v.string(),
+		currentState: v.union(
+			v.literal("locked"),
+			v.literal("pending_lawyer"),
+			v.literal("pending_docs"),
+			v.literal("pending_transfer"),
+			v.literal("pending_verification"),
+			v.literal("completed"),
+			v.literal("cancelled"),
+			v.literal("archived")
+		),
+
+		// Deal financial details
+		purchasePercentage: v.number(), // 100 for pilot, variable in future
+		dealValue: v.number(), // Calculated at creation
+
+		// Timestamps
+		createdAt: v.number(),
+		updatedAt: v.number(),
+		completedAt: v.optional(v.number()),
+		archivedAt: v.optional(v.number()),
+
+		// Audit trail - tracks all state transitions
+		stateHistory: v.array(
+			v.object({
+				fromState: v.string(),
+				toState: v.string(),
+				timestamp: v.number(),
+				triggeredBy: v.id("users"),
+				notes: v.optional(v.string()),
+			})
+		),
+
+		// Future: validation tracking (stubbed for now)
+		validationChecks: v.optional(
+			v.object({
+				lawyerConfirmed: v.boolean(),
+				docsComplete: v.boolean(),
+				fundsReceived: v.boolean(),
+				fundsVerified: v.boolean(),
+			})
+		),
+	})
+		.index("by_lock_request", ["lockRequestId"])
+		.index("by_listing", ["listingId"])
+		.index("by_mortgage", ["mortgageId"])
+		.index("by_investor", ["investorId"])
+		.index("by_current_state", ["currentState"])
+		.index("by_created_at", ["createdAt"]),
+
+	alerts: defineTable({
+		// Who should see this alert
+		userId: v.id("users"),
+
+		// Alert type and severity
+		type: v.union(
+			v.literal("deal_created"),
+			v.literal("deal_state_changed"),
+			v.literal("deal_completed"),
+			v.literal("deal_cancelled"),
+			v.literal("deal_stuck") // Future: for time-based alerts
+		),
+		severity: v.union(
+			v.literal("info"),
+			v.literal("warning"),
+			v.literal("error")
+		),
+
+		// Alert content
+		title: v.string(),
+		message: v.string(),
+
+		// Alert metadata - links to related entities
+		relatedDealId: v.optional(v.id("deals")),
+		relatedListingId: v.optional(v.id("listings")),
+		relatedLockRequestId: v.optional(v.id("lock_requests")),
+
+		// State tracking
+		read: v.boolean(),
+		createdAt: v.number(),
+		readAt: v.optional(v.number()),
+	})
+		.index("by_user_read", ["userId", "read"])
+		.index("by_user_created_at", ["userId", "createdAt"])
+		.index("by_deal", ["relatedDealId"]),
 });
