@@ -58,6 +58,13 @@ const addressWebhookSchema = z.object({
 	country: z.string().min(1, "mortgage.address.country.required"),
 });
 
+const comparableAddressWebhookSchema = z.object({
+	street: z.string().min(1, "comparable.address.street.required"),
+	city: z.string().min(1, "comparable.address.city.required"),
+	state: z.string().min(1, "comparable.address.state.required"),
+	zip: z.string().min(1, "comparable.address.zip.required"),
+});
+
 const storageIdSchema = z.string().min(1, "storageId.required");
 
 const imageWebhookSchema = z.object({
@@ -87,6 +94,44 @@ const documentWebhookSchema = z.object({
 		),
 	fileSize: z.number().nonnegative("mortgage.documents.fileSize.range").optional(),
 });
+
+const comparableWebhookSchema = z
+	.object({
+		address: comparableAddressWebhookSchema,
+		saleAmount: z.number().gt(0, "comparable.saleAmount.positive"),
+		saleDate: z
+			.string()
+			.refine(
+				(value) => !Number.isNaN(Date.parse(value)),
+				"comparable.saleDate.invalid"
+			)
+			.refine(
+				(value) => Date.parse(value) <= Date.now(),
+				"comparable.saleDate.future"
+			),
+		distance: z.number().gte(0, "comparable.distance.range"),
+		squareFeet: z.number().positive("comparable.squareFeet.positive").optional(),
+		bedrooms: z.number().int().min(0, "comparable.bedrooms.range").optional(),
+		bathrooms: z.number().min(0, "comparable.bathrooms.range").optional(),
+		propertyType: z.string().optional(),
+		imageStorageId: storageIdSchema.optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.bedrooms !== undefined && value.bedrooms < 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["bedrooms"],
+				message: "comparable.bedrooms.range",
+			});
+		}
+		if (value.bathrooms !== undefined && value.bathrooms < 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["bathrooms"],
+				message: "comparable.bathrooms.range",
+			});
+		}
+	});
 
 const mortgageWebhookSchema = z
 	.object({
@@ -168,6 +213,7 @@ const listingCreationWebhookSchema = z.object({
 	borrower: borrowerWebhookSchema,
 	mortgage: mortgageWebhookSchema,
 	listing: listingWebhookSchema,
+	comparables: z.array(comparableWebhookSchema).optional(),
 });
 
 type ListingWebhookPayload = z.infer<typeof listingCreationWebhookSchema>;
@@ -188,6 +234,24 @@ const toListingCreationPayload = (
 		})),
 	},
 	listing: payload.listing,
+	comparables: payload.comparables?.map((comp) => ({
+		address: {
+			street: comp.address.street,
+			city: comp.address.city,
+			state: comp.address.state,
+			zip: comp.address.zip,
+		},
+		saleAmount: comp.saleAmount,
+		saleDate: comp.saleDate,
+		distance: comp.distance,
+		squareFeet: comp.squareFeet,
+		bedrooms: comp.bedrooms,
+		bathrooms: comp.bathrooms,
+		propertyType: comp.propertyType,
+		imageStorageId: comp.imageStorageId
+			? (comp.imageStorageId as Id<"_storage">)
+			: undefined,
+	})),
 });
 
 const formatValidationIssues = (issues: z.ZodIssue[]) =>

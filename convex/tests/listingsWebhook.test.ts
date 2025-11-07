@@ -154,4 +154,163 @@ describe("/listings/create webhook", () => {
 		expect(body.code).toBe("payload_validation_error");
 		expect(body.errors.length).toBeGreaterThan(0);
 	});
+
+	test("creates listing with comparables", async () => {
+		const t = createTest();
+
+		const payload = makeWebhookPayload({
+			comparables: [
+				{
+					address: {
+						street: "123 Comp St",
+						city: "Toronto",
+						state: "ON",
+						zip: "M5J 2N1",
+					},
+					saleAmount: 520000,
+					saleDate: "2023-11-15",
+					distance: 0.5,
+					squareFeet: 1800,
+					bedrooms: 3,
+					bathrooms: 2,
+					propertyType: "Townhouse",
+				},
+				{
+					address: {
+						street: "456 Comp Ave",
+						city: "Toronto",
+						state: "ON",
+						zip: "M5K 1L9",
+					},
+					saleAmount: 535000,
+					saleDate: "2023-10-20",
+					distance: 0.8,
+				},
+			],
+		});
+
+		const response = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(payload),
+		});
+
+		expect(response.status).toBe(201);
+		const body = (await response.json()) as {
+			code: string;
+			result: { created: boolean };
+		};
+		expect(body.code).toBe("listing_created");
+		expect(body.result.created).toBe(true);
+
+		const comparables = await t.run(async (ctx) => {
+			return await ctx.db.query("appraisal_comparables").collect();
+		});
+		expect(comparables).toHaveLength(2);
+	});
+
+	test("creates listing without comparables (optional)", async () => {
+		const t = createTest();
+
+		const payload = makeWebhookPayload({
+			comparables: [],
+		});
+
+		const response = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(payload),
+		});
+
+		expect(response.status).toBe(201);
+		const body = (await response.json()) as {
+			code: string;
+			result: { created: boolean };
+		};
+		expect(body.code).toBe("listing_created");
+		expect(body.result.created).toBe(true);
+
+		const comparables = await t.run(async (ctx) => {
+			return await ctx.db.query("appraisal_comparables").collect();
+		});
+		expect(comparables).toHaveLength(0);
+	});
+
+	test("creates listing without comparables field (optional)", async () => {
+		const t = createTest();
+
+		const payload = makeWebhookPayload();
+
+		const response = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(payload),
+		});
+
+		expect(response.status).toBe(201);
+		const body = (await response.json()) as {
+			code: string;
+			result: { created: boolean };
+		};
+		expect(body.code).toBe("listing_created");
+		expect(body.result.created).toBe(true);
+
+		const comparables = await t.run(async (ctx) => {
+			return await ctx.db.query("appraisal_comparables").collect();
+		});
+		expect(comparables).toHaveLength(0);
+	});
+
+	test("returns validation errors for invalid comparable data", async () => {
+		const t = createTest();
+
+		const invalidPayload = makeWebhookPayload({
+			comparables: [
+				{
+					address: {
+						street: "",
+						city: "Toronto",
+						state: "ON",
+						zip: "M5J 2N1",
+					},
+					saleAmount: -100000,
+					saleDate: "2030-01-01",
+					distance: -1,
+				},
+			],
+		});
+
+		const response = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(invalidPayload),
+		});
+
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as {
+			code: string;
+			errors: Array<{ code: string; path: string }>;
+		};
+		expect(body.code).toBe("payload_validation_error");
+		const comparableErrors = body.errors.filter((e) =>
+			e.path.startsWith("comparables")
+		);
+		expect(comparableErrors.length).toBeGreaterThan(0);
+		expect(comparableErrors.find((e) => e.path.includes("address.street"))).toBeDefined();
+		expect(comparableErrors.find((e) => e.path.includes("saleAmount"))).toBeDefined();
+		expect(comparableErrors.find((e) => e.path.includes("saleDate"))).toBeDefined();
+		expect(comparableErrors.find((e) => e.path.includes("distance"))).toBeDefined();
+	});
 });

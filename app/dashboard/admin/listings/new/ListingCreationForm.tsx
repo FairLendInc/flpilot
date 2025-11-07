@@ -79,6 +79,7 @@ export default function ListingCreationForm() {
 	const listing = useListingCreationStore((state) => state.listing);
 	const images = useListingCreationStore((state) => state.images);
 	const documents = useListingCreationStore((state) => state.documents);
+	const comparables = useListingCreationStore((state) => state.comparables);
 	const errors = useListingCreationStore((state) => state.errors);
 	const isSubmitting = useListingCreationStore((state) => state.isSubmitting);
 
@@ -109,6 +110,15 @@ export default function ListingCreationForm() {
 	);
 	const removeDocument = useListingCreationStore(
 		(state) => state.removeDocument
+	);
+	const addComparable = useListingCreationStore(
+		(state) => state.addComparable
+	);
+	const updateComparable = useListingCreationStore(
+		(state) => state.updateComparable
+	);
+	const removeComparable = useListingCreationStore(
+		(state) => state.removeComparable
 	);
 	const setErrors = useListingCreationStore((state) => state.setErrors);
 	const clearErrors = useListingCreationStore((state) => state.clearErrors);
@@ -265,6 +275,24 @@ export default function ListingCreationForm() {
 			listing: {
 				visible: state.listing.visible,
 			},
+			comparables: state.comparables.map((comp) => ({
+				address: {
+					street: comp.address.street.trim(),
+					city: comp.address.city.trim(),
+					state: comp.address.state.trim(),
+					zip: comp.address.zip.trim(),
+				},
+				saleAmount: Number(comp.saleAmount),
+				saleDate: comp.saleDate,
+				distance: Number(comp.distance),
+				squareFeet: comp.squareFeet ? Number(comp.squareFeet) : undefined,
+				bedrooms: comp.bedrooms !== "" ? Number(comp.bedrooms) : undefined,
+				bathrooms: comp.bathrooms !== "" ? Number(comp.bathrooms) : undefined,
+				propertyType: comp.propertyType?.trim(),
+				imageStorageId: comp.imageStorageId
+					? (comp.imageStorageId as Id<"_storage">)
+					: undefined,
+			})),
 		};
 
 		setSubmitting(true);
@@ -750,6 +778,260 @@ export default function ListingCreationForm() {
 					</Fieldset.Root>
 				</Surface>
 			</div>
+
+			<Separator className="my-6" />
+
+			<Surface
+				className="flex flex-col gap-3 rounded-3xl p-6"
+				variant="default"
+			>
+				<Fieldset.Root>
+					<Fieldset.Legend className="text-foreground/70">
+						Comparable Properties
+					</Fieldset.Legend>
+					<Description className="text-foreground/50">
+						Add comparable property data from the appraisal to support valuation. At least one comparable is required.
+					</Description>
+					<div className="space-y-4">
+						{errors.comparables && (
+							<p className="text-danger text-sm" role="alert">
+								{errors.comparables}
+							</p>
+						)}
+						{comparables.map((comp, index) => (
+							<div
+								className="rounded-md border border-border bg-surface-2 p-4"
+								key={`comparable-${index}`}
+							>
+								<div className="mb-3 flex items-center justify-between">
+									<h4 className="font-medium text-foreground">
+										Comparable #{index + 1}
+									</h4>
+									<Button
+										aria-label={`Remove comparable ${index + 1}`}
+										isIconOnly
+										onPress={() => removeComparable(index)}
+										size="sm"
+										variant="ghost"
+									>
+										<Trash2 aria-hidden="true" className="h-4 w-4" />
+									</Button>
+								</div>
+								<FieldGroup className="grid gap-x-4 md:grid-cols-3">
+									<div className="md:col-span-2">
+										<TextField
+											isRequired
+											name={`comparables.${index}.address.street`}
+										>
+											<Label>Street Address</Label>
+											<Input
+												className="placeholder:text-foreground/50"
+												onChange={(e) =>
+													updateComparable(index, {
+														address: {
+															...comp.address,
+															street: e.target.value,
+														},
+													})
+												}
+												placeholder="123 Similar Street"
+												value={comp.address.street}
+											/>
+											<FieldError />
+										</TextField>
+									</div>
+									<TextField
+										isRequired
+										name={`comparables.${index}.address.city`}
+									>
+										<Label>City</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, {
+													address: { ...comp.address, city: e.target.value },
+												})
+											}
+											placeholder="Toronto"
+											value={comp.address.city}
+										/>
+										<FieldError />
+									</TextField>
+									<TextField
+										isRequired
+										name={`comparables.${index}.address.state`}
+									>
+										<Label>State / Province</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, {
+													address: { ...comp.address, state: e.target.value },
+												})
+											}
+											placeholder="ON"
+											value={comp.address.state}
+										/>
+										<FieldError />
+									</TextField>
+									<TextField
+										isRequired
+										name={`comparables.${index}.address.zip`}
+									>
+										<Label>Postal Code</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, {
+													address: { ...comp.address, zip: e.target.value },
+												})
+											}
+											placeholder="M5J 2N1"
+											value={comp.address.zip}
+										/>
+										<FieldError />
+									</TextField>
+									<TextField
+										isRequired
+										name={`comparables.${index}.saleAmount`}
+									>
+										<Label>Sale Amount</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, { saleAmount: e.target.value })
+											}
+											placeholder="520000"
+											type="number"
+											value={comp.saleAmount}
+										/>
+										<FieldError />
+									</TextField>
+									<div>
+										<TextField isRequired name={`comparables.${index}.saleDate`}>
+											<Label>Sale Date</Label>
+											<DatePicker
+												className="w-full"
+												date={formatDate(comp.saleDate)}
+												onDateChange={(date) =>
+													updateComparable(index, {
+														saleDate: toIsoDate(date),
+													})
+												}
+												placeholder="Select sale date"
+											/>
+											{errors[`comparables.${index}.saleDate`] && (
+												<p className="mt-1 text-danger text-sm" role="alert">
+													{errors[`comparables.${index}.saleDate`]}
+												</p>
+											)}
+										</TextField>
+									</div>
+									<TextField
+										isRequired
+										name={`comparables.${index}.distance`}
+									>
+										<Label>Distance (miles)</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, { distance: e.target.value })
+											}
+											placeholder="0.5"
+											type="number"
+											value={comp.distance}
+										/>
+										<FieldError />
+									</TextField>
+									<TextField name={`comparables.${index}.squareFeet`}>
+										<Label>Square Feet</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, { squareFeet: e.target.value })
+											}
+											placeholder="1800"
+											type="number"
+											value={comp.squareFeet}
+										/>
+										{errors[`comparables.${index}.squareFeet`] && (
+											<p className="mt-1 text-danger text-sm" role="alert">
+												{errors[`comparables.${index}.squareFeet`]}
+											</p>
+										)}
+									</TextField>
+									<TextField name={`comparables.${index}.bedrooms`}>
+										<Label>Bedrooms</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, { bedrooms: e.target.value })
+											}
+											placeholder="3"
+											type="number"
+											value={comp.bedrooms}
+										/>
+										{errors[`comparables.${index}.bedrooms`] && (
+											<p className="mt-1 text-danger text-sm" role="alert">
+												{errors[`comparables.${index}.bedrooms`]}
+											</p>
+										)}
+									</TextField>
+									<TextField name={`comparables.${index}.bathrooms`}>
+										<Label>Bathrooms</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, { bathrooms: e.target.value })
+											}
+											placeholder="2"
+											type="number"
+											value={comp.bathrooms}
+										/>
+										{errors[`comparables.${index}.bathrooms`] && (
+											<p className="mt-1 text-danger text-sm" role="alert">
+												{errors[`comparables.${index}.bathrooms`]}
+											</p>
+										)}
+									</TextField>
+									<TextField name={`comparables.${index}.propertyType`}>
+										<Label>Property Type</Label>
+										<Input
+											className="placeholder:text-foreground/50"
+											onChange={(e) =>
+												updateComparable(index, {
+													propertyType: e.target.value,
+												})
+											}
+											placeholder="Townhouse"
+											value={comp.propertyType}
+										/>
+									</TextField>
+								</FieldGroup>
+							</div>
+						))}
+						<Button
+							onPress={() =>
+								addComparable({
+									address: {
+										street: "",
+										city: "",
+										state: "",
+										zip: "",
+									},
+									saleAmount: "",
+									saleDate: "",
+									distance: "",
+								})
+							}
+							size="sm"
+							variant="ghost"
+						>
+							+ Add Comparable
+						</Button>
+					</div>
+				</Fieldset.Root>
+			</Surface>
 
 			<Surface>
 				<Fieldset.Root>

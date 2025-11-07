@@ -71,6 +71,26 @@ export type ListingDocumentEntry = {
 	fileSize?: number;
 };
 
+export type ComparableAddressState = {
+	street: string;
+	city: string;
+	state: string;
+	zip: string;
+};
+
+export type ComparableFormState = {
+	address: ComparableAddressState;
+	saleAmount: string;
+	saleDate: string;
+	distance: string;
+	squareFeet?: string;
+	bedrooms?: string;
+	bathrooms?: string;
+	propertyType?: string;
+	imageStorageId?: string;
+	previewUrl?: string;
+};
+
 const createInitialBorrower = (): BorrowerFormState => ({
 	name: "",
 	email: "",
@@ -108,6 +128,18 @@ const createInitialListing = (): ListingFormState => ({
 	visible: true,
 });
 
+const createInitialComparable = (): ComparableFormState => ({
+	address: {
+		street: "",
+		city: "",
+		state: "",
+		zip: "",
+	},
+	saleAmount: "",
+	saleDate: "",
+	distance: "",
+});
+
 const removeError = (errors: Record<string, string>, field: string) => {
 	if (!errors[field]) return errors;
 	const { [field]: _removed, ...rest } = errors;
@@ -132,6 +164,7 @@ type ListingCreationStore = {
 	listing: ListingFormState;
 	images: ListingImageEntry[];
 	documents: ListingDocumentEntry[];
+	comparables: ComparableFormState[];
 	errors: Record<string, string>;
 	isSubmitting: boolean;
 	setBorrowerField: <K extends keyof BorrowerFormState>(
@@ -160,6 +193,9 @@ type ListingCreationStore = {
 	addDocument: (entry: ListingDocumentEntry) => void;
 	updateDocument: (index: number, entry: Partial<ListingDocumentEntry>) => void;
 	removeDocument: (index: number) => void;
+	addComparable: (entry: ComparableFormState) => void;
+	updateComparable: (index: number, entry: Partial<ComparableFormState>) => void;
+	removeComparable: (index: number) => void;
 	setErrors: (errors: Record<string, string>) => void;
 	clearError: (field: string) => void;
 	clearErrors: () => void;
@@ -175,6 +211,7 @@ export const useListingCreationStore = create<ListingCreationStore>(
 		listing: createInitialListing(),
 		images: [],
 		documents: [],
+		comparables: [],
 		errors: {},
 		isSubmitting: false,
 		setBorrowerField: (field, value) =>
@@ -263,6 +300,18 @@ export const useListingCreationStore = create<ListingCreationStore>(
 			set((state) => ({
 				documents: state.documents.filter((_, i) => i !== index),
 			})),
+		addComparable: (entry) =>
+			set((state) => ({ comparables: [...state.comparables, entry] })),
+		updateComparable: (index, entry) =>
+			set((state) => ({
+				comparables: state.comparables.map((comp, i) =>
+					i === index ? { ...comp, ...entry } : comp
+				),
+			})),
+		removeComparable: (index) =>
+			set((state) => ({
+				comparables: state.comparables.filter((_, i) => i !== index),
+			})),
 		setErrors: (errors) => set({ errors }),
 		clearError: (field) =>
 			set((state) => ({ errors: removeError(state.errors, field) })),
@@ -275,6 +324,7 @@ export const useListingCreationStore = create<ListingCreationStore>(
 				listing: createInitialListing(),
 				images: [],
 				documents: [],
+				comparables: [],
 				errors: {},
 				isSubmitting: false,
 			}),
@@ -287,9 +337,10 @@ export const validateListingForm = ({
 	listing,
 	images,
 	documents,
+	comparables,
 }: Pick<
 	ListingCreationStore,
-	"borrower" | "mortgage" | "listing" | "images" | "documents"
+	"borrower" | "mortgage" | "listing" | "images" | "documents" | "comparables"
 >) => {
 	const errors: Record<string, string> = {};
 
@@ -414,6 +465,73 @@ export const validateListingForm = ({
 	if (documents.some((document) => !document.storageId)) {
 		errors.documents = "All uploaded documents must have a storage ID";
 	}
+
+	// Validate comparables
+	if (comparables.length === 0) {
+		errors.comparables = "At least one comparable is required";
+	} else if (comparables.length > 10) {
+		errors.comparables = "Maximum 10 comparables allowed";
+	}
+
+	comparables.forEach((comp, index) => {
+		// Validate address fields
+		if (!comp.address.street.trim()) {
+			errors[`comparables.${index}.address.street`] = "Street is required";
+		}
+		if (!comp.address.city.trim()) {
+			errors[`comparables.${index}.address.city`] = "City is required";
+		}
+		if (!comp.address.state.trim()) {
+			errors[`comparables.${index}.address.state`] = "State / Province is required";
+		}
+		if (!comp.address.zip.trim()) {
+			errors[`comparables.${index}.address.zip`] = "Postal code is required";
+		}
+
+		// Validate sale amount
+		const saleAmount = Number(comp.saleAmount);
+		if (!Number.isFinite(saleAmount) || saleAmount <= 0) {
+			errors[`comparables.${index}.saleAmount`] = "Sale amount must be a positive number";
+		}
+
+		// Validate sale date
+		if (comp.saleDate) {
+			const parsedDate = Date.parse(comp.saleDate);
+			if (Number.isNaN(parsedDate)) {
+				errors[`comparables.${index}.saleDate`] = "Sale date must be valid";
+			} else if (parsedDate > Date.now()) {
+				errors[`comparables.${index}.saleDate`] = "Sale date cannot be in the future";
+			}
+		} else {
+			errors[`comparables.${index}.saleDate`] = "Sale date is required";
+		}
+
+		// Validate distance
+		const distance = Number(comp.distance);
+		if (!Number.isFinite(distance) || distance < 0) {
+			errors[`comparables.${index}.distance`] = "Distance must be 0 or greater";
+		}
+
+		// Validate optional numeric fields
+		if (comp.squareFeet) {
+			const squareFeet = Number(comp.squareFeet);
+			if (!Number.isFinite(squareFeet) || squareFeet <= 0) {
+				errors[`comparables.${index}.squareFeet`] = "Square feet must be positive";
+			}
+		}
+		if (comp.bedrooms !== undefined && comp.bedrooms !== "") {
+			const bedrooms = Number(comp.bedrooms);
+			if (!Number.isFinite(bedrooms) || bedrooms < 0) {
+				errors[`comparables.${index}.bedrooms`] = "Bedrooms must be 0 or greater";
+			}
+		}
+		if (comp.bathrooms !== undefined && comp.bathrooms !== "") {
+			const bathrooms = Number(comp.bathrooms);
+			if (!Number.isFinite(bathrooms) || bathrooms < 0) {
+				errors[`comparables.${index}.bathrooms`] = "Bathrooms must be 0 or greater";
+			}
+		}
+	});
 
 	return errors;
 };

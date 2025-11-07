@@ -5,10 +5,12 @@
 
 import { v, Infer } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "./auth.config";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
+import { comparablePayloadValidator } from "./comparables";
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
@@ -24,6 +26,7 @@ const listingCreationPayloadValidator = v.object({
 	borrower: borrowerPayloadValidator,
 	mortgage: mortgageDetailsValidator,
 	listing: listingOptionsValidator,
+	comparables: v.optional(v.array(comparablePayloadValidator)),
 });
 
 const listingCreationResultValidator = v.object({
@@ -109,6 +112,24 @@ const runListingCreation = async (
 		borrowerId,
 		...payload.mortgage,
 	});
+
+	// Create comparables if provided
+	if (payload.comparables && payload.comparables.length > 0) {
+		try {
+			await ctx.runMutation(internal.comparables.bulkCreateComparables, {
+				mortgageId,
+				comparables: payload.comparables,
+			});
+		} catch (error) {
+			// Rollback mortgage creation if comparable creation fails
+			await ctx.db.delete(mortgageId);
+			throw new Error(
+				`Failed to create comparables: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`
+			);
+		}
+	}
 
 	const existingListing = await ctx.db
 		.query("listings")
