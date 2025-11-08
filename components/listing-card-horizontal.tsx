@@ -116,9 +116,7 @@ export function Horizontal({
 							{maturityDate}
 						</span>
 					</div>
-					<Button className="ml-6 w-full" variant="primary">
-						View details
-					</Button>
+					<Button className="ml-6 w-full">View details</Button>
 				</Card.Footer>
 			</div>
 		</Card.Root>

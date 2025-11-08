@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export default function SettingsPage() {
 	const [brandColor, setBrandColor] = useState("#8CA971");
@@ -47,6 +48,18 @@ export default function SettingsPage() {
 			</header>
 
 			<div className="flex flex-1 flex-col gap-6 p-6">
+				<Card>
+					<CardHeader>
+						<CardTitle>Theme</CardTitle>
+						<CardDescription>
+							Choose your preferred color theme
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<ThemeSwitcher />
+					</CardContent>
+				</Card>
+
 				<Card>
 					<CardHeader>
 						<CardTitle>Branding</CardTitle>

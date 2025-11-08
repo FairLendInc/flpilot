@@ -13,22 +13,82 @@ import { logger } from "../lib/logger";
 
 /**
  * Get user document from identity
+ * Automatically creates user from WorkOS identity data if not found
+ * Handles both query (read-only) and mutation contexts
  */
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any }
+	ctx: { db: any; auth: any; scheduler?: any }
 ): Promise<Id<"users">> {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
 	}
 
-	const user = await ctx.db
+	let user = await ctx.db
 		.query("users")
 		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
 		.unique();
 
+	// If user doesn't exist, create from WorkOS identity data
 	if (!user) {
-		throw new Error("User not found");
+		// Extract user data from WorkOS identity
+		const idpId = identity.subject;
+		const email = identity.email;
+		
+		if (!email) {
+			throw new Error("Email is required but not found in identity");
+		}
+
+		// Check if we're in a mutation context (can write directly)
+		const isMutationContext = typeof ctx.db.insert === "function";
+		
+		if (isMutationContext) {
+			// In mutation context: create user directly
+			const userId = await ctx.db.insert("users", {
+				idp_id: idpId,
+				email: email,
+				email_verified: identity.email_verified ?? false,
+				first_name: identity.first_name ?? undefined,
+				last_name: identity.last_name ?? undefined,
+				profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+				created_at: new Date().toISOString(),
+			});
+
+			logger.info("User created from WorkOS identity", {
+				userId,
+				idpId,
+				email,
+			});
+
+			// Query again to get the created user
+			user = await ctx.db.get(userId);
+			if (!user) {
+				throw new Error("Failed to retrieve created user");
+			}
+		} else {
+			// In query context: schedule user creation and throw error
+			// The caller should catch this and handle gracefully
+			if (ctx.scheduler) {
+				const { internal } = await import("./_generated/api");
+				ctx.scheduler.runAfter(0, internal.users.createFromWorkOS, {
+					idp_id: idpId,
+					email: email,
+					email_verified: identity.email_verified ?? false,
+					first_name: identity.first_name ?? undefined,
+					last_name: identity.last_name ?? undefined,
+					profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+					created_at: new Date().toISOString(),
+				});
+
+				logger.info("Scheduled user creation from WorkOS identity", {
+					idpId,
+					email,
+				});
+			}
+			
+			// Throw error that can be caught by query handlers
+			throw new Error("User not found - creation scheduled");
+		}
 	}
 
 	return user._id;
@@ -66,29 +126,38 @@ export const getUnreadAlerts = query({
 			return [];
 		}
 
-		const userId = await getUserFromIdentity(ctx);
+		try {
+			const userId = await getUserFromIdentity(ctx);
 
-		const alerts = await ctx.db
-			.query("alerts")
-			.withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
-			.order("desc")
-			.collect();
+			const alerts = await ctx.db
+				.query("alerts")
+				.withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
+				.order("desc")
+				.collect();
 
-		return alerts.map((alert) => ({
-			_id: alert._id,
-			userId: alert.userId,
-			type: alert.type,
-			severity: alert.severity,
-			title: alert.title,
-			message: alert.message,
-			relatedDealId: alert.relatedDealId,
-			relatedListingId: alert.relatedListingId,
-			relatedLockRequestId: alert.relatedLockRequestId,
-			read: alert.read,
-			createdAt: alert.createdAt,
-			readAt: alert.readAt,
-			_creationTime: alert._creationTime,
-		}));
+			return alerts.map((alert) => ({
+				_id: alert._id,
+				userId: alert.userId,
+				type: alert.type,
+				severity: alert.severity,
+				title: alert.title,
+				message: alert.message,
+				relatedDealId: alert.relatedDealId,
+				relatedListingId: alert.relatedListingId,
+				relatedLockRequestId: alert.relatedLockRequestId,
+				read: alert.read,
+				createdAt: alert.createdAt,
+				readAt: alert.readAt,
+				_creationTime: alert._creationTime,
+			}));
+		} catch (error) {
+			// Gracefully handle errors - return empty array instead of crashing
+			logger.error("Error getting unread alerts", {
+				error: error instanceof Error ? error.message : String(error),
+				idpId: identity.subject,
+			});
+			return [];
+		}
 	},
 });
 
@@ -122,30 +191,39 @@ export const getAllUserAlerts = query({
 			return [];
 		}
 
-		const userId = await getUserFromIdentity(ctx);
-		const limit = args.limit ?? 50; // Default to 50 most recent alerts
+		try {
+			const userId = await getUserFromIdentity(ctx);
+			const limit = args.limit ?? 50; // Default to 50 most recent alerts
 
-		const alerts = await ctx.db
-			.query("alerts")
-			.withIndex("by_user_created_at", (q) => q.eq("userId", userId))
-			.order("desc")
-			.take(limit);
+			const alerts = await ctx.db
+				.query("alerts")
+				.withIndex("by_user_created_at", (q) => q.eq("userId", userId))
+				.order("desc")
+				.take(limit);
 
-		return alerts.map((alert) => ({
-			_id: alert._id,
-			userId: alert.userId,
-			type: alert.type,
-			severity: alert.severity,
-			title: alert.title,
-			message: alert.message,
-			relatedDealId: alert.relatedDealId,
-			relatedListingId: alert.relatedListingId,
-			relatedLockRequestId: alert.relatedLockRequestId,
-			read: alert.read,
-			createdAt: alert.createdAt,
-			readAt: alert.readAt,
-			_creationTime: alert._creationTime,
-		}));
+			return alerts.map((alert) => ({
+				_id: alert._id,
+				userId: alert.userId,
+				type: alert.type,
+				severity: alert.severity,
+				title: alert.title,
+				message: alert.message,
+				relatedDealId: alert.relatedDealId,
+				relatedListingId: alert.relatedListingId,
+				relatedLockRequestId: alert.relatedLockRequestId,
+				read: alert.read,
+				createdAt: alert.createdAt,
+				readAt: alert.readAt,
+				_creationTime: alert._creationTime,
+			}));
+		} catch (error) {
+			// Gracefully handle errors - return empty array instead of crashing
+			logger.error("Error getting all user alerts", {
+				error: error instanceof Error ? error.message : String(error),
+				idpId: identity.subject,
+			});
+			return [];
+		}
 	},
 });
 
@@ -161,14 +239,23 @@ export const getUnreadAlertCount = query({
 			return 0;
 		}
 
-		const userId = await getUserFromIdentity(ctx);
+		try {
+			const userId = await getUserFromIdentity(ctx);
 
-		const alerts = await ctx.db
-			.query("alerts")
-			.withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
-			.collect();
+			const alerts = await ctx.db
+				.query("alerts")
+				.withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
+				.collect();
 
-		return alerts.length;
+			return alerts.length;
+		} catch (error) {
+			// Gracefully handle errors - return 0 instead of crashing
+			logger.error("Error getting unread alert count", {
+				error: error instanceof Error ? error.message : String(error),
+				idpId: identity.subject,
+			});
+			return 0;
+		}
 	},
 });
 

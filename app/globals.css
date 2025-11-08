@@ -63,6 +63,7 @@
 }
 
 :root {
+	/* Shadcn/Tailwind variables */
 	--radius: 0.625rem;
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.141 0.005 285.823);
@@ -79,6 +80,7 @@
 	--accent: oklch(0.967 0.001 286.375);
 	--accent-foreground: oklch(0.21 0.006 285.885);
 	--destructive: oklch(0.577 0.245 27.325);
+	--destructive-foreground: oklch(0.985 0 0);
 	--border: oklch(0.92 0.004 286.32);
 	--input: oklch(0.92 0.004 286.32);
 	--ring: oklch(0.705 0.015 286.067);
@@ -95,10 +97,36 @@
 	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
 	--sidebar-border: oklch(0.92 0.004 286.32);
 	--sidebar-ring: oklch(0.705 0.015 286.067);
-	--destructive-foreground: oklch(0.985 0 0);
+
+	/* HeroUI specific variables - Light mode */
+	--surface: oklch(0.985 0 0);
+	--surface-foreground: oklch(0.141 0.005 285.823);
+	--overlay: oklch(1 0 0);
+	--overlay-foreground: oklch(0.141 0.005 285.823);
+	--panel: oklch(0.967 0.001 286.375);
+	--panel-foreground: oklch(0.141 0.005 285.823);
+	--default: oklch(0.92 0.004 286.32);
+	--default-foreground: oklch(0.141 0.005 285.823);
+	--success: oklch(0.5503 0.1244 153.56);
+	--success-foreground: oklch(1 0 0);
+	--warning: oklch(0.7186 0.1521 64.85);
+	--warning-foreground: oklch(0 0 0);
+	--danger: var(--destructive);
+	--danger-foreground: var(--destructive-foreground);
+	--divider: oklch(0.92 0.004 286.32);
+	--focus: oklch(0.705 0.015 286.067);
+	--link: #0f766e;
+	--scrollbar: oklch(0.552 0.016 285.938);
+	--field-background: oklch(1 0 0);
+	--field-foreground: oklch(0.141 0.005 285.823);
+	--field-placeholder: oklch(0.552 0.016 285.938);
+	--field-border: oklch(0.92 0.004 286.32);
+	--field-border-hover: oklch(0.705 0.015 286.067);
+	--field-border-focus: oklch(0.705 0.015 286.067);
 }
 
 .dark {
+	/* Shadcn/Tailwind variables */
 	--background: oklch(0.141 0.005 285.823);
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.21 0.006 285.885);
@@ -114,6 +142,7 @@
 	--accent: oklch(0.274 0.006 286.033);
 	--accent-foreground: oklch(0.985 0 0);
 	--destructive: oklch(0.704 0.191 22.216);
+	--destructive-foreground: oklch(0.985 0 0);
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
 	--ring: oklch(0.552 0.016 285.938);
@@ -130,7 +159,32 @@
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.552 0.016 285.938);
-	--destructive-foreground: oklch(0.985 0 0);
+
+	/* HeroUI specific variables - Dark mode */
+	--surface: oklch(0.21 0.006 285.885);
+	--surface-foreground: oklch(0.985 0 0);
+	--overlay: oklch(0.274 0.006 286.033);
+	--overlay-foreground: oklch(0.985 0 0);
+	--panel: oklch(0.141 0.005 285.823);
+	--panel-foreground: oklch(0.985 0 0);
+	--default: oklch(0.274 0.006 286.033);
+	--default-foreground: oklch(0.985 0 0);
+	--success: oklch(0.696 0.17 162.48);
+	--success-foreground: oklch(0 0 0);
+	--warning: oklch(0.769 0.188 70.08);
+	--warning-foreground: oklch(0 0 0);
+	--danger: var(--destructive);
+	--danger-foreground: var(--destructive-foreground);
+	--divider: oklch(1 0 0 / 10%);
+	--focus: oklch(0.552 0.016 285.938);
+	--link: #34d399;
+	--scrollbar: oklch(0.705 0.015 286.067);
+	--field-background: oklch(0.21 0.006 285.885);
+	--field-foreground: oklch(0.985 0 0);
+	--field-placeholder: oklch(0.705 0.015 286.067);
+	--field-border: oklch(1 0 0 / 10%);
+	--field-border-hover: oklch(0.552 0.016 285.938);
+	--field-border-focus: oklch(0.552 0.016 285.938);
 }
 
 @layer base {

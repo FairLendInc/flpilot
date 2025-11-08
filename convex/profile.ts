@@ -32,7 +32,7 @@ export const getCurrentUserProfile = query({
 				user: null,
 				workOsIdentity: identity,
 				memberships: [],
-				activeOrganizationId: null,
+				activeOrganizationId: identity.org_id ?? null,
 			};
 		}
 

@@ -18,22 +18,82 @@ import { createOwnershipInternal } from "./ownership";
 
 /**
  * Get user document from identity
+ * Automatically creates user from WorkOS identity data if not found
+ * Handles both query (read-only) and mutation contexts
  */
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any }
+	ctx: { db: any; auth: any; scheduler?: any }
 ): Promise<Id<"users">> {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
 	}
 
-	const user = await ctx.db
+	let user = await ctx.db
 		.query("users")
 		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
 		.unique();
 
+	// If user doesn't exist, create from WorkOS identity data
 	if (!user) {
-		throw new Error("User not found");
+		// Extract user data from WorkOS identity
+		const idpId = identity.subject;
+		const email = identity.email;
+		
+		if (!email) {
+			throw new Error("Email is required but not found in identity");
+		}
+
+		// Check if we're in a mutation context (can write directly)
+		const isMutationContext = typeof ctx.db.insert === "function";
+		
+		if (isMutationContext) {
+			// In mutation context: create user directly
+			const userId = await ctx.db.insert("users", {
+				idp_id: idpId,
+				email: email,
+				email_verified: identity.email_verified ?? false,
+				first_name: identity.first_name ?? undefined,
+				last_name: identity.last_name ?? undefined,
+				profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+				created_at: new Date().toISOString(),
+			});
+
+			logger.info("User created from WorkOS identity", {
+				userId,
+				idpId,
+				email,
+			});
+
+			// Query again to get the created user
+			user = await ctx.db.get(userId);
+			if (!user) {
+				throw new Error("Failed to retrieve created user");
+			}
+		} else {
+			// In query context: schedule user creation and throw error
+			// The caller should catch this and handle gracefully
+			if (ctx.scheduler) {
+				const { internal } = await import("./_generated/api");
+				ctx.scheduler.runAfter(0, internal.users.createFromWorkOS, {
+					idp_id: idpId,
+					email: email,
+					email_verified: identity.email_verified ?? false,
+					first_name: identity.first_name ?? undefined,
+					last_name: identity.last_name ?? undefined,
+					profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+					created_at: new Date().toISOString(),
+				});
+
+				logger.info("Scheduled user creation from WorkOS identity", {
+					idpId,
+					email,
+				});
+			}
+			
+			// Throw error that can be caught by query handlers
+			throw new Error("User not found - creation scheduled");
+		}
 	}
 
 	return user._id;
@@ -42,7 +102,7 @@ async function getUserFromIdentity(
 /**
  * Validate admin authorization
  */
-async function requireAdmin(ctx: { db: any; auth: any }) {
+async function requireAdmin(ctx: { db: any; auth: any; scheduler?: any }) {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
@@ -105,7 +165,15 @@ export const getDeal = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			await requireAdmin(ctx);
+		} catch (error) {
+			// Gracefully handle user creation errors in queries
+			logger.error("Error in getDeal - user may not exist yet", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 		return await ctx.db.get(args.dealId);
 	},
 });
@@ -134,7 +202,17 @@ export const getAllActiveDeals = query({
 		})
 	),
 	handler: async (ctx) => {
-		await requireAdmin(ctx);
+		try {
+			await requireAdmin(ctx);
+		} catch (error) {
+			// Gracefully handle user creation errors in queries
+			// User creation is scheduled, but we can't wait for it in a query
+			logger.error("Error in getAllActiveDeals - user may not exist yet", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			// Return empty array instead of crashing
+			return [];
+		}
 
 		const deals = await ctx.db
 			.query("deals")
@@ -208,7 +286,15 @@ export const getDealsByState = query({
 		})
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			await requireAdmin(ctx);
+		} catch (error) {
+			// Gracefully handle user creation errors in queries
+			logger.error("Error in getDealsByState - user may not exist yet", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return [];
+		}
 
 		const deals = await ctx.db
 			.query("deals")
@@ -245,7 +331,15 @@ export const getArchivedDeals = query({
 		})
 	),
 	handler: async (ctx) => {
-		await requireAdmin(ctx);
+		try {
+			await requireAdmin(ctx);
+		} catch (error) {
+			// Gracefully handle user creation errors in queries
+			logger.error("Error in getArchivedDeals - user may not exist yet", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return [];
+		}
 
 		const deals = await ctx.db
 			.query("deals")
@@ -354,7 +448,15 @@ export const getDealWithDetails = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			await requireAdmin(ctx);
+		} catch (error) {
+			// Gracefully handle user creation errors in queries
+			logger.error("Error in getDealWithDetails - user may not exist yet", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 
 		const deal = await ctx.db.get(args.dealId);
 		if (!deal) {
@@ -426,7 +528,24 @@ export const getDealMetrics = query({
 		),
 	}),
 	handler: async (ctx) => {
-		await requireAdmin(ctx);
+		try {
+			await requireAdmin(ctx);
+		} catch (error) {
+			// Gracefully handle user creation errors in queries
+			// User creation is scheduled, but we can't wait for it in a query
+			logger.error("Error in getDealMetrics - user may not exist yet", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			// Return empty metrics instead of crashing
+			return {
+				totalActive: 0,
+				byState: {},
+				totalCompleted: 0,
+				totalCancelled: 0,
+				averageDaysToComplete: 0,
+				recentActivity: [],
+			};
+		}
 
 		const allDeals = await ctx.db.query("deals").collect();
 
@@ -503,7 +622,15 @@ export const getDealByLockRequest = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			await requireAdmin(ctx);
+		} catch (error) {
+			// Gracefully handle user creation errors in queries
+			logger.error("Error in getDealByLockRequest - user may not exist yet", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 
 		const deal = await ctx.db
 			.query("deals")

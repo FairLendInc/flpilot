@@ -1,7 +1,7 @@
 // import { type UserJSON } from '@workos-inc/authkit-node';
 import { v } from "convex/values";
 import { crud } from "convex-helpers/server/crud";
-import { internalMutation, type QueryCtx } from "./_generated/server";
+import { internalMutation, query, mutation, type QueryCtx } from "./_generated/server";
 import schema from "./schema";
 
 const userFields = schema.tables.users.validator.fields;
@@ -60,5 +60,40 @@ export const updateFromWorkOS = internalMutation({
 				},
 			};
 		}
+	},
+});
+
+// Get user's current theme preference
+export const getUserTheme = query({
+	args: {},
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity || typeof identity.idpId !== "string") {
+			return { theme: "default" };
+		}
+
+		const user = await userByExternalId(ctx, identity.idpId);
+		if (!user || !user.theme) {
+			return { theme: "default" };
+		}
+
+		return { theme: user.theme };
+	},
+});
+
+// Set user's theme preference
+export const setUserTheme = mutation({
+	args: {
+		idp_id: v.string(),
+		theme: v.union(v.literal("default"), v.literal("light"), v.literal("dark"), v.literal("amber"), v.literal("amethyst")),
+	},
+	handler: async (ctx, { idp_id, theme }) => {
+		const user = await userByExternalId(ctx, idp_id);
+		if (!user) {
+			throw new Error("User not found");
+		}
+
+		await ctx.db.patch(user._id, { theme });
+		return { success: true, theme };
 	},
 });

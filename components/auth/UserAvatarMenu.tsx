@@ -12,9 +12,14 @@ import { Icon } from "@iconify/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
 import { useTheme } from "next-themes";
+import { useMemo, useState } from "react";
 import { SettingsDialog } from "@/components/settings-dialog";
+import {
+	getBaseTheme,
+	isDarkTheme,
+	type Theme,
+} from "@/components/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
@@ -41,8 +46,9 @@ export function UserAvatarMenu() {
 	const [showSettings, setShowSettings] = useState(false);
 	const [settingsKey, setSettingsKey] = useState(0);
 	const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-	const { resolvedTheme = "light", setTheme } = useTheme();
-	const isDark = resolvedTheme === "dark";
+	const { theme, setTheme } = useTheme();
+	const currentTheme = (theme || "default") as Theme;
+	const isDark = isDarkTheme(currentTheme);
 	const router = useRouter();
 
 	// Query user profile from Convex to get custom profile picture
@@ -89,7 +95,13 @@ export function UserAvatarMenu() {
 
 	function handleAction(key: string | number) {
 		if (key === "theme-toggle") {
-			setTheme(isDark ? "light" : "dark");
+			// Toggle between light and dark mode of the current base theme
+			const baseTheme = getBaseTheme(currentTheme);
+			const isCurrentlyDark = isDarkTheme(currentTheme);
+			const newTheme = isCurrentlyDark
+				? (baseTheme as Theme) // Switch to light mode
+				: (`${baseTheme}-dark` as Theme); // Switch to dark mode
+			setTheme(newTheme);
 			return;
 		}
 		if (key === "profile") {
@@ -153,36 +165,33 @@ export function UserAvatarMenu() {
 									</div>
 								</Header>
 							</ListBox.Section>
-				<Separator />
-				<ListBox.Section>
-					<Header className="font-semibold text-foreground/60 text-xs uppercase tracking-wider">
-						Appearance
-					</Header>
-					<ListBox.Item id="theme-toggle" textValue="Theme">
-						<div className="flex h-8 items-start justify-center pt-px">
-							<Icon
-								className="size-4 shrink-0 text-foreground/70"
-								icon={isDark ? "gravity-ui:moon" : "gravity-ui:sun"}
-							/>
-						</div>
-						<div className="flex w-full items-center justify-between gap-4">
-							<div className="flex flex-col">
-								<Label className="font-medium text-foreground">Theme</Label>
-								<Description className="text-foreground/60 text-xs">
-									{isDark ? "Dark mode" : "Light mode"}
-								</Description>
-							</div>
-							<Switch
-								aria-label="Toggle dark mode"
-								checked={isDark}
-								onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-								onClick={(event) => event.stopPropagation()}
-							/>
-						</div>
-					</ListBox.Item>
-				</ListBox.Section>
-				<Separator />
-				<ListBox.Section>
+							<Separator />
+							<ListBox.Section>
+								<Header className="font-semibold text-foreground/60 text-xs uppercase tracking-wider">
+									Appearance
+								</Header>
+								<ListBox.Item id="theme-toggle" textValue="Theme">
+									<div className="flex h-8 items-start justify-center pt-px">
+										<Icon
+											className="size-4 shrink-0 text-foreground/70"
+											icon={isDark ? "gravity-ui:moon" : "gravity-ui:sun"}
+										/>
+									</div>
+									<div className="flex w-full items-center justify-between gap-4">
+										<div className="flex flex-col">
+											<Label className="font-medium text-foreground">
+												Theme
+											</Label>
+											<Description className="text-foreground/60 text-xs">
+												{isDark ? "Dark mode" : "Light mode"}
+											</Description>
+										</div>
+										<Switch aria-label="Toggle dark mode" checked={isDark} />
+									</div>
+								</ListBox.Item>
+							</ListBox.Section>
+							<Separator />
+							<ListBox.Section>
 								<Header className="font-semibold text-foreground/60 text-xs uppercase tracking-wider">
 									Account
 								</Header>

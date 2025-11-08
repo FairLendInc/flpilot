@@ -36,25 +36,21 @@ export default function RootLayout({
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="system"
-					disableTransitionOnChange
-					enableSystem
-				>
-					<Suspense fallback={<PageSkeleton />}>
-						<ConvexClientProvider>
-							{/* <ViewTransition> */}
+				<Suspense fallback={<PageSkeleton />}>
+					<ConvexClientProvider>
+						<ThemeProvider>
 							<NavigationProvider>
-								<main className="h-[calc(100vh-6rem)] pt-24" id="main-content">
+								<main
+									className="h-[calc(100vh-6rem)] bg-background pt-24"
+									id="main-content"
+								>
 									{children}
 								</main>
 								<Toaster />
 							</NavigationProvider>
-							{/* </ViewTransition> */}
-						</ConvexClientProvider>
-					</Suspense>
-				</ThemeProvider>
+						</ThemeProvider>
+					</ConvexClientProvider>
+				</Suspense>
 			</body>
 		</html>
 	);

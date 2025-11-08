@@ -23,6 +23,8 @@ export default defineSchema({
 		phone: v.optional(v.string()),
 		// Active organization selection (WorkOS organization id)
 		active_organization_id: v.optional(v.string()),
+		// User theme preference
+		theme: v.optional(v.union(v.literal("default"), v.literal("light"), v.literal("dark"), v.literal("amber"), v.literal("amethyst"))),
 		// Timestamps from WorkOS
 		created_at: v.optional(v.string()),
 		updated_at: v.optional(v.string()),
