@@ -1,6 +1,7 @@
 "use client";
 
 import { usePreloadedQuery } from "convex/react";
+import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 import { ProfileFormFields } from "./components/ProfileFormFields";
 import { ProfileHeader } from "./components/ProfileHeader";
@@ -11,8 +12,7 @@ import {
 	useOrganizationSwitch,
 	useProfileForm,
 } from "./hooks";
-import type { ProfileFormProps } from "./types";
-import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
+import type { ProfileData, ProfileFormProps } from "./types";
 
 // React Compiler handles all memoization, state tracking, and dead code elimination automatically
 // No need for manual useMemo, useCallback, or explicit optimization patterns
@@ -21,8 +21,19 @@ export default function ProfileForm({ userData }: ProfileFormProps) {
 	const userProfileData = usePreloadedQuery(userData);
 	useProvisionCurrentUser(userProfileData);
 
+	// Create a properly typed version of the data
+	const typedUserProfileData: ProfileData = {
+		...userProfileData,
+		activeOrganizationId:
+			typeof userProfileData.activeOrganizationId === "string"
+				? userProfileData.activeOrganizationId
+				: userProfileData.activeOrganizationId
+					? String(userProfileData.activeOrganizationId)
+					: null,
+	};
+
 	// Derived data - React Compiler will automatically memoize
-	function getDerivedData(data: typeof userProfileData) {
+	function getDerivedData(data: ProfileData) {
 		const workOSIdentity = data.workOsIdentity as any;
 		const workosImageUrl = workOSIdentity?.profile_picture_url || null;
 		const hasWorkOSPicture = !!workosImageUrl;
@@ -62,7 +73,7 @@ export default function ProfileForm({ userData }: ProfileFormProps) {
 		};
 	}
 
-	const derivedData = getDerivedData(userProfileData);
+	const derivedData = getDerivedData(typedUserProfileData);
 
 	// Utility function - React Compiler optimizes automatically
 	function getInitials(firstName: string, lastName: string, email: string) {
@@ -83,7 +94,7 @@ export default function ProfileForm({ userData }: ProfileFormProps) {
 
 	const { uploading, uploadAvatar } = useAvatarUpload();
 	const { isSwitching, switchOrganization } = useOrganizationSwitch(
-		userProfileData.activeOrganizationId
+		typedUserProfileData.activeOrganizationId
 	);
 
 	// Handlers - React Compiler handles automatic memoization
@@ -112,7 +123,7 @@ export default function ProfileForm({ userData }: ProfileFormProps) {
 				onPickAvatar={handlePickAvatar}
 				orgCount={derivedData.orgCount}
 				uploading={uploading}
-				userData={userProfileData}
+				userData={typedUserProfileData}
 			/>
 
 			{/* TWO COLUMN LAYOUT */}
@@ -123,7 +134,7 @@ export default function ProfileForm({ userData }: ProfileFormProps) {
 					<OrganizationSwitcher
 						activeOrganizationId={derivedData.activeOrganizationId}
 						isSwitching={isSwitching}
-						memberships={userProfileData.memberships}
+						memberships={typedUserProfileData.memberships}
 						onOrganizationChange={handleOrganizationChange}
 					/>
 
@@ -146,10 +157,10 @@ export default function ProfileForm({ userData }: ProfileFormProps) {
 					<RolesPermissions
 						activeMembershipData={derivedData.activeMembershipData}
 						activeOrganizationId={derivedData.activeOrganizationId}
-						memberships={userProfileData.memberships}
-						workosOrgId={userProfileData.workosOrgId}
-						workosPermissions={userProfileData.workosPermissions}
-						workosRole={userProfileData.workosRole}
+						memberships={typedUserProfileData.memberships}
+						workosOrgId={typedUserProfileData.workosOrgId}
+						workosPermissions={typedUserProfileData.workosPermissions}
+						workosRole={typedUserProfileData.workosRole}
 					/>
 				</div>
 			</div>

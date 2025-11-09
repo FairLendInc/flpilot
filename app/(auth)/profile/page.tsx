@@ -21,8 +21,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/convex/_generated/api";
-import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 
 // Regex for splitting names by whitespace - defined at top level for performance
 const NAME_SPLIT_REGEX = /\s+/;
@@ -102,7 +102,13 @@ export default function ProfilePage() {
 		setFirstName(data.user?.first_name ?? "");
 		setLastName(data.user?.last_name ?? "");
 		setPhone(data.user?.phone ?? "");
-		setActiveOrgLocal(data.activeOrganizationId ?? "");
+		setActiveOrgLocal(
+			typeof data.activeOrganizationId === "string"
+				? data.activeOrganizationId
+				: data.activeOrganizationId
+					? String(data.activeOrganizationId)
+					: ""
+		);
 		setUsingMocks((data.memberships?.length ?? 0) === 0);
 	}, [data]);
 
