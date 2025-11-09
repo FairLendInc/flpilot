@@ -21,6 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/convex/_generated/api";
+import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 import type { Id } from "@/convex/_generated/dataModel";
 
 // Regex for splitting names by whitespace - defined at top level for performance
@@ -54,6 +55,7 @@ function getInitials(
 export default function ProfilePage() {
 	const { user: authUser } = useAuth();
 	const data = useQuery(api.profile.getCurrentUserProfile);
+	useProvisionCurrentUser(data);
 	console.log("PROFILE DATA", { data });
 
 	const updateProfile = useMutation(api.profile.updateProfile);

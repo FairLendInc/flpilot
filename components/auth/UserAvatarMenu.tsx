@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
+import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 
 // Regex for splitting on whitespace (defined at module level for performance)
 const WHITESPACE_REGEX = /\s+/;
@@ -53,6 +54,7 @@ export function UserAvatarMenu() {
 
 	// Query user profile from Convex to get custom profile picture
 	const userProfile = useQuery(api.profile.getCurrentUserProfile);
+	useProvisionCurrentUser(userProfile);
 
 	const displayName = useMemo(() => {
 		if (!user) return "Guest User";

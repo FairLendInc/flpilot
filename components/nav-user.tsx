@@ -80,22 +80,28 @@ export function NavUser({
 								</div>
 							</div>
 						</DropdownMenuLabel>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						onSelect={(event) => event.preventDefault()}
-						className="flex items-center justify-between gap-4"
-					>
-						<div className="flex items-center gap-2 text-sm">
-							{isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-							<span>Theme</span>
-						</div>
-						<Switch
-							aria-label="Toggle dark mode"
-							checked={isDark}
-							onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-						/>
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
+						<DropdownMenuSeparator />
+						<DropdownMenuItem
+							className="flex items-center justify-between gap-4"
+							onSelect={(event) => event.preventDefault()}
+						>
+							<div className="flex items-center gap-2 text-sm">
+								{isDark ? (
+									<Moon className="size-4" />
+								) : (
+									<Sun className="size-4" />
+								)}
+								<span>Theme</span>
+							</div>
+							<Switch
+								aria-label="Toggle dark mode"
+								checked={isDark}
+								onCheckedChange={(checked) =>
+									setTheme(checked ? "dark" : "light")
+								}
+							/>
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
 							<DropdownMenuItem>
 								<BadgeCheck />

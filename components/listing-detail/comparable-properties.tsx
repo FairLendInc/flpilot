@@ -91,9 +91,7 @@ export function ComparableProperties({
 										<p className="font-bold text-2xl text-foreground">
 											{formatCurrency(comp.saleAmount)}
 										</p>
-										<p className="text-foreground/50 text-sm">
-											Sale Price
-										</p>
+										<p className="text-foreground/50 text-sm">Sale Price</p>
 									</div>
 
 									{/* Address */}

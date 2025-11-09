@@ -77,13 +77,9 @@ function MetricCard({
 					<Icon className="h-6 w-6" icon={icon} />
 				</div>
 				<div className="flex-1">
-					<p className="font-medium text-foreground/60 text-sm">
-						{label}
-					</p>
+					<p className="font-medium text-foreground/60 text-sm">{label}</p>
 					<div className="mt-2 flex items-baseline gap-2">
-						<p className="font-bold text-2xl text-foreground">
-							{value}
-						</p>
+						<p className="font-bold text-2xl text-foreground">{value}</p>
 						{trend && (
 							<Icon
 								className={`h-4 w-4 ${

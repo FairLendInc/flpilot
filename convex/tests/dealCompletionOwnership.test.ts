@@ -689,7 +689,7 @@ describe("completeDeal integration scenarios", () => {
 
 		// Find the completion transition
 		const completionTransition = deal?.stateHistory.find(
-			(h) => h.toState === "completed"
+			(h: { toState: string }) => h.toState === "completed"
 		);
 		expect(completionTransition).toBeTruthy();
 	});

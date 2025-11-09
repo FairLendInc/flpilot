@@ -16,9 +16,15 @@ import { logger } from "../lib/logger";
  * Automatically creates user from WorkOS identity data if not found
  * Handles both query (read-only) and mutation contexts
  */
+type UserIdentityOptions = {
+	createIfMissing?: boolean;
+};
+
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any; scheduler?: any }
-): Promise<Id<"users">> {
+	ctx: { db: any; auth: any },
+	options?: UserIdentityOptions
+): Promise<Id<"users"> | null> {
+	const { createIfMissing = false } = options ?? {};
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
@@ -29,66 +35,39 @@ async function getUserFromIdentity(
 		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
 		.unique();
 
-	// If user doesn't exist, create from WorkOS identity data
+	// If user doesn't exist, optionally create from WorkOS identity data
 	if (!user) {
-		// Extract user data from WorkOS identity
 		const idpId = identity.subject;
 		const email = identity.email;
-		
+
 		if (!email) {
 			throw new Error("Email is required but not found in identity");
 		}
 
-		// Check if we're in a mutation context (can write directly)
-		const isMutationContext = typeof ctx.db.insert === "function";
-		
-		if (isMutationContext) {
-			// In mutation context: create user directly
-			const userId = await ctx.db.insert("users", {
-				idp_id: idpId,
-				email: email,
-				email_verified: identity.email_verified ?? false,
-				first_name: identity.first_name ?? undefined,
-				last_name: identity.last_name ?? undefined,
-				profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
-				created_at: new Date().toISOString(),
-			});
-
-			logger.info("User created from WorkOS identity", {
-				userId,
+		if (!createIfMissing) {
+			logger.warn("User identity missing in Convex and creation disabled", {
 				idpId,
-				email,
 			});
-
-			// Query again to get the created user
-			user = await ctx.db.get(userId);
-			if (!user) {
-				throw new Error("Failed to retrieve created user");
-			}
-		} else {
-			// In query context: schedule user creation and throw error
-			// The caller should catch this and handle gracefully
-			if (ctx.scheduler) {
-				const { internal } = await import("./_generated/api");
-				ctx.scheduler.runAfter(0, internal.users.createFromWorkOS, {
-					idp_id: idpId,
-					email: email,
-					email_verified: identity.email_verified ?? false,
-					first_name: identity.first_name ?? undefined,
-					last_name: identity.last_name ?? undefined,
-					profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
-					created_at: new Date().toISOString(),
-				});
-
-				logger.info("Scheduled user creation from WorkOS identity", {
-					idpId,
-					email,
-				});
-			}
-			
-			// Throw error that can be caught by query handlers
-			throw new Error("User not found - creation scheduled");
+			return null;
 		}
+
+		const userId = await ctx.db.insert("users", {
+			idp_id: idpId,
+			email: email,
+			email_verified: identity.email_verified ?? false,
+			first_name: identity.first_name ?? undefined,
+			last_name: identity.last_name ?? undefined,
+			profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+			created_at: new Date().toISOString(),
+		});
+
+		logger.info("User created from WorkOS identity", {
+			userId,
+			idpId,
+			email,
+		});
+
+		return userId;
 	}
 
 	return user._id;
@@ -127,7 +106,13 @@ export const getUnreadAlerts = query({
 		}
 
 		try {
-			const userId = await getUserFromIdentity(ctx);
+			const userId = await getUserFromIdentity(ctx, { createIfMissing: false });
+			if (!userId) {
+				logger.warn("getUnreadAlerts: user not provisioned, returning empty", {
+					idpId: identity.subject,
+				});
+				return [];
+			}
 
 			const alerts = await ctx.db
 				.query("alerts")
@@ -192,7 +177,13 @@ export const getAllUserAlerts = query({
 		}
 
 		try {
-			const userId = await getUserFromIdentity(ctx);
+			const userId = await getUserFromIdentity(ctx, { createIfMissing: false });
+			if (!userId) {
+				logger.warn("getAllUserAlerts: user not provisioned, returning empty", {
+					idpId: identity.subject,
+				});
+				return [];
+			}
 			const limit = args.limit ?? 50; // Default to 50 most recent alerts
 
 			const alerts = await ctx.db
@@ -240,7 +231,13 @@ export const getUnreadAlertCount = query({
 		}
 
 		try {
-			const userId = await getUserFromIdentity(ctx);
+			const userId = await getUserFromIdentity(ctx, { createIfMissing: false });
+			if (!userId) {
+				logger.warn("getUnreadAlertCount: user not provisioned, returning 0", {
+					idpId: identity.subject,
+				});
+				return 0;
+			}
 
 			const alerts = await ctx.db
 				.query("alerts")
@@ -316,7 +313,10 @@ export const markAlertAsRead = mutation({
 	},
 	returns: v.id("alerts"),
 	handler: async (ctx, args) => {
-		const userId = await getUserFromIdentity(ctx);
+	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+	if (!userId) {
+		throw new Error("Unable to resolve user identity");
+	}
 
 		const alert = await ctx.db.get(args.alertId);
 		if (!alert) {
@@ -354,7 +354,10 @@ export const markAllAlertsAsRead = mutation({
 	args: {},
 	returns: v.number(),
 	handler: async (ctx) => {
-		const userId = await getUserFromIdentity(ctx);
+	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+	if (!userId) {
+		throw new Error("Unable to resolve user identity");
+	}
 
 		const unreadAlerts = await ctx.db
 			.query("alerts")
@@ -389,7 +392,10 @@ export const deleteAlert = mutation({
 	},
 	returns: v.id("alerts"),
 	handler: async (ctx, args) => {
-		const userId = await getUserFromIdentity(ctx);
+	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+	if (!userId) {
+		throw new Error("Unable to resolve user identity");
+	}
 
 		const alert = await ctx.db.get(args.alertId);
 		if (!alert) {
@@ -421,7 +427,10 @@ export const deleteReadAlerts = mutation({
 	args: {},
 	returns: v.number(),
 	handler: async (ctx) => {
-		const userId = await getUserFromIdentity(ctx);
+	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+	if (!userId) {
+		throw new Error("Unable to resolve user identity");
+	}
 
 		const readAlerts = await ctx.db
 			.query("alerts")
@@ -506,4 +515,3 @@ export const createAlert = mutation({
 		return alertId;
 	},
 });
-

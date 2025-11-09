@@ -73,9 +73,7 @@ export function AppraisalData({ appraisal, currentValue }: AppraisalDataProps) {
 								<Icon className="h-5 w-5" icon="lucide:clipboard-check" />
 							</div>
 							<div className="flex-1">
-								<p className="text-foreground/60 text-sm">
-									Appraised Value
-								</p>
+								<p className="text-foreground/60 text-sm">Appraised Value</p>
 								<p className="mt-1 font-bold text-3xl text-foreground">
 									{formatCurrency(appraisal.value)}
 								</p>
@@ -104,9 +102,7 @@ export function AppraisalData({ appraisal, currentValue }: AppraisalDataProps) {
 								/>
 							</div>
 							<div className="flex-1">
-								<p className="text-foreground/60 text-sm">
-									Value Change
-								</p>
+								<p className="text-foreground/60 text-sm">Value Change</p>
 								<p
 									className={`mt-1 font-bold text-3xl ${isPositiveChange ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
 								>
@@ -141,9 +137,7 @@ export function AppraisalData({ appraisal, currentValue }: AppraisalDataProps) {
 									<p className="font-medium text-foreground/60 text-sm">
 										Appraiser
 									</p>
-									<p className="mt-1 text-foreground">
-										{appraisal.appraiser}
-									</p>
+									<p className="mt-1 text-foreground">{appraisal.appraiser}</p>
 								</div>
 							</div>
 

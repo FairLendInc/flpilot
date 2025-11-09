@@ -12,12 +12,14 @@ import {
 	useProfileForm,
 } from "./hooks";
 import type { ProfileFormProps } from "./types";
+import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 
 // React Compiler handles all memoization, state tracking, and dead code elimination automatically
 // No need for manual useMemo, useCallback, or explicit optimization patterns
 
 export default function ProfileForm({ userData }: ProfileFormProps) {
 	const userProfileData = usePreloadedQuery(userData);
+	useProvisionCurrentUser(userProfileData);
 
 	// Derived data - React Compiler will automatically memoize
 	function getDerivedData(data: typeof userProfileData) {

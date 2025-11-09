@@ -1,3 +1,6 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap");
+
 :root {
 	--background: oklch(0.9816 0.0017 247.839);
 	--foreground: oklch(0.1649 0.0352 281.8285);

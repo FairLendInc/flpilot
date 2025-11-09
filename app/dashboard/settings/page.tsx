@@ -5,6 +5,7 @@ import Image from "next/image";
 import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -16,7 +17,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export default function SettingsPage() {
 	const [brandColor, setBrandColor] = useState("#8CA971");
@@ -51,9 +51,7 @@ export default function SettingsPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle>Theme</CardTitle>
-						<CardDescription>
-							Choose your preferred color theme
-						</CardDescription>
+						<CardDescription>Choose your preferred color theme</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<ThemeSwitcher />

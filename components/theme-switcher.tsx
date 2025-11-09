@@ -1,26 +1,37 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { THEMES, type Theme, getBaseTheme, isDarkTheme } from "./theme-provider";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { THEMES, type Theme } from "./theme-provider";
 
 export function ThemeSwitcher() {
 	const { theme, setTheme } = useTheme();
 
-	const handleThemeChange = (theme: Theme) => {
-		setTheme(theme);
-		toast.success(`Theme changed to ${THEMES[theme].name}`);
+	const handleThemeChange = (newTheme: Theme) => {
+		setTheme(newTheme);
+		toast.success(`Theme changed to ${THEMES[newTheme].name}`);
 	};
 
 	// Group themes by category
 	const themeCategories = {
 		"Default & Minimal": ["default", "modernMinimal", "cleanslate", "mocha"],
-		"Colorful": ["amber", "amethyst", "bloom", "bubblegum", "candyland"],
-		"Blue & Purple": ["catppuccin", "boldtech", "claymorphism", "cosmic", "cyberpunk"],
+		Colorful: ["amber", "amethyst", "bloom", "bubblegum", "candyland"],
+		"Blue & Purple": [
+			"catppuccin",
+			"boldtech",
+			"claymorphism",
+			"cosmic",
+			"cyberpunk",
+		],
 		"Warm & Neutral": ["caffeine", "luxury", "doom", "darkmatter", "kodama"],
-		"Special": ["claude"],
+		Special: ["claude"],
 	};
 
 	return (
@@ -31,21 +42,24 @@ export function ThemeSwitcher() {
 			</CardHeader>
 			<CardContent className="space-y-6">
 				{Object.entries(themeCategories).map(([category, baseThemes]) => (
-					<div key={category} className="space-y-3">
-						<h3 className="text-sm font-medium">{category}</h3>
+					<div className="space-y-3" key={category}>
+						<h3 className="font-medium text-sm">{category}</h3>
 						<div className="grid grid-cols-2 gap-4">
 							{baseThemes.map((baseTheme) => {
 								const lightTheme = baseTheme as Theme;
 								const darkTheme = `${baseTheme}-dark` as Theme;
 
 								return (
-									<div key={baseTheme} className="space-y-2">
+									<div className="space-y-2" key={baseTheme}>
 										{/* Light Theme */}
 										<button
-											onClick={() => handleThemeChange(lightTheme)}
 											className={`group relative h-20 w-full rounded-lg border-2 p-2 text-left transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-												theme === lightTheme ? "border-primary" : "border-border hover:border-primary"
+												theme === lightTheme
+													? "border-primary"
+													: "border-border hover:border-primary"
 											}`}
+											onClick={() => handleThemeChange(lightTheme)}
+											type="button"
 										>
 											<div
 												className="h-full w-full rounded-md"
@@ -54,7 +68,7 @@ export function ThemeSwitcher() {
 												}}
 											/>
 											<div className="absolute inset-x-0 bottom-0 rounded-b-md bg-gradient-to-t from-black/60 to-transparent p-1.5">
-												<span className="text-xs font-medium text-white">
+												<span className="font-medium text-white text-xs">
 													{THEMES[lightTheme].name}
 												</span>
 											</div>
@@ -62,10 +76,13 @@ export function ThemeSwitcher() {
 
 										{/* Dark Theme */}
 										<button
-											onClick={() => handleThemeChange(darkTheme)}
 											className={`group relative h-20 w-full rounded-lg border-2 p-2 text-left transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-												theme === darkTheme ? "border-primary" : "border-border hover:border-primary"
+												theme === darkTheme
+													? "border-primary"
+													: "border-border hover:border-primary"
 											}`}
+											onClick={() => handleThemeChange(darkTheme)}
+											type="button"
 										>
 											<div
 												className="h-full w-full rounded-md"
@@ -74,7 +91,7 @@ export function ThemeSwitcher() {
 												}}
 											/>
 											<div className="absolute inset-x-0 bottom-0 rounded-b-md bg-gradient-to-t from-black/60 to-transparent p-1.5">
-												<span className="text-xs font-medium text-white">
+												<span className="font-medium text-white text-xs">
 													{THEMES[darkTheme].name}
 												</span>
 											</div>

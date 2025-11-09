@@ -78,7 +78,10 @@ export function ImageCarousel({ images, propertyTitle }: ImageCarouselProps) {
 		return (
 			<div className="relative aspect-4/3 w-full overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
 				<div className="flex h-full items-center justify-center">
-					<Icon className="h-16 w-16 text-foreground/40" icon="lucide:image-off" />
+					<Icon
+						className="h-16 w-16 text-foreground/40"
+						icon="lucide:image-off"
+					/>
 					<p className="ml-3 text-foreground/50">No images available</p>
 				</div>
 			</div>

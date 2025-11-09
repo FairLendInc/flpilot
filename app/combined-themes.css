@@ -11,7 +11,7 @@
 	--foreground: oklch(0.3211 0 0);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.3211 0 0);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.3211 0 0);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -149,7 +149,7 @@
 	--card-foreground: oklch(0.2686 0 0);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.2686 0 0);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.2686 0 0);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(0 0 0);
@@ -322,7 +322,7 @@
 	--foreground: oklch(0.3651 0.0325 287.0807);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.3651 0.0325 287.0807);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.3651 0.0325 287.0807);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(0.9777 0.0041 301.4256);
@@ -495,7 +495,7 @@
 	--foreground: oklch(0.3211 0 0);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.3211 0 0);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.3211 0 0);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(0 0 0);
@@ -579,7 +579,7 @@
 	--foreground: oklch(0.9219 0 0);
 	--surface: oklch(0.321 0.0078 223.6661);
 	--surface-foreground: oklch(0.9219 0 0);
-	--overlay: oklch(0.3460 0.0078 223.6661);
+	--overlay: oklch(0.346 0.0078 223.6661);
 	--overlay-foreground: oklch(0.9219 0 0);
 	--default: oklch(0.441 0.0078 223.6661);
 	--default-foreground: oklch(0 0 0);
@@ -666,7 +666,7 @@
 	--foreground: oklch(0.3588 0.1354 278.6973);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.3588 0.1354 278.6973);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.3588 0.1354 278.6973);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -849,7 +849,7 @@
 	--foreground: oklch(0.3211 0 0);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.3211 0 0);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.3211 0 0);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -934,7 +934,7 @@
 	--foreground: oklch(0.9219 0 0);
 	--surface: oklch(0.321 0.0078 223.6661);
 	--surface-foreground: oklch(0.9219 0 0);
-	--overlay: oklch(0.3460 0.0078 223.6661);
+	--overlay: oklch(0.346 0.0078 223.6661);
 	--overlay-foreground: oklch(0.9219 0 0);
 	--default: oklch(0.441 0.0078 223.6661);
 	--default-foreground: oklch(1 0 0);
@@ -1199,7 +1199,7 @@
 	--foreground: oklch(0.3211 0 0);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.3211 0 0);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.3211 0 0);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(0 0 0);
@@ -1284,7 +1284,7 @@
 	--foreground: oklch(0.9219 0 0);
 	--surface: oklch(0.321 0.0078 223.6661);
 	--surface-foreground: oklch(0.9219 0 0);
-	--overlay: oklch(0.3460 0.0078 223.6661);
+	--overlay: oklch(0.346 0.0078 223.6661);
 	--overlay-foreground: oklch(0.9219 0 0);
 	--default: oklch(0.441 0.0078 223.6661);
 	--default-foreground: oklch(0 0 0);
@@ -1371,7 +1371,7 @@
 	--foreground: oklch(0.4355 0.043 279.325);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.4355 0.043 279.325);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.4355 0.043 279.325);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -1909,7 +1909,7 @@
 	--foreground: oklch(0.2795 0.0368 260.031);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.2795 0.0368 260.031);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.2795 0.0368 260.031);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -2082,7 +2082,7 @@
 	--foreground: oklch(0.3015 0.0572 282.4176);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.3015 0.0572 282.4176);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.3015 0.0572 282.4176);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -2265,7 +2265,7 @@
 	--foreground: oklch(0.1649 0.0352 281.8285);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.1649 0.0352 281.8285);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.1649 0.0352 281.8285);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -2438,7 +2438,7 @@
 	--foreground: oklch(0.2101 0.0318 264.6645);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.2101 0.0318 264.6645);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.2101 0.0318 264.6645);
 	--default: oklch(0.94 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -2735,7 +2735,9 @@
 	--surface: oklch(0.2103 0.0059 285.89);
 	--surface-foreground: var(--foreground);
 	/* Overlay: Used for floating/overlay components (tooltips, popovers, modals, menus) - lighter for contrast */
-	--overlay: oklch(0.2353 0.0059 285.89); /* A bit lighter than surface for visibility in dark mode */
+	--overlay: oklch(
+		0.2353 0.0059 285.89
+	); /* A bit lighter than surface for visibility in dark mode */
 	--overlay-foreground: var(--foreground);
 	--muted: oklch(70.5% 0.015 286.067);
 	--scrollbar: oklch(70.5% 0.015 286.067);
@@ -2924,7 +2926,7 @@
 	--foreground: oklch(0.9067 0 0);
 	--surface: oklch(0.285 0 0);
 	--surface-foreground: oklch(0.9067 0 0);
-	--overlay: oklch(0.3100 0 0);
+	--overlay: oklch(0.31 0 0);
 	--overlay-foreground: oklch(0.9067 0 0);
 	--default: oklch(0.405 0 0);
 	--default-foreground: oklch(1 0 0);
@@ -3368,7 +3370,7 @@
 	--foreground: oklch(0.145 0 0);
 	--surface: oklch(1 0 0);
 	--surface-foreground: oklch(0.145 0 0);
-	--overlay: oklch(0.9750 0 0);
+	--overlay: oklch(0.975 0 0);
 	--overlay-foreground: oklch(0.145 0 0);
 	/* default is slightly darker than white to provide better contrast */
 	--default: oklch(0.94 0 0);
@@ -3456,7 +3458,7 @@
 	--foreground: oklch(0.985 0 0);
 	--surface: oklch(0.205 0 0);
 	--surface-foreground: oklch(0.985 0 0);
-	--overlay: oklch(0.2300 0 0);
+	--overlay: oklch(0.23 0 0);
 	--overlay-foreground: oklch(0.985 0 0);
 	/* --default: oklch(0.3250 0 0);
 	--default-foreground: oklch(0.205 0 0); */
