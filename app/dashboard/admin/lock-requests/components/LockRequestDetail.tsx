@@ -33,7 +33,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 // Use a flexible type that matches the query return types
-type LockRequestDetailData = {
+export type LockRequestDetailData = {
 	request: {
 		_id: Id<"lock_requests">;
 		listingId: Id<"listings">;

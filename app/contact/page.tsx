@@ -247,7 +247,23 @@ export const Grid = ({
 	);
 };
 
-export function GridPattern({ width, height, x, y, squares, ...props }: any) {
+type GridPatternProps = {
+	width: number;
+	height: number;
+	x: string | number;
+	y: string | number;
+	squares?: number[][];
+	className?: string;
+} & React.SVGProps<SVGSVGElement>;
+
+export function GridPattern({
+	width,
+	height,
+	x,
+	y,
+	squares,
+	...props
+}: GridPatternProps) {
 	const patternId = useId();
 
 	return (
@@ -278,7 +294,7 @@ export function GridPattern({ width, height, x, y, squares, ...props }: any) {
 					y={y}
 				>
 					<title>Grid pattern squares</title>
-					{squares.map(([squareX, squareY]: any) => (
+					{squares.map(([squareX, squareY]: [number, number]) => (
 						<rect
 							height={height + 1}
 							key={`${squareX}-${squareY}`}

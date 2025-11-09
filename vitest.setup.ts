@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
+import type React from "react";
 import { afterEach, vi } from "vitest";
 
 // Mock Next.js router
@@ -28,7 +29,8 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
 
 // Mock Convex
 vi.mock("convex/react", () => ({
-	ConvexProviderWithAuth: ({ children }: any) => children,
+	ConvexProviderWithAuth: ({ children }: { children: React.ReactNode }) =>
+		children,
 	ConvexReactClient: vi.fn(),
 	usePreloadedQuery: vi.fn(),
 	preloadQuery: vi.fn(),

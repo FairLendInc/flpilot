@@ -8,7 +8,11 @@ import {
 import { Horizontal } from "@/components/listing-card-horizontal";
 import { ListingMapPopup } from "@/components/listing-map-popup";
 import type { api } from "@/convex/_generated/api";
-import type { Mortgage } from "@/lib/types/convex";
+import type {
+	Mortgage,
+	MortgageImage,
+	MortgageWithUrls,
+} from "@/lib/types/convex";
 
 type ListingItem = FilterableItem & {
 	id: string;
@@ -68,7 +72,8 @@ function transformMortgage(mortgage: Mortgage): ListingItem {
 	// Get first image or use fallback - use pre-fetched signed URL
 	const imageSrc =
 		images.length > 0
-			? (images[0] as any).url || `/api/storage/${images[0].storageId}`
+			? (images[0] as MortgageImage).url ||
+				`/api/storage/${images[0].storageId}`
 			: "/house.jpg";
 
 	return {
@@ -100,7 +105,7 @@ export function ListingsClient({ preloaded }: ListingsClientProps) {
 	const listingsWithMortgages = usePreloadedQuery(preloaded);
 
 	const listings: ListingItem[] = listingsWithMortgages.map((item) => ({
-		...transformMortgage(item.mortgage as Mortgage),
+		...transformMortgage(item.mortgage as MortgageWithUrls),
 		locked: item.listing.locked,
 	}));
 

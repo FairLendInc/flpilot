@@ -1,4 +1,6 @@
 const clientId = process.env.WORKOS_CLIENT_ID;
+import type { UserIdentity } from "convex/server";
+import type { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
 
 const authConfig = {
 	providers: [
@@ -24,6 +26,8 @@ export default authConfig;
 // RBAC Helper Functions
 // ============================================================================
 
+
+
 export interface RbacOptions {
 	required_roles?: string[];
 	required_permissions?: string[];
@@ -31,6 +35,12 @@ export interface RbacOptions {
 	//Todo: type this based on WorkOSIdentity type
 	user_identity: any; // UserIdentity from ctx.auth.getUserIdentity()
 }
+
+export type WorkOSIdentity = UserIdentity & {
+	permissions?: string[];
+	org_id?: string;
+	role?: string;
+};
 
 /**
  * Check if user has required RBAC access (non-throwing version)

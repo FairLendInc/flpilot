@@ -23,8 +23,10 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
 	type Alert,
+	type AlertType,
 	getAlertTypeLabel,
 	getTimeAgo,
 } from "@/lib/types/dealTypes";
@@ -98,7 +100,7 @@ function AlertItem({
 										alert.severity === "error" ? "destructive" : "secondary"
 									}
 								>
-									{getAlertTypeLabel(alert.type as any)}
+									{getAlertTypeLabel(alert.type as AlertType)}
 								</Badge>
 								{!alert.read && (
 									<Badge className="bg-primary" variant="default">
@@ -131,7 +133,7 @@ export default function AlertsPage() {
 
 	const handleMarkAsRead = async (alertId: string) => {
 		try {
-			await markAlertAsRead({ alertId: alertId as any });
+			await markAlertAsRead({ alertId: alertId as Id<"alerts"> });
 		} catch (error) {
 			console.error("Failed to mark alert as read:", error);
 		}

@@ -22,7 +22,7 @@ export type Role = {
 export type Org = {
 	organizationName: string;
 	organizationExternalId: string | undefined;
-	organizationMetadata: any;
+	organizationMetadata: Record<string, unknown>;
 	activeRole: Role;
 	allRoles: Role[];
 };

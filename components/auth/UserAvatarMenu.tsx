@@ -68,7 +68,8 @@ export function UserAvatarMenu() {
 	// This matches the priority in profileForm.tsx to ensure consistency
 	const imageUrl = useMemo(() => {
 		// 1. WorkOS OAuth picture (highest priority)
-		const workosUrl = (user as any)?.profilePictureUrl;
+		const workosUrl = (user as { profilePictureUrl?: string } | undefined)
+			?.profilePictureUrl;
 		if (workosUrl) return workosUrl;
 
 		// 2. Custom uploaded picture (fallback when no OAuth picture)

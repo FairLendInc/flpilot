@@ -46,7 +46,12 @@ export default async function proxy(req: NextRequest) {
 	// 	search: req.nextUrl.search,
 	// });
 	// console.info("PATHNAME", { pathname: req.nextUrl.pathname });
-	const res = (await base(req as any, {} as any)) as NextResponse;
+	// WorkOS middleware expects NextRequest and NextMiddlewareEvent
+	// Using type assertions since WorkOS types may not perfectly match Next.js types
+	const res = (await base(
+		req as Parameters<typeof base>[0],
+		{} as Parameters<typeof base>[1]
+	)) as NextResponse;
 	res.headers.set("x-current-path", req.nextUrl.pathname);
 	// try {
 	// 	// const existing = req.headers.get('x-request-id');

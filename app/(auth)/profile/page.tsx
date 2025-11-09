@@ -5,6 +5,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { Pencil, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import type { WorkOSIdentity } from "@/app/(auth)/profilev2/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,12 +28,38 @@ import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 // Regex for splitting names by whitespace - defined at top level for performance
 const NAME_SPLIT_REGEX = /\s+/;
 
+type Organization = {
+	id: string;
+	name: string;
+	created_at: string;
+	isMock?: boolean;
+};
+
+type Membership = {
+	organizationId: string;
+	organizationName: string;
+	organizationCreatedAt: string;
+	membershipRole?: {
+		slug: string;
+	};
+};
+
+type User = {
+	first_name?: string | null;
+	last_name?: string | null;
+	email?: string | null;
+	phone?: string | null;
+	profile_picture_url?: string | null;
+	profile_picture?: string | null;
+};
+
 type ProfileData = {
-	user: any;
+	user: User | null;
 	roles: { slug: string; name?: string }[];
-	organizations: any[];
-	memberships: any[];
+	organizations: Organization[];
+	memberships: Membership[];
 	activeOrganizationId: string | null;
+	workOsIdentity?: WorkOSIdentity | null;
 };
 
 function getInitials(
@@ -143,8 +170,10 @@ export default function ProfilePage() {
 			} else {
 				toast.warning("Saved locally. WorkOS sync will retry later.");
 			}
-		} catch (e: any) {
-			toast.error(e?.message || "Failed to save profile");
+		} catch (e: unknown) {
+			const errorMessage =
+				e instanceof Error ? e.message : "Failed to save profile";
+			toast.error(errorMessage);
 		} finally {
 			setIsSaving(false);
 		}
@@ -155,8 +184,10 @@ export default function ProfilePage() {
 		try {
 			await setActiveOrg({ organization_id: value });
 			toast.success("Organization updated");
-		} catch (e: any) {
-			toast.error(e?.message || "Unable to change organization");
+		} catch (e: unknown) {
+			const errorMessage =
+				e instanceof Error ? e.message : "Unable to change organization";
+			toast.error(errorMessage);
 		}
 	}
 
@@ -182,8 +213,9 @@ export default function ProfilePage() {
 			const storageId = json.storageId as Id<"_storage">;
 			await saveProfilePicture({ storageId });
 			toast.success("Profile picture updated");
-		} catch (e: any) {
-			toast.error(e?.message || "Upload failed");
+		} catch (e: unknown) {
+			const errorMessage = e instanceof Error ? e.message : "Upload failed";
+			toast.error(errorMessage);
 		} finally {
 			setUploading(false);
 		}
@@ -200,8 +232,10 @@ export default function ProfilePage() {
 			} else {
 				toast.error(result.message);
 			}
-		} catch (e: any) {
-			toast.error(e?.message || "Failed to sync organizations");
+		} catch (e: unknown) {
+			const errorMessage =
+				e instanceof Error ? e.message : "Failed to sync organizations";
+			toast.error(errorMessage);
 		} finally {
 			setIsSyncing(false);
 		}
@@ -222,8 +256,9 @@ export default function ProfilePage() {
 	// Priority: WorkOS OAuth picture > Custom uploaded picture > Initials
 	// This matches the priority in profileForm.tsx and UserAvatarMenu.tsx
 	const workosImageUrl =
-		(data?.workOsIdentity as any)?.profile_picture_url ||
-		(authUser as any)?.profilePictureUrl ||
+		(data?.workOsIdentity as WorkOSIdentity | undefined)?.profile_picture_url ||
+		(authUser as { profilePictureUrl?: string } | undefined)
+			?.profilePictureUrl ||
 		null;
 	const hasWorkOSPicture = !!workosImageUrl;
 

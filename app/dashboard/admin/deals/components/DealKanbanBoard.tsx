@@ -47,6 +47,7 @@ import {
 	DEAL_STATE_COLORS,
 	DEAL_STATE_LABELS,
 	type Deal,
+	type DealEvent,
 	type DealStateValue,
 	formatDealValue,
 	getNextState,
@@ -223,7 +224,7 @@ export function DealKanbanBoard() {
 
 		try {
 			// Determine the event type based on the transition
-			let event: any;
+			let event: DealEvent;
 
 			// Check if this is a forward or backward transition
 			const nextState = getNextState(originalFromState);

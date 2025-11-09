@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { Map as MapIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -98,7 +98,7 @@ function applyFilters<T extends FilterableItem>(
 		if (
 			filters.mortgageTypes.length > 0 &&
 			item.mortgageType &&
-			!filters.mortgageTypes.includes(item.mortgageType as any)
+			!filters.mortgageTypes.includes(item.mortgageType as string)
 		) {
 			return false;
 		}
@@ -107,7 +107,7 @@ function applyFilters<T extends FilterableItem>(
 		if (
 			filters.propertyTypes.length > 0 &&
 			item.propertyType &&
-			!filters.propertyTypes.includes(item.propertyType as any)
+			!filters.propertyTypes.includes(item.propertyType as string)
 		) {
 			return false;
 		}
@@ -138,7 +138,7 @@ function applyFilters<T extends FilterableItem>(
 }
 
 // Animation variants from smooth-drawer
-const drawerVariants = {
+const drawerVariants: Variants = {
 	hidden: {
 		y: "100%",
 		opacity: 0,
@@ -164,7 +164,7 @@ const drawerVariants = {
 	},
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
 	hidden: {
 		y: 20,
 		opacity: 0,
@@ -275,16 +275,16 @@ export function ListingGridShell<T extends WithLatLng>({
 									animate="visible"
 									className="flex h-full flex-col"
 									initial="hidden"
-									variants={drawerVariants as any}
+									variants={drawerVariants}
 								>
-									<motion.div variants={itemVariants as any}>
+									<motion.div variants={itemVariants}>
 										<DrawerHeader>
 											<DrawerTitle>Map View</DrawerTitle>
 										</DrawerHeader>
 									</motion.div>
 									<motion.div
 										className="min-h-0 flex-1 px-4 pb-4"
-										variants={itemVariants as any}
+										variants={itemVariants}
 									>
 										<div className="h-full">
 											<ListingMap

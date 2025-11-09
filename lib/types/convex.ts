@@ -47,6 +47,25 @@ export type ListingWithFullDetails = Listing & {
 	ownership: MortgageOwnership[];
 };
 
+// Types for runtime-added properties from Convex queries
+// Images and documents get signed URLs added at runtime
+export type MortgageImage = Mortgage["images"][number] & {
+	url: string | null;
+};
+
+export type MortgageDocument = Mortgage["documents"][number] & {
+	url: string | null;
+};
+
+export type MortgageWithUrls = Omit<Mortgage, "images" | "documents"> & {
+	images: MortgageImage[];
+	documents: MortgageDocument[];
+};
+
+export type AppraisalComparableWithUrl = AppraisalComparable & {
+	imageUrl: string | null;
+};
+
 // Type guards
 export function isFairlendOwned(ownership: MortgageOwnership): boolean {
 	return ownership.ownerId === "fairlend";

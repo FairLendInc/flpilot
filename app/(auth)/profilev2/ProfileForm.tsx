@@ -34,7 +34,7 @@ export default function ProfileForm({ userData }: ProfileFormProps) {
 
 	// Derived data - React Compiler will automatically memoize
 	function getDerivedData(data: ProfileData) {
-		const workOSIdentity = data.workOsIdentity as any;
+		const workOSIdentity = data.workOsIdentity;
 		const workosImageUrl = workOSIdentity?.profile_picture_url || null;
 		const hasWorkOSPicture = !!workosImageUrl;
 

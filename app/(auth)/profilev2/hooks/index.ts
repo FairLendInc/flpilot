@@ -79,7 +79,7 @@ export function useProfileForm(initialUserData: {
 
 		toast.promise(promise, {
 			loading: TOAST_MESSAGES.PROFILE_UPDATE.loading,
-			success: (res: any) => {
+			success: (res: { synced: boolean }) => {
 				if (res.synced) {
 					return TOAST_MESSAGES.PROFILE_UPDATE.success(true);
 				}

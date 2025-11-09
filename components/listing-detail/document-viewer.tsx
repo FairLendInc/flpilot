@@ -82,7 +82,9 @@ export function DocumentViewer({ documents }: DocumentViewerProps) {
 	const [error, setError] = useState<string | null>(null);
 	const [sdkReady, setSdkReady] = useState(false);
 	const viewerRef = useRef<HTMLDivElement>(null);
-	const adobeViewRef = useRef<any>(null);
+	const adobeViewRef = useRef<InstanceType<typeof window.AdobeDC.View> | null>(
+		null
+	);
 
 	const selectedDocument = documents.find((doc) => doc._id === selectedDocId);
 	const apiKey = process.env.NEXT_PUBLIC_ADOBE_PDF_VIEWER_KEY;
