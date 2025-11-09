@@ -27,7 +27,11 @@ import type { WithLatLng } from "@/hooks/use-filtered-listings";
 import { useViewportFilteredItems } from "@/hooks/use-filtered-listings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFiltersStore } from "./contexts/listingContext";
-import type { FilterState } from "./types/listing-filters";
+import type {
+	FilterState,
+	MortgageType,
+	PropertyType,
+} from "./types/listing-filters";
 
 type ClassNames = {
 	container?: string;
@@ -98,7 +102,7 @@ function applyFilters<T extends FilterableItem>(
 		if (
 			filters.mortgageTypes.length > 0 &&
 			item.mortgageType &&
-			!filters.mortgageTypes.includes(item.mortgageType as string)
+			!filters.mortgageTypes.includes(item.mortgageType as MortgageType)
 		) {
 			return false;
 		}
@@ -107,7 +111,7 @@ function applyFilters<T extends FilterableItem>(
 		if (
 			filters.propertyTypes.length > 0 &&
 			item.propertyType &&
-			!filters.propertyTypes.includes(item.propertyType as string)
+			!filters.propertyTypes.includes(item.propertyType as PropertyType)
 		) {
 			return false;
 		}

@@ -294,16 +294,19 @@ export function GridPattern({
 					y={y}
 				>
 					<title>Grid pattern squares</title>
-					{squares.map(([squareX, squareY]: [number, number]) => (
-						<rect
-							height={height + 1}
-							key={`${squareX}-${squareY}`}
-							strokeWidth="0"
-							width={width + 1}
-							x={squareX * width}
-							y={squareY * height}
-						/>
-					))}
+					{squares.map((square) => {
+						const [squareX, squareY] = square as [number, number];
+						return (
+							<rect
+								height={height + 1}
+								key={`${squareX}-${squareY}`}
+								strokeWidth="0"
+								width={width + 1}
+								x={squareX * width}
+								y={squareY * height}
+							/>
+						);
+					})}
 				</svg>
 			)}
 		</svg>

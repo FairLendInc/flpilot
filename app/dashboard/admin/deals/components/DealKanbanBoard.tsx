@@ -89,6 +89,7 @@ type KanbanColumn = {
 export function DealKanbanBoard() {
 	const router = useRouter();
 	const { user, loading: authLoading } = useAuth();
+	const userProfile = useQuery(api.profile.getCurrentUserProfile);
 	const [draggedDeal, setDraggedDeal] = useState<{
 		deal: DealCardData;
 		sourceColumn: DealStateValue;
@@ -215,6 +216,16 @@ export function DealKanbanBoard() {
 	const handleTransitionConfirm = async () => {
 		if (!transitionTarget) return;
 
+		// Get current user ID
+		if (!userProfile?.user?._id) {
+			toast.error("Authentication required", {
+				description: "Please sign in to update deals",
+			});
+			return;
+		}
+
+		const adminId = userProfile.user._id;
+
 		// Capture original values before any reassignment for logging
 		const {
 			dealId,
@@ -233,15 +244,15 @@ export function DealKanbanBoard() {
 			if (nextState === originalToState) {
 				// Forward transition
 				if (originalToState === "pending_lawyer") {
-					event = { type: "CONFIRM_LAWYER" };
+					event = { type: "CONFIRM_LAWYER", adminId };
 				} else if (originalToState === "pending_docs") {
-					event = { type: "COMPLETE_DOCS" };
+					event = { type: "COMPLETE_DOCS", adminId };
 				} else if (originalToState === "pending_transfer") {
-					event = { type: "RECEIVE_FUNDS" };
+					event = { type: "RECEIVE_FUNDS", adminId };
 				} else if (originalToState === "pending_verification") {
-					event = { type: "VERIFY_FUNDS" };
+					event = { type: "VERIFY_FUNDS", adminId };
 				} else if (originalToState === "completed") {
-					event = { type: "COMPLETE_DEAL" };
+					event = { type: "COMPLETE_DEAL", adminId };
 				} else {
 					throw new Error(`Invalid forward transition to ${originalToState}`);
 				}
@@ -249,6 +260,7 @@ export function DealKanbanBoard() {
 				// Backward transition
 				event = {
 					type: "GO_BACK",
+					adminId,
 					toState: originalToState,
 					notes: "Moved backwards via Kanban board",
 				};

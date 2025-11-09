@@ -1,6 +1,6 @@
 // Use runtime require for pino to avoid TypeScript/compile-time dependency when pino isn't installed.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let pino: typeof import("pino") | null = null;
+// biome-ignore lint/suspicious/noExplicitAny: pino is runtime-loaded optional dependency
+let pino: any = null;
 try {
 	// eslint-disable-next-line @typescript-eslint/no-var-requires
 	pino = require("pino");
@@ -66,10 +66,11 @@ export function createPinoAdapter() {
 					translateTime: "SYS:standard",
 					singleLine: false,
 					messageFormat: (log: Record<string, unknown>, messageKey: string) => {
-						const emoji = levelToEmoji(log.level);
+						const level = typeof log.level === "number" ? log.level : 30;
+						const emoji = levelToEmoji(level);
 						const msg = log[messageKey] ?? "";
 						const maybeErr = log.err
-							? `\n${log.err.stack || JSON.stringify(log.err)}`
+							? `\n${(log.err as { stack?: string })?.stack || JSON.stringify(log.err)}`
 							: "";
 						const meta = Object.keys(log).filter(
 							(k) => ![messageKey, "level", "time", "err"].includes(k)
