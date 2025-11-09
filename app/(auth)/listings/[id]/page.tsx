@@ -14,8 +14,10 @@ import { RequestListingSection } from "@/components/listing-detail/request-listi
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type {
-	AppraisalComparable,
-	Mortgage,
+	AppraisalComparableWithUrl,
+	MortgageDocument,
+	MortgageImage,
+	MortgageWithUrls,
 	Payment,
 } from "@/lib/types/convex";
 
@@ -29,10 +31,9 @@ type ListingDetailPageProps = {
  * Transform Convex Mortgage to mock-like format for components
  * Uses pre-fetched signed URLs from Convex queries
  */
-function transformMortgageForComponents(mortgage: Mortgage) {
+function transformMortgageForComponents(mortgage: MortgageWithUrls) {
 	// Use pre-fetched signed URLs from Convex query
-	// TypeScript doesn't know about the runtime-added 'url' property, so we use type assertion
-	const images = mortgage.images.map((img: any, idx) => ({
+	const images = mortgage.images.map((img: MortgageImage, idx) => ({
 		url: img.url || `/api/storage/${img.storageId}`,
 		alt: img.alt ?? `Property view ${idx + 1}`,
 		order: img.order,
@@ -54,7 +55,7 @@ function transformMortgageForComponents(mortgage: Mortgage) {
 	};
 
 	// Transform documents - use pre-fetched signed URLs
-	const documents = (mortgage.documents ?? []).map((doc: any) => ({
+	const documents = (mortgage.documents ?? []).map((doc: MortgageDocument) => ({
 		_id: `${mortgage._id}-${doc.type}`,
 		name: doc.name,
 		type: (doc.type === "insurance" ? "loan" : doc.type) as
@@ -188,10 +189,14 @@ export default async function ListingDetailPage({
 	]);
 
 	// Extract actual data from preloaded results
-	const mortgage = preloadedQueryResult(preloadedMortgage);
+	const mortgage = preloadedQueryResult(
+		preloadedMortgage
+	) as MortgageWithUrls | null;
 	const payments = (preloadedQueryResult(preloadedPayments) as Payment[]) || [];
 	const comparables =
-		(preloadedQueryResult(preloadedComparables) as AppraisalComparable[]) || [];
+		(preloadedQueryResult(
+			preloadedComparables
+		) as AppraisalComparableWithUrl[]) || [];
 	const listingData = preloadedQueryResult(preloadedListing);
 
 	if (!mortgage) {
@@ -207,22 +212,24 @@ export default async function ListingDetailPage({
 
 	// Transform comparables to match component expectations
 	// Use pre-fetched signed URLs from Convex query
-	const transformedComparables = comparables.map((comp: any) => ({
-		_id: comp._id,
-		address: comp.address,
-		saleAmount: comp.saleAmount,
-		saleDate: comp.saleDate,
-		distance: comp.distance,
-		squareFeet: comp.squareFeet,
-		bedrooms: comp.bedrooms,
-		bathrooms: comp.bathrooms,
-		propertyType: comp.propertyType,
-		imageUrl:
-			comp.imageUrl ||
-			(comp.imageStorageId
-				? `/api/storage/${comp.imageStorageId}`
-				: "/house.jpg"),
-	}));
+	const transformedComparables = comparables.map(
+		(comp: AppraisalComparableWithUrl) => ({
+			_id: comp._id,
+			address: comp.address,
+			saleAmount: comp.saleAmount,
+			saleDate: comp.saleDate,
+			distance: comp.distance,
+			squareFeet: comp.squareFeet,
+			bedrooms: comp.bedrooms,
+			bathrooms: comp.bathrooms,
+			propertyType: comp.propertyType,
+			imageUrl:
+				comp.imageUrl ||
+				(comp.imageStorageId
+					? `/api/storage/${comp.imageStorageId}`
+					: "/house.jpg"),
+		})
+	);
 
 	// Transform payments to match component expectations
 	const transformedPayments = payments.map((payment) => ({

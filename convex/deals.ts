@@ -8,7 +8,6 @@
 
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
-import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "./auth.config";
 import { logger } from "../lib/logger";
@@ -18,22 +17,61 @@ import { createOwnershipInternal } from "./ownership";
 
 /**
  * Get user document from identity
+ * Automatically creates user from WorkOS identity data if not found
+ * Handles both query (read-only) and mutation contexts
  */
+type UserIdentityOptions = {
+	createIfMissing?: boolean;
+};
+
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any }
-): Promise<Id<"users">> {
+	ctx: { db: any; auth: any },
+	options?: UserIdentityOptions
+): Promise<Id<"users"> | null> {
+	const { createIfMissing = false } = options ?? {};
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
 	}
 
-	const user = await ctx.db
+	let user = await ctx.db
 		.query("users")
 		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
 		.unique();
 
+	// If user doesn't exist, optionally create from WorkOS identity data
 	if (!user) {
-		throw new Error("User not found");
+		const idpId = identity.subject;
+		const email = identity.email;
+
+		if (!email) {
+			throw new Error("Email is required but not found in identity");
+		}
+
+		if (!createIfMissing) {
+			logger.warn("User identity missing in Convex and creation is disabled", {
+				idpId,
+			});
+			return null;
+		}
+
+		const userId = await ctx.db.insert("users", {
+			idp_id: idpId,
+			email: email,
+			email_verified: identity.email_verified ?? false,
+			first_name: identity.first_name ?? undefined,
+			last_name: identity.last_name ?? undefined,
+			profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+			created_at: new Date().toISOString(),
+		});
+
+		logger.info("User created from WorkOS identity", {
+			userId,
+			idpId,
+			email,
+		});
+
+		return userId;
 	}
 
 	return user._id;
@@ -42,7 +80,19 @@ async function getUserFromIdentity(
 /**
  * Validate admin authorization
  */
-async function requireAdmin(ctx: { db: any; auth: any }) {
+type RequireAdminOptions<T extends boolean = false> = {
+	allowMissingUser?: T;
+	createIfMissing?: boolean;
+};
+
+type RequireAdminReturn<T extends boolean> = T extends true ? Id<"users"> | null : Id<"users">;
+
+async function requireAdmin<T extends boolean = false>(
+	ctx: { db: any; auth: any },
+	options?: RequireAdminOptions<T>
+): Promise<RequireAdminReturn<T>> {
+	const { allowMissingUser = false as T, createIfMissing = true } =
+		(options ?? {}) as RequireAdminOptions<T>;
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
@@ -57,7 +107,15 @@ async function requireAdmin(ctx: { db: any; auth: any }) {
 		throw new Error("Unauthorized: Admin privileges required");
 	}
 
-	return await getUserFromIdentity(ctx);
+	const userId = await getUserFromIdentity(ctx, { createIfMissing });
+	if (!userId) {
+		if (allowMissingUser) {
+			return null as RequireAdminReturn<T>;
+		}
+		throw new Error("User record not provisioned");
+	}
+
+	return userId as RequireAdminReturn<T>;
 }
 
 // ============================================================================
@@ -105,7 +163,21 @@ export const getDeal = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			const adminUserId = await requireAdmin(ctx, {
+				allowMissingUser: true,
+				createIfMissing: false,
+			});
+			if (!adminUserId) {
+				logger.warn("getDeal: admin identity not provisioned yet, returning null");
+				return null;
+			}
+		} catch (error) {
+			logger.error("Error in getDeal - admin check failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 		return await ctx.db.get(args.dealId);
 	},
 });
@@ -134,7 +206,21 @@ export const getAllActiveDeals = query({
 		})
 	),
 	handler: async (ctx) => {
-		await requireAdmin(ctx);
+		try {
+			const adminUserId = await requireAdmin(ctx, {
+				allowMissingUser: true,
+				createIfMissing: false,
+			});
+			if (!adminUserId) {
+				logger.warn("getAllActiveDeals: admin identity missing, returning empty list");
+				return [];
+			}
+		} catch (error) {
+			logger.error("Error in getAllActiveDeals - admin check failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return [];
+		}
 
 		const deals = await ctx.db
 			.query("deals")
@@ -208,7 +294,21 @@ export const getDealsByState = query({
 		})
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			const adminUserId = await requireAdmin(ctx, {
+				allowMissingUser: true,
+				createIfMissing: false,
+			});
+			if (!adminUserId) {
+				logger.warn("getDealsByState: admin identity missing, returning empty list");
+				return [];
+			}
+		} catch (error) {
+			logger.error("Error in getDealsByState - admin check failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return [];
+		}
 
 		const deals = await ctx.db
 			.query("deals")
@@ -245,7 +345,21 @@ export const getArchivedDeals = query({
 		})
 	),
 	handler: async (ctx) => {
-		await requireAdmin(ctx);
+		try {
+			const adminUserId = await requireAdmin(ctx, {
+				allowMissingUser: true,
+				createIfMissing: false,
+			});
+			if (!adminUserId) {
+				logger.warn("getArchivedDeals: admin identity missing, returning empty list");
+				return [];
+			}
+		} catch (error) {
+			logger.error("Error in getArchivedDeals - admin check failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return [];
+		}
 
 		const deals = await ctx.db
 			.query("deals")
@@ -354,7 +468,21 @@ export const getDealWithDetails = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			const adminUserId = await requireAdmin(ctx, {
+				allowMissingUser: true,
+				createIfMissing: false,
+			});
+			if (!adminUserId) {
+				logger.warn("getDealWithDetails: admin identity missing, returning null");
+				return null;
+			}
+		} catch (error) {
+			logger.error("Error in getDealWithDetails - admin check failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 
 		const deal = await ctx.db.get(args.dealId);
 		if (!deal) {
@@ -426,7 +554,35 @@ export const getDealMetrics = query({
 		),
 	}),
 	handler: async (ctx) => {
-		await requireAdmin(ctx);
+		try {
+			const adminUserId = await requireAdmin(ctx, {
+				allowMissingUser: true,
+				createIfMissing: false,
+			});
+			if (!adminUserId) {
+				logger.warn("getDealMetrics: admin identity missing, returning empty metrics");
+				return {
+					totalActive: 0,
+					byState: {},
+					totalCompleted: 0,
+					totalCancelled: 0,
+					averageDaysToComplete: 0,
+					recentActivity: [],
+				};
+			}
+		} catch (error) {
+			logger.error("Error in getDealMetrics - admin check failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return {
+				totalActive: 0,
+				byState: {},
+				totalCompleted: 0,
+				totalCancelled: 0,
+				averageDaysToComplete: 0,
+				recentActivity: [],
+			};
+		}
 
 		const allDeals = await ctx.db.query("deals").collect();
 
@@ -503,7 +659,21 @@ export const getDealByLockRequest = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		await requireAdmin(ctx);
+		try {
+			const adminUserId = await requireAdmin(ctx, {
+				allowMissingUser: true,
+				createIfMissing: false,
+			});
+			if (!adminUserId) {
+				logger.warn("getDealByLockRequest: admin identity missing, returning null");
+				return null;
+			}
+		} catch (error) {
+			logger.error("Error in getDealByLockRequest - admin check failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 
 		const deal = await ctx.db
 			.query("deals")
@@ -1056,4 +1226,3 @@ export const validateFundVerification = internalMutation({
 		return true; // Pass-through for now
 	},
 });
-

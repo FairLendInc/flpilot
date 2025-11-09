@@ -1,4 +1,5 @@
 // Use runtime require for pino to avoid TypeScript/compile-time dependency when pino isn't installed.
+// biome-ignore lint/suspicious/noExplicitAny: pino is runtime-loaded optional dependency
 let pino: any = null;
 try {
 	// eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -33,17 +34,17 @@ function levelToEmoji(levelNum: number) {
 
 function createConsoleAdapter() {
 	const make = (prefix?: string) => ({
-		trace: (m: string | Error, meta?: Record<string, any>) =>
+		trace: (m: string | Error, meta?: Record<string, unknown>) =>
 			console.debug(prefix ?? "", m, meta),
-		debug: (m: string | Error, meta?: Record<string, any>) =>
+		debug: (m: string | Error, meta?: Record<string, unknown>) =>
 			console.debug(prefix ?? "", m, meta),
-		info: (m: string | Error, meta?: Record<string, any>) =>
+		info: (m: string | Error, meta?: Record<string, unknown>) =>
 			console.info(prefix ?? "", m, meta),
-		warn: (m: string | Error, meta?: Record<string, any>) =>
+		warn: (m: string | Error, meta?: Record<string, unknown>) =>
 			console.warn(prefix ?? "", m, meta),
-		error: (m: string | Error, meta?: Record<string, any>) =>
+		error: (m: string | Error, meta?: Record<string, unknown>) =>
 			console.error(prefix ?? "", m, meta),
-		child: (ctx: Record<string, any>) => make(`${JSON.stringify(ctx)}`),
+		child: (ctx: Record<string, unknown>) => make(`${JSON.stringify(ctx)}`),
 	});
 	return make();
 }
@@ -52,6 +53,8 @@ export function createPinoAdapter() {
 	// If pino isn't available, return a console-based adapter compatible with expected methods.
 	if (!pino) return createConsoleAdapter();
 
+	// Pino logger instance - dynamically typed since pino is optional dependency
+	// biome-ignore lint/suspicious/noExplicitAny: pino is runtime-loaded optional dependency, complex types
 	let instance: any;
 	try {
 		if (LOG_PRETTY && typeof pino.transport === "function") {
@@ -62,11 +65,12 @@ export function createPinoAdapter() {
 					ignore: "pid,hostname",
 					translateTime: "SYS:standard",
 					singleLine: false,
-					messageFormat: (log: any, messageKey: string) => {
-						const emoji = levelToEmoji(log.level);
+					messageFormat: (log: Record<string, unknown>, messageKey: string) => {
+						const level = typeof log.level === "number" ? log.level : 30;
+						const emoji = levelToEmoji(level);
 						const msg = log[messageKey] ?? "";
 						const maybeErr = log.err
-							? `\n${log.err.stack || JSON.stringify(log.err)}`
+							? `\n${(log.err as { stack?: string })?.stack || JSON.stringify(log.err)}`
 							: "";
 						const meta = Object.keys(log).filter(
 							(k) => ![messageKey, "level", "time", "err"].includes(k)
@@ -98,55 +102,55 @@ export function createPinoAdapter() {
 	}
 
 	const adapter = {
-		trace: (msg: string | Error, meta?: Record<string, any>) => {
+		trace: (msg: string | Error, meta?: Record<string, unknown>) => {
 			if (msg instanceof Error)
 				instance.trace({ err: msg, ...meta }, msg.message);
 			else instance.trace({ ...meta }, msg);
 		},
-		debug: (msg: string | Error, meta?: Record<string, any>) => {
+		debug: (msg: string | Error, meta?: Record<string, unknown>) => {
 			if (msg instanceof Error)
 				instance.debug({ err: msg, ...meta }, msg.message);
 			else instance.debug({ ...meta }, msg);
 		},
-		info: (msg: string | Error, meta?: Record<string, any>) => {
+		info: (msg: string | Error, meta?: Record<string, unknown>) => {
 			if (msg instanceof Error)
 				instance.info({ err: msg, ...meta }, msg.message);
 			else instance.info({ ...meta }, msg);
 		},
-		warn: (msg: string | Error, meta?: Record<string, any>) => {
+		warn: (msg: string | Error, meta?: Record<string, unknown>) => {
 			if (msg instanceof Error)
 				instance.warn({ err: msg, ...meta }, msg.message);
 			else instance.warn({ ...meta }, msg);
 		},
-		error: (msg: string | Error, meta?: Record<string, any>) => {
+		error: (msg: string | Error, meta?: Record<string, unknown>) => {
 			if (msg instanceof Error)
 				instance.error({ err: msg, ...meta }, msg.message);
 			else instance.error({ ...meta }, msg);
 		},
-		child: (ctx: Record<string, any>) => {
+		child: (ctx: Record<string, unknown>) => {
 			const child = instance.child(ctx);
 			return {
-				trace: (m: string | Error, meta?: Record<string, any>) => {
+				trace: (m: string | Error, meta?: Record<string, unknown>) => {
 					if (m instanceof Error) child.trace({ err: m, ...meta }, m.message);
 					else child.trace({ ...meta }, m);
 				},
-				debug: (m: string | Error, meta?: Record<string, any>) => {
+				debug: (m: string | Error, meta?: Record<string, unknown>) => {
 					if (m instanceof Error) child.debug({ err: m, ...meta }, m.message);
 					else child.debug({ ...meta }, m);
 				},
-				info: (m: string | Error, meta?: Record<string, any>) => {
+				info: (m: string | Error, meta?: Record<string, unknown>) => {
 					if (m instanceof Error) child.info({ err: m, ...meta }, m.message);
 					else child.info({ ...meta }, m);
 				},
-				warn: (m: string | Error, meta?: Record<string, any>) => {
+				warn: (m: string | Error, meta?: Record<string, unknown>) => {
 					if (m instanceof Error) child.warn({ err: m, ...meta }, m.message);
 					else child.warn({ ...meta }, m);
 				},
-				error: (m: string | Error, meta?: Record<string, any>) => {
+				error: (m: string | Error, meta?: Record<string, unknown>) => {
 					if (m instanceof Error) child.error({ err: m, ...meta }, m.message);
 					else child.error({ ...meta }, m);
 				},
-				child: (c: Record<string, any>) => adapter.child({ ...ctx, ...c }),
+				child: (c: Record<string, unknown>) => adapter.child({ ...ctx, ...c }),
 			};
 		},
 	};

@@ -3,7 +3,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
 import schema from "../schema";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -146,7 +146,7 @@ describe("createListing - RBAC Authorization", () => {
 		});
 
 		expect(listingId).toBeDefined();
-		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		const listing = await t.run(async (ctx) => ctx.db.get(listingId)) as Doc<"listings"> | null;
 		expect(listing?.mortgageId).toBe(mortgageId);
 		expect(listing?.visible).toBe(true);
 	});
@@ -167,7 +167,7 @@ describe("createListing - RBAC Authorization", () => {
 		});
 
 		expect(listingId).toBeDefined();
-		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		const listing = await t.run(async (ctx) => ctx.db.get(listingId)) as Doc<"listings"> | null;
 		expect(listing?.mortgageId).toBe(mortgageId);
 	});
 

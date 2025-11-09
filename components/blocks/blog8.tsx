@@ -34,7 +34,7 @@ const Blog8 = ({
 			author: "FairLend Team",
 			published: "07 Nov 2025",
 			url: "/blog",
-			image: "/images/block/placeholder-dark-1.svg",
+			image: "/house.jpg",
 			tags: ["Brokers", "Distribution"],
 		},
 		{
@@ -46,7 +46,7 @@ const Blog8 = ({
 			author: "FairLend Team",
 			published: "07 Nov 2025",
 			url: "/blog",
-			image: "/images/block/placeholder-dark-1.svg",
+			image: "/house.jpg",
 			tags: ["AI", "Automation"],
 		},
 		{
@@ -58,7 +58,7 @@ const Blog8 = ({
 			author: "FairLend Team",
 			published: "07 Nov 2025",
 			url: "/blog",
-			image: "/images/block/placeholder-dark-1.svg",
+			image: "/house.jpg",
 			tags: ["Scale", "Capital"],
 		},
 	],

@@ -3,7 +3,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
 import schema from "../schema";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -194,7 +194,7 @@ describe("createLockRequest - Unit Tests", () => {
 		expect(requestId).toBeDefined();
 
 		// Verify request was created
-		const request = await t.run(async (ctx) => ctx.db.get(requestId));
+		const request = await t.run(async (ctx) => ctx.db.get(requestId)) as Doc<"lock_requests"> | null;
 		expect(request).toBeTruthy();
 		expect(request?.status).toBe("pending");
 		expect(request?.listingId).toBe(listingId);
@@ -847,9 +847,7 @@ describe("getPendingLockRequests - Query Tests", () => {
 		);
 
 		expect(pendingRequests).toHaveLength(2);
-		expect(pendingRequests?.every((r) => r.status === "pending")).toBe(
-			true
-		);
+		expect(pendingRequests?.every((r) => r.status === "pending")).toBe(true);
 	});
 });
 
@@ -971,7 +969,7 @@ describe("getLockRequestsByListing - Query Tests", () => {
 		);
 
 		expect(requests).toHaveLength(2);
-		expect(requests?.every((r) => r.listingId === listingId1)).toBe(true);
+		expect(requests?.every((r: Doc<"lock_requests">) => r.listingId === listingId1)).toBe(true);
 	});
 });
 

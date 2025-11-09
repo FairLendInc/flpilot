@@ -2,7 +2,7 @@
 type LogEntry = {
 	level: string;
 	msg: string;
-	meta?: Record<string, any>;
+	meta?: Record<string, unknown>;
 	time?: string;
 };
 
@@ -44,7 +44,7 @@ export function createClientAdapter() {
 	}
 
 	const adapter = {
-		trace: (m: string | Error, meta?: Record<string, any>) => {
+		trace: (m: string | Error, meta?: Record<string, unknown>) => {
 			queue.push({
 				level: "trace",
 				msg: typeof m === "string" ? m : m.message,
@@ -54,7 +54,7 @@ export function createClientAdapter() {
 			if (queue.length >= MAX_BATCH) flush();
 			else scheduleFlush();
 		},
-		debug: (m: string | Error, meta?: Record<string, any>) => {
+		debug: (m: string | Error, meta?: Record<string, unknown>) => {
 			queue.push({
 				level: "debug",
 				msg: typeof m === "string" ? m : m.message,
@@ -64,7 +64,7 @@ export function createClientAdapter() {
 			if (queue.length >= MAX_BATCH) flush();
 			else scheduleFlush();
 		},
-		info: (m: string | Error, meta?: Record<string, any>) => {
+		info: (m: string | Error, meta?: Record<string, unknown>) => {
 			queue.push({
 				level: "info",
 				msg: typeof m === "string" ? m : m.message,
@@ -74,7 +74,7 @@ export function createClientAdapter() {
 			if (queue.length >= MAX_BATCH) flush();
 			else scheduleFlush();
 		},
-		warn: (m: string | Error, meta?: Record<string, any>) => {
+		warn: (m: string | Error, meta?: Record<string, unknown>) => {
 			queue.push({
 				level: "warn",
 				msg: typeof m === "string" ? m : m.message,
@@ -84,7 +84,7 @@ export function createClientAdapter() {
 			if (queue.length >= MAX_BATCH) flush();
 			else scheduleFlush();
 		},
-		error: (m: string | Error, meta?: Record<string, any>) => {
+		error: (m: string | Error, meta?: Record<string, unknown>) => {
 			queue.push({
 				level: "error",
 				msg: typeof m === "string" ? m : m.message,
@@ -94,7 +94,7 @@ export function createClientAdapter() {
 			if (queue.length >= MAX_BATCH) flush();
 			else scheduleFlush();
 		},
-		child: (_ctx: Record<string, any>) => adapter,
+		child: (_ctx: Record<string, unknown>) => adapter,
 	};
 
 	return adapter;

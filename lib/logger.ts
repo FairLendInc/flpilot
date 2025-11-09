@@ -3,7 +3,7 @@
 // On server we attempt to use a pino adapter (lazy require). On client we fall back
 // to a batching beacon adapter (clientAdapter).
 
-type LogMeta = Record<string, any> | undefined;
+type LogMeta = Record<string, unknown> | undefined;
 
 export type Logger = {
 	trace: (msg: string | Error, meta?: LogMeta) => void;
@@ -11,7 +11,7 @@ export type Logger = {
 	info: (msg: string | Error, meta?: LogMeta) => void;
 	warn: (msg: string | Error, meta?: LogMeta) => void;
 	error: (msg: string | Error, meta?: LogMeta) => void;
-	child: (ctx: Record<string, any>) => Logger;
+	child: (ctx: Record<string, unknown>) => Logger;
 };
 
 let adapter: Logger | null = null;
@@ -27,7 +27,7 @@ const consoleAdapter: Logger = {
 		console.warn("\u001b[33m⚠️ [warn]\u001b[0m", m, meta),
 	error: (m: string | Error, meta?: LogMeta) =>
 		console.error("\u001b[31m🔥 [error]\u001b[0m", m, meta),
-	child: (_ctx: Record<string, any>) => consoleAdapter,
+	child: (_ctx: Record<string, unknown>) => consoleAdapter,
 };
 
 export function setLoggerAdapter(a: Logger) {
@@ -78,7 +78,7 @@ export const logger = {
 	info: (m: string | Error, meta?: LogMeta) => ensureAdapter().info(m, meta),
 	warn: (m: string | Error, meta?: LogMeta) => ensureAdapter().warn(m, meta),
 	error: (m: string | Error, meta?: LogMeta) => ensureAdapter().error(m, meta),
-	child: (ctx: Record<string, any>) => ensureAdapter().child(ctx),
+	child: (ctx: Record<string, unknown>) => ensureAdapter().child(ctx),
 };
 
 export default logger;

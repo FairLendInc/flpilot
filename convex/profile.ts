@@ -7,11 +7,12 @@ type User = Infer<typeof schema.tables.users.validator>;
 type Organization = Infer<typeof schema.tables.organizations.validator>;
 type Membership = Infer<typeof schema.tables.organization_memberships.validator>;
 import logger from "../lib/logger";
-
+import type { WorkOSIdentity } from "./auth.config";
 
 export const getCurrentUserProfile = query({
+	
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
+		const identity: WorkOSIdentity | null = await ctx.auth.getUserIdentity();
 		if (!identity) {
 			return {
 				user: null,
@@ -32,7 +33,7 @@ export const getCurrentUserProfile = query({
 				user: null,
 				workOsIdentity: identity,
 				memberships: [],
-				activeOrganizationId: null,
+				activeOrganizationId: identity.org_id ?? null,
 			};
 		}
 
@@ -48,6 +49,8 @@ export const getCurrentUserProfile = query({
 				.query("organizations")
 				.withIndex("byWorkosId", (q) => q.eq("id", membership.organization_id))
 				.unique();
+
+			
 			
 			// Fetch role details with permissions
 			const roleDetails = await Promise.all(
@@ -85,9 +88,9 @@ export const getCurrentUserProfile = query({
 	))
 // rganizationId: string; organizationName: string; organizationExternalId: string; organizationMetadata: any; organizationCreatedAt: string; memberShipId: string; membershipOrgId: string;
 	// Extract WorkOS permissions from identity for the active organization
-	const workosPermissions = (identity as any)?.permissions ?? [];
-	const workosOrgId = (identity as any)?.org_id ?? null;
-	const workosRole = (identity as any)?.role ?? null;
+	const workosPermissions = (identity as { permissions?: string[] })?.permissions ?? [];
+	const workosOrgId = (identity as { org_id?: string | null })?.org_id ?? null;
+	const workosRole = (identity as { role?: string | null })?.role ?? null;
 
 	// console.debug("PROFILE RETURN PAYLOAD", {
 	// 	user: user,

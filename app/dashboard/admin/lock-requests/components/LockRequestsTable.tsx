@@ -62,7 +62,10 @@ import {
 	sortLockRequests,
 	splitName,
 } from "@/lib/utils/lock-requests-table-utils";
-import { LockRequestDetail } from "./LockRequestDetail";
+import {
+	LockRequestDetail,
+	type LockRequestDetailData,
+} from "./LockRequestDetail";
 
 type LockRequestsTableProps = {
 	status: "pending" | "approved" | "rejected";
@@ -743,7 +746,7 @@ export function LockRequestsTable({
 					onOpenChange={setDetailDialogOpen}
 					open={detailDialogOpen}
 					otherPendingCount={otherPendingCount}
-					requestData={selectedRequestData as any}
+					requestData={selectedRequestData as LockRequestDetailData}
 				/>
 			)}
 		</>

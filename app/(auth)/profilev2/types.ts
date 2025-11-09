@@ -7,7 +7,7 @@ export type WorkOSIdentity = {
 	permissions?: string[];
 	org_id?: string;
 	role?: string;
-	[key: string]: any;
+	[key: string]: unknown;
 };
 
 // User type from profile data
@@ -32,7 +32,7 @@ export type MembershipData = {
 	organizationId: string;
 	organizationName: string;
 	organizationExternalId: string;
-	organizationMetadata: Record<string, any>;
+	organizationMetadata: Record<string, unknown>;
 	organizationCreatedAt: string;
 	memberShipId: string;
 	membershipOrgId: string;

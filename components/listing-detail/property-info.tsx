@@ -48,7 +48,7 @@ export function PropertyInfo({
 			{/* Header with title and status */}
 			<div>
 				<div className="mb-3 flex items-start justify-between gap-4">
-					<h1 className="font-bold text-3xl text-gray-900 tracking-tight md:text-4xl dark:text-white">
+					<h1 className="font-bold text-3xl text-foreground tracking-tight md:text-4xl">
 						{title}
 					</h1>
 					<Chip
@@ -65,7 +65,7 @@ export function PropertyInfo({
 				</div>
 
 				{/* Address */}
-				<div className="flex items-start gap-2 text-gray-600 text-lg dark:text-gray-400">
+				<div className="flex items-start gap-2 text-foreground/60 text-lg">
 					<Icon
 						className="mt-0.5 h-5 w-5 flex-shrink-0"
 						icon="lucide:map-pin"
@@ -89,7 +89,7 @@ export function PropertyInfo({
 								<h2 className="font-semibold text-lg">Investor Brief</h2>
 							</div>
 							<div className="prose prose-sm dark:prose-invert max-w-none">
-								<p className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+								<p className="whitespace-pre-wrap text-foreground/70">
 									{investorBrief}
 								</p>
 							</div>

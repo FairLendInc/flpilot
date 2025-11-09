@@ -43,22 +43,61 @@ async function validateListingAvailability(
 
 /**
  * Get user document from identity
+ * Automatically creates user from WorkOS identity data if not found
+ * Handles both query (read-only) and mutation contexts
  */
+type UserIdentityOptions = {
+	createIfMissing?: boolean;
+};
+
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any }
-): Promise<Id<"users">> {
+	ctx: { db: any; auth: any },
+	options?: UserIdentityOptions
+): Promise<Id<"users"> | null> {
+	const { createIfMissing = false } = options ?? {};
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
 	}
 
-	const user = await ctx.db
+	let user = await ctx.db
 		.query("users")
 		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
 		.unique();
 
+	// If user doesn't exist, optionally create from WorkOS identity data
 	if (!user) {
-		throw new Error("User not found");
+		const idpId = identity.subject;
+		const email = identity.email;
+
+		if (!email) {
+			throw new Error("Email is required but not found in identity");
+		}
+
+		if (!createIfMissing) {
+			logger.warn("User identity missing in Convex and creation disabled", {
+				idpId,
+			});
+			return null;
+		}
+
+		const userId = await ctx.db.insert("users", {
+			idp_id: idpId,
+			email: email,
+			email_verified: identity.email_verified ?? false,
+			first_name: identity.first_name ?? undefined,
+			last_name: identity.last_name ?? undefined,
+			profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+			created_at: new Date().toISOString(),
+		});
+
+		logger.info("User created from WorkOS identity", {
+			userId,
+			idpId,
+			email,
+		});
+
+		return userId;
 	}
 
 	return user._id;
@@ -164,7 +203,10 @@ export const createLockRequest = mutation({
 		await validateListingAvailability(ctx, args.listingId);
 
 		// Get user document
-		const userId = await getUserFromIdentity(ctx);
+		const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!userId) {
+			throw new Error("Unable to resolve user identity");
+		}
 
 		// Create request
 		const requestId = await ctx.db.insert("lock_requests", {
@@ -263,7 +305,10 @@ export const approveLockRequest = mutation({
 		}
 
 		// Get admin user document
-		const adminUserId = await getUserFromIdentity(ctx);
+		const adminUserId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!adminUserId) {
+			throw new Error("Unable to resolve admin user identity");
+		}
 
 		// Atomic transaction: read request and listing together
 		const request = await ctx.db.get(args.requestId);
@@ -388,7 +433,10 @@ export const rejectLockRequest = mutation({
 		}
 
 		// Get admin user document
-		const adminUserId = await getUserFromIdentity(ctx);
+		const adminUserId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!adminUserId) {
+			throw new Error("Unable to resolve admin user identity");
+		}
 
 		const request = await ctx.db.get(args.requestId);
 		if (!request) {
@@ -455,7 +503,10 @@ export const cancelLockRequest = mutation({
 		}
 
 		// Get user document
-		const userId = await getUserFromIdentity(ctx);
+		const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!userId) {
+			throw new Error("Unable to resolve user identity");
+		}
 
 		const request = await ctx.db.get(args.requestId);
 		if (!request) {
@@ -1583,4 +1634,3 @@ export const getLockRequestWithDetails = query({
 		};
 	},
 });
-

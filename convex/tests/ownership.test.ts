@@ -3,7 +3,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
 import schema from "../schema";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -1166,7 +1166,7 @@ describe("getTotalOwnership", () => {
 		expect(result.breakdown).toHaveLength(3);
 
 		// Check all owners are present
-		const ownerIds = result.breakdown.map((b) => b.ownerId);
+		const ownerIds = result.breakdown.map((b: { ownerId: string | Id<"users">; percentage: number }) => b.ownerId);
 		expect(ownerIds).toContain("fairlend");
 		expect(ownerIds).toContain(user1);
 		expect(ownerIds).toContain(user2);
@@ -1303,7 +1303,7 @@ describe("getUserPortfolio", () => {
 		});
 
 		expect(result).toHaveLength(2);
-		const mortgageIds = result.map((r) => r.mortgageId);
+		const mortgageIds = result.map((r: Doc<"mortgage_ownership">) => r.mortgageId);
 		expect(mortgageIds).toContain(m1);
 		expect(mortgageIds).toContain(m2);
 	});
@@ -1387,7 +1387,7 @@ describe("getInstitutionalPortfolio", () => {
 		// m2 has no FairLend ownership (100% sold)
 		expect(result.length).toBeGreaterThanOrEqual(2);
 
-		const mortgageIds = result.map((r) => r.mortgageId);
+		const mortgageIds = result.map((r: Doc<"mortgage_ownership">) => r.mortgageId);
 		expect(mortgageIds).toContain(m1);
 		expect(mortgageIds).toContain(m3);
 	});

@@ -8,47 +8,40 @@ import { useParams } from "next/navigation";
 import { useState, ViewTransition } from "react";
 
 const dummyContentMarkdown = `
+## Overview
 
-## Introduction
+FairLend is the MLS for private mortgages—an end‑to‑end exchange where brokers originate with our MIC, investors buy fully‑managed, fractionalized mortgages, and servicing is automated from disbursal to default.
 
-Artificial Intelligence (AI) has been rapidly evolving, transforming various aspects of our lives. From voice assistants to autonomous vehicles, AI is becoming increasingly integrated into our daily routines.
+### The Three‑Layer Model
 
-### Key Areas of AI Development
+1. **Origination (MIC)**  
+   Consistent capital, proprietary underwriting tools, third‑party valuations, and streamlined borrower vetting.
 
-1. **Machine Learning**
-   - Deep Learning
-   - Neural Networks
-   - Reinforcement Learning
+2. **Marketplace (Distribution)**  
+   Pre‑funded, pre‑vetted, fractionalized deals listed through white‑labeled investor portals for brokers and advisors.
 
-2. **Natural Language Processing**
-   - Language Translation
-   - Sentiment Analysis
-   - Chatbots and Virtual Assistants
+3. **Servicing (Automation)**  
+   PAD payments, renewals, default management, and recoveries with legal partners—minimal manual overhead.
 
-3. **Computer Vision**
-   - Image Recognition
-   - Facial Recognition
-   - Autonomous Vehicles
+### AI & Data Flywheel
 
-## Ethical Considerations
+- Hybrid automation with human‑in‑the‑loop for underwriting assistance, appraisal checks, renewals, and collections.  
+- Every human correction feeds RLHF, compounding accuracy and coverage.  
+- Owning the full transaction stack yields rich labeled datasets: borrower profiles, credit outcomes, appraisals, and servicing trajectories.
 
-As AI continues to advance, it's crucial to address ethical concerns:
+## Capital Velocity
 
-- Privacy and data protection
-- Bias in AI algorithms
-- Job displacement due to automation
+Our MIC originates → offloads to marketplace investors → redeploys within 15–30 days—recycling capital **12–18×** annually. That reduces investor lockups (≈7–30 days liquidity options) and scales AUM without being capital‑constrained.
+
+## Compliance
+
+Investor onboarding includes automated KYC/AML and suitability. Distribution through licensed brokers/advisors keeps marketplace activity within FSRA guidelines, while the MIC follows the standard OSC path.
 
 ## Conclusion
 
-The future of AI is both exciting and challenging. As we continue to push the boundaries of what's possible, it's essential to balance innovation with responsible development and implementation.
+FairLend turns a fragmented, analog market into a digital exchange with on‑rails compliance and AI‑driven automation—unlocking better terms for borrowers, recurring passive income for brokers, and transparent, liquid exposure for investors.
 
-> "The development of full artificial intelligence could spell the end of the human race." - Stephen Hawking
-
-*This quote reminds us of the importance of careful consideration in AI advancement.*
-
-![AI Concept Image](https://images.unsplash.com/photo-1719716136369-59ecf938a911?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
-
-For more information, visit [AI Research Center](https://example.com/ai-research).
+![Mortgage marketplace](https://images.unsplash.com/photo-1523217582562-09d0def993a6?q=80&w=3000&auto=format&fit=crop)
 `;
 
 type Blog = {
@@ -65,60 +58,37 @@ type Blog = {
 // Import blog data - in a real app, this would come from a CMS or API
 const blogs: Blog[] = [
 	{
-		title: "Changelog for 2024",
+		title: "MLS for Private Mortgages: Why Brokers Win on FairLend",
 		summary:
-			"Explore the latest updates and enhancements in our 2024 changelog. Discover new features and improvements that enhance user experience.",
-		date: "2021-01-01",
-		slug: "changelog-for-2024",
+			"White‑label investor portals, a 0.5% trailer on deployed capital, and on‑rails MIC origination turn broker distribution into durable recurring revenue.",
+		date: "2025-11-07",
+		slug: "mls-for-private-mortgages",
 		image:
-			"https://images.unsplash.com/photo-1696429175928-793a1cdef1d3?q=80&w=3000&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
+			"https://images.unsplash.com/photo-1592496431122-2349e0fbc666?q=80&w=3000&auto=format&fit=crop",
+		author: "FairLend Team",
 		authorAvatar: "https://assets.aceternity.com/manu.png",
 		content: dummyContentMarkdown,
 	},
 	{
-		title: "Understanding React Hooks",
+		title: "AI‑Driven Underwriting and Servicing: The Data Flywheel",
 		summary:
-			"A comprehensive guide to understanding and using React Hooks in your projects.",
-		date: "2021-02-15",
-		slug: "understanding-react-hooks",
-		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
+			"Hybrid automation with human‑in‑the‑loop powers underwriting, appraisal checks, renewals, and collections. RLHF on real decisions compounds accuracy over time.",
+		date: "2025-11-07",
+		slug: "ai-data-flywheel",
+		image: "/house.jpg",
+		author: "FairLend Team",
 		authorAvatar: "https://assets.aceternity.com/manu.png",
 		content: dummyContentMarkdown,
 	},
 	{
-		title: "CSS Grid Layout",
-		summary: "Learn how to create complex layouts easily with CSS Grid.",
-		date: "2021-03-10",
-		slug: "css-grid-layout",
-		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
-		authorAvatar: "https://assets.aceternity.com/manu.png",
-		content: dummyContentMarkdown,
-	},
-	{
-		title: "JavaScript ES2021 Features",
-		summary: "An overview of the new features introduced in JavaScript ES2021.",
-		date: "2021-04-05",
-		slug: "javascript-es2021-features",
-		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
-		authorAvatar: "https://assets.aceternity.com/manu.png",
-		content: dummyContentMarkdown,
-	},
-	{
-		title: "Building RESTful APIs with Node.js",
+		title: "12–18× Capital Velocity: Redeploying MIC Capital in 15–30 Days",
 		summary:
-			"Step-by-step guide to building RESTful APIs using Node.js and Express.",
-		date: "2021-05-20",
-		slug: "building-restful-apis-with-nodejs",
+			"Originate with the MIC → offload to marketplace investors → redeploy. Faster cycles reduce lockups and scale AUM without being capital‑constrained.",
+		date: "2025-11-07",
+		slug: "capital-velocity-mic",
 		image:
-			"https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		author: "Manu Arora",
+			"https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=3000&auto=format&fit=crop",
+		author: "FairLend Team",
 		authorAvatar: "https://assets.aceternity.com/manu.png",
 		content: dummyContentMarkdown,
 	},
@@ -193,12 +163,11 @@ export function BlogContentWithToc() {
 
 const Toc = () => {
 	const links = [
-		{ title: "Introduction", href: "#introduction" },
-		{
-			title: "Key Areas of AI Development",
-			href: "#key-areas-of-ai-development",
-		},
-		{ title: "Ethical Considerations", href: "#ethical-considerations" },
+		{ title: "Overview", href: "#overview" },
+		{ title: "Three‑Layer Model", href: "#the-three-layer-model" },
+		{ title: "AI & Data Flywheel", href: "#ai-data-flywheel" },
+		{ title: "Capital Velocity", href: "#capital-velocity" },
+		{ title: "Compliance", href: "#compliance" },
 		{ title: "Conclusion", href: "#conclusion" },
 	];
 	const [hovered, setHovered] = useState<number | null>(null);

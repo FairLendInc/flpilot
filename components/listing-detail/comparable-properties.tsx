@@ -56,7 +56,7 @@ export function ComparableProperties({
 				<Chip>{comparables.length} properties</Chip>
 			</div>
 
-			<p className="text-gray-600 text-sm dark:text-gray-400">
+			<p className="text-foreground/60 text-sm">
 				Recent sales of similar properties used in the appraisal analysis
 			</p>
 
@@ -88,25 +88,23 @@ export function ComparableProperties({
 								<div className="space-y-4 p-5">
 									{/* Header: Sale Amount */}
 									<div>
-										<p className="font-bold text-2xl text-gray-900 dark:text-white">
+										<p className="font-bold text-2xl text-foreground">
 											{formatCurrency(comp.saleAmount)}
 										</p>
-										<p className="text-gray-500 text-sm dark:text-gray-400">
-											Sale Price
-										</p>
+										<p className="text-foreground/50 text-sm">Sale Price</p>
 									</div>
 
 									{/* Address */}
-									<div className="flex items-start gap-2 border-gray-200 border-t pt-3 dark:border-gray-700">
+									<div className="flex items-start gap-2 border-border border-t pt-3">
 										<Icon
-											className="mt-0.5 h-5 w-5 shrink-0 text-gray-400"
+											className="mt-0.5 h-5 w-5 shrink-0 text-foreground/40"
 											icon="lucide:map-pin"
 										/>
 										<div className="flex-1">
-											<p className="font-medium text-gray-900 dark:text-white">
+											<p className="font-medium text-foreground">
 												{comp.address.street}
 											</p>
-											<p className="text-gray-600 text-sm dark:text-gray-400">
+											<p className="text-foreground/60 text-sm">
 												{comp.address.city}, {comp.address.state}{" "}
 												{comp.address.zip}
 											</p>
@@ -114,7 +112,7 @@ export function ComparableProperties({
 									</div>
 
 									{/* Sale Date */}
-									<div className="flex items-center gap-2 text-gray-600 text-sm dark:text-gray-400">
+									<div className="flex items-center gap-2 text-foreground/60 text-sm">
 										<Icon className="h-4 w-4" icon="lucide:calendar" />
 										<span>Sold: {format(saleDate, "MMMM d, yyyy")}</span>
 									</div>
@@ -124,7 +122,7 @@ export function ComparableProperties({
 										comp.bedrooms ||
 										comp.bathrooms ||
 										comp.propertyType) && (
-										<div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-gray-200 border-t pt-3 text-gray-600 text-sm dark:border-gray-700 dark:text-gray-400">
+										<div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-border border-t pt-3 text-foreground/60 text-sm">
 											{comp.propertyType && (
 												<div className="flex items-center gap-1.5">
 													<Icon className="h-4 w-4" icon="lucide:building" />

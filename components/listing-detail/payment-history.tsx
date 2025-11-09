@@ -63,22 +63,22 @@ const typeConfig: Record<
 	principal: {
 		label: "Principal",
 		icon: "lucide:home",
-		color: "text-blue-600",
+		color: "text-blue-600 dark:text-blue-400",
 	},
 	interest: {
 		label: "Interest",
 		icon: "lucide:percent",
-		color: "text-purple-600",
+		color: "text-purple-600 dark:text-purple-400",
 	},
 	escrow: {
 		label: "Escrow",
 		icon: "lucide:shield",
-		color: "text-green-600",
+		color: "text-green-600 dark:text-green-400",
 	},
 	unknown: {
 		label: "Unknown",
 		icon: "lucide:help-circle",
-		color: "text-gray-600",
+		color: "text-foreground/60",
 	},
 };
 
@@ -154,13 +154,13 @@ export function PaymentHistory({
 				<Card.Root>
 					<CardContent className="py-12 text-center">
 						<Icon
-							className="mx-auto h-12 w-12 text-gray-400"
+							className="mx-auto h-12 w-12 text-foreground/40"
 							icon="lucide:inbox"
 						/>
-						<p className="mt-3 font-medium text-gray-700 dark:text-gray-300">
+						<p className="mt-3 font-medium text-foreground/70">
 							No Payment History
 						</p>
-						<p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
+						<p className="mt-1 text-foreground/50 text-sm">
 							Payments will appear here after the first payment is made.
 						</p>
 					</CardContent>
@@ -211,7 +211,7 @@ export function PaymentHistory({
 												className={`rounded-full p-1.5 ${statusInfo.color === "success" ? "bg-green-100 dark:bg-green-900/30" : statusInfo.color === "warning" ? "bg-yellow-100 dark:bg-yellow-900/30" : "bg-red-100 dark:bg-red-900/30"}`}
 											>
 												<Icon
-													className={`h-4 w-4 ${statusInfo.color === "success" ? "text-green-600" : statusInfo.color === "warning" ? "text-yellow-600" : "text-red-600"}`}
+													className={`h-4 w-4 ${statusInfo.color === "success" ? "text-green-600 dark:text-green-400" : statusInfo.color === "warning" ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"}`}
 													icon={statusInfo.icon}
 												/>
 											</div>
@@ -223,12 +223,12 @@ export function PaymentHistory({
 
 										<div className="flex-1">
 											<div className="flex items-center gap-2">
-												<p className="font-semibold text-gray-900 dark:text-white">
+												<p className="font-semibold text-foreground">
 													{format(paymentDate, "MMMM d, yyyy")}
 												</p>
 												<Chip color={statusInfo.color}>{statusInfo.label}</Chip>
 											</div>
-											<div className="mt-1 flex items-center gap-1.5 text-gray-600 text-sm dark:text-gray-400">
+											<div className="mt-1 flex items-center gap-1.5 text-foreground/60 text-sm">
 												<Icon
 													className={`h-4 w-4 ${typeInfo.color}`}
 													icon={typeInfo.icon}
@@ -240,10 +240,10 @@ export function PaymentHistory({
 
 									{/* Right side: Amount */}
 									<div className="text-right sm:text-left">
-										<p className="font-bold text-2xl text-gray-900 dark:text-white">
+										<p className="font-bold text-2xl text-foreground">
 											{formatCurrency(payment.amount)}
 										</p>
-										<p className="text-gray-500 text-xs dark:text-gray-500">
+										<p className="text-foreground/50 text-xs">
 											{format(paymentDate, "h:mm a")}
 										</p>
 									</div>

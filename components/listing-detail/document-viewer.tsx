@@ -82,7 +82,9 @@ export function DocumentViewer({ documents }: DocumentViewerProps) {
 	const [error, setError] = useState<string | null>(null);
 	const [sdkReady, setSdkReady] = useState(false);
 	const viewerRef = useRef<HTMLDivElement>(null);
-	const adobeViewRef = useRef<any>(null);
+	const adobeViewRef = useRef<InstanceType<
+		NonNullable<typeof window.AdobeDC>["View"]
+	> | null>(null);
 
 	const selectedDocument = documents.find((doc) => doc._id === selectedDocId);
 	const apiKey = process.env.NEXT_PUBLIC_ADOBE_PDF_VIEWER_KEY;
@@ -275,7 +277,7 @@ export function DocumentViewer({ documents }: DocumentViewerProps) {
 					<h2 className="font-bold text-2xl">Documents</h2>
 				</div>
 
-				<p className="text-gray-600 text-sm dark:text-gray-400">
+				<p className="text-foreground/60 text-sm">
 					View important property documents including appraisals, title reports,
 					and loan agreements
 				</p>
@@ -316,7 +318,7 @@ export function DocumentViewer({ documents }: DocumentViewerProps) {
 								</div>
 
 								{selectedDocument && (
-									<div className="flex flex-col gap-1 text-gray-600 text-sm dark:text-gray-400">
+									<div className="flex flex-col gap-1 text-foreground/60 text-sm">
 										<div className="flex items-center gap-1.5">
 											<Icon className="h-4 w-4" icon="lucide:calendar" />
 											<span>
@@ -348,7 +350,7 @@ export function DocumentViewer({ documents }: DocumentViewerProps) {
 										<h3 className="font-semibold text-lg text-red-600 dark:text-red-400">
 											Unable to Load PDF Viewer
 										</h3>
-										<p className="max-w-md text-gray-600 text-sm dark:text-gray-400">
+										<p className="max-w-md text-foreground/60 text-sm">
 											{error}
 										</p>
 									</div>
@@ -360,7 +362,7 @@ export function DocumentViewer({ documents }: DocumentViewerProps) {
 										className="h-12 w-12 animate-spin text-primary"
 										icon="lucide:loader-2"
 									/>
-									<p className="text-gray-600 text-sm dark:text-gray-400">
+									<p className="text-foreground/60 text-sm">
 										Loading PDF viewer...
 									</p>
 								</div>

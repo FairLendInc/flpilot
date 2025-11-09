@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { getTimeAgo } from "@/lib/types/dealTypes";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +55,7 @@ export function AlertBell() {
 	// Auto-close dropdown when clicking an alert
 	const handleAlertClick = async (alertId: string, dealId?: string) => {
 		try {
-			await markAlertAsRead({ alertId: alertId as any });
+			await markAlertAsRead({ alertId: alertId as Id<"alerts"> });
 			setIsOpen(false);
 			if (dealId) {
 				router.push(`/dashboard/admin/deals/${dealId}`);

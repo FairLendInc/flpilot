@@ -5,6 +5,7 @@ import Image from "next/image";
 import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -47,6 +48,16 @@ export default function SettingsPage() {
 			</header>
 
 			<div className="flex flex-1 flex-col gap-6 p-6">
+				<Card>
+					<CardHeader>
+						<CardTitle>Theme</CardTitle>
+						<CardDescription>Choose your preferred color theme</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<ThemeSwitcher />
+					</CardContent>
+				</Card>
+
 				<Card>
 					<CardHeader>
 						<CardTitle>Branding</CardTitle>

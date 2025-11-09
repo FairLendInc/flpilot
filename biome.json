@@ -77,7 +77,6 @@
         "noTsIgnore": "off",
         "noConsole": "off",
         "useAwait": "off",
-        "noExplicitAny": "off",
         "noUnknownAtRules": "off",
         "noBitwiseOperators": "off"
       },
