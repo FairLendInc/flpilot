@@ -224,11 +224,15 @@ export const getAvailableListings = query({
 export const getAvailableListingsWithMortgages = query({
 	args: {},
 	handler: async (ctx) => {
-		// potential race condition here. 
-		// const identity = await ctx.auth.getUserIdentity();
-		// if (!identity) {
-		// 	throw new Error("Authentication required");
-		// }
+		// Graceful fallback for initial subscription setup
+		// During first load, WorkOS auth may not be initialized yet when the query
+		// transitions from preloaded data to live subscription. Return empty array
+		// instead of throwing to allow the subscription to succeed. The <Authenticated>
+		// component and conditional subscription logic prevent premature rendering.
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			return [];
+		}
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db
 			.query("listings")
