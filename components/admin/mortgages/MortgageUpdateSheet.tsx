@@ -288,6 +288,8 @@ export function MortgageUpdateSheet({
 				ltv: Number(ltv),
 				externalMortgageId: externalMortgageId.trim() || undefined,
 				borrowerId: borrowerId as Id<"borrowers">,
+				priorEncumbrance: priorEncumbrance || undefined,
+				asIfAppraisal: asIfAppraisal || undefined,
 				images: images.map((img: (typeof images)[0], index: number) => ({
 					storageId: img.storageId as Id<"_storage">,
 					alt: img.alt.trim() || undefined,

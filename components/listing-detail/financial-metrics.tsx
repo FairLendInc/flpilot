@@ -20,6 +20,14 @@ type FinancialMetricsProps = {
 			amount: number;
 			lender: string;
 		} | null;
+		asIsAppraisal?: {
+			// New: As-is appraisal details (optional)
+			marketValue: number;
+			purchasePrice: number;
+			method: string;
+			company: string;
+			date: string;
+		} | null;
 		asIfAppraisal?: {
 			// New: As-if complete appraisal details (optional)
 			marketValue: number;
@@ -196,26 +204,131 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 				</div>
 			</div>
 
+			{/* Bento-Style As-Is & As-If Cards */}
+			<div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+				{/* As-Is Appraisal Card */}
+				<Surface
+					className="relative overflow-hidden p-5 transition-all duration-300 hover:shadow-lg"
+					variant="default"
+				>
+					{/* Animated background gradient */}
+					<div className="absolute inset-0 bg-linear-to-br from-green-500/5 to-emerald-500/5" />
+
+					<div className="relative z-10 flex items-start gap-3">
+						<div className="rounded-xl bg-linear-to-br from-green-100 to-emerald-100 p-3 text-green-600 shadow-sm transition-all duration-300 hover:scale-110 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-400">
+							<Icon className="h-6 w-6" icon="lucide:home" />
+						</div>
+						<div className="flex-1">
+							<p className="font-medium text-foreground/60 text-sm">
+								As-Is Appraisal
+							</p>
+							<div className="mt-2 flex items-baseline gap-2">
+								<p className="font-bold text-2xl text-foreground">
+									{formatCurrency(currentValue)}
+								</p>
+								<span className="rounded-full bg-green-100 px-2 py-1 font-semibold text-green-700 text-xs dark:bg-green-900/30 dark:text-green-400">
+									Current Value
+								</span>
+							</div>
+							<div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+								<div className="flex items-center gap-2">
+									<Icon
+										className="h-4 w-4 text-foreground/50"
+										icon="lucide:trending-up"
+									/>
+									<p className="font-medium text-foreground/60 text-sm">
+										{valueChangePercent >= 0 ? "+" : ""}
+										{valueChangePercent.toFixed(1)}% from purchase
+									</p>
+								</div>
+								<div className="flex items-center gap-2">
+									<Icon
+										className="h-4 w-4 text-foreground/50"
+										icon="lucide:dollar-sign"
+									/>
+									<p className="font-medium text-foreground/60 text-sm">
+										{formatCurrency(financials.purchasePrice)}
+									</p>
+								</div>
+								<div className="col-span-2 flex items-center gap-2">
+									<Icon
+										className="h-4 w-4 text-foreground/50"
+										icon="lucide:calendar"
+									/>
+									<p className="font-medium text-foreground/60 text-sm">
+										{format(parseISO(financials.maturityDate), "MMM d, yyyy")}
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</Surface>
+
+				{/* As-If Complete Appraisal Card */}
+				{financials.asIfAppraisal && (
+					<Surface
+						className="relative overflow-hidden p-5 transition-all duration-300 hover:shadow-lg"
+						variant="default"
+					>
+						{/* Animated background gradient */}
+						<div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-cyan-500/5" />
+
+						<div className="relative z-10 flex items-start gap-3">
+							<div className="rounded-xl bg-linear-to-br from-blue-100 to-cyan-100 p-3 text-blue-600 shadow-sm transition-all duration-300 hover:scale-110 dark:from-blue-900/30 dark:to-cyan-900/30 dark:text-blue-400">
+								<Icon className="h-6 w-6" icon="lucide:compass" />
+							</div>
+							<div className="flex-1">
+								<p className="font-medium text-foreground/60 text-sm">
+									As-If Complete Appraisal
+								</p>
+								<div className="mt-2 flex items-baseline gap-2">
+									<p className="font-bold text-2xl text-foreground">
+										{formatCurrency(financials.asIfAppraisal.marketValue)}
+									</p>
+									<span className="rounded-full bg-blue-100 px-2 py-1 font-semibold text-blue-700 text-xs dark:bg-blue-900/30 dark:text-blue-400">
+										Future Value
+									</span>
+								</div>
+								<div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+									<div className="flex items-center gap-2">
+										<Icon
+											className="h-4 w-4 text-foreground/50"
+											icon="lucide:clipboard-list"
+										/>
+										<p className="font-medium text-foreground/60 text-sm">
+											{financials.asIfAppraisal.method}
+										</p>
+									</div>
+									<div className="flex items-center gap-2">
+										<Icon
+											className="h-4 w-4 text-foreground/50"
+											icon="lucide:building"
+										/>
+										<p className="font-medium text-foreground/60 text-sm">
+											{financials.asIfAppraisal.company}
+										</p>
+									</div>
+									<div className="col-span-2 flex items-center gap-2">
+										<Icon
+											className="h-4 w-4 text-foreground/50"
+											icon="lucide:calendar"
+										/>
+										<p className="font-medium text-foreground/60 text-sm">
+											{format(
+												parseISO(financials.asIfAppraisal.date),
+												"MMM d, yyyy"
+											)}
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</Surface>
+				)}
+			</div>
+
 			{/* Metrics Grid */}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-				{/* Current Market Price */}
-				<MetricCard
-					colorClass={
-						valueChange >= 0
-							? "text-green-600 dark:text-green-400"
-							: "text-red-600 dark:text-red-400"
-					}
-					icon="lucide:home"
-					label="Current Market Price"
-					sublabel={
-						financials.currentValue
-							? `${valueChangePercent >= 0 ? "+" : ""}${valueChangePercent.toFixed(1)}% from purchase`
-							: "Estimated value"
-					}
-					trend={valueChange >= 0 ? "up" : "down"}
-					value={formatCurrency(currentValue)}
-				/>
-
 				{/* LTV Ratio */}
 				<MetricCard
 					colorClass={getLTVColorClass(ltv)}
@@ -331,109 +444,6 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 						</div>
 					</div>
 				</Surface>
-
-				{/* Prior Encumbrance - Takes 2 columns */}
-				{financials.priorEncumbrance && (
-					<Surface
-						className="relative overflow-hidden p-5 transition-all duration-300 hover:shadow-lg sm:col-span-2 lg:col-span-2 xl:col-span-2"
-						variant="default"
-					>
-						{/* Animated background gradient */}
-						<div className="absolute inset-0 bg-linear-to-br from-red-500/5 to-pink-500/5" />
-
-						<div className="relative z-10 flex items-start gap-3">
-							<div className="rounded-xl bg-linear-to-br from-red-100 to-pink-100 p-3 text-red-600 shadow-sm transition-all duration-300 hover:scale-110 dark:from-red-900/30 dark:to-pink-900/30 dark:text-red-400">
-								<Icon className="h-6 w-6" icon="lucide:shield-alert" />
-							</div>
-							<div className="flex-1">
-								<p className="font-medium text-foreground/60 text-sm">
-									Prior Encumbrance
-								</p>
-								<div className="mt-2 flex items-baseline gap-2">
-									<p className="font-bold text-2xl text-foreground">
-										{formatCurrency(financials.priorEncumbrance.amount)}
-									</p>
-									{financials.mortgageType && (
-										<span className="rounded-full bg-red-100 px-2 py-1 font-semibold text-red-700 text-xs dark:bg-red-900/30 dark:text-red-400">
-											{financials.mortgageType}
-										</span>
-									)}
-								</div>
-								<div className="mt-2 flex items-center gap-2">
-									<Icon
-										className="h-4 w-4 text-foreground/50"
-										icon="lucide:building-2"
-									/>
-									<p className="font-medium text-foreground/60 text-sm">
-										{financials.priorEncumbrance.lender}
-									</p>
-								</div>
-							</div>
-						</div>
-					</Surface>
-				)}
-
-				{/* As-If Complete Appraisal - Takes 2 columns */}
-				{financials.asIfAppraisal && (
-					<Surface
-						className="relative overflow-hidden p-5 transition-all duration-300 hover:shadow-lg sm:col-span-2 lg:col-span-2 xl:col-span-2"
-						variant="default"
-					>
-						{/* Animated background gradient */}
-						<div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-cyan-500/5" />
-
-						<div className="relative z-10 flex items-start gap-3">
-							<div className="rounded-xl bg-linear-to-br from-blue-100 to-cyan-100 p-3 text-blue-600 shadow-sm transition-all duration-300 hover:scale-110 dark:from-blue-900/30 dark:to-cyan-900/30 dark:text-blue-400">
-								<Icon className="h-6 w-6" icon="lucide:compass" />
-							</div>
-							<div className="flex-1">
-								<p className="font-medium text-foreground/60 text-sm">
-									As-If Complete Appraisal
-								</p>
-								<div className="mt-2 flex items-baseline gap-2">
-									<p className="font-bold text-2xl text-foreground">
-										{formatCurrency(financials.asIfAppraisal.marketValue)}
-									</p>
-									<span className="rounded-full bg-blue-100 px-2 py-1 font-semibold text-blue-700 text-xs dark:bg-blue-900/30 dark:text-blue-400">
-										Future Value
-									</span>
-								</div>
-								<div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
-									<div className="flex items-center gap-2">
-										<Icon
-											className="h-4 w-4 text-foreground/50"
-											icon="lucide:clipboard-list"
-										/>
-										<p className="font-medium text-foreground/60 text-sm">
-											{financials.asIfAppraisal.method}
-										</p>
-									</div>
-									<div className="flex items-center gap-2">
-										<Icon
-											className="h-4 w-4 text-foreground/50"
-											icon="lucide:building"
-										/>
-										<p className="font-medium text-foreground/60 text-sm">
-											{financials.asIfAppraisal.company}
-										</p>
-									</div>
-									<div className="col-span-2 flex items-center gap-2">
-										<Icon
-											className="h-4 w-4 text-foreground/50"
-											icon="lucide:calendar"
-										/>
-										<p className="font-medium text-foreground/60 text-sm">
-											{format(
-												parseISO(financials.asIfAppraisal.date),
-												"MMM d, yyyy"
-											)}
-										</p>
-									</div>
-								</div>
-							</div>
-						</div>
-					</Surface>
-				)}
 			</div>
 		</div>
 	);

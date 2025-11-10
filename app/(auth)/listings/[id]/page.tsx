@@ -58,6 +58,8 @@ function transformMortgageForComponents(mortgage: MortgageWithUrls) {
 				: mortgage.mortgageType === "2nd"
 					? "2nd Position"
 					: "Other Position",
+		priorEncumbrance: mortgage.priorEncumbrance || null,
+		asIfAppraisal: mortgage.asIfAppraisal || null,
 	};
 
 	// Transform documents - use pre-fetched signed URLs
