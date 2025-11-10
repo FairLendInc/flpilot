@@ -1,46 +1,45 @@
-import { TwoLevelNav } from "@/components/navigation/two-level-nav";
+import { Suspense } from "react";
+import { HeroSection } from "@/components/HeroSection";
+import { CTASection } from "@/components/landingpage/components/cta-section";
+import { SplineWrapper } from "@/components/SplineWrapper";
+import TerminalSection from "@/components/TerminalSection";
 
 export default function Home() {
 	return (
-		<div className="min-h-screen">
-			<TwoLevelNav
-				breadcrumbs={[
-					{ label: "Home", href: "/" },
-					{ label: "Listings", href: "/listings" },
-					{ label: "Listing Details" },
-				]}
-			/>
+		<div className="relative bg-black">
+			{/* Hero Section - Fixed in place with scroll snap */}
+			<HeroSection>
+				<Suspense fallback={<div className="h-full w-full bg-black" />}>
+					<SplineWrapper scene="https://prod.spline.design/4d5uBawP6DCEaRtD/scene.splinecode" />
+					<div className="h-40" />
+				</Suspense>
+			</HeroSection>
 
-			{/* Main Content */}
-			<main className="px-6 py-12 pt-[104px]">
-				<div className="mx-auto max-w-7xl">
-					<h1 className="mb-4 text-balance font-bold text-4xl">
-						Welcome to FairLend
-					</h1>
-					<p className="max-w-2xl text-pretty text-lg text-muted-foreground">
-						Experience our professional two-level navigation system inspired by
-						Vercel's design. Try the search with{" "}
-						<kbd className="rounded bg-muted px-2 py-1 text-xs">⌘K</kbd> or
-						click through the navigation tabs to see the tubelight effect in
-						action.
-					</p>
+			{/* Terminal/Problems Section - Slides over hero */}
+			<section className="relative z-10 snap-start scroll-mt-0 bg-black">
+				<TerminalSection />
+			</section>
 
-					<div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-						{[1, 2, 3, 4, 5, 6].map((i) => (
-							<div
-								className="rounded-lg border border-border bg-card p-6 transition-colors hover:bg-accent/50"
-								key={i}
-							>
-								<h3 className="mb-2 font-semibold text-lg">Feature {i}</h3>
-								<p className="text-muted-foreground text-sm">
-									Explore the capabilities of our lending platform with this
-									demo card.
-								</p>
-							</div>
-						))}
-					</div>
-				</div>
-			</main>
+			{/* CTA Section - Slides over terminal */}
+			<section className="relative z-20 snap-start scroll-mt-0 bg-black">
+				<CTASection />
+			</section>
+
+			{/*<LightRays
+					className="custom-rays"
+					distortion={0.0}
+					followMouse={true}
+					lightSpread={0.5}
+					mouseInfluence={0.1}
+					noiseAmount={0.0}
+					rayLength={1.2}
+					raysColor="#ffffff"
+					raysOrigin="top-center"
+					raysSpeed={0.5}
+					saturation={1}
+				/>
+			</div>*/}
+			{/*<Testimonials />*/}
 		</div>
 	);
 }

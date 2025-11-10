@@ -1,0 +1,99 @@
+"use client";
+import { useMotionValueEvent, useScroll } from "motion/react";
+import { Link } from "next-view-transitions";
+import { useState } from "react";
+import { IoIosClose, IoIosMenu } from "react-icons/io";
+import { Button } from "@/components/button";
+import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
+
+export const MobileNavbar = ({ navItems }: any) => {
+	const [open, setOpen] = useState(false);
+
+	const { scrollY } = useScroll();
+
+	const [showBackground, setShowBackground] = useState(false);
+
+	useMotionValueEvent(scrollY, "change", (value) => {
+		if (value > 100) {
+			setShowBackground(true);
+		} else {
+			setShowBackground(false);
+		}
+	});
+
+	return (
+		<div
+			className={cn(
+				"flex w-full items-center justify-between rounded-md bg-transparent px-2.5 py-1.5 transition duration-200",
+				showBackground &&
+					"bg-neutral-900 shadow-[0px_-2px_0px_0px_var(--neutral-800),0px_2px_0px_0px_var(--neutral-800)]"
+			)}
+		>
+			<Logo />
+			<IoIosMenu
+				className="h-6 w-6 text-white"
+				onClick={() => setOpen(!open)}
+			/>
+			{open && (
+				<div className="fixed inset-0 z-50 flex flex-col items-start justify-start space-y-10 bg-black pt-5 text-xl text-zinc-600 transition duration-200 hover:text-zinc-800">
+					<div className="flex w-full items-center justify-between px-5">
+						<Logo />
+						<div className="flex items-center space-x-2">
+							<IoIosClose
+								className="h-8 w-8 text-white"
+								onClick={() => setOpen(!open)}
+							/>
+						</div>
+					</div>
+					<div className="flex flex-col items-start justify-start gap-[14px] px-8">
+						{navItems.map((navItem: any, idx: number) => (
+							<>
+								{navItem.children && navItem.children.length > 0 ? (
+									<>
+										{navItem.children.map((childNavItem: any, idx: number) => (
+											<Link
+												className="relative max-w-[15rem] text-left text-2xl"
+												href={childNavItem.link}
+												key={`link=${idx}`}
+												onClick={() => setOpen(false)}
+											>
+												<span className="block text-white">
+													{childNavItem.title}
+												</span>
+											</Link>
+										))}
+									</>
+								) : (
+									<Link
+										className="relative"
+										href={navItem.link}
+										key={`link=${idx}`}
+										onClick={() => setOpen(false)}
+									>
+										<span className="block text-[26px] text-white">
+											{navItem.title}
+										</span>
+									</Link>
+								)}
+							</>
+						))}
+					</div>
+					<div className="flex w-full flex-row items-start gap-2.5 px-8 py-4">
+						<Button>Book a demo</Button>
+						<Button
+							as={Link}
+							href="/register"
+							onClick={() => {
+								setOpen(false);
+							}}
+							variant="simple"
+						>
+							Register
+						</Button>
+					</div>
+				</div>
+			)}
+		</div>
+	);
+};
