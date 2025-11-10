@@ -148,7 +148,7 @@ export function TwoLevelNav({
 						mobileMenuOpen && "hidden lg:block"
 					)}
 				>
-					{(pathname.length > 1 || breadcrumbs.length > 0) && (
+					{pathname !== "/" && (pathname.length > 1 || breadcrumbs.length > 0) && (
 						<div className="relative flex h-12 items-center px-4 md:px-6">
 							{/* Breadcrumbs - Left */}
 							<BreadcrumbNav items={breadcrumbs} />
