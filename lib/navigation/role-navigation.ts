@@ -11,6 +11,7 @@ import {
 	Settings,
 	Shield,
 	TrendingUp,
+	UserPlus,
 	Users,
 } from "lucide-react";
 
@@ -41,6 +42,11 @@ export const ROLE_NAVIGATION: Record<UserRole, NavItem[]> = {
 			title: "Users",
 			url: "/dashboard/admin/users",
 			icon: Users,
+		},
+		{
+			title: "Onboarding",
+			url: "/dashboard/admin/onboarding",
+			icon: UserPlus,
 		},
 		{
 			title: "Deals",

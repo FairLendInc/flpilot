@@ -80,6 +80,45 @@ export const getUserRoleFromWorkOS = internalAction({
 	},
 });
 
+export const updateUserRole = internalAction({
+	args: v.object({
+		userId: v.string(),
+		role: v.string(),
+	}),
+	returns: v.null(),
+	handler: async (_ctx, { userId, role }) => {
+	const apiKey = process.env.WORKOS_API_KEY;
+	const isTestEnv =
+		process.env.NODE_ENV === "test" ||
+		typeof process.env.VITEST_WORKER_ID === "string";
+	if (!apiKey || isTestEnv) {
+		console.warn(
+			"Skipping WorkOS role update (missing API key or test environment)"
+		);
+		return null;
+	}
+		const workos = new WorkOS(apiKey);
+		try {
+			const user = await workos.userManagement.getUser(userId);
+			const metadata = {
+				...((user.metadata as Record<string, unknown>) ?? {}),
+				role,
+			};
+			await workos.userManagement.updateUser({
+				userId,
+				metadata,
+			});
+			return null;
+		} catch (error) {
+			console.error("Failed to update WorkOS user role", {
+				userId,
+				error,
+			});
+			return null;
+		}
+	},
+});
+
 export const updateUserProfile = internalAction({
 	args: v.object({
 		userId: v.string(),
