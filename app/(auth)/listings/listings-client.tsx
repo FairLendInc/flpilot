@@ -4,7 +4,6 @@ import {
 	Authenticated,
 	type Preloaded,
 	Unauthenticated,
-	useConvexAuth,
 	usePreloadedQuery,
 } from "convex/react";
 import {
@@ -109,20 +108,16 @@ type ListingsClientProps = {
  * Uses preloaded authenticated data from server
  */
 export function ListingsClient({ preloaded }: ListingsClientProps) {
-	const { isAuthenticated } = useConvexAuth();
-
 	// Always call usePreloadedQuery (React hooks must be unconditional)
 	// The <Authenticated> wrapper prevents rendering until auth is ready,
 	// and the query gracefully returns empty array if auth isn't initialized yet (Part C)
 	const listingsWithMortgages = usePreloadedQuery(preloaded);
 
 	// Only process listings if authenticated - prevents using empty array from query fallback
-	const listings: ListingItem[] = isAuthenticated
-		? listingsWithMortgages.map((item) => ({
-				...transformMortgage(item.mortgage as MortgageWithUrls),
-				locked: item.listing.locked,
-			}))
-		: [];
+	const listings: ListingItem[] = listingsWithMortgages.map((item) => ({
+		...transformMortgage(item.mortgage as MortgageWithUrls),
+		locked: item.listing.locked,
+	}));
 
 	return (
 		<Authenticated>
