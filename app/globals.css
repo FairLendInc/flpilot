@@ -66,7 +66,7 @@
 
 :root {
     /* Font families - make Poppins and Roboto Mono available globally */
-    font-family: var(--font-geist-sans), sans-serif;
+    font-family: var(--font-sans), sans-serif;
 
     /* Shadcn/Tailwind variables */
     --radius: 0.625rem;
