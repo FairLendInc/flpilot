@@ -232,6 +232,10 @@ export default defineSchema({
 			v.literal("2nd"),
 			v.literal("other")
 		),
+		priorEncumbrance: v.optional(v.object({
+			amount: v.number(),
+			lender: v.string(),
+		})),
 		// Renewal tracking - links to previous mortgage if this is a renewal
 		previousMortgageId: v.optional(v.id("mortgages")),
 		// Embedded property information
@@ -246,6 +250,12 @@ export default defineSchema({
 			lat: v.number(),
 			lng: v.number(),
 		}),
+		asIfAppraisal: v.optional(v.object({
+			marketValue: v.number(),
+			method: v.string(),
+			company: v.string(),
+			date: v.string(),
+		})),
 		propertyType: v.string(),
 		// Appraisal data - flattened structure for querying
 		appraisalMarketValue: v.number(), // Current market value of property
@@ -364,6 +374,7 @@ export default defineSchema({
 		bedrooms: v.optional(v.number()),
 		bathrooms: v.optional(v.number()),
 		propertyType: v.optional(v.string()),
+		asIfAppraisal: v.optional(v.boolean()),
 		// Property image (stored in Convex file storage)
 		imageStorageId: v.optional(v.id("_storage")),
 	})

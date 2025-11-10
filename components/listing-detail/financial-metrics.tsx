@@ -14,6 +14,7 @@ type FinancialMetricsProps = {
 		loanTerm: number; // in months
 		maturityDate: string; // ISO date string
 		principalLoanAmount: number; // New: Original loan amount
+		ltv: number;
 		priorEncumbrance?: {
 			// New: Prior encumbrance details (optional)
 			amount: number;
@@ -120,8 +121,8 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 	const monthsRemaining = Math.floor((daysUntilMaturity % 365) / 30);
 
 	// Fallback to hardcoded amount if data is not available (MUST BE FIRST)
-	const principalLoanAmount = financials.principalLoanAmount || 650000; // Hardcoded fallback
-	const currentValue = financials.currentValue || 850000; // Hardcoded fallback
+	const principalLoanAmount = financials.principalLoanAmount || 1; // Hardcoded fallback
+	const currentValue = financials.currentValue || 1; // Hardcoded fallback
 
 	const valueChange = currentValue - financials.purchasePrice;
 	const valueChangePercent = (valueChange / financials.purchasePrice) * 100;
@@ -156,7 +157,8 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 	const { category, subType } = parsePropertyType(financials.propertyType);
 
 	// Calculate LTV (Loan-to-Value ratio) - with fallback values
-	const ltv = (principalLoanAmount / currentValue) * 100;
+	// const ltv = (principalLoanAmount / currentValue) * 100;
+	const ltv = financials.ltv;
 
 	// Determine LTV color coding
 	const getLTVColorClass = (value: number) => {
