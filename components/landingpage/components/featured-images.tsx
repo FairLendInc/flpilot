@@ -13,8 +13,10 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { BsStarFill } from "react-icons/bs";
 import { twMerge } from "tailwind-merge";
-import { testimonials } from "@/constants/testimonials";
+import { testimonials } from "../constants/testimonials";
 import { cn } from "@/lib/utils";
+
+const STAR_IDS = ["star-0", "star-1", "star-2", "star-3", "star-4"];
 
 export const FeaturedImages = ({
 	textClassName,
@@ -36,8 +38,9 @@ export const FeaturedImages = ({
 		springConfig
 	);
 
-	const handleMouseMove = (event: any) => {
-		const halfWidth = event.target.offsetWidth / 2;
+	const handleMouseMove = (event: React.MouseEvent<HTMLImageElement>) => {
+		const target = event.currentTarget;
+		const halfWidth = target.offsetWidth / 2;
 		x.set(event.nativeEvent.offsetX - halfWidth);
 	};
 
@@ -65,7 +68,8 @@ export const FeaturedImages = ({
 				)}
 			>
 				<div className="mb-4 flex flex-row items-center sm:mb-0">
-					{testimonials.map((testimonial, idx) => (
+					{testimonials.map((testimonial: { name: string; designation: string; image: string }, idx: number) => (
+						// biome-ignore lint/a11y/noNoninteractiveElementInteractions lint/a11y/noStaticElementInteractions: Hover-only interaction for tooltip display
 						<div
 							className="-mr-4 group relative"
 							key={testimonial.name}
@@ -141,10 +145,10 @@ export const FeaturedImages = ({
 				</div>
 
 				<div className="ml-6 flex justify-center">
-					{[...Array(5)].map((_, index) => (
+					{STAR_IDS.map((id) => (
 						<BsStarFill
 							className={showStars ? "mx-1 h-4 w-4 text-yellow-400" : "hidden"}
-							key={index}
+							key={id}
 						/>
 					))}
 				</div>

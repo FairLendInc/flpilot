@@ -6,7 +6,7 @@ export const Button: React.FC<{
 	className?: string;
 	variant?: "simple" | "outline" | "primary" | "muted";
 	as?: React.ElementType;
-	[x: string]: any;
+	[x: string]: unknown;
 }> = ({
 	children,
 	className,

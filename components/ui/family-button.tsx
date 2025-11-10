@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 const CONTAINER_SIZE = 200
 
-interface FamilyButtonProps {
+type FamilyButtonProps = {
   children: React.ReactNode
 }
 

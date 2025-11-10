@@ -2,7 +2,7 @@ import { IconArrowLeft } from "@tabler/icons-react";
 import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
-import type { BlogWithSlug } from "@/lib/blog";
+import type { BlogWithSlug } from "../../../lib/blog";
 import { Container } from "./container";
 import { Logo } from "./logo";
 export function BlogLayout({

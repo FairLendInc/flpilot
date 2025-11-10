@@ -11,7 +11,7 @@ import { X } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 
 // Context
-interface ExpandableScreenContextValue {
+type ExpandableScreenContextValue = {
   isExpanded: boolean
   expand: () => void
   collapse: () => void
@@ -35,7 +35,7 @@ function useExpandableScreen() {
 }
 
 // Root Component
-interface ExpandableScreenProps {
+type ExpandableScreenProps = {
   children: ReactNode
   defaultExpanded?: boolean
   onExpandChange?: (expanded: boolean) => void

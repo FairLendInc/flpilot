@@ -3,16 +3,16 @@ import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-interface IBlurImage {
-	height?: any;
-	width?: any;
-	src?: string | any;
-	objectFit?: any;
-	className?: string | any;
-	alt?: string | undefined;
-	layout?: any;
-	[x: string]: any;
-}
+type IBlurImage = {
+	height?: number | string;
+	width?: number | string;
+	src?: string;
+	objectFit?: "contain" | "cover" | "fill" | "none" | "scale-down";
+	className?: string;
+	alt?: string;
+	layout?: "fill" | "fixed" | "intrinsic" | "responsive";
+	[x: string]: unknown;
+};
 
 export const BlurImage = ({
 	height,
@@ -25,6 +25,16 @@ export const BlurImage = ({
 	...rest
 }: IBlurImage) => {
 	const [isLoading, setLoading] = useState(true);
+	
+	// Convert height/width to numbers if they're strings
+	const heightNum = typeof height === "string" ? Number.parseInt(height, 10) : height;
+	const widthNum = typeof width === "string" ? Number.parseInt(width, 10) : width;
+	
+	// Ensure src is defined
+	if (!src) {
+		return null;
+	}
+	
 	return (
 		<Image
 			alt={alt ? alt : "Avatar"}
@@ -35,12 +45,12 @@ export const BlurImage = ({
 				className
 			)}
 			decoding="async"
-			height={height}
+			height={heightNum}
 			layout={layout}
 			loading="lazy"
 			onLoadingComplete={() => setLoading(false)}
 			src={src}
-			width={width}
+			width={widthNum}
 			{...rest}
 		/>
 	);

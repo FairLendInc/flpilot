@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Link } from "next-view-transitions";
+import Link from "next/link";
 import Balancer from "react-wrap-balancer";
 import type { BlogWithSlug } from "@/lib/blog";
 import { truncate } from "@/lib/utils";

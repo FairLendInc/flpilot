@@ -6,10 +6,10 @@ export const Grid = ({
 	pattern,
 	size,
 }: {
-	pattern?: number[][];
+	pattern?: [number, number][];
 	size?: number;
 }) => {
-	const p = pattern ?? [
+	const p: [number, number][] = pattern ?? [
 		[Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
 		[Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
 		[Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
@@ -24,8 +24,8 @@ export const Grid = ({
 					height={size ?? 20}
 					squares={p}
 					width={size ?? 20}
-					x="-12"
-					y="4"
+					x={-12}
+					y={4}
 				/>
 			</div>
 		</div>

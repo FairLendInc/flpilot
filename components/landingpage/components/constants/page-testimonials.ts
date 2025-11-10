@@ -1,9 +1,9 @@
-interface Testimonial {
+type Testimonial = {
 	src: string;
 	quote: string;
 	name: string;
 	designation?: string;
-}
+};
 
 export const testimonials: Testimonial[] = [
 	{

@@ -46,7 +46,7 @@ export const FeaturesGrid = () => {
 	return (
 		<div className="py-20 lg:py-40">
 			<div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-				{grid.map((feature, idx) => (
+				{grid.map((feature) => (
 					<div
 						className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-neutral-900 to-neutral-950 p-6"
 						key={feature.title}

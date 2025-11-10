@@ -3,7 +3,7 @@ import Image from "next/image";
 import type React from "react";
 import Marquee from "react-fast-marquee";
 import { TbLocationBolt } from "react-icons/tb";
-import { testimonials } from "@/constants/page-testimonials";
+import { testimonials } from "../../constants/page-testimonials";
 import { cn } from "@/lib/utils";
 import { FeatureIconContainer } from "../features/feature-icon-container";
 import { Heading } from "../heading";
@@ -25,7 +25,7 @@ export const TestimonialsMarquee = () => (
 			<div className="pointer-events-none absolute inset-y-0 left-0 z-40 h-full w-10 bg-gradient-to-r from-charcoal to-transparent md:w-80" />
 			<div className="pointer-events-none absolute inset-y-0 right-0 z-40 h-full w-10 bg-gradient-to-l from-charcoal to-transparent md:w-80" />
 			<Marquee className="h-full" pauseOnHover>
-				{testimonials.map((testimonial, index) => (
+				{testimonials.map((testimonial: { src: string; quote: string; name: string; designation?: string }, index: number) => (
 					<Card key={`testimonial-${testimonial.src}-${index}`}>
 						<Quote>{testimonial.quote}</Quote>
 						<div className="mt-8 flex items-center gap-2">
@@ -54,7 +54,7 @@ export const TestimonialsMarquee = () => (
 				pauseOnHover
 				speed={40}
 			>
-				{testimonials.map((testimonial, index) => (
+				{testimonials.map((testimonial: { src: string; quote: string; name: string; designation?: string }, index: number) => (
 					<Card key={`testimonial-${testimonial.src}-${index}`}>
 						<Quote>{testimonial.quote}</Quote>
 						<div className="mt-8 flex items-center gap-2">

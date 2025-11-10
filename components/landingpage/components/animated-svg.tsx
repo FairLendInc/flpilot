@@ -23,6 +23,7 @@ export const AnimatedSvg = () => {
 			}}
 		>
 			<motion.svg
+				aria-label="Animated decorative SVG paths"
 				className="-z-10 pointer-events-none relative inset-0 mt-40 h-full w-full flex-shrink-0 transform text-neutral-900 md:scale-100 dark:opacity-100"
 				fill="none"
 				height="430"
@@ -30,11 +31,12 @@ export const AnimatedSvg = () => {
 				width="1003"
 				xmlns="http://www.w3.org/2000/svg"
 			>
+				<title>Decorative animated paths</title>
 				{/* Main Path */}
-				{paths.map((path, idx) => (
+				{paths.map((path) => (
 					<motion.path
 						d={path}
-						key={`path-${idx}`}
+						key={path}
 						stroke={"currentColor"}
 						strokeWidth={0.5}
 					/>
@@ -44,7 +46,7 @@ export const AnimatedSvg = () => {
 				{paths.map((path, idx) => (
 					<motion.path
 						d={path}
-						key={`gradient-path-${idx}`}
+						key={`gradient-${path}`}
 						stroke={`url(#gradient_${idx})`}
 						strokeWidth={0.5}
 					/>
@@ -59,7 +61,7 @@ export const AnimatedSvg = () => {
 						<stop offset="0.5" stopColor="#20FFFF" />
 						<stop offset="1" stopColor="#00A3FF" stopOpacity="0" />
 					</linearGradient>
-					{paths.map((_, idx) => (
+					{paths.map((path, idx) => (
 						<motion.linearGradient
 							animate={{
 								x1: "100%",
@@ -75,7 +77,7 @@ export const AnimatedSvg = () => {
 								x2: "0%",
 								y2: "0%",
 							}}
-							key={`gradient-def-${idx}`}
+							key={`gradient-def-${path}`}
 							transition={{
 								duration: Math.random() * (7 - 2) + 2,
 								ease: "linear",

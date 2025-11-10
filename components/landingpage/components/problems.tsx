@@ -45,10 +45,10 @@ const ProblemCard = ({
 	</div>
 );
 
-interface ProblemsProps {
+type ProblemsProps = {
 	isVisible?: boolean;
 	turnOff?: boolean;
-}
+};
 
 export const Problems = ({
 	isVisible = true,

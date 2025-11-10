@@ -2,9 +2,9 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-interface HeroSectionProps {
+type HeroSectionProps = {
 	children: ReactNode;
-}
+};
 
 export function HeroSection({ children }: HeroSectionProps) {
 	const [isHeroVisible, setIsHeroVisible] = useState(true);
