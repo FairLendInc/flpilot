@@ -1,13 +1,33 @@
 import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
 import type { NextRequest, NextResponse } from "next/server";
 
-const redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI;
-if (!redirectUri) {
-	// Throwing here gives a clearer error during middleware initialization
-	throw new Error(
-		"Missing NEXT_PUBLIC_WORKOS_REDIRECT_URI environment variable. Please set it to your app callback URL (e.g. http://localhost:3000/callback)"
+/**
+ * Get the redirect URI for WorkOS authentication.
+ * Priority:
+ * 1. VERCEL_URL (automatically set by Vercel)
+ * 2. NEXT_PUBLIC_SITE_URL (for custom domains)
+ * 3. NEXT_PUBLIC_WORKOS_REDIRECT_URI (for local development)
+ * 4. Fallback to localhost:3000
+ */
+function getRedirectUri(): string {
+	// Production: Use VERCEL_URL or construct from environment
+	if (process.env.VERCEL_URL) {
+		return `https://${process.env.VERCEL_URL}/callback`;
+	}
+
+	// Custom production URL
+	if (process.env.NEXT_PUBLIC_SITE_URL) {
+		return `${process.env.NEXT_PUBLIC_SITE_URL}/callback`;
+	}
+
+	// Development fallback
+	return (
+		process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ||
+		"http://localhost:3000/callback"
 	);
 }
+
+const redirectUri = getRedirectUri();
 
 const base = authkitMiddleware({
 	eagerAuth: true,

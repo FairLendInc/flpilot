@@ -260,7 +260,8 @@ Copy `.env.local.example` to `.env.local` and configure:
    - `WORKOS_CLIENT_ID`
    - `WORKOS_API_KEY`
    - `WORKOS_COOKIE_PASSWORD` (32+ characters)
-   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI` (e.g., `http://localhost:3000/callback`)
+   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI` (e.g., `http://localhost:3000/callback`) - **Only needed for local development**
+   - **Production:** `VERCEL_URL` is automatically set by Vercel, or set `NEXT_PUBLIC_SITE_URL` for custom domains
 
 2. **Convex Configuration**:
    - `NEXT_PUBLIC_CONVEX_URL` (auto-added by `npx convex dev`)

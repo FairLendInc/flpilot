@@ -25,11 +25,22 @@ After the initial setup (<2 minutes) you'll have a working full-stack app using:
 3. Configure WorkOS AuthKit:
    - Create a [WorkOS account](https://workos.com/)
    - Get your Client ID and API Key from the WorkOS dashboard
-   - In the WorkOS dashboard, add `http://localhost:3000/callback` as a redirect URI
+   - In the WorkOS dashboard, add redirect URIs:
+     - `http://localhost:3000/callback` (for local development)
+     - `https://your-domain.com/callback` (for production - add after deployment)
    - Generate a secure password for cookie encryption (minimum 32 characters)
-   - Update your `.env.local` file with these values
+   - Update your `.env.local` file with these values:
+     - `WORKOS_CLIENT_ID`
+     - `WORKOS_API_KEY`
+     - `WORKOS_COOKIE_PASSWORD` (32+ characters)
+     - `NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/callback` (local development only)
    - Add a strong `LISTINGS_WEBHOOK_API_KEY` value for the `/listings/create` webhook (share this secret with upstream integrations)
    - Optionally set `LISTINGS_WEBHOOK_ALLOWED_ORIGIN` if the webhook should only accept requests from a specific origin
+
+   **Note:** For production deployments:
+   - On Vercel: `VERCEL_URL` is automatically set (no action needed)
+   - For custom domains: Set `NEXT_PUBLIC_SITE_URL=https://your-domain.com`
+   - The redirect URI is automatically constructed from these values
 
 4. Configure Convex:
 
