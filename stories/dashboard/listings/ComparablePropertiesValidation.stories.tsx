@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Card, Input, Chip } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import type { ComparableFormState } from "@/app/dashboard/admin/listings/new/useListingCreationStore";
+import type { ComparableFormState } from "@/app/(auth)/dashboard/admin/listings/new/useListingCreationStore";
 
 // Validation scenario component
 const ValidationScenario = ({

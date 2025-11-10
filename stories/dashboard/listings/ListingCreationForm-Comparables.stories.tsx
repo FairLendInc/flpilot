@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState, useCallback } from "react";
 import { generateComparables } from "@/lib/mock-data/listings";
-import { FormErrorSummary } from "@/app/dashboard/admin/listings/new/FormErrorSummary";
-import type { ComparableFormState } from "@/app/dashboard/admin/listings/new/useListingCreationStore";
+import { FormErrorSummary } from "@/app/(auth)/dashboard/admin/listings/new/FormErrorSummary";
+import type { ComparableFormState } from "@/app/(auth)/dashboard/admin/listings/new/useListingCreationStore";
 
 // Mock form data
 const createMockFormData = (withComparables = true, valid = true) => {

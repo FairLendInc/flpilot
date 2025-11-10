@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useMortgageUpdateStore } from "@/app/dashboard/admin/mortgages/manage/useMortgageUpdateStore";
+import { useMortgageUpdateStore } from "@/app/(auth)/dashboard/admin/mortgages/manage/useMortgageUpdateStore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

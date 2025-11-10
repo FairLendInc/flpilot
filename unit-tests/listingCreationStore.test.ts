@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import {
 	useListingCreationStore,
 	validateListingForm,
-} from "@/app/dashboard/admin/listings/new/useListingCreationStore";
+} from "@/app/(auth)/dashboard/admin/listings/new/useListingCreationStore";
 
 describe("listing creation store", () => {
 	beforeEach(() => {
