@@ -84,7 +84,7 @@ export function TwoLevelNav({
 										key={`nav-link-${navItem.id}`}
 										prefetch={true}
 									>
-										<button
+										<div
 											className={cn(
 												"relative cursor-pointer rounded-full px-6 py-2 font-semibold text-sm transition-colors",
 												"text-foreground/80 hover:text-primary",
@@ -92,7 +92,6 @@ export function TwoLevelNav({
 											)}
 											key={navItem.id}
 											// onClick={() => handleNavClick(navItem)}
-											type="button"
 										>
 											<span>{navItem.label}</span>
 											{isActive && (
@@ -113,7 +112,7 @@ export function TwoLevelNav({
 													</div>
 												</motion.div>
 											)}
-										</button>
+										</div>
 									</Link>
 								);
 							})}
