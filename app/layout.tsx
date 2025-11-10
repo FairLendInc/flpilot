@@ -10,11 +10,11 @@ import {
 	Roboto_Mono,
 	Source_Serif_4,
 } from "next/font/google";
-// import { Suspense } from "react";
+import { Suspense } from "react";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import NavigationProvider from "@/components/navigation/navigation-provider";
-// import { PageSkeleton } from "@/components/skeletons";
+import { PageSkeleton } from "@/components/skeletons";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -89,21 +89,21 @@ export default function RootLayout({
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} ${poppins.variable} ${robotoMono.variable} ${montserrat.variable} ${firaCode.variable} antialiased`}
 			>
-				{/* <Suspense fallback={<PageSkeleton />}> */}
-				<ConvexClientProvider>
-					<ThemeProvider>
-						<NavigationProvider>
-							<main
-								className="h-[calc(100vh-6rem)] bg-background pt-24"
-								id="main-content"
-							>
-								{children}
-							</main>
-							<Toaster />
-						</NavigationProvider>
-					</ThemeProvider>
-				</ConvexClientProvider>
-				{/* </Suspense> */}
+				<Suspense fallback={<PageSkeleton />}>
+					<ConvexClientProvider>
+						<ThemeProvider>
+							<NavigationProvider>
+								<main
+									className="h-[calc(100vh-6rem)] bg-background pt-24"
+									id="main-content"
+								>
+									{children}
+								</main>
+								<Toaster />
+							</NavigationProvider>
+						</ThemeProvider>
+					</ConvexClientProvider>
+				</Suspense>
 			</body>
 		</html>
 	);

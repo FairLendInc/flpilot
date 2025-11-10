@@ -6,8 +6,7 @@ import {
 	useAuth,
 } from "@workos-inc/authkit-nextjs/components";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
-import { type ReactNode, Suspense, useCallback, useState } from "react";
-import { Spinner } from "@/components/ui/spinner";
+import { type ReactNode, useCallback, useState } from "react";
 import { logger } from "../lib/logger";
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
@@ -18,15 +17,7 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
 	return (
 		<AuthKitProvider>
 			<ConvexProviderWithAuth client={convex} useAuth={useAuthFromAuthKit}>
-				<Suspense
-					fallback={
-						<div className="flex min-h-screen items-center justify-center">
-							<Spinner className="size-8" />
-						</div>
-					}
-				>
-					{children}
-				</Suspense>
+				{children}
 			</ConvexProviderWithAuth>
 		</AuthKitProvider>
 	);
@@ -38,6 +29,8 @@ function useAuthFromAuthKit() {
 
 	const isAuthenticated = !!user;
 
+	// ToDo: Debug why react compiler is not picking this up.Log that for future learning. Directly applying "use mem"
+	// React compiler isn't picking this up for some reason, callback seems to be required.
 	const fetchAccessToken = useCallback(
 		async ({
 			forceRefreshToken,
