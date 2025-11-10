@@ -7,12 +7,19 @@ type User = Infer<typeof schema.tables.users.validator>;
 type Organization = Infer<typeof schema.tables.organizations.validator>;
 type Membership = Infer<typeof schema.tables.organization_memberships.validator>;
 import logger from "../lib/logger";
-import type { WorkOSIdentity } from "./auth.config";
+import type { WorkOSIdentity } from "../types/workos";
+
+export const getUserIdentity = query(async (ctx) => {
+	const identity = await ctx.auth.getUserIdentity();
+	console.log("Identity FROM SERVER", identity);
+	return identity;
+});
 
 export const getCurrentUserProfile = query({
-	
+
 	handler: async (ctx) => {
 		const identity: WorkOSIdentity | null = await ctx.auth.getUserIdentity();
+
 		if (!identity) {
 			return {
 				user: null,
@@ -50,8 +57,8 @@ export const getCurrentUserProfile = query({
 				.withIndex("byWorkosId", (q) => q.eq("id", membership.organization_id))
 				.unique();
 
-			
-			
+
+
 			// Fetch role details with permissions
 			const roleDetails = await Promise.all(
 				(membership.roles || []).map(async (roleRef) => {
@@ -69,12 +76,12 @@ export const getCurrentUserProfile = query({
 
 			// Determine the active/primary role
 			const primaryRoleSlug = membership.role?.slug ?? roleDetails[0]?.slug ?? "";
-			
+
 			return {
 				organizationId: org?.id ?? "",
 				organizationName: org?.name ?? "",
 				organizationExternalId: org?.external_id ?? "",
-				organizationMetadata: org?.metadata ?? {},					
+				organizationMetadata: org?.metadata ?? {},
 				organizationCreatedAt: org?.created_at ?? "",
 				memberShipId: membership.id,
 				membershipOrgId: membership.organization_id,

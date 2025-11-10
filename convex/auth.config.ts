@@ -1,6 +1,9 @@
 const clientId = process.env.WORKOS_CLIENT_ID;
 import type { UserIdentity } from "convex/server";
 import type { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
+import { extractRole, extractPermissions, extractOrgId, type WorkOSIdentity } from "../types/workos";
+
+
 
 const authConfig = {
 	providers: [
@@ -32,15 +35,8 @@ export interface RbacOptions {
 	required_roles?: string[];
 	required_permissions?: string[];
 	required_orgs?: string[];
-	//Todo: type this based on WorkOSIdentity type
-	user_identity: any; // UserIdentity from ctx.auth.getUserIdentity()
+	user_identity: WorkOSIdentity | null | undefined;
 }
-
-export type WorkOSIdentity = UserIdentity & {
-	permissions?: string[];
-	org_id?: string;
-	role?: string;
-};
 
 /**
  * Check if user has required RBAC access (non-throwing version)
@@ -56,7 +52,7 @@ export function hasRbacAccess(options: RbacOptions): boolean {
 	}
 
 	// Extract role from identity (with fallback)
-	const userRole = user_identity.role || user_identity.workosRole;
+	const userRole = extractRole(user_identity);
 
 	// Admins bypass all checks
 	if (userRole === "admin") {
@@ -64,11 +60,10 @@ export function hasRbacAccess(options: RbacOptions): boolean {
 	}
 
 	// Extract permissions from identity (with fallback)
-	const userPermissions =
-		user_identity.permissions || user_identity.workosPermissions || [];
+	const userPermissions = extractPermissions(user_identity);
 
 	// Extract org_id from identity (with fallback)
-	const userOrgId = user_identity.org_id || user_identity.organizationId;
+	const userOrgId = extractOrgId(user_identity);
 
 	// Check required roles
 	if (required_roles && required_roles.length > 0) {
@@ -111,7 +106,7 @@ export function checkRbac(options: RbacOptions): void {
 	}
 
 	// Extract role from identity (with fallback)
-	const userRole = user_identity.role || user_identity.workosRole;
+	const userRole = extractRole(user_identity);
 
 	// Admins bypass all checks
 	if (userRole === "admin") {
@@ -119,11 +114,10 @@ export function checkRbac(options: RbacOptions): void {
 	}
 
 	// Extract permissions from identity (with fallback)
-	const userPermissions =
-		user_identity.permissions || user_identity.workosPermissions || [];
+	const userPermissions = extractPermissions(user_identity);
 
 	// Extract org_id from identity (with fallback)
-	const userOrgId = user_identity.org_id || user_identity.organizationId;
+	const userOrgId = extractOrgId(user_identity);
 
 	// Check required roles
 	if (required_roles && required_roles.length > 0) {

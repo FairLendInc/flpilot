@@ -113,6 +113,89 @@ export default defineSchema({
 		.index("byOrganizationId", ["organization_id"])
 		.index("byUserOrganization", ["user_id", "organization_id"]),
 
+
+	onboarding_journeys: defineTable({
+		userId: v.id("users"),
+		persona: v.union(
+			v.literal("unselected"),
+			v.literal("broker"),
+			v.literal("investor"),
+			v.literal("lawyer")
+		),
+		stateValue: v.string(),
+		context: v.object({
+			investor: v.optional(
+				v.object({
+					profile: v.optional(
+						v.object({
+							firstName: v.optional(v.string()),
+							middleName: v.optional(v.string()),
+							lastName: v.optional(v.string()),
+							entityType: v.union(
+								v.literal("individual"),
+								v.literal("corporation"),
+								v.literal("trust"),
+								v.literal("fund")
+							),
+							phone: v.optional(v.string()),
+							// TODO: Remove these deprecated fields after migration
+							// These are temporarily allowed to fix schema validation errors
+							contactEmail: v.optional(v.string()),
+							legalName: v.optional(v.string()),
+						})
+					),
+					preferences: v.optional(
+						v.object({
+							minTicket: v.number(),
+							maxTicket: v.number(),
+							riskProfile: v.union(
+								v.literal("conservative"),
+								v.literal("balanced"),
+								v.literal("growth")
+							),
+							liquidityHorizonMonths: v.number(),
+							focusRegions: v.optional(v.array(v.string())),
+						})
+					),
+					kycPlaceholder: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("blocked"),
+								v.literal("submitted")
+							),
+							notes: v.optional(v.string()),
+						})
+					),
+					documents: v.optional(
+						v.array(
+							v.object({
+								storageId: v.id("_storage"),
+								label: v.string(),
+							})
+						)
+					),
+				})
+			),
+		}),
+		status: v.union(
+			v.literal("draft"),
+			v.literal("awaiting_admin"),
+			v.literal("approved"),
+			v.literal("rejected")
+		),
+		adminDecision: v.optional(
+			v.object({
+				decidedBy: v.id("users"),
+				decidedAt: v.string(),
+				notes: v.optional(v.string()),
+			})
+		),
+		lastTouchedAt: v.string(),
+	})
+		.index("by_user", ["userId"])
+		.index("by_status", ["status"]),
+
 	// ============================================================================
 	// Mortgage Marketplace Tables
 	// ============================================================================

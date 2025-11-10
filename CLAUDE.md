@@ -321,3 +321,4 @@ Copy `.env.local.example` to `.env.local` and configure:
 - Current specifications in `openspec/specs/` define the 6 core capabilities
 - Logging is centralized and provider-agnostic for easy future migrations
 - The project uses modern React patterns with TypeScript throughout
+- THIS PROJECT USES proxy.ts instead of middleware.ts middleware.ts was depreciated as part of the move from NextJs15->16

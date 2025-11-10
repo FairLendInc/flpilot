@@ -22,6 +22,7 @@ import type * as migrations_fix_ownership_user_references from "../migrations/fi
 import type * as migrations from "../migrations.js";
 import type * as mortgages from "../mortgages.js";
 import type * as myFunctions from "../myFunctions.js";
+import type * as onboarding from "../onboarding.js";
 import type * as organizations from "../organizations.js";
 import type * as ownership from "../ownership.js";
 import type * as payments from "../payments.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   mortgages: typeof mortgages;
   myFunctions: typeof myFunctions;
+  onboarding: typeof onboarding;
   organizations: typeof organizations;
   ownership: typeof ownership;
   payments: typeof payments;

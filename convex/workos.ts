@@ -80,6 +80,45 @@ export const getUserRoleFromWorkOS = internalAction({
 	},
 });
 
+export const updateUserRole = internalAction({
+	args: v.object({
+		userId: v.string(),
+		role: v.string(),
+	}),
+	returns: v.null(),
+	handler: async (_ctx, { userId, role }) => {
+	const apiKey = process.env.WORKOS_API_KEY;
+	const isTestEnv =
+		process.env.NODE_ENV === "test" ||
+		typeof process.env.VITEST_WORKER_ID === "string";
+	if (!apiKey || isTestEnv) {
+		console.warn(
+			"Skipping WorkOS role update (missing API key or test environment)"
+		);
+		return null;
+	}
+		const workos = new WorkOS(apiKey);
+		try {
+			const user = await workos.userManagement.getUser(userId);
+			const metadata = {
+				...((user.metadata as Record<string, unknown>) ?? {}),
+				role,
+			};
+			await workos.userManagement.updateUser({
+				userId,
+				metadata,
+			});
+			return null;
+		} catch (error) {
+			console.error("Failed to update WorkOS user role", {
+				userId,
+				error,
+			});
+			return null;
+		}
+	},
+});
+
 export const updateUserProfile = internalAction({
 	args: v.object({
 		userId: v.string(),
@@ -114,6 +153,98 @@ export const updateUserProfile = internalAction({
 
 // Note: WorkOS does not support updating profile pictures via their API.
 // Profile pictures come from OAuth providers and cannot be modified programmatically.
+
+export const assignOrganizationRole = internalAction({
+	args: v.object({
+		userId: v.string(),
+		organizationId: v.string(),
+		roleSlug: v.string(),
+	}),
+	returns: v.null(),
+	handler: async (_ctx, args) => {
+		const apiKey = process.env.WORKOS_API_KEY;
+		const isTestEnv =
+			process.env.NODE_ENV === "test" ||
+			typeof process.env.VITEST_WORKER_ID === "string";
+		if (!apiKey || isTestEnv) {
+			console.warn(
+				"Skipping WorkOS organization role assignment (missing API key or test environment)"
+			);
+			return null;
+		}
+		const workos = new WorkOS(apiKey);
+		try {
+			// 1. Check if user is already a member of the organization
+			const memberships =
+				await workos.userManagement.listOrganizationMemberships({
+					userId: args.userId,
+					organizationId: args.organizationId,
+					limit: 10,
+				});
+
+			if (!memberships.data || memberships.data.length === 0) {
+				// User is not a member - create membership with role
+				console.log("Creating new organization membership with role", {
+					userId: args.userId,
+					organizationId: args.organizationId,
+					roleSlug: args.roleSlug,
+				});
+
+				const membership = await workos.userManagement.createOrganizationMembership(
+					{
+						userId: args.userId,
+						organizationId: args.organizationId,
+						roleSlug: args.roleSlug,
+					}
+				);
+
+				console.log("Successfully created organization membership with role", {
+					userId: args.userId,
+					organizationId: args.organizationId,
+					roleSlug: args.roleSlug,
+					membershipId: membership.id,
+				});
+
+				return null;
+			}
+
+			// User is already a member - update the membership role
+			const membership = memberships.data[0];
+
+			console.log("Updating existing organization membership role", {
+				userId: args.userId,
+				organizationId: args.organizationId,
+				roleSlug: args.roleSlug,
+				membershipId: membership.id,
+			});
+
+			await workos.userManagement.updateOrganizationMembership(
+				membership.id,
+				{
+					roleSlug: args.roleSlug,
+				}
+			);
+
+			console.log("Successfully updated organization membership role", {
+				userId: args.userId,
+				organizationId: args.organizationId,
+				roleSlug: args.roleSlug,
+				membershipId: membership.id,
+			});
+
+			return null;
+		} catch (error) {
+			console.error("Failed to assign WorkOS organization role", {
+				userId: args.userId,
+				organizationId: args.organizationId,
+				roleSlug: args.roleSlug,
+				error: error instanceof Error ? error.message : String(error),
+				errorStack: error instanceof Error ? error.stack : undefined,
+			});
+			throw error;
+		}
+	},
+});
 
 export const syncUserOrganizations = internalAction({
 	args: v.object({
