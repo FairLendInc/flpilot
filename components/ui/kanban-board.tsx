@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, GripVertical, MessageCircle, Paperclip, Plus } from 'lucide-react';
 
-interface Task {
+type Task = {
   id: string;
   title: string;
   description?: string;
@@ -21,7 +21,7 @@ interface Task {
   comments?: number;
 }
 
-interface Column {
+type Column = {
   id: string;
   title: string;
   tasks: Task[];

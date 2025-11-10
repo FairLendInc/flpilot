@@ -20,7 +20,7 @@ import { Drawer } from "vaul"
 
 type ViewComponent = React.ComponentType<Record<string, unknown>>
 
-interface ViewsRegistry {
+type ViewsRegistry = {
   [viewName: string]: ViewComponent
 }
 
@@ -28,7 +28,7 @@ interface ViewsRegistry {
 // Context
 // ============================================================================
 
-interface FamilyDrawerContextValue {
+type FamilyDrawerContextValue = {
   isOpen: boolean
   view: string
   setView: (view: string) => void

@@ -1,13 +1,23 @@
 "use client";
 import { useMotionValueEvent, useScroll } from "motion/react";
-import { Link } from "next-view-transitions";
+import Link from "next/link";
 import { useState } from "react";
 import { IoIosClose, IoIosMenu } from "react-icons/io";
-import { Button } from "@/components/button";
-import { Logo } from "@/components/logo";
+import { Button } from "../button";
+import { Logo } from "../logo";
 import { cn } from "@/lib/utils";
 
-export const MobileNavbar = ({ navItems }: any) => {
+type NavItem = {
+	title: string;
+	link: string;
+	children?: NavItem[];
+};
+
+type MobileNavbarProps = {
+	navItems: NavItem[];
+};
+
+export const MobileNavbar = ({ navItems }: MobileNavbarProps) => {
 	const [open, setOpen] = useState(false);
 
 	const { scrollY } = useScroll();
@@ -47,15 +57,15 @@ export const MobileNavbar = ({ navItems }: any) => {
 						</div>
 					</div>
 					<div className="flex flex-col items-start justify-start gap-[14px] px-8">
-						{navItems.map((navItem: any, idx: number) => (
-							<>
+						{navItems.map((navItem, idx) => (
+							<div key={`nav-item-${idx}`}>
 								{navItem.children && navItem.children.length > 0 ? (
 									<>
-										{navItem.children.map((childNavItem: any, idx: number) => (
+										{navItem.children.map((childNavItem, childIdx) => (
 											<Link
 												className="relative max-w-[15rem] text-left text-2xl"
 												href={childNavItem.link}
-												key={`link=${idx}`}
+												key={`child-link-${childIdx}`}
 												onClick={() => setOpen(false)}
 											>
 												<span className="block text-white">
@@ -68,7 +78,7 @@ export const MobileNavbar = ({ navItems }: any) => {
 									<Link
 										className="relative"
 										href={navItem.link}
-										key={`link=${idx}`}
+										key={`link-${idx}`}
 										onClick={() => setOpen(false)}
 									>
 										<span className="block text-[26px] text-white">
@@ -76,7 +86,7 @@ export const MobileNavbar = ({ navItems }: any) => {
 										</span>
 									</Link>
 								)}
-							</>
+							</div>
 						))}
 					</div>
 					<div className="flex w-full flex-row items-start gap-2.5 px-8 py-4">

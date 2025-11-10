@@ -13,7 +13,7 @@ export type RaysOrigin =
 	| "bottom-right"
 	| "bottom-left";
 
-interface LightRaysProps {
+type LightRaysProps = {
 	raysOrigin?: RaysOrigin;
 	raysColor?: string;
 	raysSpeed?: number;
@@ -27,12 +27,13 @@ interface LightRaysProps {
 	noiseAmount?: number;
 	distortion?: number;
 	className?: string;
-}
+};
 
 const DEFAULT_COLOR = "#ffffff";
+const HEX_REGEX = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
 
 const hexToRgb = (hex: string): [number, number, number] => {
-	const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	const m = HEX_REGEX.exec(hex);
 	return m
 		? [
 				Number.parseInt(m[1], 16) / 255,
@@ -71,7 +72,7 @@ const getAnchorAndDir = (
 type Vec2 = [number, number];
 type Vec3 = [number, number, number];
 
-interface Uniforms {
+type Uniforms = {
 	iTime: { value: number };
 	iResolution: { value: Vec2 };
 	rayPos: { value: Vec2 };
@@ -87,7 +88,7 @@ interface Uniforms {
 	mouseInfluence: { value: number };
 	noiseAmount: { value: number };
 	distortion: { value: number };
-}
+};
 
 const LightRays: React.FC<LightRaysProps> = ({
 	raysOrigin = "top-center",
@@ -370,7 +371,7 @@ void main() {
 							loseContextExt.loseContext();
 						}
 
-						if (canvas && canvas.parentNode) {
+						if (canvas?.parentNode) {
 							canvas.parentNode.removeChild(canvas);
 						}
 					} catch (error) {

@@ -4,12 +4,12 @@ import { ArrowRightIcon } from "@radix-ui/react-icons"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
-interface BentoGridProps extends ComponentPropsWithoutRef<"div"> {
+type BentoGridProps = ComponentPropsWithoutRef<"div"> & {
   children: ReactNode
   className?: string
 }
 
-interface BentoCardProps extends ComponentPropsWithoutRef<"div"> {
+type BentoCardProps = ComponentPropsWithoutRef<"div"> & {
   name: string
   className: string
   background: ReactNode

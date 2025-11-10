@@ -9,12 +9,12 @@ import { SparklesCore } from "../ui/sparkles";
 
 // import Particles from './particles'
 
-interface Item {
+type Item = {
 	src: StaticImageData;
 	quote: string;
 	name: string;
 	designation?: string;
-}
+};
 
 export const TestimonialsSlider = () => {
 	const [active, setActive] = useState<number>(0);

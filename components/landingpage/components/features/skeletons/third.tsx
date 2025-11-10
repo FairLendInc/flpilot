@@ -8,8 +8,8 @@ import {
 	GeminiLogo,
 	MetaIconOutline,
 	OpenAILogo,
-} from "@/components/icons/illustrations";
-import { SparklesCore } from "@/components/ui/sparkles";
+} from "../../icons/illustrations";
+import { SparklesCore } from "../../ui/sparkles";
 import { cn } from "@/lib/utils";
 
 export const SkeletonThree = () => {

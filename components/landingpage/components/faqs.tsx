@@ -67,7 +67,7 @@ const questions = [
 ];
 
 export const FAQs = () => {
-	const [expanded, setExpanded] = useState(false);
+	const [expanded, setExpanded] = useState<number | false>(false);
 
 	return (
 		<div className="mx-auto max-w-3xl px-8 py-20">
@@ -78,7 +78,7 @@ export const FAQs = () => {
 						description={item.description}
 						expanded={expanded}
 						i={i}
-						key={i}
+						key={item.id}
 						setExpanded={setExpanded}
 						title={item.title}
 					/>

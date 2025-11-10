@@ -2,7 +2,21 @@
 
 import { AnimatePresence, motion } from "motion/react";
 
-const Accordion = ({ i, expanded, setExpanded, title, description }: any) => {
+type AccordionProps = {
+	i: number;
+	expanded: number | false;
+	setExpanded: (value: number | false) => void;
+	title: React.ReactNode;
+	description: React.ReactNode;
+};
+
+const Accordion = ({
+	i,
+	expanded,
+	setExpanded,
+	title,
+	description,
+}: AccordionProps) => {
 	const isOpen = i === expanded;
 
 	return (

@@ -5,9 +5,9 @@ import {
 	useMotionValueEvent,
 	useScroll,
 } from "motion/react";
-import { Link } from "next-view-transitions";
+import Link from "next/link";
 import { useState } from "react";
-import { Logo } from "@/components/logo";
+import { Logo } from "../logo";
 import { cn } from "@/lib/utils";
 import { Button } from "../button";
 import { NavBarItem } from "./navbar-item";

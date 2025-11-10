@@ -13,7 +13,7 @@ type AnimationType =
   | "whipInUp"
   | "calmInUp"
 
-interface Props extends HTMLMotionProps<"div"> {
+type Props = HTMLMotionProps<"div"> & {
   text: string
   type?: AnimationType
   delay?: number

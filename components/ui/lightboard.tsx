@@ -5,7 +5,14 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 export type PatternCell = "0" | "1" | "2" | "3"
 type Pattern = PatternCell[][]
 
-interface LightBoardProps {
+type LightBoardColors = {
+  drawLine: string // Color for moderately lit text
+  background: string // Color for inactive lights
+  textDim: string // Color for dimly lit text
+  textBright: string // Color for brightly lit text
+}
+
+type LightBoardProps = {
   gap?: number
   rows?: number
   lightSize?: number
@@ -18,13 +25,6 @@ interface LightBoardProps {
   onDrawStateChange?: (newState: PatternCell) => void
   controlledHoverState?: boolean
   onHoverStateChange?: (isHovered: boolean) => void
-}
-
-interface LightBoardColors {
-  drawLine: string // Color for moderately lit text
-  background: string // Color for inactive lights
-  textDim: string // Color for dimly lit text
-  textBright: string // Color for brightly lit text
 }
 
 const defaultColors: LightBoardColors = {

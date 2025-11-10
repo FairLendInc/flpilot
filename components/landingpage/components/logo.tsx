@@ -1,4 +1,4 @@
-import { Link } from "next-view-transitions";
+import Link from "next/link";
 
 export const Logo = () => (
 	<Link
@@ -8,6 +8,7 @@ export const Logo = () => (
 		<svg
 			className="h-6 w-6"
 			fill="none"
+			aria-label="Proactiv Logo"
 			height="35"
 			viewBox="0 0 35 35"
 			width="35"

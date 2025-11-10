@@ -13,42 +13,47 @@ const Beam = ({
 	const meteorRef = useRef<HTMLSpanElement>(null);
 
 	useEffect(() => {
-		if (showBeam) {
-			const meteor = meteorRef.current;
+		if (!showBeam) return;
 
-			if (!meteor) return;
-
-			meteor.addEventListener("animationend", () => {
-				meteor.style.visibility = "hidden";
-				const animationDelay = Math.floor(Math.random() * (2 - 0) + 0);
-				const animationDuration = Math.floor(Math.random() * (4 - 0) + 0);
-				const meteorWidth = Math.floor(Math.random() * (150 - 80) + 80);
-				meteor.style.setProperty("--meteor-delay", `${animationDelay}s`);
-				meteor.style.setProperty("--meteor-duration", `${animationDuration}s`);
-				meteor.style.setProperty("--meteor-width", `${meteorWidth}px`);
-
-				restartAnimation();
-			});
-
-			meteor.addEventListener("animationstart", () => {
-				meteor.style.visibility = "visible";
-			});
-		}
-
-		return () => {
-			const meteor = meteorRef.current;
-			if (!meteor) return;
-			meteor.removeEventListener("animationend", () => {});
-			meteor.removeEventListener("animationstart", () => {});
-		};
-	}, []);
-	const restartAnimation = () => {
 		const meteor = meteorRef.current;
 		if (!meteor) return;
-		meteor.style.animation = "none";
-		void meteor.offsetWidth;
-		meteor.style.animation = "";
-	};
+
+		const restartAnimation = () => {
+			const currentMeteor = meteorRef.current;
+			if (!currentMeteor) return;
+			currentMeteor.style.animation = "none";
+			// Force reflow to restart animation
+			// biome-ignore lint/nursery/noUnusedExpressions: Intentional property access to force reflow
+			currentMeteor.offsetWidth;
+			currentMeteor.style.animation = "";
+		};
+
+		const handleAnimationEnd = () => {
+			meteor.style.visibility = "hidden";
+			const animationDelay = Math.floor(Math.random() * (2 - 0) + 0);
+			const animationDuration = Math.floor(Math.random() * (4 - 0) + 0);
+			const meteorWidth = Math.floor(Math.random() * (150 - 80) + 80);
+			meteor.style.setProperty("--meteor-delay", `${animationDelay}s`);
+			meteor.style.setProperty("--meteor-duration", `${animationDuration}s`);
+			meteor.style.setProperty("--meteor-width", `${meteorWidth}px`);
+
+			restartAnimation();
+		};
+
+		const handleAnimationStart = () => {
+			meteor.style.visibility = "visible";
+		};
+
+		meteor.addEventListener("animationend", handleAnimationEnd);
+		meteor.addEventListener("animationstart", handleAnimationStart);
+
+		return () => {
+			const cleanupMeteor = meteorRef.current;
+			if (!cleanupMeteor) return;
+			cleanupMeteor.removeEventListener("animationend", handleAnimationEnd);
+			cleanupMeteor.removeEventListener("animationstart", handleAnimationStart);
+		};
+	}, [showBeam]);
 	return (
 		showBeam && (
 			<span
