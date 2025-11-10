@@ -2,12 +2,20 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	Sheet,
 	SheetContent,
@@ -24,11 +32,15 @@ export function PreloadedOnboardingQueue() {
 
 function OnboardingQueueClient() {
 	const pending = useQuery(api.onboarding.listPending);
+	const organizations = useQuery(api.organizations.listOrganizations);
 	const approveJourney = useMutation(api.onboarding.approveJourney);
 	const rejectJourney = useMutation(api.onboarding.rejectJourney);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [notes, setNotes] = useState("");
 	const [rejectNotes, setRejectNotes] = useState("");
+	const [selectedOrganizationId, setSelectedOrganizationId] = useState<
+		string | null
+	>(null);
 	const [processing, setProcessing] = useState<"approve" | "reject" | null>(
 		null
 	);
@@ -38,15 +50,41 @@ function OnboardingQueueClient() {
 		[pending, selectedId]
 	);
 
+	// Check if user needs organization selection
+	const needsOrganizationSelection = useMemo(() => {
+		if (!selected?.applicant) return false;
+		return !selected.applicant.active_organization_id;
+	}, [selected]);
+
+	// Reset organization selection when selected changes
+	useEffect(() => {
+		if (selected?.applicant?.active_organization_id) {
+			setSelectedOrganizationId(selected.applicant.active_organization_id);
+		} else {
+			setSelectedOrganizationId(null);
+		}
+	}, [selected]);
+
 	const handleApprove = async () => {
 		if (!selected) return;
+
+		// Validate organization selection if needed
+		if (needsOrganizationSelection && !selectedOrganizationId) {
+			toast.error("Please select an organization to assign the role");
+			return;
+		}
+
 		setProcessing("approve");
 		try {
 			await approveJourney({
 				journeyId: selected.journey._id,
 				notes,
+				organizationId: needsOrganizationSelection
+					? selectedOrganizationId || undefined
+					: undefined,
 			});
 			setNotes("");
+			setSelectedOrganizationId(null);
 			setSelectedId(null);
 			toast.success("Journey approved");
 		} catch (error: unknown) {
@@ -144,10 +182,13 @@ function OnboardingQueueClient() {
 							<section className="space-y-2 rounded border p-4">
 								<p className="font-medium text-sm">Profile</p>
 								<p className="text-muted-foreground text-sm">
-									{selected.journey.context?.investor?.profile?.legalName}
-								</p>
-								<p className="text-muted-foreground text-sm">
-									{selected.journey.context?.investor?.profile?.contactEmail}
+									{[
+										selected.journey.context?.investor?.profile?.firstName,
+										selected.journey.context?.investor?.profile?.middleName,
+										selected.journey.context?.investor?.profile?.lastName,
+									]
+										.filter(Boolean)
+										.join(" ")}
 								</p>
 							</section>
 							<section className="space-y-2 rounded border p-4">
@@ -163,6 +204,41 @@ function OnboardingQueueClient() {
 									{selected.journey.context?.investor?.preferences?.riskProfile}
 								</p>
 							</section>
+							{needsOrganizationSelection && (
+								<section className="space-y-2 rounded border p-4">
+									<Label
+										className="font-medium text-sm"
+										htmlFor="organization-select"
+									>
+										Organization
+									</Label>
+									<p className="mb-2 text-muted-foreground text-xs">
+										User has no active organization. Select an organization to
+										assign the role.
+									</p>
+									{organizations === undefined ? (
+										<Spinner className="size-4" />
+									) : (
+										<Select
+											onValueChange={(value) =>
+												setSelectedOrganizationId(value)
+											}
+											value={selectedOrganizationId || undefined}
+										>
+											<SelectTrigger id="organization-select">
+												<SelectValue placeholder="Select organization..." />
+											</SelectTrigger>
+											<SelectContent>
+												{organizations?.map((org) => (
+													<SelectItem key={org.id} value={org.id}>
+														{org.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									)}
+								</section>
+							)}
 							<section className="space-y-2 rounded border p-4">
 								<p className="font-medium text-sm">Notes to investor</p>
 								<Textarea
@@ -183,7 +259,10 @@ function OnboardingQueueClient() {
 							</section>
 							<div className="flex flex-col gap-2">
 								<Button
-									disabled={processing === "approve"}
+									disabled={
+										processing === "approve" ||
+										(needsOrganizationSelection && !selectedOrganizationId)
+									}
 									onClick={handleApprove}
 								>
 									{processing === "approve" ? "Approving..." : "Approve"}

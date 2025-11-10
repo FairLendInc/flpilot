@@ -14,7 +14,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import NavigationProvider from "@/components/navigation/navigation-provider";
-import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
+import { OnboardingGateWrapper } from "@/components/onboarding/OnboardingGateWrapper";
 import { PageSkeleton } from "@/components/skeletons";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -94,7 +94,7 @@ export default function RootLayout({
 					<ConvexClientProvider>
 						<ThemeProvider>
 							<NavigationProvider>
-								<OnboardingGate />
+								<OnboardingGateWrapper />
 								<main
 									className="h-[calc(100vh-6rem)] bg-background pt-24"
 									id="main-content"

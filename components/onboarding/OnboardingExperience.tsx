@@ -1,7 +1,12 @@
 "use client";
 
 import type { Preloaded } from "convex/react";
-import { useAction, useMutation, usePreloadedQuery } from "convex/react";
+import {
+	useAction,
+	useMutation,
+	usePreloadedQuery,
+	useQuery,
+} from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
 	AlertTriangle,
@@ -31,6 +36,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 import { cn } from "@/lib/utils";
 import type { JourneyDoc, OnboardingStateValue } from "./machine";
 import { useOnboardingMachine } from "./useOnboardingMachine";
@@ -94,23 +100,29 @@ const INVESTOR_STEPS: {
 const ENTITY_TYPES = ["individual", "corporation", "trust", "fund"] as const;
 const RISK_PROFILES = ["conservative", "balanced", "growth"] as const;
 
-const personaInitialState: Record<
-	"investor" | "broker" | "lawyer",
-	OnboardingStateValue
-> = {
-	investor: "investor.intro",
-	broker: "broker.placeholder",
-	lawyer: "lawyer.placeholder",
-};
+function stateValueToString(
+	value: string | Record<string, unknown>
+): OnboardingStateValue {
+	if (typeof value === "string") {
+		return value as OnboardingStateValue;
+	}
+	// Handle nested states like { investor: "intro" } -> "investor.intro"
+	const [parentKey, childValue] = Object.entries(value)[0];
+	if (typeof childValue === "string") {
+		return `${parentKey}.${childValue}` as OnboardingStateValue;
+	}
+	return "personaSelection";
+}
 
 type Props = {
 	preloadedJourney: Preloaded<typeof api.onboarding.getJourney>;
 };
 
 type InvestorProfileValues = {
-	legalName: string;
+	firstName: string;
+	middleName?: string;
+	lastName: string;
 	entityType: (typeof ENTITY_TYPES)[number];
-	contactEmail: string;
 	phone?: string;
 };
 
@@ -136,7 +148,13 @@ type InvestorContextPatch = {
 
 export function OnboardingExperience({ preloadedJourney }: Props) {
 	const router = useRouter();
-	const journey = usePreloadedQuery(preloadedJourney);
+	const preloadedData = usePreloadedQuery(preloadedJourney);
+	const liveJourney = useQuery(api.onboarding.getJourney, {});
+	// Use liveJourney if it's loaded (even if null), otherwise fall back to preloadedData
+	// This ensures we use realtime updates once the query has loaded
+	const journey = liveJourney !== undefined ? liveJourney : preloadedData;
+	const userProfile = useQuery(api.profile.getCurrentUserProfile);
+	useProvisionCurrentUser(userProfile);
 	const ensureJourney = useMutation(api.onboarding.ensureJourney);
 	const startJourney = useMutation(api.onboarding.startJourney);
 	const saveInvestorStep = useMutation(api.onboarding.saveInvestorStep);
@@ -144,7 +162,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 		api.onboarding.submitInvestorJourney
 	);
 	const generateUploadUrl = useAction(api.onboarding.generateDocumentUploadUrl);
-	const { snapshot, send } = useOnboardingMachine(journey ?? null);
+	const { snapshot } = useOnboardingMachine(journey ?? null);
 
 	const [isEnsuring, setEnsuring] = useState(false);
 	const [pendingPersona, setPendingPersona] = useState<
@@ -156,13 +174,21 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 	const [uploading, setUploading] = useState(false);
 	const [documentError, setDocumentError] = useState<string | null>(null);
 
-	const currentState = snapshot.value as OnboardingStateValue;
+	const currentState = stateValueToString(snapshot.value);
 	const persona = snapshot.context.persona ?? journey?.persona ?? "unselected";
 	const status = journey?.status ?? snapshot.context.status;
 	const investorContext = journey?.context?.investor ?? {};
 
+	// Wait for user to be provisioned before ensuring journey
+	const isUserProvisioned = userProfile?.user !== null;
+	const isProvisioning = userProfile !== undefined && !isUserProvisioned;
+
 	useEffect(() => {
-		if (journey === null && !isEnsuring) {
+		// Only ensure journey if:
+		// 1. Journey is null (doesn't exist yet)
+		// 2. User is provisioned
+		// 3. Not already ensuring
+		if (journey === null && isUserProvisioned && !isEnsuring) {
 			setEnsuring(true);
 			ensureJourney({})
 				.catch((error: unknown) => {
@@ -174,7 +200,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 				})
 				.finally(() => setEnsuring(false));
 		}
-	}, [journey, ensureJourney, isEnsuring]);
+	}, [journey, ensureJourney, isEnsuring, isUserProvisioned]);
 
 	useEffect(() => {
 		if (journey?.status === "approved") {
@@ -187,11 +213,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 			setPendingPersona(nextPersona);
 			try {
 				await startJourney({ persona: nextPersona });
-				send({ type: "SET_PERSONA", persona: nextPersona });
-				send({
-					type: "ADVANCE",
-					stateValue: personaInitialState[nextPersona],
-				});
+				// Convex realtime will update journey and trigger HYDRATE event
 			} catch (error: unknown) {
 				const message =
 					error instanceof Error ? error.message : "Unable to start onboarding";
@@ -200,7 +222,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 				setPendingPersona(null);
 			}
 		},
-		[startJourney, send]
+		[startJourney]
 	);
 
 	const persistState = useCallback(
@@ -214,7 +236,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 					stateValue: nextState,
 					investor: investorPatch,
 				});
-				send({ type: "ADVANCE", stateValue: nextState });
+				// Convex realtime will update journey and trigger HYDRATE event
 			} catch (error: unknown) {
 				const message =
 					error instanceof Error ? error.message : "Unable to save progress";
@@ -223,7 +245,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 				setSavingState(null);
 			}
 		},
-		[saveInvestorStep, send]
+		[saveInvestorStep]
 	);
 
 	const handleSubmitProfile = async (values: InvestorProfileValues) => {
@@ -254,7 +276,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 		setSavingState("pendingAdmin");
 		try {
 			await submitInvestorJourney({});
-			send({ type: "SET_STATUS", status: "awaiting_admin" });
+			// Convex realtime will update journey and trigger HYDRATE event
 		} catch (error: unknown) {
 			const message =
 				error instanceof Error ? error.message : "Unable to submit onboarding";
@@ -305,7 +327,9 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 	};
 
 	const handleRemoveDocument = async (storageId: Id<"_storage">) => {
-		const filtered = documents.filter((doc) => doc.storageId !== storageId);
+		const filtered = documents.filter(
+			(doc: InvestorDocument) => doc.storageId !== storageId
+		);
 		await saveInvestorStep({
 			stateValue: "investor.documentsStub",
 			investor: {
@@ -314,7 +338,13 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 		});
 	};
 
-	if (journey === undefined || isEnsuring) {
+	// Show loading while provisioning user or ensuring journey
+	if (
+		journey === undefined ||
+		isEnsuring ||
+		isProvisioning ||
+		userProfile === undefined
+	) {
 		return (
 			<div className="flex min-h-[60vh] items-center justify-center">
 				<Spinner className="size-6" />
@@ -360,7 +390,7 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 						<CardTitle>Progress</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<InvestorProgress currentState={currentState} />
+						<InvestorProgress currentState={currentState} status={status} />
 					</CardContent>
 				</Card>
 			)}
@@ -472,14 +502,46 @@ function InvestorFlowRouter({
 					onContinue={onIntroContinue}
 				/>
 			);
-		case "investor.profile":
+		case "investor.profile": {
+			const profile = investor?.profile;
+			// Type guard: ensure required fields are present and are strings
+			function isValidProfile(p: typeof profile): p is {
+				firstName: string;
+				lastName: string;
+				entityType: InvestorProfileValues["entityType"];
+				middleName?: string;
+				phone?: string;
+			} {
+				return (
+					!!p &&
+					typeof p.firstName === "string" &&
+					p.firstName.length > 0 &&
+					typeof p.lastName === "string" &&
+					p.lastName.length > 0 &&
+					!!p.entityType
+				);
+			}
+
+			const defaultValues: InvestorProfileValues | undefined = isValidProfile(
+				profile
+			)
+				? {
+						firstName: profile.firstName,
+						middleName: profile.middleName,
+						lastName: profile.lastName,
+						entityType: profile.entityType,
+						phone: profile.phone,
+					}
+				: undefined;
+
 			return (
 				<InvestorProfileForm
 					busy={savingState === "investor.preferences"}
-					defaultValues={investor?.profile}
+					defaultValues={defaultValues}
 					onSubmit={onProfileSubmit}
 				/>
 			);
+		}
 		case "investor.preferences":
 			return (
 				<InvestorPreferencesForm
@@ -572,9 +634,10 @@ function InvestorProfileForm({
 }) {
 	const [formValues, setFormValues] = useState<InvestorProfileValues>(
 		defaultValues ?? {
-			legalName: "",
+			firstName: "",
+			middleName: "",
+			lastName: "",
 			entityType: "individual",
-			contactEmail: "",
 			phone: "",
 		}
 	);
@@ -585,7 +648,7 @@ function InvestorProfileForm({
 		}
 	}, [defaultValues]);
 
-	const disabled = !(formValues.legalName && formValues.contactEmail);
+	const disabled = !(formValues.firstName && formValues.lastName);
 
 	return (
 		<Card>
@@ -593,20 +656,50 @@ function InvestorProfileForm({
 				<CardTitle>Investor profile</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="grid gap-4">
 					<div>
-						<Label htmlFor="legalName">Legal name</Label>
+						<Label htmlFor="firstName">First name</Label>
 						<Input
-							id="legalName"
+							id="firstName"
 							onChange={(event) =>
 								setFormValues((prev) => ({
 									...prev,
-									legalName: event.target.value,
+									firstName: event.target.value,
 								}))
 							}
-							value={formValues.legalName}
+							value={formValues.firstName}
 						/>
 					</div>
+					<div className="grid gap-4 md:grid-cols-2">
+						<div>
+							<Label htmlFor="middleName">Middle name (optional)</Label>
+							<Input
+								id="middleName"
+								onChange={(event) =>
+									setFormValues((prev) => ({
+										...prev,
+										middleName: event.target.value,
+									}))
+								}
+								value={formValues.middleName ?? ""}
+							/>
+						</div>
+						<div>
+							<Label htmlFor="lastName">Last name</Label>
+							<Input
+								id="lastName"
+								onChange={(event) =>
+									setFormValues((prev) => ({
+										...prev,
+										lastName: event.target.value,
+									}))
+								}
+								value={formValues.lastName}
+							/>
+						</div>
+					</div>
+				</div>
+				<div className="grid gap-4 md:grid-cols-2">
 					<div>
 						<Label>Entity type</Label>
 						<Select
@@ -629,22 +722,6 @@ function InvestorProfileForm({
 								))}
 							</SelectContent>
 						</Select>
-					</div>
-				</div>
-				<div className="grid gap-4 md:grid-cols-2">
-					<div>
-						<Label htmlFor="email">Contact email</Label>
-						<Input
-							id="email"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									contactEmail: event.target.value,
-								}))
-							}
-							type="email"
-							value={formValues.contactEmail}
-						/>
 					</div>
 					<div>
 						<Label htmlFor="phone">Phone (optional)</Label>
@@ -985,7 +1062,13 @@ function InvestorReviewStep({
 					<div className="rounded border p-4">
 						<p className="font-medium text-sm">Profile</p>
 						<p className="text-muted-foreground text-sm">
-							{investor?.profile?.legalName}
+							{[
+								investor?.profile?.firstName,
+								investor?.profile?.middleName,
+								investor?.profile?.lastName,
+							]
+								.filter(Boolean)
+								.join(" ")}
 						</p>
 						<p className="text-muted-foreground text-sm">
 							{investor?.profile?.entityType}
@@ -1086,17 +1169,25 @@ function PlaceholderState({
 
 function InvestorProgress({
 	currentState,
+	status,
 }: {
 	currentState: OnboardingStateValue;
+	status: JourneyDoc["status"];
 }) {
 	const activeIndex = INVESTOR_STEPS.findIndex(
 		(step) => step.id === currentState
 	);
+
+	// If submitted/approved/rejected, all steps are completed
+	const allCompleted =
+		status === "awaiting_admin" ||
+		status === "approved" ||
+		status === "rejected";
 	return (
 		<div className="grid gap-3 md:grid-cols-3">
 			{INVESTOR_STEPS.map((step, index) => {
-				const completed = index < activeIndex;
-				const isActive = index === activeIndex;
+				const completed = allCompleted || index < activeIndex;
+				const isActive = !allCompleted && index === activeIndex;
 				return (
 					<div
 						className={cn(

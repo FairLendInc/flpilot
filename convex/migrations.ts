@@ -66,3 +66,109 @@ export const addDocumentsToAllMortgages = mutation({
 		};
 	},
 });
+
+/**
+ * Migration to clean up old onboarding profile fields
+ * Removes deprecated `contactEmail` and `legalName` fields from onboarding_journeys
+ * These fields were replaced with firstName/middleName/lastName structure
+ */
+export const cleanupOnboardingProfileFields = mutation({
+	args: {},
+	handler: async (ctx) => {
+		console.log("[MIGRATION] Starting: Clean up old onboarding profile fields");
+
+		// Get all onboarding journeys
+		const journeys = await ctx.db.query("onboarding_journeys").collect();
+
+		console.log(`[MIGRATION] Found ${journeys.length} journeys to check`);
+
+		let updatedCount = 0;
+
+		for (const journey of journeys) {
+			const profile = journey.context?.investor?.profile;
+			if (!profile) {
+				continue;
+			}
+
+			// Check if profile has old fields
+			const hasOldFields =
+				"contactEmail" in profile || "legalName" in profile;
+
+			if (!hasOldFields) {
+				continue;
+			}
+
+			// Create new profile object with only valid fields
+			const cleanedProfile: {
+				firstName?: string;
+				middleName?: string;
+				lastName?: string;
+				entityType: "individual" | "corporation" | "trust" | "fund";
+				phone?: string;
+			} = {
+				entityType: profile.entityType,
+			};
+
+			// Preserve existing valid fields
+			if ("firstName" in profile && typeof profile.firstName === "string") {
+				cleanedProfile.firstName = profile.firstName;
+			}
+			if ("middleName" in profile && typeof profile.middleName === "string") {
+				cleanedProfile.middleName = profile.middleName;
+			}
+			if ("lastName" in profile && typeof profile.lastName === "string") {
+				cleanedProfile.lastName = profile.lastName;
+			}
+			if ("phone" in profile && typeof profile.phone === "string") {
+				cleanedProfile.phone = profile.phone;
+			}
+
+			// Optionally try to parse legalName if firstName/lastName are missing
+			if (
+				"legalName" in profile &&
+				typeof profile.legalName === "string" &&
+				!cleanedProfile.firstName &&
+				!cleanedProfile.lastName
+			) {
+				const nameParts = profile.legalName.trim().split(/\s+/);
+				if (nameParts.length > 0) {
+					cleanedProfile.firstName = nameParts[0];
+					if (nameParts.length > 1) {
+						cleanedProfile.lastName = nameParts[nameParts.length - 1];
+						if (nameParts.length > 2) {
+							cleanedProfile.middleName = nameParts
+								.slice(1, -1)
+								.join(" ");
+						}
+					}
+				}
+			}
+
+			// Update the journey with cleaned profile
+			await ctx.db.patch(journey._id, {
+				context: {
+					...journey.context,
+					investor: {
+						...journey.context?.investor,
+						profile: cleanedProfile,
+					},
+				},
+			});
+
+			updatedCount++;
+			console.log(
+				`[MIGRATION] Cleaned up profile for journey ${journey._id}`
+			);
+		}
+
+		console.log(
+			`[MIGRATION] Completed. Updated ${updatedCount} journeys with cleaned profiles.`
+		);
+
+		return {
+			success: true,
+			totalJourneys: journeys.length,
+			updatedCount,
+		};
+	},
+});

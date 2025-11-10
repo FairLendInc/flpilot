@@ -84,7 +84,7 @@ export const onboardingMachine = setup({
 			{
 				guard: ({ event }: { event: AdvanceEvent }) =>
 					event.stateValue === "investor.intro",
-				target: "investor.intro",
+				target: ".investor.intro",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -92,7 +92,7 @@ export const onboardingMachine = setup({
 			{
 				guard: ({ event }: { event: AdvanceEvent }) =>
 					event.stateValue === "investor.profile",
-				target: "investor.profile",
+				target: ".investor.profile",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -100,7 +100,7 @@ export const onboardingMachine = setup({
 			{
 				guard: ({ event }: { event: AdvanceEvent }) =>
 					event.stateValue === "investor.preferences",
-				target: "investor.preferences",
+				target: ".investor.preferences",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -108,7 +108,7 @@ export const onboardingMachine = setup({
 			{
 				guard: ({ event }: { event: AdvanceEvent }) =>
 					event.stateValue === "investor.kycStub",
-				target: "investor.kycStub",
+				target: ".investor.kycStub",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -116,7 +116,7 @@ export const onboardingMachine = setup({
 			{
 				guard: ({ event }: { event: AdvanceEvent }) =>
 					event.stateValue === "investor.documentsStub",
-				target: "investor.documentsStub",
+				target: ".investor.documentsStub",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -124,13 +124,13 @@ export const onboardingMachine = setup({
 			{
 				guard: ({ event }: { event: AdvanceEvent }) =>
 					event.stateValue === "investor.review",
-				target: "investor.review",
+				target: ".investor.review",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
 			},
 			{
-				target: "personaSelection",
+				target: ".personaSelection",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -146,89 +146,104 @@ export const onboardingMachine = setup({
 				event.type === "SET_STATUS" ? { status: event.status } : {}
 			),
 		},
+		HYDRATE: [
+			{ guard: "noJourney", target: ".personaSelection" },
+			{
+				guard: "isPendingAdmin",
+				target: ".pendingAdmin",
+				actions: "applyJourney",
+			},
+			{ guard: "isRejected", target: ".rejected", actions: "applyJourney" },
+			{ guard: "isApproved", target: ".completed", actions: "applyJourney" },
+			{
+				guard: "needsPersona",
+				target: ".personaSelection",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.intro",
+				target: ".investor.intro",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.profile",
+				target: ".investor.profile",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.preferences",
+				target: ".investor.preferences",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.kycStub",
+				target: ".investor.kycStub",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.documentsStub",
+				target: ".investor.documentsStub",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.review",
+				target: ".investor.review",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" && event.journey?.stateValue !== undefined,
+				target: ".personaSelection",
+				actions: "applyJourney",
+			},
+			{
+				target: ".personaSelection",
+				actions: "applyJourney",
+			},
+		],
 	},
 	states: {
 		loading: {
-			on: {
-				HYDRATE: [
-					{ guard: "noJourney", target: "personaSelection" },
-					{
-						guard: "isPendingAdmin",
-						target: "pendingAdmin",
-						actions: "applyJourney",
-					},
-					{ guard: "isRejected", target: "rejected", actions: "applyJourney" },
-					{ guard: "isApproved", target: "completed", actions: "applyJourney" },
-					{
-						guard: "needsPersona",
-						target: "personaSelection",
-						actions: "applyJourney",
-					},
-					{
-						guard: ({ event }: { event: HydrateEvent }) =>
-							event.type === "HYDRATE" &&
-							event.journey?.stateValue === "investor.intro",
-						target: "investor.intro",
-						actions: "applyJourney",
-					},
-					{
-						guard: ({ event }: { event: HydrateEvent }) =>
-							event.type === "HYDRATE" &&
-							event.journey?.stateValue === "investor.profile",
-						target: "investor.profile",
-						actions: "applyJourney",
-					},
-					{
-						guard: ({ event }: { event: HydrateEvent }) =>
-							event.type === "HYDRATE" &&
-							event.journey?.stateValue === "investor.preferences",
-						target: "investor.preferences",
-						actions: "applyJourney",
-					},
-					{
-						guard: ({ event }: { event: HydrateEvent }) =>
-							event.type === "HYDRATE" &&
-							event.journey?.stateValue === "investor.kycStub",
-						target: "investor.kycStub",
-						actions: "applyJourney",
-					},
-					{
-						guard: ({ event }: { event: HydrateEvent }) =>
-							event.type === "HYDRATE" &&
-							event.journey?.stateValue === "investor.documentsStub",
-						target: "investor.documentsStub",
-						actions: "applyJourney",
-					},
-					{
-						guard: ({ event }: { event: HydrateEvent }) =>
-							event.type === "HYDRATE" &&
-							event.journey?.stateValue === "investor.review",
-						target: "investor.review",
-						actions: "applyJourney",
-					},
-					{
-						guard: ({ event }: { event: HydrateEvent }) =>
-							event.type === "HYDRATE" &&
-							event.journey?.stateValue !== undefined,
-						target: "personaSelection",
-						actions: "applyJourney",
-					},
-					{
-						target: "personaSelection",
-						actions: "applyJourney",
-					},
-				],
+			always: {
+				target: "personaSelection",
 			},
 		},
 		personaSelection: {},
-		"investor.intro": {},
-		"investor.profile": {},
-		"investor.preferences": {},
-		"investor.kycStub": {},
-		"investor.documentsStub": {},
-		"investor.review": {},
-		"broker.placeholder": {},
-		"lawyer.placeholder": {},
+		investor: {
+			initial: "intro",
+			states: {
+				intro: {},
+				profile: {},
+				preferences: {},
+				kycStub: {},
+				documentsStub: {},
+				review: {},
+			},
+		},
+		broker: {
+			initial: "placeholder",
+			states: {
+				placeholder: {},
+			},
+		},
+		lawyer: {
+			initial: "placeholder",
+			states: {
+				placeholder: {},
+			},
+		},
 		pendingAdmin: {},
 		rejected: {},
 		completed: {},

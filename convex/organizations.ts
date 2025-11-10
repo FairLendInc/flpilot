@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
+import { checkRbac } from "./auth.config";
 
 // Create or update an organization based on WorkOS webhook data
 export const createOrUpdateOrganization = internalMutation({
@@ -277,4 +278,29 @@ export const getOrganizationById = internalQuery({
 			.query("organizations")
 			.withIndex("byWorkosId", (q) => q.eq("id", args.id))
 			.unique(),
+});
+
+// List all organizations for admin UI
+export const listOrganizations = query({
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		
+		// Return null if identity is not available yet (race condition handling)
+		// The client will retry once authentication is ready
+		if (!identity) {
+			return null;
+		}
+
+		checkRbac({
+			required_permissions: ["org.member.update"],
+			user_identity: identity,
+		});
+
+		const organizations = await ctx.db.query("organizations").collect();
+
+		return organizations.map((org) => ({
+			id: org.id,
+			name: org.name,
+		}));
+	},
 });

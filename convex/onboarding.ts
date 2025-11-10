@@ -21,11 +21,12 @@ type Persona = (typeof PERSONA_OPTIONS)[number];
 type JourneyStatus = "draft" | "awaiting_admin" | "approved" | "rejected";
 
 const investorProfileValidator = v.object({
-	legalName: v.string(),
+	firstName: v.optional(v.string()),
+	middleName: v.optional(v.string()),
+	lastName: v.optional(v.string()),
 	entityType: v.union(
 		...INVESTOR_ENTITY_TYPES.map((value) => v.literal(value))
 	),
-	contactEmail: v.string(),
 	phone: v.optional(v.string()),
 });
 
@@ -148,7 +149,60 @@ async function ensureJourneyForUser(
 export const ensureJourney = mutation({
 	args: {},
 	handler: async (ctx) => {
-		const { user } = await getIdentityAndUser(ctx);
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		// Try to get existing user
+		let user = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+
+		// Auto-provision user if missing
+		if (!user) {
+			const email = identity.email;
+			if (!email) {
+				throw new Error("Email is required but not found in identity");
+			}
+
+			const payload = {
+				idp_id: identity.subject,
+				email,
+				email_verified: Boolean(identity.email_verified ?? false),
+				first_name:
+					typeof identity.first_name === "string" ? identity.first_name : undefined,
+				last_name:
+					typeof identity.last_name === "string" ? identity.last_name : undefined,
+				profile_picture_url:
+					typeof identity.profile_picture_url === "string"
+						? identity.profile_picture_url
+						: typeof identity.profile_picture === "string"
+							? identity.profile_picture
+							: undefined,
+				created_at: new Date().toISOString(),
+			};
+
+			// Check again in case user was created concurrently
+			const existingUser = await ctx.db
+				.query("users")
+				.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+				.unique();
+
+			if (existingUser) {
+				user = existingUser;
+			} else {
+				// Create new user
+				const userId = await ctx.db.insert("users", payload);
+				const createdUser = await ctx.db.get(userId);
+				if (!createdUser) {
+					throw new Error("Failed to create user record");
+				}
+				user = createdUser;
+			}
+		}
+
 		return await ensureJourneyForUser(ctx, user._id);
 	},
 });
@@ -250,6 +304,10 @@ export const submitInvestorJourney = mutation({
 		if (!investor?.profile) {
 			throw new Error("Investor profile information missing");
 		}
+		// Validate required profile fields for new submissions
+		if (!investor.profile.firstName || !investor.profile.lastName) {
+			throw new Error("First name and last name are required");
+		}
 		if (!investor?.preferences) {
 			throw new Error("Investment preferences missing");
 		}
@@ -282,20 +340,28 @@ export const submitInvestorJourney = mutation({
 export const listPending = query({
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
+		
+		// Return null if identity is not available yet (race condition handling)
+		// The client will retry once authentication is ready
+		if (!identity) {
+			return null;
+		}
+
 		checkRbac({
 			required_permissions: ["org.member.update"],
 			user_identity: identity,
 		});
-	const journeys = await ctx.db
-		.query("onboarding_journeys")
-		.withIndex("by_status", (q) => q.eq("status", "awaiting_admin"))
-		.collect();
-	journeys.sort((a, b) =>
-		(b.lastTouchedAt ?? "").localeCompare(a.lastTouchedAt ?? "")
-	);
-	return await Promise.all(
-		journeys.map(async (journey) => {
-			const applicant = await ctx.db.get(journey.userId);
+
+		const journeys = await ctx.db
+			.query("onboarding_journeys")
+			.withIndex("by_status", (q) => q.eq("status", "awaiting_admin"))
+			.collect();
+		journeys.sort((a, b) =>
+			(b.lastTouchedAt ?? "").localeCompare(a.lastTouchedAt ?? "")
+		);
+		return await Promise.all(
+			journeys.map(async (journey) => {
+				const applicant = await ctx.db.get(journey.userId);
 				return {
 					journey,
 					applicant,
@@ -309,6 +375,7 @@ export const approveJourney = mutation({
 	args: v.object({
 		journeyId: v.id("onboarding_journeys"),
 		notes: v.optional(v.string()),
+		organizationId: v.optional(v.string()),
 	}),
 	handler: async (ctx, args) => {
 		const { identity, user: admin } = await getIdentityAndUser(ctx);
@@ -327,6 +394,39 @@ export const approveJourney = mutation({
 		if (!applicant) {
 			throw new Error("Applicant record missing");
 		}
+
+		const personaRole =
+			journey.persona === "investor"
+				? "investor"
+				: journey.persona === "broker"
+					? "broker"
+					: journey.persona === "lawyer"
+						? "lawyer"
+						: "member";
+
+		const skipRoleSync =
+			process.env.NODE_ENV === "test" ||
+			typeof process.env.VITEST_WORKER_ID === "string";
+
+		// Determine which organization to assign the role to
+		// Only require organization if we need to assign a role (not in test and not member role)
+		const needsRoleAssignment = !skipRoleSync && personaRole !== "member";
+		const organizationId =
+			args.organizationId || applicant.active_organization_id;
+
+		if (needsRoleAssignment && !organizationId) {
+			throw new Error(
+				"User has no active organization. Please select an organization to assign the role."
+			);
+		}
+
+		// Update user's active_organization_id if organizationId was provided
+		if (args.organizationId && args.organizationId !== applicant.active_organization_id) {
+			await ctx.db.patch(applicant._id, {
+				active_organization_id: args.organizationId,
+			});
+		}
+
 		await ctx.db.patch(journey._id, {
 			status: "approved" as JourneyStatus,
 			stateValue: "completed",
@@ -337,23 +437,16 @@ export const approveJourney = mutation({
 			},
 			lastTouchedAt: new Date().toISOString(),
 		});
-		const personaRole =
-			journey.persona === "investor"
-				? "investor"
-				: journey.persona === "broker"
-					? "broker"
-					: journey.persona === "lawyer"
-						? "lawyer"
-						: "member";
-		const skipRoleSync =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
-		if (!skipRoleSync && personaRole !== "member" && applicant.idp_id) {
-			await ctx.scheduler.runAfter(0, internal.workos.updateUserRole, {
+
+		// Assign organization membership role instead of user metadata role
+		if (needsRoleAssignment && applicant.idp_id && organizationId) {
+			await ctx.scheduler.runAfter(0, internal.workos.assignOrganizationRole, {
 				userId: applicant.idp_id,
-				role: personaRole,
+				organizationId,
+				roleSlug: personaRole,
 			});
 		}
+
 		return await ctx.db.get(journey._id);
 	},
 });

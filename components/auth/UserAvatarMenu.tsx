@@ -116,8 +116,13 @@ export function UserAvatarMenu() {
 			setSettingsKey((k) => k + 1);
 		} else if (key === "logout") {
 			setIsPopoverOpen(false);
-			signOut().then(() => {
-				router.push("/");
+			// WorkOS AuthKit signOut() clears session and redirects to WorkOS logout URL
+			// Use returnTo to redirect back to home page after logout completes
+			// This ensures Google's session is also cleared via WorkOS logout flow
+			signOut({ returnTo: "/" }).catch((error) => {
+				console.error("Failed to sign out:", error);
+				// Fallback redirect if signOut fails
+				window.location.href = "/";
 			});
 		}
 	}

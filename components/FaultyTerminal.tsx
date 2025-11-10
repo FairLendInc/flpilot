@@ -265,13 +265,19 @@ export default function FaultyTerminal({
 	tint = "#ffffff",
 	mouseReact = true,
 	mouseStrength = 0.2,
-	dpr = Math.min(window.devicePixelRatio || 1, 2),
+	dpr,
 	pageLoadAnimation = true,
 	brightness = 1,
 	className,
 	style,
 	...rest
 }: FaultyTerminalProps) {
+	// Calculate dpr safely for SSR
+	const devicePixelRatio =
+		dpr ??
+		(typeof window !== "undefined"
+			? Math.min(window.devicePixelRatio || 1, 2)
+			: 1);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const programRef = useRef<Program>(null);
 	const rendererRef = useRef<Renderer>(null);
@@ -302,7 +308,7 @@ export default function FaultyTerminal({
 		const ctn = containerRef.current;
 		if (!ctn) return;
 
-		const renderer = new Renderer({ dpr });
+		const renderer = new Renderer({ dpr: devicePixelRatio });
 		rendererRef.current = renderer;
 		const gl = renderer.gl;
 		gl.clearColor(0, 0, 0, 1);
@@ -415,7 +421,7 @@ export default function FaultyTerminal({
 			timeOffsetRef.current = Math.random() * 100;
 		};
 	}, [
-		dpr,
+		devicePixelRatio,
 		pause,
 		timeScale,
 		scale,

@@ -64,9 +64,9 @@ describe("Onboarding journeys", () => {
 			stateValue: "investor.profile",
 			investor: {
 				profile: {
-					legalName: "Investor One",
+					firstName: "Investor",
+					lastName: "One",
 					entityType: "individual",
-					contactEmail: "investor@example.com",
 					phone: "555-1212",
 				},
 			},
@@ -130,9 +130,9 @@ describe("Onboarding journeys", () => {
 			stateValue: "investor.profile",
 			investor: {
 				profile: {
-					legalName: "Validation Investor",
+					firstName: "Validation",
+					lastName: "Investor",
 					entityType: "individual",
-					contactEmail: "valid@example.com",
 				},
 			},
 		});
@@ -173,9 +173,9 @@ describe("Onboarding journeys", () => {
 			stateValue: "investor.profile",
 			investor: {
 				profile: {
-					legalName: "Approval Investor",
+					firstName: "Approval",
+					lastName: "Investor",
 					entityType: "individual",
-					contactEmail: "approval@example.com",
 				},
 			},
 		});
@@ -201,10 +201,11 @@ describe("Onboarding journeys", () => {
 		const admin = withIdentity(t, adminSubject, "admin");
 
 		const pending = await admin.query(api.onboarding.listPending, {});
+		expect(pending).not.toBeNull();
 		expect(pending).toHaveLength(1);
 
 		const approved = await admin.mutation(api.onboarding.approveJourney, {
-			journeyId: pending[0]!.journey._id,
+			journeyId: pending![0]!.journey._id,
 			notes: "looks good",
 		});
 		expect(approved?.status).toBe("approved");
@@ -215,7 +216,7 @@ describe("Onboarding journeys", () => {
 		const admin2 = withIdentity(t, adminSubject2, "admin");
 		await expect(
 			admin2.mutation(api.onboarding.rejectJourney, {
-				journeyId: pending[0]!.journey._id,
+				journeyId: pending![0]!.journey._id,
 				reason: "needs more info",
 			})
 		).rejects.toThrow("Only pending journeys can be rejected");
@@ -232,9 +233,9 @@ describe("Onboarding journeys", () => {
 			stateValue: "investor.profile",
 			investor: {
 				profile: {
-					legalName: "Rejected Investor",
+					firstName: "Rejected",
+					lastName: "Investor",
 					entityType: "individual",
-					contactEmail: "reject@example.com",
 				},
 			},
 		});
@@ -256,8 +257,9 @@ describe("Onboarding journeys", () => {
 		await rejectionMember.mutation(api.onboarding.submitInvestorJourney, {});
 
 		const pendingReject = await admin.query(api.onboarding.listPending, {});
-		const rejectionJourney = pendingReject.find(
-			(entry) => entry.journey.userId !== pending[0]!.journey.userId
+		expect(pendingReject).not.toBeNull();
+		const rejectionJourney = pendingReject!.find(
+			(entry) => entry.journey.userId !== pending![0]!.journey.userId
 		);
 		expect(rejectionJourney).toBeDefined();
 
@@ -283,9 +285,9 @@ describe("Onboarding journeys", () => {
 			stateValue: "investor.profile",
 			investor: {
 				profile: {
-					legalName: "Race Investor",
+					firstName: "Race",
+					lastName: "Investor",
 					entityType: "individual",
-					contactEmail: "race@example.com",
 				},
 			},
 		});

@@ -128,15 +128,20 @@ export default defineSchema({
 				v.object({
 					profile: v.optional(
 						v.object({
-							legalName: v.string(),
+							firstName: v.optional(v.string()),
+							middleName: v.optional(v.string()),
+							lastName: v.optional(v.string()),
 							entityType: v.union(
 								v.literal("individual"),
 								v.literal("corporation"),
 								v.literal("trust"),
 								v.literal("fund")
 							),
-							contactEmail: v.string(),
 							phone: v.optional(v.string()),
+							// TODO: Remove these deprecated fields after migration
+							// These are temporarily allowed to fix schema validation errors
+							contactEmail: v.optional(v.string()),
+							legalName: v.optional(v.string()),
 						})
 					),
 					preferences: v.optional(
