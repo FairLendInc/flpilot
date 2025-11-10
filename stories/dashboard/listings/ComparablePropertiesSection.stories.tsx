@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 import { Card, Button, Input, Chip } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { generateComparables } from "@/lib/mock-data/listings";
-import type { ComparableFormState } from "@/app/dashboard/admin/listings/new/useListingCreationStore";
+import type { ComparableFormState } from "@/app/(auth)/dashboard/admin/listings/new/useListingCreationStore";
 
 // Mock store implementation for stories
 const createMockStore = (initialComparables: ComparableFormState[] = []) => {

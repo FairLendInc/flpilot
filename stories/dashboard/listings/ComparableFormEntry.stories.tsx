@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Card, Button, Input, Chip } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import type { ComparableFormState } from "@/app/dashboard/admin/listings/new/useListingCreationStore";
+import type { ComparableFormState } from "@/app/(auth)/dashboard/admin/listings/new/useListingCreationStore";
 import { generateComparables } from "@/lib/mock-data/listings";
 
 // Individual comparable entry component

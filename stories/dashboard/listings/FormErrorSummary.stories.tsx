@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { FormErrorSummary } from "@/app/dashboard/admin/listings/new/FormErrorSummary";
+import { FormErrorSummary } from "@/app/(auth)/dashboard/admin/listings/new/FormErrorSummary";
 
 const meta: Meta<typeof FormErrorSummary> = {
 	title: "Dashboard/Admin/Listing Creation/FormErrorSummary",

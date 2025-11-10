@@ -80,7 +80,7 @@ const InnerPropertyMap = ({ latitude, longitude, zoom }: MapProps) => {
 	// Generate a small random offset for privacy (between -0.0005 and 0.0005 degrees)
 	// This is roughly 25-50 meters depending on location
 	const randomizeCoordinate = useCallback((coord: number): number => {
-		const offset = (Math.random() - 0.5) * 0.001; // Random value between -0.0005 and 0.0005
+		const offset = (Math.random() - 0.5) * 0.00001; // Random value between -0.0005 and 0.0005
 		return coord + offset;
 	}, []);
 
@@ -119,7 +119,7 @@ const InnerPropertyMap = ({ latitude, longitude, zoom }: MapProps) => {
 			const fillLayerId = "location-radius-fill";
 			const outlineLayerId = "location-radius-outline";
 
-			const radiusMeters = 200; // adjust as desired (e.g., 50m)
+			const radiusMeters = 750; // adjust as desired (e.g., 50m)
 			const circleData = createGeodesicCircle(lng, lt, radiusMeters);
 
 			if (map.getSource(sourceId)) {

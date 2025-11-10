@@ -148,26 +148,27 @@ export function TwoLevelNav({
 						mobileMenuOpen && "hidden lg:block"
 					)}
 				>
-					{pathname !== "/" && (pathname.length > 1 || breadcrumbs.length > 0) && (
-						<div className="relative flex h-12 items-center px-4 md:px-6">
-							{/* Breadcrumbs - Left */}
-							<BreadcrumbNav items={breadcrumbs} />
+					{pathname !== "/" &&
+						(pathname.length > 1 || breadcrumbs.length > 0) && (
+							<div className="relative flex h-12 items-center px-4 md:px-6">
+								{/* Breadcrumbs - Left */}
+								<BreadcrumbNav items={breadcrumbs} />
 
-							{/* Filters - Absolutely Centered */}
-							<div className="md:-translate-x-1/2 flex items-center gap-2 md:absolute md:left-1/2">
-								{isListingsPage(pathname) && <FilterBar />}
-							</div>
-
-							{/* Search/Feedback - Right */}
-							{!isListingsPage(pathname) && (
-								<div className="ml-auto flex items-center gap-2 md:gap-3">
-									{/* ... search content ... */}
+								{/* Filters - Absolutely Centered */}
+								<div className="md:-translate-x-1/2 flex items-center gap-2 md:absolute md:left-1/2">
+									{isListingsPage(pathname) && <FilterBar />}
 								</div>
-							)}
-							{!isListingsPage(pathname) && (
-								<div className="flex items-center gap-2 md:gap-3">
-									{/* Search */}
-									{/* <Button
+
+								{/* Search/Feedback - Right */}
+								{!isListingsPage(pathname) && (
+									<div className="ml-auto flex items-center gap-2 md:gap-3">
+										{/* ... search content ... */}
+									</div>
+								)}
+								{!isListingsPage(pathname) && (
+									<div className="flex items-center gap-2 md:gap-3">
+										{/* Search */}
+										{/* <Button
 									className="flex items-center gap-2 rounded-lg bg-secondary/50 px-2 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-secondary md:px-3"
 									onClick={() => setCommandOpen(true)}
 									variant="ghost"
@@ -176,18 +177,18 @@ export function TwoLevelNav({
 									<span className="hidden text-xs sm:inline">Search...</span>
 								</Button> */}
 
-									{/* Feedback - Hidden on small mobile */}
-									<Button
-										className="hidden h-8 text-sm sm:flex"
-										size="sm"
-										variant="ghost"
-									>
-										Feedback
-									</Button>
-								</div>
-							)}
-						</div>
-					)}
+										{/* Feedback - Hidden on small mobile */}
+										<Button
+											className="hidden h-8 text-sm sm:flex"
+											size="sm"
+											variant="ghost"
+										>
+											Feedback
+										</Button>
+									</div>
+								)}
+							</div>
+						)}
 				</div>
 
 				<AnimatePresence>

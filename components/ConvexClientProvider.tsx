@@ -29,6 +29,8 @@ function useAuthFromAuthKit() {
 
 	const isAuthenticated = !!user;
 
+	// ToDo: Debug why react compiler is not picking this up.Log that for future learning. Directly applying "use mem"
+	// React compiler isn't picking this up for some reason, callback seems to be required.
 	const fetchAccessToken = useCallback(
 		async ({
 			forceRefreshToken,
