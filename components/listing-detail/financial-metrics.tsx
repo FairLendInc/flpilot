@@ -444,6 +444,109 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 						</div>
 					</div>
 				</Surface>
+
+				{/* Prior Encumbrance - Takes 2 columns */}
+				{financials.priorEncumbrance && (
+					<Surface
+						className="relative overflow-hidden p-5 transition-all duration-300 hover:shadow-lg sm:col-span-2 lg:col-span-2 xl:col-span-2"
+						variant="default"
+					>
+						{/* Animated background gradient */}
+						<div className="absolute inset-0 bg-linear-to-br from-red-500/5 to-pink-500/5" />
+
+						<div className="relative z-10 flex items-start gap-3">
+							<div className="rounded-xl bg-linear-to-br from-red-100 to-pink-100 p-3 text-red-600 shadow-sm transition-all duration-300 hover:scale-110 dark:from-red-900/30 dark:to-pink-900/30 dark:text-red-400">
+								<Icon className="h-6 w-6" icon="lucide:shield-alert" />
+							</div>
+							<div className="flex-1">
+								<p className="font-medium text-foreground/60 text-sm">
+									Prior Encumbrance
+								</p>
+								<div className="mt-2 flex items-baseline gap-2">
+									<p className="font-bold text-2xl text-foreground">
+										{formatCurrency(financials.priorEncumbrance.amount)}
+									</p>
+									{financials.mortgageType && (
+										<span className="rounded-full bg-red-100 px-2 py-1 font-semibold text-red-700 text-xs dark:bg-red-900/30 dark:text-red-400">
+											{financials.mortgageType}
+										</span>
+									)}
+								</div>
+								<div className="mt-2 flex items-center gap-2">
+									<Icon
+										className="h-4 w-4 text-foreground/50"
+										icon="lucide:building-2"
+									/>
+									<p className="font-medium text-foreground/60 text-sm">
+										{financials.priorEncumbrance.lender}
+									</p>
+								</div>
+							</div>
+						</div>
+					</Surface>
+				)}
+
+				{/* As-If Complete Appraisal - Takes 2 columns */}
+				{financials.asIfAppraisal && (
+					<Surface
+						className="relative overflow-hidden p-5 transition-all duration-300 hover:shadow-lg sm:col-span-2 lg:col-span-2 xl:col-span-2"
+						variant="default"
+					>
+						{/* Animated background gradient */}
+						<div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-cyan-500/5" />
+
+						<div className="relative z-10 flex items-start gap-3">
+							<div className="rounded-xl bg-linear-to-br from-blue-100 to-cyan-100 p-3 text-blue-600 shadow-sm transition-all duration-300 hover:scale-110 dark:from-blue-900/30 dark:to-cyan-900/30 dark:text-blue-400">
+								<Icon className="h-6 w-6" icon="lucide:compass" />
+							</div>
+							<div className="flex-1">
+								<p className="font-medium text-foreground/60 text-sm">
+									As-If Complete Appraisal
+								</p>
+								<div className="mt-2 flex items-baseline gap-2">
+									<p className="font-bold text-2xl text-foreground">
+										{formatCurrency(financials.asIfAppraisal.marketValue)}
+									</p>
+									<span className="rounded-full bg-blue-100 px-2 py-1 font-semibold text-blue-700 text-xs dark:bg-blue-900/30 dark:text-blue-400">
+										Future Value
+									</span>
+								</div>
+								<div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+									<div className="flex items-center gap-2">
+										<Icon
+											className="h-4 w-4 text-foreground/50"
+											icon="lucide:clipboard-list"
+										/>
+										<p className="font-medium text-foreground/60 text-sm">
+											{financials.asIfAppraisal.method}
+										</p>
+									</div>
+									<div className="flex items-center gap-2">
+										<Icon
+											className="h-4 w-4 text-foreground/50"
+											icon="lucide:building"
+										/>
+										<p className="font-medium text-foreground/60 text-sm">
+											{financials.asIfAppraisal.company}
+										</p>
+									</div>
+									<div className="col-span-2 flex items-center gap-2">
+										<Icon
+											className="h-4 w-4 text-foreground/50"
+											icon="lucide:calendar"
+										/>
+										<p className="font-medium text-foreground/60 text-sm">
+											{format(
+												parseISO(financials.asIfAppraisal.date),
+												"MMM d, yyyy"
+											)}
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</Surface>
+				)}
 			</div>
 		</div>
 	);
