@@ -1,78 +1,77 @@
-import { useRouter } from "next/navigation";
-import { BlogWithSlug } from "@/lib/blog";
 import { IconArrowLeft } from "@tabler/icons-react";
-import { Container } from "./container";
-import Image from "next/image";
-import { Logo } from "./logo";
-import Link from "next/link";
 import { format } from "date-fns";
+import Image from "next/image";
+import Link from "next/link";
+import type { BlogWithSlug } from "@/lib/blog";
+import { Container } from "./container";
+import { Logo } from "./logo";
 export function BlogLayout({
-  blog,
-  children,
+	blog,
+	children,
 }: {
-  blog: BlogWithSlug;
-  children: React.ReactNode;
+	blog: BlogWithSlug;
+	children: React.ReactNode;
 }) {
-  return (
-    <Container className="mt-16 lg:mt-32">
-      <div className="flex justify-between items-center px-2 py-8">
-        <Link href="/blog" className="flex space-x-2 items-center">
-          <IconArrowLeft className="w-4 h-4 text-muted" />
-          <span className="text-sm text-muted">Back</span>
-        </Link>
-      </div>
-      <div className="w-full mx-auto">
-        {blog.image ? (
-          <Image
-            src={blog.image}
-            height="800"
-            width="800"
-            className="h-40 md:h-96 w-full aspect-square object-cover rounded-3xl [mask-image:radial-gradient(circle,white,transparent)]"
-            alt={blog.title}
-          />
-        ) : (
-          <div className="h-40 md:h-96 w-full aspect-squace rounded-3xl shadow-derek bg-neutral-900 flex items-center justify-center">
-            <Logo />
-          </div>
-        )}
-      </div>
-      <div className="xl:relative">
-        <div className="mx-auto max-w-2xl">
-          <article className="pb-8">
-            <header className="flex flex-col">
-              <h1 className="mt-8 text-4xl font-bold tracking-tight text-neutral-200 sm:text-5xl ">
-                {blog.title}
-              </h1>
-            </header>
-            <div className="mt-8 prose prose-sm prose-invert" data-mdx-content>
-              {children}
-            </div>
-            <div className="flex space-x-2 items-center pt-12 border-t border-neutral-800 mt-12">
-              <div className="flex space-x-2 items-center ">
-                <Image
-                  src={blog.author.src}
-                  alt={blog.author.name}
-                  width={20}
-                  height={20}
-                  className="rounded-full h-5 w-5"
-                />
-                <p className="text-sm font-normal text-muted">
-                  {blog.author.name}
-                </p>
-              </div>
-              <div className="h-5 rounded-lg w-0.5 bg-neutral-700" />
-              <time
-                dateTime={blog.date}
-                className="flex items-center text-base "
-              >
-                <span className="text-muted text-sm">
-                  {format(new Date(blog.date), "MMMM dd, yyyy")}
-                </span>
-              </time>
-            </div>
-          </article>
-        </div>
-      </div>
-    </Container>
-  );
+	return (
+		<Container className="mt-16 lg:mt-32">
+			<div className="flex items-center justify-between px-2 py-8">
+				<Link className="flex items-center space-x-2" href="/blog">
+					<IconArrowLeft className="h-4 w-4 text-muted" />
+					<span className="text-muted text-sm">Back</span>
+				</Link>
+			</div>
+			<div className="mx-auto w-full">
+				{blog.image ? (
+					<Image
+						alt={blog.title}
+						className="aspect-square h-40 w-full rounded-3xl object-cover [mask-image:radial-gradient(circle,white,transparent)] md:h-96"
+						height="800"
+						src={blog.image}
+						width="800"
+					/>
+				) : (
+					<div className="flex aspect-squace h-40 w-full items-center justify-center rounded-3xl bg-neutral-900 shadow-derek md:h-96">
+						<Logo />
+					</div>
+				)}
+			</div>
+			<div className="xl:relative">
+				<div className="mx-auto max-w-2xl">
+					<article className="pb-8">
+						<header className="flex flex-col">
+							<h1 className="mt-8 font-bold text-4xl text-neutral-200 tracking-tight sm:text-5xl">
+								{blog.title}
+							</h1>
+						</header>
+						<div className="prose prose-sm prose-invert mt-8" data-mdx-content>
+							{children}
+						</div>
+						<div className="mt-12 flex items-center space-x-2 border-neutral-800 border-t pt-12">
+							<div className="flex items-center space-x-2">
+								<Image
+									alt={blog.author.name}
+									className="h-5 w-5 rounded-full"
+									height={20}
+									src={blog.author.src}
+									width={20}
+								/>
+								<p className="font-normal text-muted text-sm">
+									{blog.author.name}
+								</p>
+							</div>
+							<div className="h-5 w-0.5 rounded-lg bg-neutral-700" />
+							<time
+								className="flex items-center text-base"
+								dateTime={blog.date}
+							>
+								<span className="text-muted text-sm">
+									{format(new Date(blog.date), "MMMM dd, yyyy")}
+								</span>
+							</time>
+						</div>
+					</article>
+				</div>
+			</div>
+		</Container>
+	);
 }

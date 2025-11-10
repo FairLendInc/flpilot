@@ -1,39 +1,38 @@
 // Accordion.js
 
-import React from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 
 const Accordion = ({ i, expanded, setExpanded, title, description }: any) => {
-  const isOpen = i === expanded;
+	const isOpen = i === expanded;
 
-  return (
-    <div className="">
-      <motion.div
-        initial={false}
-        onClick={() => setExpanded(isOpen ? false : i)}
-        className="flex flex-col p-4 cursor-pointer text-base font-bold bg-neutral-900 rounded-xl relative overflow-hidden"
-      >
-        {title}
-        <AnimatePresence initial={false} mode="popLayout">
-          {isOpen && (
-            <motion.p
-              initial="collapsed"
-              animate="open"
-              exit="collapsed"
-              variants={{
-                open: { opacity: 1, height: "auto" },
-                collapsed: { opacity: 0, height: 0 },
-              }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="mt-4 text-base font-normal text-neutral-400"
-            >
-              {description}
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </div>
-  );
+	return (
+		<div className="">
+			<motion.div
+				className="relative flex cursor-pointer flex-col overflow-hidden rounded-xl bg-neutral-900 p-4 font-bold text-base"
+				initial={false}
+				onClick={() => setExpanded(isOpen ? false : i)}
+			>
+				{title}
+				<AnimatePresence initial={false} mode="popLayout">
+					{isOpen && (
+						<motion.p
+							animate="open"
+							className="mt-4 font-normal text-base text-neutral-400"
+							exit="collapsed"
+							initial="collapsed"
+							transition={{ duration: 0.2, ease: "easeOut" }}
+							variants={{
+								open: { opacity: 1, height: "auto" },
+								collapsed: { opacity: 0, height: 0 },
+							}}
+						>
+							{description}
+						</motion.p>
+					)}
+				</AnimatePresence>
+			</motion.div>
+		</div>
+	);
 };
 
 export default Accordion;
