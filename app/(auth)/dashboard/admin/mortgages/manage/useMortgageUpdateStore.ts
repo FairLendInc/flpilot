@@ -58,6 +58,13 @@ const createInitialMortgage = (): {
 	borrowerId: string;
 	address: MortgageAddressState;
 	location: MortgageLocationState;
+	priorEncumbrance: { amount: number; lender: string } | null;
+	asIfAppraisal: {
+		marketValue: number;
+		method: string;
+		company: string;
+		date: string;
+	} | null;
 } => ({
 	mortgageId: null,
 	loanAmount: "",
@@ -85,6 +92,8 @@ const createInitialMortgage = (): {
 		lat: "",
 		lng: "",
 	},
+	priorEncumbrance: null,
+	asIfAppraisal: null,
 });
 
 const removeError = (errors: Record<string, string>, field: string) => {
@@ -112,6 +121,13 @@ type MortgageUpdateStore = {
 	borrowerId: string;
 	address: MortgageAddressState;
 	location: MortgageLocationState;
+	priorEncumbrance: { amount: number; lender: string } | null;
+	asIfAppraisal: {
+		marketValue: number;
+		method: string;
+		company: string;
+		date: string;
+	} | null;
 
 	// Media arrays
 	images: MortgageImageEntry[];
@@ -139,6 +155,17 @@ type MortgageUpdateStore = {
 	setLocationField: <K extends keyof MortgageLocationState>(
 		field: K,
 		value: MortgageLocationState[K]
+	) => void;
+	setPriorEncumbrance: (
+		data: { amount: number; lender: string } | null
+	) => void;
+	setAsIfAppraisal: (
+		data: {
+			marketValue: number;
+			method: string;
+			company: string;
+			date: string;
+		} | null
 	) => void;
 	addImage: (entry: MortgageImageEntry) => void;
 	updateImage: (index: number, entry: Partial<MortgageImageEntry>) => void;
@@ -178,6 +205,16 @@ type MortgageUpdateStore = {
 			lat: number;
 			lng: number;
 		};
+		priorEncumbrance?: {
+			amount: number;
+			lender: string;
+		} | null;
+		asIfAppraisal?: {
+			marketValue: number;
+			method: string;
+			company: string;
+			date: string;
+		} | null;
 		images?: Array<{
 			storageId: Id<"_storage">;
 			alt?: string;
@@ -232,6 +269,30 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 				location: { ...state.location, [field]: value },
 				errors: removeError(state.errors, `location.${String(field)}`),
 			})),
+
+		setPriorEncumbrance: (data) =>
+			set((state) => {
+				let errors = { ...state.errors };
+				if (data === null) {
+					// Remove errors when field is cleared
+					errors = removeError(errors, "priorEncumbranceAmount");
+					errors = removeError(errors, "priorEncumbranceLender");
+				}
+				return { priorEncumbrance: data, errors };
+			}),
+
+		setAsIfAppraisal: (data) =>
+			set((state) => {
+				let errors = { ...state.errors };
+				if (data === null) {
+					// Remove errors when field is cleared
+					errors = removeError(errors, "asIfAppraisalMarketValue");
+					errors = removeError(errors, "asIfAppraisalMethod");
+					errors = removeError(errors, "asIfAppraisalCompany");
+					errors = removeError(errors, "asIfAppraisalDate");
+				}
+				return { asIfAppraisal: data, errors };
+			}),
 
 		addImage: (entry) =>
 			set((state) => ({
@@ -330,6 +391,8 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 					lat: String(mortgage.location.lat),
 					lng: String(mortgage.location.lng),
 				},
+				priorEncumbrance: mortgage.priorEncumbrance ?? null,
+				asIfAppraisal: mortgage.asIfAppraisal ?? null,
 				images: (mortgage.images ?? []).map((img) => ({
 					storageId: img.storageId,
 					alt: img.alt ?? "",
@@ -467,6 +530,34 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 			}
 			if (state.documents.some((document) => !document.storageId)) {
 				errors.documents = "All uploaded documents must have a storage ID";
+			}
+
+			// Validate prior encumbrance if present
+			if (state.priorEncumbrance) {
+				if (state.priorEncumbrance.amount <= 0) {
+					errors.priorEncumbranceAmount =
+						"Prior encumbrance amount must be greater than 0";
+				}
+				if (!state.priorEncumbrance.lender.trim()) {
+					errors.priorEncumbranceLender = "Lender name is required";
+				}
+			}
+
+			// Validate as-if appraisal if present
+			if (state.asIfAppraisal) {
+				if (state.asIfAppraisal.marketValue <= 0) {
+					errors.asIfAppraisalMarketValue =
+						"Market value must be greater than 0";
+				}
+				if (!state.asIfAppraisal.method.trim()) {
+					errors.asIfAppraisalMethod = "Appraisal method is required";
+				}
+				if (!state.asIfAppraisal.company.trim()) {
+					errors.asIfAppraisalCompany = "Appraisal company is required";
+				}
+				if (!state.asIfAppraisal.date.trim()) {
+					errors.asIfAppraisalDate = "Appraisal date is required";
+				}
 			}
 
 			return errors;

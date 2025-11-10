@@ -374,7 +374,7 @@ export default defineSchema({
 		bedrooms: v.optional(v.number()),
 		bathrooms: v.optional(v.number()),
 		propertyType: v.optional(v.string()),
-		asIfAppraisal: v.optional(v.boolean()),
+		asIf: v.optional(v.boolean()),
 		// Property image (stored in Convex file storage)
 		imageStorageId: v.optional(v.id("_storage")),
 	})

@@ -323,3 +323,4 @@ Copy `.env.local.example` to `.env.local` and configure:
 - Logging is centralized and provider-agnostic for easy future migrations
 - The project uses modern React patterns with TypeScript throughout
 - THIS PROJECT USES proxy.ts instead of middleware.ts middleware.ts was depreciated as part of the move from NextJs15->16
+- When working on an openspec change YOU MUST update the tasks file in openspec as you work. If you have to stop to stop to ask the usert to validate something do so.

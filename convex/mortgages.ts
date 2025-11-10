@@ -74,6 +74,20 @@ const mortgageDetailsFields = {
 	images: v.optional(v.array(mortgageImageValidator)),
 	documents: v.optional(v.array(mortgageDocumentValidator)),
 	externalMortgageId: v.string(),
+	priorEncumbrance: v.optional(
+		v.object({
+			amount: v.number(),
+			lender: v.string(),
+		})
+	),
+	asIfAppraisal: v.optional(
+		v.object({
+			marketValue: v.number(),
+			method: v.string(),
+			company: v.string(),
+			date: v.string(),
+		})
+	),
 } as const;
 
 export const mortgageDetailsValidator = v.object(mortgageDetailsFields);
@@ -481,6 +495,16 @@ async function updateMortgageCore(
 			uploadDate: string;
 			fileSize?: number;
 		}>;
+		priorEncumbrance?: {
+			amount: number;
+			lender: string;
+		};
+		asIfAppraisal?: {
+			marketValue: number;
+			method: string;
+			company: string;
+			date: string;
+		};
 	}
 ): Promise<Id<"mortgages">> {
 	// Get existing mortgage
@@ -644,6 +668,38 @@ async function updateMortgageCore(
 		updates.documents = args.documents;
 	}
 
+	// Update prior encumbrance
+	if (args.priorEncumbrance !== undefined) {
+		if (args.priorEncumbrance.amount <= 0) {
+			throw new Error("Prior encumbrance amount must be greater than 0");
+		}
+		if (!args.priorEncumbrance.lender || args.priorEncumbrance.lender.trim() === "") {
+			throw new Error("Prior encumbrance lender is required");
+		}
+		updates.priorEncumbrance = args.priorEncumbrance;
+	}
+
+	// Update as-if appraisal
+	if (args.asIfAppraisal !== undefined) {
+		if (args.asIfAppraisal.marketValue <= 0) {
+			throw new Error("As-if appraisal market value must be greater than 0");
+		}
+		if (!args.asIfAppraisal.method || args.asIfAppraisal.method.trim() === "") {
+			throw new Error("As-if appraisal method is required");
+		}
+		if (!args.asIfAppraisal.company || args.asIfAppraisal.company.trim() === "") {
+			throw new Error("As-if appraisal company is required");
+		}
+		if (!args.asIfAppraisal.date || args.asIfAppraisal.date.trim() === "") {
+			throw new Error("As-if appraisal date is required");
+		}
+		const parsedDate = Date.parse(args.asIfAppraisal.date);
+		if (Number.isNaN(parsedDate)) {
+			throw new Error("As-if appraisal date must be a valid date");
+		}
+		updates.asIfAppraisal = args.asIfAppraisal;
+	}
+
 	// Apply updates
 	await ctx.db.patch(args.mortgageId, updates);
 
@@ -780,6 +836,20 @@ export const updateMortgage = mutation({
 		borrowerId: v.optional(v.id("borrowers")),
 		images: v.optional(v.array(mortgageImageValidator)),
 		documents: v.optional(v.array(mortgageDocumentValidator)),
+		priorEncumbrance: v.optional(
+			v.object({
+				amount: v.number(),
+				lender: v.string(),
+			})
+		),
+		asIfAppraisal: v.optional(
+			v.object({
+				marketValue: v.number(),
+				method: v.string(),
+				company: v.string(),
+				date: v.string(),
+			})
+		),
 	},
 	returns: v.id("mortgages"),
 	handler: async (ctx, args) => {

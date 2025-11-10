@@ -52,6 +52,14 @@ function transformMortgageForComponents(mortgage: MortgageWithUrls) {
 		principalLoanAmount: mortgage.loanAmount,
 		propertyType: mortgage.propertyType,
 		ltv: mortgage.ltv, // Real LTV from database
+		mortgageType:
+			mortgage.mortgageType === "1st"
+				? "1st Position"
+				: mortgage.mortgageType === "2nd"
+					? "2nd Position"
+					: "Other Position",
+		priorEncumbrance: mortgage.priorEncumbrance || null,
+		asIfAppraisal: mortgage.asIfAppraisal || null,
 	};
 
 	// Transform documents - use pre-fetched signed URLs

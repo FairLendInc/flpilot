@@ -36,6 +36,12 @@ export type MockListing = {
 			amount: number;
 			lender: string;
 		} | null;
+		asIfAppraisal?: {
+			marketValue: number;
+			method: string;
+			company: string;
+			date: string;
+		} | null;
 		mortgageType?: string;
 		propertyType?: string;
 	};
@@ -77,6 +83,7 @@ export type AppraisalComparable = {
 	bedrooms?: number;
 	bathrooms?: number;
 	propertyType?: string;
+	asIf?: boolean; // New: true for as-if complete appraisal comparables
 	imageUrl: string; // Placeholder image
 };
 
@@ -235,6 +242,35 @@ export function generateListing(id: string): MockListing {
 		};
 	}
 
+	// 20% chance of having as-if complete appraisal
+	const hasAsIfAppraisal = seededRandom(`${id}-asif`) > 0.8;
+
+	let asIfAppraisal: {
+		marketValue: number;
+		method: string;
+		company: string;
+		date: string;
+	} | null = null;
+	if (hasAsIfAppraisal) {
+		// As-if appraisal should be 15-40% higher than current value
+		const asIfMultiplier = randomFloat(1.15, 1.4, `${id}-asifmult`);
+		const asIfMarketValue = Math.round(currentValue * asIfMultiplier);
+
+		// Appraisal date should be within last 6 months
+		const asIfDate = new Date();
+		asIfDate.setMonth(asIfDate.getMonth() - randomInt(1, 6, `${id}-asifdate`));
+
+		asIfAppraisal = {
+			marketValue: asIfMarketValue,
+			method: randomChoice(
+				["Sales Comparison", "Cost Approach", "Income Approach", "Hybrid"],
+				`${id}-asifmethod`
+			),
+			company: randomChoice(APPRAISER_NAMES, `${id}-asifcompany`),
+			date: asIfDate.toISOString(),
+		};
+	}
+
 	// Calculate monthly payment using mortgage formula
 	const monthlyRate = interestRate / 100 / 12;
 	const monthlyPayment = Math.round(
@@ -282,6 +318,7 @@ export function generateListing(id: string): MockListing {
 			maturityDate: maturityDate.toISOString(),
 			principalLoanAmount,
 			priorEncumbrance,
+			asIfAppraisal,
 			mortgageType,
 			propertyType,
 		},
@@ -435,11 +472,16 @@ export function generateComparables(
 		const streetNumber = randomInt(100, 9999, `${compId}-street`);
 		const streetName = randomChoice(STREETS, `${compId}-name`);
 
-		// Sale price should be within 20% of reference current value
+		// Determine if this is an as-if comparable (40% chance)
+		const isAsIf = seededRandom(`${compId}-asif`) > 0.6;
+
+		// Sale price should be within 20% of reference value
+		// For as-if comparables, use current value; for as-is, use purchase price
+		const referenceValue = isAsIf
+			? reference.financials.currentValue
+			: reference.financials.purchasePrice;
 		const priceVariation = randomFloat(0.85, 1.15, `${compId}-pricevar`);
-		const saleAmount = Math.round(
-			reference.financials.currentValue * priceVariation
-		);
+		const saleAmount = Math.round(referenceValue * priceVariation);
 
 		// Sale date should be within last 6 months (typical for appraisals)
 		const monthsAgo = randomInt(1, 6, `${compId}-months`);
@@ -476,6 +518,7 @@ export function generateComparables(
 			bedrooms,
 			bathrooms,
 			propertyType,
+			asIf: isAsIf,
 			imageUrl: `https://picsum.photos/seed/${compId}/800/600`,
 		});
 	}
