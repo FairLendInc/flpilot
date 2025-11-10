@@ -28,7 +28,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	args: {
-		financials: generateListing("default-financial").financials,
+		financials: {
+			...generateListing("default-financial").financials,
+			ltv: 75.0,
+		},
 	},
 	parameters: {
 		docs: {
@@ -52,6 +55,7 @@ export const HighValueProperty: Story = {
 				Date.now() + 30 * 365 * 24 * 60 * 60 * 1000
 			).toISOString(),
 			principalLoanAmount: 3750000,
+			ltv: 65.2,
 			mortgageType: "1st Position",
 			propertyType: "Residential - Single Family",
 		},
@@ -78,6 +82,7 @@ export const InvestmentMetrics: Story = {
 				Date.now() + 25 * 365 * 24 * 60 * 60 * 1000
 			).toISOString(),
 			principalLoanAmount: 1000000,
+			ltv: 70.2,
 			mortgageType: "1st Position",
 			propertyType: "Commercial - Office",
 		},
@@ -104,6 +109,7 @@ export const LossScenario: Story = {
 				Date.now() + 20 * 365 * 24 * 60 * 60 * 1000
 			).toISOString(),
 			principalLoanAmount: 680000,
+			ltv: 88.9,
 			mortgageType: "1st Position",
 			propertyType: "Residential - Condo",
 		},
@@ -130,6 +136,7 @@ export const LowInterestRate: Story = {
 				Date.now() + 30 * 365 * 24 * 60 * 60 * 1000
 			).toISOString(),
 			principalLoanAmount: 600000,
+			ltv: 72.7,
 			mortgageType: "1st Position",
 			propertyType: "Residential - Townhouse",
 		},
@@ -156,6 +163,7 @@ export const ShortTermLoan: Story = {
 				Date.now() + 15 * 365 * 24 * 60 * 60 * 1000
 			).toISOString(),
 			principalLoanAmount: 480000,
+			ltv: 69.6,
 			mortgageType: "1st Position",
 			propertyType: "Residential - Multi-Family",
 		},
@@ -182,6 +190,7 @@ export const BreakEvenScenario: Story = {
 				Date.now() + 25 * 365 * 24 * 60 * 60 * 1000
 			).toISOString(),
 			principalLoanAmount: 740000,
+			ltv: 80.0,
 			mortgageType: "1st Position",
 			propertyType: "Mixed-Use",
 		},
@@ -208,6 +217,7 @@ export const FirstTimeHomeBuyer: Story = {
 				Date.now() + 30 * 365 * 24 * 60 * 60 * 1000
 			).toISOString(),
 			principalLoanAmount: 280000,
+			ltv: 72.7,
 			mortgageType: "1st Position",
 			propertyType: "Residential - Condo",
 		},
@@ -237,6 +247,7 @@ export const ComparisonView: Story = {
 						Date.now() + 30 * 365 * 24 * 60 * 60 * 1000
 					).toISOString(),
 					principalLoanAmount: 640000,
+					ltv: 72.7,
 					mortgageType: "1st Position",
 					propertyType: "Residential - Single Family",
 				},
@@ -253,6 +264,7 @@ export const ComparisonView: Story = {
 						Date.now() + 25 * 365 * 24 * 60 * 60 * 1000
 					).toISOString(),
 					principalLoanAmount: 960000,
+					ltv: 72.7,
 					mortgageType: "1st Position",
 					propertyType: "Commercial - Retail",
 				},
@@ -269,6 +281,7 @@ export const ComparisonView: Story = {
 						Date.now() + 20 * 365 * 24 * 60 * 60 * 1000
 					).toISOString(),
 					principalLoanAmount: 1700000,
+					ltv: 81.0,
 					mortgageType: "1st Position",
 					propertyType: "Commercial - Office",
 				},

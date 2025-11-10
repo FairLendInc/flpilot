@@ -2,7 +2,7 @@
 
 import { useAction, useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronUp, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Upload, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -85,6 +85,8 @@ export function MortgageUpdateSheet({
 		borrowerId,
 		address,
 		location,
+		priorEncumbrance,
+		asIfAppraisal,
 		images,
 		documents,
 		errors,
@@ -92,6 +94,8 @@ export function MortgageUpdateSheet({
 		setField,
 		setAddressField,
 		setLocationField,
+		setPriorEncumbrance,
+		setAsIfAppraisal,
 		addImage,
 		updateImage,
 		removeImage,
@@ -539,6 +543,82 @@ export function MortgageUpdateSheet({
 										)}
 									</div>
 								</div>
+
+								{/* Prior Encumbrance Section */}
+								<div className="mt-6 space-y-4 rounded-lg border p-4">
+									<div className="flex items-center justify-between">
+										<h3 className="font-semibold text-lg">Prior Encumbrance</h3>
+										{priorEncumbrance ? (
+											<Button
+												onClick={() => setPriorEncumbrance(null)}
+												size="sm"
+												type="button"
+												variant="ghost"
+											>
+												<X className="mr-2 h-4 w-4" />
+												Remove
+											</Button>
+										) : (
+											<Button
+												onClick={() =>
+													setPriorEncumbrance({ amount: 0, lender: "" })
+												}
+												size="sm"
+												type="button"
+												variant="outline"
+											>
+												<Plus className="mr-2 h-4 w-4" />
+												Add Prior Encumbrance
+											</Button>
+										)}
+									</div>
+
+									{priorEncumbrance && (
+										<div className="grid gap-4 md:grid-cols-2">
+											<div className="space-y-2">
+												<Label htmlFor="priorEncumbranceAmount">
+													Amount ($)
+												</Label>
+												<Input
+													id="priorEncumbranceAmount"
+													onChange={(e) => {
+														const value = Number.parseFloat(e.target.value);
+														setPriorEncumbrance({
+															...priorEncumbrance,
+															amount: Number.isNaN(value) ? 0 : value,
+														});
+													}}
+													type="number"
+													value={priorEncumbrance.amount}
+												/>
+												{errors.priorEncumbranceAmount && (
+													<p className="text-destructive text-sm">
+														{errors.priorEncumbranceAmount}
+													</p>
+												)}
+											</div>
+
+											<div className="space-y-2">
+												<Label htmlFor="priorEncumbranceLender">Lender</Label>
+												<Input
+													id="priorEncumbranceLender"
+													onChange={(e) =>
+														setPriorEncumbrance({
+															...priorEncumbrance,
+															lender: e.target.value,
+														})
+													}
+													value={priorEncumbrance.lender}
+												/>
+												{errors.priorEncumbranceLender && (
+													<p className="text-destructive text-sm">
+														{errors.priorEncumbranceLender}
+													</p>
+												)}
+											</div>
+										</div>
+									)}
+								</div>
 							</TabsContent>
 
 							<TabsContent className="mt-4 space-y-6" value="property">
@@ -789,6 +869,133 @@ export function MortgageUpdateSheet({
 											)}
 										</div>
 									</div>
+								</div>
+
+								{/* As-If Complete Appraisal Section */}
+								<div className="mt-6 space-y-4 rounded-lg border p-4">
+									<div className="flex items-center justify-between">
+										<div>
+											<h3 className="font-semibold text-lg">
+												As-If Complete Appraisal
+											</h3>
+											<p className="text-muted-foreground text-sm">
+												Appraisal value if property improvements are completed
+											</p>
+										</div>
+										{asIfAppraisal ? (
+											<Button
+												onClick={() => setAsIfAppraisal(null)}
+												size="sm"
+												type="button"
+												variant="ghost"
+											>
+												<X className="mr-2 h-4 w-4" />
+												Remove
+											</Button>
+										) : (
+											<Button
+												onClick={() =>
+													setAsIfAppraisal({
+														marketValue: 0,
+														method: "",
+														company: "",
+														date: "",
+													})
+												}
+												size="sm"
+												type="button"
+												variant="outline"
+											>
+												<Plus className="mr-2 h-4 w-4" />
+												Add As-If Complete Appraisal
+											</Button>
+										)}
+									</div>
+
+									{asIfAppraisal && (
+										<div className="grid gap-4 md:grid-cols-2">
+											<div className="space-y-2">
+												<Label htmlFor="asIfAppraisalMarketValue">
+													Market Value ($)
+												</Label>
+												<Input
+													id="asIfAppraisalMarketValue"
+													onChange={(e) => {
+														const value = Number.parseFloat(e.target.value);
+														setAsIfAppraisal({
+															...asIfAppraisal,
+															marketValue: Number.isNaN(value) ? 0 : value,
+														});
+													}}
+													type="number"
+													value={asIfAppraisal.marketValue}
+												/>
+												{errors.asIfAppraisalMarketValue && (
+													<p className="text-destructive text-sm">
+														{errors.asIfAppraisalMarketValue}
+													</p>
+												)}
+											</div>
+
+											<div className="space-y-2">
+												<Label htmlFor="asIfAppraisalMethod">Method</Label>
+												<Input
+													id="asIfAppraisalMethod"
+													onChange={(e) =>
+														setAsIfAppraisal({
+															...asIfAppraisal,
+															method: e.target.value,
+														})
+													}
+													value={asIfAppraisal.method}
+												/>
+												{errors.asIfAppraisalMethod && (
+													<p className="text-destructive text-sm">
+														{errors.asIfAppraisalMethod}
+													</p>
+												)}
+											</div>
+
+											<div className="space-y-2">
+												<Label htmlFor="asIfAppraisalCompany">Company</Label>
+												<Input
+													id="asIfAppraisalCompany"
+													onChange={(e) =>
+														setAsIfAppraisal({
+															...asIfAppraisal,
+															company: e.target.value,
+														})
+													}
+													value={asIfAppraisal.company}
+												/>
+												{errors.asIfAppraisalCompany && (
+													<p className="text-destructive text-sm">
+														{errors.asIfAppraisalCompany}
+													</p>
+												)}
+											</div>
+
+											<div className="space-y-2">
+												<Label htmlFor="asIfAppraisalDate">Date</Label>
+												<Input
+													id="asIfAppraisalDate"
+													onChange={(e) =>
+														setAsIfAppraisal({
+															...asIfAppraisal,
+															date: e.target.value,
+														})
+													}
+													type="date"
+													value={asIfAppraisal.date}
+												/>
+												{errors.asIfAppraisalDate && (
+													<p className="text-destructive text-sm">
+														{errors.asIfAppraisalDate}
+													</p>
+												)}
+											</div>
+										</div>
+									)}
 								</div>
 							</TabsContent>
 
