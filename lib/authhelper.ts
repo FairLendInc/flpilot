@@ -157,11 +157,16 @@ export async function requireAuth(
 		console.log(
 			`Authentication required from ${caller ?? "unknown caller"}. Waiting for identity...`
 		);
-		// ToDO: implement proper retry logic. We can't use timeout here or spinlock style sync to check if it can get the identity.
+		// TODO: implement proper retry logic. We can't use timeout here or spinlock style sync to check if it can get the identity.
 		identity = await ctx.auth.getUserIdentity();
-		throw new Error(
-			`Authentication required from ${caller ?? "unknown caller"}`
-		);
+		if (!identity) {
+			throw new Error(
+				`Authentication required from ${caller ?? "unknown caller"}`
+			);
+		}
+	}
+	return identity;
+}
 	}
 	return identity;
 }
