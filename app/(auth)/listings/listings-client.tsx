@@ -1,13 +1,14 @@
 "use client";
 
-import { type Preloaded, usePreloadedQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import {
 	type FilterableItem,
 	ListingGridShell,
 } from "@/components/ListingGridShell";
 import { Horizontal } from "@/components/listing-card-horizontal";
 import { ListingMapPopup } from "@/components/listing-map-popup";
-import type { api } from "@/convex/_generated/api";
+import { Spinner } from "@/components/ui/spinner";
+import { api } from "@/convex/_generated/api";
 import type {
 	Mortgage,
 	MortgageImage,
@@ -93,21 +94,26 @@ function transformMortgage(mortgage: Mortgage): ListingItem {
 	};
 }
 
-type ListingsClientProps = {
-	preloaded: Preloaded<typeof api.listings.getAvailableListingsWithMortgages>;
-};
-
 /**
  * Client component for the listings page
- * Uses preloaded authenticated data from server
+ * Fetches listings data with authentication
  */
-export function ListingsClient({ preloaded }: ListingsClientProps) {
-	// Always call usePreloadedQuery (React hooks must be unconditional)
-	// The <Authenticated> wrapper prevents rendering until auth is ready,
-	// and the query gracefully returns empty array if auth isn't initialized yet (Part C)
-	const listingsWithMortgages = usePreloadedQuery(preloaded);
+export function ListingsClient() {
+	// Fetch listings data - works for both server and client-side navigation
+	const listingsWithMortgages = useQuery(
+		api.listings.getAvailableListingsWithMortgages
+	);
 
-	// Only process listings if authenticated - prevents using empty array from query fallback
+	// Show loading state while data is being fetched
+	if (listingsWithMortgages === undefined) {
+		return (
+			<div className="flex h-full min-h-[calc(100vh-6rem)] w-full items-center justify-center">
+				<Spinner className="size-8" />
+			</div>
+		);
+	}
+
+	// Process listings data
 	const listings: ListingItem[] = listingsWithMortgages.map((item) => ({
 		...transformMortgage(item.mortgage as MortgageWithUrls),
 		locked: item.listing.locked,

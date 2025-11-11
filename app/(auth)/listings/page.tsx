@@ -1,8 +1,5 @@
-import { withAuth } from "@workos-inc/authkit-nextjs";
-import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
-import { api } from "@/convex/_generated/api";
 import { ListingsClient } from "./listings-client";
 
 export const metadata: Metadata = {
@@ -13,20 +10,11 @@ export const metadata: Metadata = {
 /**
  * Listings page - displays all available investment properties
  */
-export default async function ListingsPage() {
-	const { accessToken } = await withAuth();
-
-	// Preload Convex query for server-side rendering with auth token
-	const preloadedListings = await preloadQuery(
-		api.listings.getAvailableListingsWithMortgages,
-		{},
-		{ token: accessToken }
-	);
-
+export default function ListingsPage() {
 	return (
 		<ViewTransition name="listings">
 			<div className="container flex w-screen flex-col">
-				<ListingsClient preloaded={preloadedListings} />
+				<ListingsClient />
 			</div>
 		</ViewTransition>
 	);
