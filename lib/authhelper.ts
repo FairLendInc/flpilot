@@ -167,6 +167,3 @@ export async function requireAuth(
 	}
 	return identity;
 }
-	}
-	return identity;
-}
