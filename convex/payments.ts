@@ -11,7 +11,7 @@ import { authQuery, authMutation } from "./lib/server";
  */
 export const getPaymentsForMortgage = authQuery({
 	args: { mortgageId: v.id("mortgages") },
-	returns: v.array(v.object({})),
+	returns: v.array(v.any()),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("payments")
@@ -32,7 +32,7 @@ export const getPaymentsByStatus = authQuery({
 			v.literal("failed")
 		),
 	},
-	returns: v.array(v.object({})),
+	returns: v.array(v.any()),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("payments")
@@ -49,7 +49,7 @@ export const getPaymentsByDateRange = authQuery({
 		startDate: v.string(),
 		endDate: v.string(),
 	},
-	returns: v.array(v.object({})),
+	returns: v.array(v.any()),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("payments")
@@ -69,7 +69,7 @@ export const getPaymentsByDateRange = authQuery({
  */
 export const getPaymentByRotessaId = authQuery({
 	args: { paymentId: v.string() },
-	returns: v.union(v.object({}), v.null()),
+	returns: v.union(v.any(), v.null()),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("payments")

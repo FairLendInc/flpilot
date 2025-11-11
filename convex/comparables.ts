@@ -32,7 +32,7 @@ export const comparablePayloadValidator = v.object({
  */
 export const getComparablesForMortgage = authQuery({
 	args: { mortgageId: v.id("mortgages") },
-	returns: v.array(v.object({})),
+	returns: v.array(v.any()),
 	handler: async (ctx, args) => {
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
@@ -66,7 +66,7 @@ export const getComparablesWithinDistance = authQuery({
 		mortgageId: v.id("mortgages"),
 		maxMiles: v.number(),
 	},
-	returns: v.array(v.object({})),
+	returns: v.array(v.any()),
 	handler: async (ctx, args) => {
 		const comparables = await ctx.db
 			.query("appraisal_comparables")

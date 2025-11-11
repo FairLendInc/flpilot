@@ -114,7 +114,8 @@ export function ListingsClient() {
 			locked: item.listing.locked,
 		})) ?? [];
 
-	if (isLoading) {
+	// Show skeleton while auth is loading OR while query data is still undefined
+	if (isLoading || listingsWithMortgages === undefined) {
 		return <ListingsGridSkeleton />;
 	}
 

@@ -11,7 +11,7 @@ import { authQuery, authMutation } from "./lib/server";
  */
 export const getBorrower = authQuery({
 	args: { id: v.id("borrowers") },
-	returns: v.union(v.object({}), v.null()),
+	returns: v.union(v.any(), v.null()),
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.id);
 	},
@@ -22,7 +22,7 @@ export const getBorrower = authQuery({
  */
 export const getBorrowerByRotessaId = authQuery({
 	args: { rotessaCustomerId: v.string() },
-	returns: v.union(v.object({}), v.null()),
+	returns: v.union(v.any(), v.null()),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("borrowers")
@@ -38,7 +38,7 @@ export const getBorrowerByRotessaId = authQuery({
  */
 export const listBorrowers = authQuery({
 	args: {},
-	returns: v.array(v.object({})),
+	returns: v.array(v.any()),
 	handler: async (ctx) => {
 		return await ctx.db.query("borrowers").collect();
 	},
@@ -49,7 +49,7 @@ export const listBorrowers = authQuery({
  */
 export const searchBorrowersByEmail = authQuery({
 	args: { email: v.string() },
-	returns: v.array(v.object({})),
+	returns: v.array(v.any()),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("borrowers")
