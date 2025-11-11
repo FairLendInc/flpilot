@@ -15,12 +15,6 @@ import logger from "./logger";
 import { authQuery } from "./lib/server";
 
 
-		
-
-const getAvailableListingsWithMortgagesValidator = v.object({
-
-});
-
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
 	email: v.string(),
@@ -289,19 +283,20 @@ export const getListingByMortgage = query({
 /**
  * Get listing by listing ID
  */
-export const getListingById = query({
+export const getListingById = authQuery({
 	args: { listingId: v.id("listings") },
+	returns: v.union(
+		v.object({
+			_id: v.id("listings"),
+			_creationTime: v.number(),
+			mortgageId: v.id("mortgages"),
+			visible: v.boolean(),
+			locked: v.boolean(),
+		}),
+		v.null()
+	),
 	handler: async (ctx, args) => {
-		console.debug("getListingById args", {
-			args: args,
-			ctx: ctx,
-		});
-		// THIS IS RETURNING NULL WHEN THE USER IS SIGNED IN? There's some sort of race condition here. 
-		const identity = await ctx.auth.getUserIdentity();
-		console.debug("getListingById Identity", identity);
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
+		// Authentication handled by authQuery wrapper
 		return await ctx.db.get(args.listingId);
 	},
 });

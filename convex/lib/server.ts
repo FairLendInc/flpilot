@@ -423,7 +423,6 @@ export async function AuthenticationRequired({
   ctx: QueryCtx | MutationCtx | ActionCtx;
 }) {
   const identity = await ctx.auth.getUserIdentity();
-  console.log('AuthenticationRequired', identity);
   if (identity === null) {
     //TODO: Implement custom error types for Convex, should capture caller
     throw new Error('Not authenticated!');
