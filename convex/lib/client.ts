@@ -799,9 +799,10 @@ export function useAuthenticatedPaginatedQuery<
   Query extends FunctionReference<'query'>,
 >(query: Query, args: PaginatedQueryArgs<Query> | 'skip', options: UseAuthenticatedPaginatedQuery, withAuth: boolean = true) {
   const { isAuthenticated } = useConvexAuth();
-  return usePaginatedQuery(query, withAuth ? (isAuthenticated ? args : 'skip') : args, {
-    initialNumItems: options.initialNumItems,
-    customPagination: options.customPagination,
+  const {initialNumItems, customPagination, withAuth: withAuthOption } = options;
+  return usePaginatedQuery(query, withAuthOption ? (isAuthenticated ? args : 'skip') : args, {
+    initialNumItems: initialNumItems,
+    customPagination: customPagination,
   });
 }
 

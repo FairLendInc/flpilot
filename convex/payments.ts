@@ -4,19 +4,15 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { requireAuth } from "../lib/authhelper";
+import { authQuery, authMutation } from "./lib/server";
 
 /**
  * Get payment history for a mortgage (ordered by most recent first)
  */
-export const getPaymentsForMortgage = query({
+export const getPaymentsForMortgage = authQuery({
 	args: { mortgageId: v.id("mortgages") },
+	returns: v.array(v.object({})),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -28,7 +24,7 @@ export const getPaymentsForMortgage = query({
 /**
  * Get payments by status
  */
-export const getPaymentsByStatus = query({
+export const getPaymentsByStatus = authQuery({
 	args: {
 		status: v.union(
 			v.literal("pending"),
@@ -36,11 +32,8 @@ export const getPaymentsByStatus = query({
 			v.literal("failed")
 		),
 	},
+	returns: v.array(v.object({})),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_status", (q) => q.eq("status", args.status))
@@ -51,16 +44,13 @@ export const getPaymentsByStatus = query({
 /**
  * Get payments within a date range
  */
-export const getPaymentsByDateRange = query({
+export const getPaymentsByDateRange = authQuery({
 	args: {
 		startDate: v.string(),
 		endDate: v.string(),
 	},
+	returns: v.array(v.object({})),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_process_date")
@@ -77,13 +67,10 @@ export const getPaymentsByDateRange = query({
 /**
  * Get payment by Rotessa payment ID (for idempotency/webhook reconciliation)
  */
-export const getPaymentByRotessaId = query({
+export const getPaymentByRotessaId = authQuery({
 	args: { paymentId: v.string() },
+	returns: v.union(v.object({}), v.null()),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		return await ctx.db
 			.query("payments")
 			.withIndex("by_payment_id", (q) => q.eq("paymentId", args.paymentId))
@@ -94,7 +81,7 @@ export const getPaymentByRotessaId = query({
 /**
  * Create a payment record
  */
-export const createPayment = mutation({
+export const createPayment = authMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		amount: v.number(),
@@ -108,11 +95,8 @@ export const createPayment = mutation({
 		customerId: v.string(),
 		transactionScheduleId: v.string(),
 	},
+	returns: v.id("payments"),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		// Validate amount
 		if (args.amount <= 0) {
 			throw new Error("Payment amount must be greater than 0");
@@ -139,7 +123,7 @@ export const createPayment = mutation({
 /**
  * Update payment status (for Rotessa sync)
  */
-export const updatePaymentStatus = mutation({
+export const updatePaymentStatus = authMutation({
 	args: {
 		id: v.id("payments"),
 		status: v.union(
@@ -149,11 +133,8 @@ export const updatePaymentStatus = mutation({
 		),
 		processDate: v.optional(v.string()),
 	},
+	returns: v.id("payments"),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		const { id, ...updates } = args;
 
 		await ctx.db.patch(id, updates);
@@ -164,7 +145,7 @@ export const updatePaymentStatus = mutation({
 /**
  * Bulk create payments (for payment schedule creation)
  */
-export const bulkCreatePayments = mutation({
+export const bulkCreatePayments = authMutation({
 	args: {
 		payments: v.array(
 			v.object({
@@ -182,11 +163,8 @@ export const bulkCreatePayments = mutation({
 			})
 		),
 	},
+	returns: v.array(v.id("payments")),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		// Validate amounts
 		for (const payment of args.payments) {
 			if (payment.amount <= 0) {
@@ -225,7 +203,7 @@ export const bulkCreatePayments = mutation({
 /**
  * Sync payment from Rotessa webhook (idempotent)
  */
-export const syncPaymentFromRotessa = mutation({
+export const syncPaymentFromRotessa = authMutation({
 	args: {
 		paymentId: v.string(),
 		mortgageId: v.id("mortgages"),
@@ -239,11 +217,8 @@ export const syncPaymentFromRotessa = mutation({
 		customerId: v.string(),
 		transactionScheduleId: v.string(),
 	},
+	returns: v.id("payments"),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		// Check if payment already exists
 		const existing = await ctx.db
 			.query("payments")

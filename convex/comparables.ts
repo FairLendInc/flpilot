@@ -4,8 +4,8 @@
  */
 
 import { v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
-import { requireAuth } from "../lib/authhelper";
+import { internalMutation } from "./_generated/server";
+import { authQuery, authMutation } from "./lib/server";
 
 /**
  * Validator for comparable property data
@@ -30,13 +30,10 @@ export const comparablePayloadValidator = v.object({
 /**
  * Get all comparables for a mortgage (ordered by distance) with signed URLs for images
  */
-export const getComparablesForMortgage = query({
+export const getComparablesForMortgage = authQuery({
 	args: { mortgageId: v.id("mortgages") },
+	returns: v.array(v.object({})),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -64,16 +61,13 @@ export const getComparablesForMortgage = query({
 /**
  * Get comparables within a specific distance radius
  */
-export const getComparablesWithinDistance = query({
+export const getComparablesWithinDistance = authQuery({
 	args: {
 		mortgageId: v.id("mortgages"),
 		maxMiles: v.number(),
 	},
+	returns: v.array(v.object({})),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -88,7 +82,7 @@ export const getComparablesWithinDistance = query({
 /**
  * Create a comparable record
  */
-export const createComparable = mutation({
+export const createComparable = authMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		address: v.object({
@@ -106,11 +100,8 @@ export const createComparable = mutation({
 		propertyType: v.optional(v.string()),
 		imageStorageId: v.optional(v.id("_storage")),
 	},
+	returns: v.id("appraisal_comparables"),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		// Validate numeric constraints
 		if (args.saleAmount <= 0) {
 			throw new Error("Sale amount must be greater than 0");
@@ -192,7 +183,7 @@ export const bulkCreateComparables = internalMutation({
 /**
  * Update a comparable
  */
-export const updateComparable = mutation({
+export const updateComparable = authMutation({
 	args: {
 		id: v.id("appraisal_comparables"),
 		address: v.optional(
@@ -212,11 +203,8 @@ export const updateComparable = mutation({
 		propertyType: v.optional(v.string()),
 		imageStorageId: v.optional(v.id("_storage")),
 	},
+	returns: v.id("appraisal_comparables"),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		const { id, ...updates } = args;
 
 		// Validate numeric constraints if provided
@@ -235,13 +223,10 @@ export const updateComparable = mutation({
 /**
  * Delete a comparable
  */
-export const deleteComparable = mutation({
+export const deleteComparable = authMutation({
 	args: { id: v.id("appraisal_comparables") },
+	returns: v.id("appraisal_comparables"),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		await ctx.db.delete(args.id);
 		return args.id;
 	},
@@ -250,13 +235,10 @@ export const deleteComparable = mutation({
 /**
  * Get comparables count for a listing (via its mortgage)
  */
-export const getComparablesCountForListing = query({
+export const getComparablesCountForListing = authQuery({
 	args: { listingId: v.id("listings") },
+	returns: v.number(),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		// Get the listing to find its mortgageId
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
@@ -276,13 +258,10 @@ export const getComparablesCountForListing = query({
 /**
  * Delete all comparables for a mortgage (for clean replacement)
  */
-export const deleteAllComparablesForMortgage = mutation({
+export const deleteAllComparablesForMortgage = authMutation({
 	args: { mortgageId: v.id("mortgages") },
+	returns: v.number(),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))

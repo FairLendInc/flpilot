@@ -4,19 +4,15 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { requireAuth } from "../lib/authhelper";
+import { authQuery, authMutation } from "./lib/server";
 
 /**
  * Get a borrower by ID
  */
-export const getBorrower = query({
+export const getBorrower = authQuery({
 	args: { id: v.id("borrowers") },
+	returns: v.union(v.object({}), v.null()),
 	handler: async (ctx, args) => {
-				const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		};
 		return await ctx.db.get(args.id);
 	},
 });
@@ -24,13 +20,10 @@ export const getBorrower = query({
 /**
  * Get borrower by Rotessa customer ID (for payment reconciliation)
  */
-export const getBorrowerByRotessaId = query({
+export const getBorrowerByRotessaId = authQuery({
 	args: { rotessaCustomerId: v.string() },
+	returns: v.union(v.object({}), v.null()),
 	handler: async (ctx, args) => {
-				const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		};
 		return await ctx.db
 			.query("borrowers")
 			.withIndex("by_rotessa_customer_id", (q) =>
@@ -43,13 +36,10 @@ export const getBorrowerByRotessaId = query({
 /**
  * List all borrowers (paginated for admin)
  */
-export const listBorrowers = query({
+export const listBorrowers = authQuery({
 	args: {},
+	returns: v.array(v.object({})),
 	handler: async (ctx) => {
-				const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		};
 		return await ctx.db.query("borrowers").collect();
 	},
 });
@@ -57,13 +47,10 @@ export const listBorrowers = query({
 /**
  * Search borrowers by email
  */
-export const searchBorrowersByEmail = query({
+export const searchBorrowersByEmail = authQuery({
 	args: { email: v.string() },
+	returns: v.array(v.object({})),
 	handler: async (ctx, args) => {
-				const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		};
 		return await ctx.db
 			.query("borrowers")
 			.withIndex("by_email", (q) => q.eq("email", args.email))
@@ -74,17 +61,14 @@ export const searchBorrowersByEmail = query({
 /**
  * Create a new borrower
  */
-export const createBorrower = mutation({
+export const createBorrower = authMutation({
 	args: {
 		name: v.string(),
 		email: v.string(),
 		rotessaCustomerId: v.string(),
 	},
+	returns: v.id("borrowers"),
 	handler: async (ctx, args) => {
-				const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		};
 		// Validate email format
 		if (!args.email.includes("@")) {
 			throw new Error("Invalid email format");
@@ -116,17 +100,14 @@ export const createBorrower = mutation({
 /**
  * Update borrower profile (name and email only, rotessaCustomerId is immutable)
  */
-export const updateBorrower = mutation({
+export const updateBorrower = authMutation({
 	args: {
 		id: v.id("borrowers"),
 		name: v.optional(v.string()),
 		email: v.optional(v.string()),
 	},
+	returns: v.id("borrowers"),
 	handler: async (ctx, args) => {
-				const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		};
 		const { id, ...updates } = args;
 
 		// Validate email format if provided

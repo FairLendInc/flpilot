@@ -97,13 +97,9 @@ function transformMortgage(mortgage: Mortgage): ListingItem {
 
 /**
  * Client component for the listings page
- * Uses preloaded authenticated data from server
+ * Uses client-side authenticated queries with explicit loading state handling
  */
 export function ListingsClient() {
-	// Always call usePreloadedQuery (React hooks must be unconditional)
-	// The <Authenticated> wrapper prevents rendering until auth is ready,
-	// and the query gracefully returns empty array if auth isn't initialized yet (Part C)
-
 	const { isLoading } = useConvexAuth();
 
 	const listingsWithMortgages = useAuthenticatedQuery(
