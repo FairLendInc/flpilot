@@ -5,7 +5,7 @@
 
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { requireAuth } from "./auth.config";
+import { requireAuth } from "../lib/authhelper";
 
 /**
  * Validator for comparable property data

@@ -6,18 +6,17 @@ import {
 	useAuth,
 } from "@workos-inc/authkit-nextjs/components";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
-import { type ReactNode, useCallback, useState } from "react";
-import { logger } from "../lib/logger";
+import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
+import { type ReactNode, useCallback, useRef } from "react";
+
+// biome-ignore lint/style/noNonNullAssertion: boilerplate code
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
-	const [convex] = useState(
-		// biome-ignore lint/style/noNonNullAssertion: its fine
-		() => new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
-	);
 	return (
 		<AuthKitProvider>
 			<ConvexProviderWithAuth client={convex} useAuth={useAuthFromAuthKit}>
-				{children}
+				<ConvexQueryCacheProvider>{children}</ConvexQueryCacheProvider>
 			</ConvexProviderWithAuth>
 		</AuthKitProvider>
 	);
@@ -25,38 +24,29 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
 
 function useAuthFromAuthKit() {
 	const { user, loading: isLoading } = useAuth();
-	const { getAccessToken, refresh } = useAccessToken();
+	const {
+		accessToken,
+		loading: tokenLoading,
+		error: tokenError,
+	} = useAccessToken();
+	const loading = (isLoading ?? false) || (tokenLoading ?? false);
+	const authenticated = !!user && !!accessToken && !loading;
 
-	const isAuthenticated = !!user;
+	const stableAccessToken = useRef<string | null>(null);
+	if (accessToken && !tokenError) {
+		stableAccessToken.current = accessToken;
+	}
 
-	// ToDo: Debug why react compiler is not picking this up.Log that for future learning. Directly applying "use mem"
-	// React compiler isn't picking this up for some reason, callback seems to be required.
-	const fetchAccessToken = useCallback(
-		async ({
-			forceRefreshToken,
-		}: {
-			forceRefreshToken?: boolean;
-		} = {}): Promise<string | null> => {
-			if (!user) {
-				return null;
-			}
-
-			try {
-				if (forceRefreshToken) {
-					return (await refresh()) ?? null;
-				}
-				return (await getAccessToken()) ?? null;
-			} catch (error) {
-				logger.error("Failed to get access token:", { error });
-				return null;
-			}
-		},
-		[user, refresh, getAccessToken]
-	);
+	const fetchAccessToken = useCallback(async () => {
+		if (stableAccessToken.current && !tokenError) {
+			return stableAccessToken.current;
+		}
+		return null;
+	}, [tokenError]);
 
 	return {
-		isLoading,
-		isAuthenticated,
+		isLoading: loading,
+		isAuthenticated: authenticated,
 		fetchAccessToken,
 	};
 }

@@ -15,6 +15,8 @@ import type * as crons from "../crons.js";
 import type * as dealStateMachine from "../dealStateMachine.js";
 import type * as deals from "../deals.js";
 import type * as http from "../http.js";
+import type * as lib_client from "../lib/client.js";
+import type * as lib_server from "../lib/server.js";
 import type * as listings from "../listings.js";
 import type * as lockRequests from "../lockRequests.js";
 import type * as logger from "../logger.js";
@@ -57,6 +59,8 @@ declare const fullApi: ApiFromModules<{
   dealStateMachine: typeof dealStateMachine;
   deals: typeof deals;
   http: typeof http;
+  "lib/client": typeof lib_client;
+  "lib/server": typeof lib_server;
   listings: typeof listings;
   lockRequests: typeof lockRequests;
   logger: typeof logger;

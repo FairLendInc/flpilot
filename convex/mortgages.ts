@@ -7,7 +7,7 @@ import { v, Infer } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { checkRbac, requireAuth } from "./auth.config";
+import { checkRbac, requireAuth } from "../lib/authhelper";
 
 const mortgageStatusValidator = v.union(
 	v.literal("active"),

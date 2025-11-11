@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, query } from "./_generated/server";
-import { checkRbac } from "./auth.config";
+import { checkRbac } from "../lib/authhelper";
 
 // Create or update an organization based on WorkOS webhook data
 export const createOrUpdateOrganization = internalMutation({

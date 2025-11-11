@@ -32,10 +32,58 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 **For all Convex-related work:**
 - **Always reference `.cursor/rules/convex_rules.mdc`** for patterns, best practices, and implementation examples
-- **Use `ctx.auth.getUserIdentity()` for all user role/permission checks** - WorkOS is the source of truth for authentication and authorization
+- **Use `authQuery`, `authMutation`, `authAction` from `convex/lib/server.ts`** for all authenticated backend functions - These automatically enforce authentication and provide RBAC context
+- **Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `convex/lib/client.ts`** for all authenticated client-side queries
+- **Never use `preloadQuery` with authentication tokens** - This is an anti-pattern that prevents static rendering and creates security vulnerabilities
+- **RBAC context is automatically available** - When using `authQuery`/`authMutation`/`authAction`, access `ctx.role`, `ctx.roles`, `ctx.permissions`, `ctx.org_id` directly without calling `ctx.auth.getUserIdentity()`
 - Follow the new Convex function syntax with `args` and `returns` validators
 - Leverage the 100% ownership invariant when working with mortgage ownership operations
 - The project uses spec-driven development - all new features require OpenSpec change proposals
+
+**Authentication Patterns:**
+
+**Backend (Convex Functions):**
+```typescript
+import { authQuery } from "./lib/server";
+import { v } from "convex/values";
+
+export const getProfile = authQuery({
+  args: {},
+  returns: v.object({ name: v.string() }),
+  handler: async (ctx) => {
+    // RBAC context automatically available:
+    const { role, permissions, org_id } = ctx;
+    // Authentication already validated
+    return { name: ctx.first_name };
+  }
+});
+```
+
+**Frontend (React Components):**
+```typescript
+"use client";
+import { useConvexAuth } from "convex/react";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { api } from "@/convex/_generated/api";
+
+function MyComponent() {
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const data = useAuthenticatedQuery(api.myFunction.getData, {});
+  
+  // Always check authLoading FIRST (prevents race condition)
+  if (authLoading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <SignInPrompt />;
+  if (!data) return <LoadingData />;
+  
+  return <DataDisplay data={data} />;
+}
+```
+
+**Anti-Patterns to Avoid:**
+- ❌ Using `preloadQuery` with `accessToken` for authenticated data
+- ❌ Using `useQuery` directly for authenticated data (use `useAuthenticatedQuery` instead)
+- ❌ Manually calling `ctx.auth.getUserIdentity()` when using `authQuery` (RBAC context is already available)
+- ❌ Not checking `authLoading` before rendering authenticated content
 
 Avoid `accessKey` attr and distracting els
 No `aria-hidden="true"` on focusable els

@@ -9,7 +9,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { hasRbacAccess } from "./auth.config";
+import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
 import { createActor } from "xstate";
 import { dealMachine, type DealContext, type DealEvent } from "./dealStateMachine";

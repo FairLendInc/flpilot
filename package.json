@@ -39,6 +39,7 @@
   "dependencies": {
     "@convex-dev/migrations": "^0.2.9",
     "@convex-dev/resend": "^0.1.13",
+    "@convex-dev/workos": "^0.0.1",
     "@documenso/embed-react": "^0.3.0",
     "@headlessui/react": "^2.2.9",
     "@heroui/divider": "^2.2.20",

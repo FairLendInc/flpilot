@@ -8,10 +8,17 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { hasRbacAccess, requireAuth } from "./auth.config";
+import { hasRbacAccess } from "../lib/authhelper";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 import { comparablePayloadValidator } from "./comparables";
 import logger from "./logger";
+
+
+		
+
+const getAvailableListingsWithMortgagesValidator = v.object({
+
+});
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
@@ -230,8 +237,9 @@ export const getAvailableListingsWithMortgages = query({
 		// instead of throwing to allow the subscription to succeed. The <Authenticated>
 		// component and conditional subscription logic prevent premature rendering.
 		const identity = await ctx.auth.getUserIdentity();
+		console.log('getAvailableListingsWithMortgages Identity', identity);
 		if (!identity) {
-			return [];
+			throw new Error("Authentication required to get available listings with mortgages");
 		}
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db

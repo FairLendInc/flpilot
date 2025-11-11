@@ -106,53 +106,71 @@ pnpm run build-storybook
 - `ConvexClientProvider` bridges WorkOS auth with Convex authentication
 - Unauthenticated paths: `/`, `/sign-in`, `/sign-up`
 
-#### Server-Side Data Fetching with Authentication
-For authenticated server components that need to preload Convex data, follow this pattern:
+#### Client-Side Data Fetching with Authentication
+**⚠️ CRITICAL: For REACTIVE data with AUTH, use reactive client-side queries (NOT preload patterns)**
 
-**Server Component (page.tsx):**
-```typescript
-import { withAuth } from "@workos-inc/authkit-nextjs";
-import { preloadQuery } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
-
-export default async function Page() {
-  const { accessToken } = await withAuth();
-
-  // Preload query with auth token
-  const preloaded = await preloadQuery(
-    api.yourFunction.queryName,
-    { /* args */ },
-    { token: accessToken }  // CRITICAL: Pass token for authentication
-  );
-
-  return <ClientComponent preloaded={preloaded} />;
-}
-```
+**✅ CORRECT: Reactive Auth Query Pattern**
 
 **Client Component:**
 ```typescript
 "use client";
-import { type Preloaded, usePreloadedQuery } from "convex/react";
+import { useConvexAuth } from "convex/react";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { api } from "@/convex/_generated/api";
 
-type Props = {
-  preloaded: Preloaded<typeof api.yourFunction.queryName>;
-};
-
-export function ClientComponent({ preloaded }: Props) {
-  const data = usePreloadedQuery(preloaded);
-  // Use data...
+export function ProfileComponent() {
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const profile = useAuthenticatedQuery(api.users.getProfile, {});
+  
+  // Always check authLoading FIRST (prevents race condition)
+  if (authLoading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <SignInPrompt />;
+  if (!profile) return <LoadingData />;
+  
+  return <ProfileCard {...profile} />;
 }
 ```
 
 **Key Points:**
-- Server: Use `withAuth()` to get `accessToken`
-- Server: Pass `{ token: accessToken }` as third argument to `preloadQuery`
-- Client: Import `Preloaded` and `usePreloadedQuery` from `convex/react`
-- Client: Use `usePreloadedQuery()` hook with preloaded data
-- Client: Type preloaded prop as `Preloaded<typeof api.yourFunction.queryName>`
+- Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `@/convex/lib/client`
+- Always check `authLoading` from `useConvexAuth()` before rendering
+- Query automatically skips when not authenticated
+- Data updates reactively when auth state changes
+- Allows static rendering (better performance)
 
-See [app/server/page.tsx](app/server/page.tsx) and [app/(auth)/listings/page.tsx](app/(auth)/listings/page.tsx) for examples.
+**❌ ANTI-PATTERN: Preloading Authenticated Data**
+
+**DO NOT use this pattern for authenticated data:**
+```typescript
+// ❌ WRONG - Prevents static rendering, stale data
+// Server Component
+export default async function Page() {
+  const { accessToken } = await withAuth();
+  const preloaded = await preloadQuery(
+    api.users.getProfile,
+    {},
+    { token: accessToken }
+  );
+  return <Client preloaded={preloaded} />;
+}
+
+// Client Component
+"use client";
+function Client({ preloaded }) {
+  const data = usePreloadedQuery(preloaded); // ⚠️ WRONG!
+  return <div>{data.email}</div>;
+}
+```
+
+**Why This Fails:**
+- Prevents Next.js static optimization (forces dynamic rendering)
+- Data frozen at server render time
+- Doesn't react to auth changes (logout, refresh)
+- Creates security vulnerability (stale auth data)
+
+**When to Use Preloading:**
+- Only for truly public/unauthenticated data
+- Never use `preloadQuery` with `accessToken` for authenticated content
 
 #### Data Flow
 - Convex schema defined in `convex/schema.ts` with 6 core tables:
@@ -169,10 +187,54 @@ See [app/server/page.tsx](app/server/page.tsx) and [app/(auth)/listings/page.tsx
 
 #### Convex Best Practices
 - **Always consult `.cursor/rules/convex_rules.mdc`** for Convex development patterns and guidelines
-- **Use `ctx.auth.getUserIdentity()` for all user role/permission checks** - WorkOS is the source of truth for authentication and authorization
+- **Use `authQuery`, `authMutation`, `authAction` from `convex/lib/server.ts`** for all authenticated functions - These automatically enforce authentication and provide RBAC context
+- **Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `convex/lib/client.ts`** for all authenticated client-side queries
+- **Never use `preloadQuery` with authentication tokens** - Use reactive client-side queries instead
+- **RBAC context is automatically available** - When using `authQuery`/`authMutation`/`authAction`, access `ctx.role`, `ctx.roles`, `ctx.permissions`, `ctx.org_id` directly without calling `ctx.auth.getUserIdentity()`
 - Follow the new Convex function syntax with `args` and `returns` validators
 - Use the OpenSpec spec-driven development workflow for all new features
 - Leverage the 100% ownership invariant when working with mortgage ownership operations
+
+**Backend Authentication Pattern:**
+```typescript
+import { authQuery } from "./lib/server";
+import { v } from "convex/values";
+
+export const getProfile = authQuery({
+  args: {},
+  returns: v.object({ name: v.string(), role: v.string() }),
+  handler: async (ctx) => {
+    // RBAC context automatically available:
+    const { role, roles, permissions, org_id } = ctx;
+    
+    // Check permission before proceeding
+    if (!permissions?.includes("read:profile")) {
+      throw new Error("Permission denied");
+    }
+    
+    return { name: ctx.first_name, role: ctx.role };
+  }
+});
+```
+
+**Frontend Authentication Pattern:**
+```typescript
+"use client";
+import { useConvexAuth } from "convex/react";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { api } from "@/convex/_generated/api";
+
+function MyComponent() {
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const data = useAuthenticatedQuery(api.myFunction.getData, {});
+  
+  if (authLoading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <SignInPrompt />;
+  if (!data) return <LoadingData />;
+  
+  return <DataDisplay data={data} />;
+}
+```
 
 #### Logging Architecture
 - Centralized logging system with adapter pattern
