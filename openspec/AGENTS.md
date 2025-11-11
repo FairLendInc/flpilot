@@ -401,6 +401,25 @@ Only add complexity with:
 - Prefer verb-led prefixes: `add-`, `update-`, `remove-`, `refactor-`
 - Ensure uniqueness; if taken, append `-2`, `-3`, etc.
 
+### Convex Data Fetching Patterns
+
+**CRITICAL: For authenticated reactive data, use `useAuthenticatedQuery` (Pattern 3) - never use preload patterns with authentication tokens.**
+
+#### Pattern Selection
+
+| Pattern | When to Use | Why |
+|---------|-------------|-----|
+| `fetchQuery` | SSR metadata, one-time server fetch | No caching, no reactivity, safe for auth |
+| `preloadQuery` | Public data needing SSR + reactivity | Server preload + client reactive, UNSAFE for auth |
+| `useAuthenticatedQuery` | **Default for user data** | Pure client-side reactive, secure, enables static rendering |
+
+**Decision Tree:**
+1. Is data authenticated/user-specific? → `useAuthenticatedQuery`
+2. Need SSR preload for public data? → `preloadQuery`
+3. For metadata/one-time SSR? → `fetchQuery`
+
+**Key Insight:** Patterns 2 and 3 both provide reactive updates. Pattern 2 preloads server-side, Pattern 3 is purely client-side. **For security, authenticated data must use Pattern 3.**
+
 ## Tool Selection Guide
 
 | Task | Tool | Why |

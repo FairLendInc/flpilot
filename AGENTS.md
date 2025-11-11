@@ -32,10 +32,145 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 **For all Convex-related work:**
 - **Always reference `.cursor/rules/convex_rules.mdc`** for patterns, best practices, and implementation examples
-- **Use `ctx.auth.getUserIdentity()` for all user role/permission checks** - WorkOS is the source of truth for authentication and authorization
+- **Use `authQuery`, `authMutation`, `authAction` from `convex/lib/server.ts`** for all authenticated backend functions - These automatically enforce authentication and provide RBAC context
+- **Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `convex/lib/client.ts`** for all authenticated client-side queries
+- **Never use `preloadQuery` with authentication tokens** - This is an anti-pattern that prevents static rendering and creates security vulnerabilities
+- **RBAC context is automatically available** - When using `authQuery`/`authMutation`/`authAction`, access `ctx.role`, `ctx.roles`, `ctx.permissions`, `ctx.org_id` directly without calling `ctx.auth.getUserIdentity()`
 - Follow the new Convex function syntax with `args` and `returns` validators
 - Leverage the 100% ownership invariant when working with mortgage ownership operations
 - The project uses spec-driven development - all new features require OpenSpec change proposals
+
+**Authentication Patterns:**
+
+**Backend (Convex Functions):**
+```typescript
+import { authQuery } from "./lib/server";
+import { v } from "convex/values";
+
+export const getProfile = authQuery({
+  args: {},
+  returns: v.object({ name: v.string() }),
+  handler: async (ctx) => {
+    // RBAC context automatically available:
+    const { role, permissions, org_id } = ctx;
+    // Authentication already validated
+    return { name: ctx.first_name };
+  }
+});
+```
+
+**Frontend (React Components):**
+```typescript
+"use client";
+import { useConvexAuth } from "convex/react";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { api } from "@/convex/_generated/api";
+
+function MyComponent() {
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const data = useAuthenticatedQuery(api.myFunction.getData, {});
+  
+  // Always check authLoading FIRST (prevents race condition)
+  if (authLoading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <SignInPrompt />;
+  if (!data) return <LoadingData />;
+  
+  return <DataDisplay data={data} />;
+}
+```
+
+**Anti-Patterns to Avoid:**
+- ❌ Using `preloadQuery` with `accessToken` for authenticated data
+- ❌ Using `useQuery` directly for authenticated data (use `useAuthenticatedQuery` instead)
+- ❌ Manually calling `ctx.auth.getUserIdentity()` when using `authQuery` (RBAC context is already available)
+- ❌ Not checking `authLoading` before rendering authenticated content
+
+### Convex Data Fetching Patterns
+
+Convex provides three distinct patterns for fetching data in Next.js applications. **Understanding when to use each is critical** for performance, security, and user experience.
+
+#### Pattern Selection Guide
+
+| Pattern | SSR Preload | Client Reactive | Cached? | CDN Cached? | Security | Use Case |
+|---------|-------------|-----------------|---------|-------------|----------|----------|
+| `fetchQuery` | ✅ Yes | ❌ No | ❌ No | ❌ No | ✅ Safe | SSR, metadata, one-time fetch |
+| `preloadQuery` | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ Unsafe for auth | Public data with reactivity |
+| `useAuthenticatedQuery` | ❌ No | ✅ Yes | ✅ Yes | ❌ No | ✅ Safe | **Default for user data** |
+
+**Decision Tree:**
+1. **Is the data authenticated/user-specific?**
+   - Yes → Use `useAuthenticatedQuery` (Pattern 3)
+   - No → Continue to 2
+
+2. **Do you need SSR preloading for performance?**
+   - Yes → Use `preloadQuery` + `usePreloadedQuery` (Pattern 2) - only for public data
+   - No → Use `fetchQuery` if one-time, or `useAuthenticatedQuery` if reactive (Pattern 1 or 3)
+
+3. **Is this for metadata generation?**
+   - Yes → Use `fetchQuery` (Pattern 1)
+
+**Summary:**
+- **For authenticated user data → Always use `useAuthenticatedQuery`** (pure client-side reactive)
+- **For public data needing SSR + reactivity → Use `preloadQuery`** (server preload + client reactive)
+- **For SSR/metadata (one-time) → Use `fetchQuery`** (one-time server fetch)
+
+**Key Insight:**
+- Patterns 2 and 3 both provide reactive updates on the client
+- Pattern 2 preloads server-side for faster initial render, then becomes reactive
+- Pattern 3 is purely client-side from the start
+- **For authenticated data, Pattern 3 is required for security (no server-side token preloading)**
+
+**Examples:**
+
+**Pattern 1: `fetchQuery` (SSR Metadata)**
+```typescript
+// Server Component - metadata generation
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const { accessToken } = await withAuth();
+  const data = await fetchQuery(
+    api.mortgages.getMortgage,
+    { id: params.id as Id<"mortgages"> },
+    { token: accessToken }
+  );
+
+  return { title: data?.title || "Listing" };
+}
+```
+
+**Pattern 2: `preloadQuery` (Public Data with Reactivity)**
+```typescript
+// Server Component - public data only
+export default async function PublicPage() {
+  const preloaded = await preloadQuery(api.publicData.getList, {});
+  return <ClientComponent preloaded={preloaded} />;
+}
+
+// Client Component
+"use client";
+function ClientComponent({ preloaded }) {
+  const data = usePreloadedQuery(preloaded);
+  // Data is reactive - updates when backend changes!
+  return <div>{data?.map(item => <span key={item.id}>{item.name}</span>)}</div>;
+}
+```
+
+**Pattern 3: `useAuthenticatedQuery` (Authenticated User Data)**
+```typescript
+"use client";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { useConvexAuth } from "convex/react";
+
+function AuthenticatedComponent() {
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const data = useAuthenticatedQuery(api.userData.getDashboard, {});
+
+  if (authLoading) return <Spinner />;
+  if (!isAuthenticated) return <SignIn />;
+  if (!data) return <LoadingData />;
+
+  return <div>{data.recentItems}</div>;
+}
+```
 
 Avoid `accessKey` attr and distracting els
 No `aria-hidden="true"` on focusable els

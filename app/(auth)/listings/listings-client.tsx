@@ -1,13 +1,15 @@
 "use client";
 
-import { type Preloaded, usePreloadedQuery } from "convex/react";
+import { useConvexAuth } from "convex/react";
 import {
 	type FilterableItem,
 	ListingGridShell,
 } from "@/components/ListingGridShell";
 import { Horizontal } from "@/components/listing-card-horizontal";
 import { ListingMapPopup } from "@/components/listing-map-popup";
-import type { api } from "@/convex/_generated/api";
+import { ListingsGridSkeleton } from "@/components/skeletons";
+import { api } from "@/convex/_generated/api";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import type {
 	Mortgage,
 	MortgageImage,
@@ -93,25 +95,29 @@ function transformMortgage(mortgage: Mortgage): ListingItem {
 	};
 }
 
-type ListingsClientProps = {
-	preloaded: Preloaded<typeof api.listings.getAvailableListingsWithMortgages>;
-};
-
 /**
  * Client component for the listings page
- * Uses preloaded authenticated data from server
+ * Uses client-side authenticated queries with explicit loading state handling
  */
-export function ListingsClient({ preloaded }: ListingsClientProps) {
-	// Always call usePreloadedQuery (React hooks must be unconditional)
-	// The <Authenticated> wrapper prevents rendering until auth is ready,
-	// and the query gracefully returns empty array if auth isn't initialized yet (Part C)
-	const listingsWithMortgages = usePreloadedQuery(preloaded);
+export function ListingsClient() {
+	const { isLoading } = useConvexAuth();
+
+	const listingsWithMortgages = useAuthenticatedQuery(
+		api.listings.getAvailableListingsWithMortgages,
+		{}
+	);
 
 	// Only process listings if authenticated - prevents using empty array from query fallback
-	const listings: ListingItem[] = listingsWithMortgages.map((item) => ({
-		...transformMortgage(item.mortgage as MortgageWithUrls),
-		locked: item.listing.locked,
-	}));
+	const listings: ListingItem[] =
+		listingsWithMortgages?.map((item) => ({
+			...transformMortgage(item.mortgage as MortgageWithUrls),
+			locked: item.listing.locked,
+		})) ?? [];
+
+	// Show skeleton while auth is loading OR while query data is still undefined
+	if (isLoading || listingsWithMortgages === undefined) {
+		return <ListingsGridSkeleton />;
+	}
 
 	return (
 		<ListingGridShell

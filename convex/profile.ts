@@ -16,7 +16,6 @@ export const getUserIdentity = query(async (ctx) => {
 });
 
 export const getCurrentUserProfile = query({
-
 	handler: async (ctx) => {
 		const identity: WorkOSIdentity | null = await ctx.auth.getUserIdentity();
 

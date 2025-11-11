@@ -1,6 +1,3 @@
-import type { Preloaded } from "convex/react";
-import type { api } from "@/convex/_generated/api";
-
 // WorkOS Identity type - replaces (any)
 export type WorkOSIdentity = {
 	profile_picture_url?: string;
@@ -59,9 +56,7 @@ export type ProfileData = {
 };
 
 // Props type for ProfileForm component
-export type ProfileFormProps = {
-	userData: Preloaded<typeof api.profile.getCurrentUserProfile>;
-};
+export type ProfileFormProps = Record<string, never>;
 
 // Props for ProfileHeader component
 export type ProfileHeaderProps = {

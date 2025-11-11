@@ -5,7 +5,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAuth, hasRbacAccess } from "./auth.config";
+import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
 
 /**

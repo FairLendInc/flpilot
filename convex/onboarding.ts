@@ -3,7 +3,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { action, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { checkRbac } from "./auth.config";
+import { checkRbac } from "../lib/authhelper";
 
 const PERSONA_OPTIONS = ["broker", "investor", "lawyer"] as const;
 const INVESTOR_ENTITY_TYPES = ["individual", "corporation", "trust", "fund"] as const;

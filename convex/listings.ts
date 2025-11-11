@@ -8,10 +8,12 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { hasRbacAccess, requireAuth } from "./auth.config";
+import { hasRbacAccess } from "../lib/authhelper";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 import { comparablePayloadValidator } from "./comparables";
 import logger from "./logger";
+import { authQuery } from "./lib/server";
+
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
@@ -221,18 +223,9 @@ export const getAvailableListings = query({
  * Get available listings with full mortgage details
  * Returns listings joined with their mortgage data for display with signed image URLs
  */
-export const getAvailableListingsWithMortgages = query({
+export const getAvailableListingsWithMortgages = authQuery({
 	args: {},
 	handler: async (ctx) => {
-		// Graceful fallback for initial subscription setup
-		// During first load, WorkOS auth may not be initialized yet when the query
-		// transitions from preloaded data to live subscription. Return empty array
-		// instead of throwing to allow the subscription to succeed. The <Authenticated>
-		// component and conditional subscription logic prevent premature rendering.
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return [];
-		}
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db
 			.query("listings")
@@ -290,19 +283,20 @@ export const getListingByMortgage = query({
 /**
  * Get listing by listing ID
  */
-export const getListingById = query({
+export const getListingById = authQuery({
 	args: { listingId: v.id("listings") },
+	returns: v.union(
+		v.object({
+			_id: v.id("listings"),
+			_creationTime: v.number(),
+			mortgageId: v.id("mortgages"),
+			visible: v.boolean(),
+			locked: v.boolean(),
+		}),
+		v.null()
+	),
 	handler: async (ctx, args) => {
-		console.debug("getListingById args", {
-			args: args,
-			ctx: ctx,
-		});
-		// THIS IS RETURNING NULL WHEN THE USER IS SIGNED IN? There's some sort of race condition here. 
-		const identity = await ctx.auth.getUserIdentity();
-		console.debug("getListingById Identity", identity);
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
+		// Authentication handled by authQuery wrapper
 		return await ctx.db.get(args.listingId);
 	},
 });

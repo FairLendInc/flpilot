@@ -11,7 +11,7 @@
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import {
 	AlertTriangle,
@@ -66,6 +66,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
 	canArchive,
 	canCancel,
@@ -96,18 +97,17 @@ export default function DealDetailPage({
 	const resolvedParams = use(params);
 	const dealId = resolvedParams.id as Id<"deals">;
 	const router = useRouter();
-	const { user, loading: authLoading } = useAuth();
+	const { loading: authLoading } = useAuth();
 
 	const [showCancelDialog, setShowCancelDialog] = useState(false);
 	const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 	const [showTransferDialog, setShowTransferDialog] = useState(false);
 	const [cancelReason, setCancelReason] = useState("");
 
-	// Skip query until auth is fully loaded to prevent race condition
-	const dealData = useQuery(
-		api.deals.getDealWithDetails,
-		authLoading || !user ? "skip" : { dealId }
-	);
+	// Use authenticated query - automatically handles auth checking
+	const dealData = useAuthenticatedQuery(api.deals.getDealWithDetails, {
+		dealId,
+	});
 	const cancelDeal = useMutation(api.deals.cancelDeal);
 	const archiveDeal = useMutation(api.deals.archiveDeal);
 	const completeDeal = useMutation(api.deals.completeDeal);

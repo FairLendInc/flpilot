@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { Pencil, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 
 // Regex for splitting names by whitespace - defined at top level for performance
@@ -81,7 +82,7 @@ function getInitials(
 
 export default function ProfilePage() {
 	const { user: authUser } = useAuth();
-	const data = useQuery(api.profile.getCurrentUserProfile);
+	const data = useAuthenticatedQuery(api.profile.getCurrentUserProfile, {});
 	useProvisionCurrentUser(data);
 	console.log("PROFILE DATA", { data });
 

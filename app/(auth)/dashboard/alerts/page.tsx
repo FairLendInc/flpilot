@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	AlertCircle,
 	ArrowRightCircle,
@@ -24,6 +24,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
 	type Alert,
 	type AlertType,
@@ -124,9 +125,9 @@ function AlertItem({
 }
 
 export default function AlertsPage() {
-	const allAlerts = useQuery(api.alerts.getAllUserAlerts, {});
-	const unreadAlerts = useQuery(api.alerts.getUnreadAlerts);
-	const unreadCount = useQuery(api.alerts.getUnreadAlertCount);
+	const allAlerts = useAuthenticatedQuery(api.alerts.getAllUserAlerts, {});
+	const unreadAlerts = useAuthenticatedQuery(api.alerts.getUnreadAlerts, {});
+	const unreadCount = useAuthenticatedQuery(api.alerts.getUnreadAlertCount, {});
 
 	const markAlertAsRead = useMutation(api.alerts.markAlertAsRead);
 	const markAllAsRead = useMutation(api.alerts.markAllAlertsAsRead);
