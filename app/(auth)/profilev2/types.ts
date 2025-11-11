@@ -56,9 +56,7 @@ export type ProfileData = {
 };
 
 // Props type for ProfileForm component
-export type ProfileFormProps = {
-	// No props needed - uses authenticated query internally
-};
+export type ProfileFormProps = Record<string, never>;
 
 // Props for ProfileHeader component
 export type ProfileHeaderProps = {

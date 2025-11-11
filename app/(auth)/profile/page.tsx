@@ -23,8 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 
 // Regex for splitting names by whitespace - defined at top level for performance
 const NAME_SPLIT_REGEX = /\s+/;

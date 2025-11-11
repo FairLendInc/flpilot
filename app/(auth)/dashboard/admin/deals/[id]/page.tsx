@@ -66,6 +66,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
 	canArchive,
 	canCancel,
@@ -76,7 +77,6 @@ import {
 	formatDealValue,
 	getDaysInState,
 } from "@/lib/types/dealTypes";
-import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	locked: Lock,
@@ -97,7 +97,7 @@ export default function DealDetailPage({
 	const resolvedParams = use(params);
 	const dealId = resolvedParams.id as Id<"deals">;
 	const router = useRouter();
-	const { user, loading: authLoading } = useAuth();
+	const { loading: authLoading } = useAuth();
 
 	const [showCancelDialog, setShowCancelDialog] = useState(false);
 	const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -105,10 +105,9 @@ export default function DealDetailPage({
 	const [cancelReason, setCancelReason] = useState("");
 
 	// Use authenticated query - automatically handles auth checking
-	const dealData = useAuthenticatedQuery(
-		api.deals.getDealWithDetails,
-		{ dealId }
-	);
+	const dealData = useAuthenticatedQuery(api.deals.getDealWithDetails, {
+		dealId,
+	});
 	const cancelDeal = useMutation(api.deals.cancelDeal);
 	const archiveDeal = useMutation(api.deals.archiveDeal);
 	const completeDeal = useMutation(api.deals.completeDeal);

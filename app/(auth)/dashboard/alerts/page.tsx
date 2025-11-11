@@ -24,6 +24,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
 	type Alert,
 	type AlertType,
@@ -31,7 +32,6 @@ import {
 	getTimeAgo,
 } from "@/lib/types/dealTypes";
 import { cn } from "@/lib/utils";
-import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 // Map alert type strings to icon components
 const ALERT_ICONS: Record<string, typeof Bell> = {
