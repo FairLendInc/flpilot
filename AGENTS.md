@@ -85,6 +85,93 @@ function MyComponent() {
 - ❌ Manually calling `ctx.auth.getUserIdentity()` when using `authQuery` (RBAC context is already available)
 - ❌ Not checking `authLoading` before rendering authenticated content
 
+### Convex Data Fetching Patterns
+
+Convex provides three distinct patterns for fetching data in Next.js applications. **Understanding when to use each is critical** for performance, security, and user experience.
+
+#### Pattern Selection Guide
+
+| Pattern | SSR Preload | Client Reactive | Cached? | CDN Cached? | Security | Use Case |
+|---------|-------------|-----------------|---------|-------------|----------|----------|
+| `fetchQuery` | ✅ Yes | ❌ No | ❌ No | ❌ No | ✅ Safe | SSR, metadata, one-time fetch |
+| `preloadQuery` | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ Unsafe for auth | Public data with reactivity |
+| `useAuthenticatedQuery` | ❌ No | ✅ Yes | ✅ Yes | ❌ No | ✅ Safe | **Default for user data** |
+
+**Decision Tree:**
+1. **Is the data authenticated/user-specific?**
+   - Yes → Use `useAuthenticatedQuery` (Pattern 3)
+   - No → Continue to 2
+
+2. **Do you need SSR preloading for performance?**
+   - Yes → Use `preloadQuery` + `usePreloadedQuery` (Pattern 2) - only for public data
+   - No → Use `fetchQuery` if one-time, or `useAuthenticatedQuery` if reactive (Pattern 1 or 3)
+
+3. **Is this for metadata generation?**
+   - Yes → Use `fetchQuery` (Pattern 1)
+
+**Summary:**
+- **For authenticated user data → Always use `useAuthenticatedQuery`** (pure client-side reactive)
+- **For public data needing SSR + reactivity → Use `preloadQuery`** (server preload + client reactive)
+- **For SSR/metadata (one-time) → Use `fetchQuery`** (one-time server fetch)
+
+**Key Insight:**
+- Patterns 2 and 3 both provide reactive updates on the client
+- Pattern 2 preloads server-side for faster initial render, then becomes reactive
+- Pattern 3 is purely client-side from the start
+- **For authenticated data, Pattern 3 is required for security (no server-side token preloading)**
+
+**Examples:**
+
+**Pattern 1: `fetchQuery` (SSR Metadata)**
+```typescript
+// Server Component - metadata generation
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const { accessToken } = await withAuth();
+  const data = await fetchQuery(
+    api.mortgages.getMortgage,
+    { id: params.id as Id<"mortgages"> },
+    { token: accessToken }
+  );
+
+  return { title: data?.title || "Listing" };
+}
+```
+
+**Pattern 2: `preloadQuery` (Public Data with Reactivity)**
+```typescript
+// Server Component - public data only
+export default async function PublicPage() {
+  const preloaded = await preloadQuery(api.publicData.getList, {});
+  return <ClientComponent preloaded={preloaded} />;
+}
+
+// Client Component
+"use client";
+function ClientComponent({ preloaded }) {
+  const data = usePreloadedQuery(preloaded);
+  // Data is reactive - updates when backend changes!
+  return <div>{data?.map(item => <span key={item.id}>{item.name}</span>)}</div>;
+}
+```
+
+**Pattern 3: `useAuthenticatedQuery` (Authenticated User Data)**
+```typescript
+"use client";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { useConvexAuth } from "convex/react";
+
+function AuthenticatedComponent() {
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const data = useAuthenticatedQuery(api.userData.getDashboard, {});
+
+  if (authLoading) return <Spinner />;
+  if (!isAuthenticated) return <SignIn />;
+  if (!data) return <LoadingData />;
+
+  return <div>{data.recentItems}</div>;
+}
+```
+
 Avoid `accessKey` attr and distracting els
 No `aria-hidden="true"` on focusable els
 No ARIA roles, states, props on unsupported els

@@ -12,6 +12,7 @@ import { hasRbacAccess } from "../lib/authhelper";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 import { comparablePayloadValidator } from "./comparables";
 import logger from "./logger";
+import { authQuery } from "./lib/server";
 
 
 		
@@ -228,19 +229,9 @@ export const getAvailableListings = query({
  * Get available listings with full mortgage details
  * Returns listings joined with their mortgage data for display with signed image URLs
  */
-export const getAvailableListingsWithMortgages = query({
+export const getAvailableListingsWithMortgages = authQuery({
 	args: {},
 	handler: async (ctx) => {
-		// Graceful fallback for initial subscription setup
-		// During first load, WorkOS auth may not be initialized yet when the query
-		// transitions from preloaded data to live subscription. Return empty array
-		// instead of throwing to allow the subscription to succeed. The <Authenticated>
-		// component and conditional subscription logic prevent premature rendering.
-		const identity = await ctx.auth.getUserIdentity();
-		console.log('getAvailableListingsWithMortgages Identity', identity);
-		if (!identity) {
-			throw new Error("Authentication required to get available listings with mortgages");
-		}
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
 		const listings = await ctx.db
 			.query("listings")

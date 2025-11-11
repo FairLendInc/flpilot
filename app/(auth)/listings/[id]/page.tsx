@@ -1,5 +1,5 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
-import { preloadedQueryResult, preloadQuery } from "convex/nextjs";
+import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
 import { AppraisalData } from "@/components/listing-detail/appraisal-data";
@@ -111,7 +111,7 @@ export async function generateMetadata({
 	const { accessToken } = await withAuth();
 	try {
 		// Preload mortgage data from Convex
-		const preloadedMortgage = await preloadQuery(
+		const preloadedMortgage = await fetchQuery(
 			api.mortgages.getMortgage,
 			{
 				id: id as Id<"mortgages">,
@@ -125,7 +125,7 @@ export async function generateMetadata({
 			};
 		}
 
-		const mortgage = preloadedQueryResult(preloadedMortgage);
+		const mortgage = preloadedMortgage as MortgageWithUrls | null;
 		if (!mortgage) {
 			return {
 				title: "Listing Not Found",
@@ -160,60 +160,44 @@ export default async function ListingDetailPage({
 	const { id } = await params;
 	const { accessToken } = await withAuth();
 	// Preload all required data from Convex
-	const [
-		preloadedMortgage,
-		preloadedPayments,
-		preloadedComparables,
-		preloadedListing,
-	] = await Promise.all([
-		preloadQuery(
-			api.mortgages.getMortgage,
-			{
-				id: id as Id<"mortgages">,
-			},
-			{ token: accessToken }
-		),
-		preloadQuery(
-			api.payments.getPaymentsForMortgage,
-			{
-				mortgageId: id as Id<"mortgages">,
-			},
-			{ token: accessToken }
-		),
-		preloadQuery(
-			api.comparables.getComparablesForMortgage,
-			{
-				mortgageId: id as Id<"mortgages">,
-			},
-			{ token: accessToken }
-		),
-		preloadQuery(
-			api.listings.getListingByMortgage,
-			{
-				mortgageId: id as Id<"mortgages">,
-			},
-			{ token: accessToken }
-		),
-	]);
+	const [fetchedMortgage, fetchedPayments, fetchedComparables, fetchedListing] =
+		await Promise.all([
+			fetchQuery(
+				api.mortgages.getMortgage,
+				{
+					id: id as Id<"mortgages">,
+				},
+				{ token: accessToken }
+			),
+			fetchQuery(
+				api.payments.getPaymentsForMortgage,
+				{
+					mortgageId: id as Id<"mortgages">,
+				},
+				{ token: accessToken }
+			),
+			fetchQuery(
+				api.comparables.getComparablesForMortgage,
+				{
+					mortgageId: id as Id<"mortgages">,
+				},
+				{ token: accessToken }
+			),
+			fetchQuery(
+				api.listings.getListingByMortgage,
+				{
+					mortgageId: id as Id<"mortgages">,
+				},
+				{ token: accessToken }
+			),
+		]);
 
 	// Extract actual data from preloaded results
-	const mortgage = preloadedQueryResult(
-		preloadedMortgage
-	) as MortgageWithUrls | null;
-	const payments = (preloadedQueryResult(preloadedPayments) as Payment[]) || [];
+	const mortgage = fetchedMortgage as unknown as MortgageWithUrls;
+	const payments = (fetchedPayments as Payment[]) || [];
 	const comparables =
-		(preloadedQueryResult(
-			preloadedComparables
-		) as AppraisalComparableWithUrl[]) || [];
-	const listingData = preloadedQueryResult(preloadedListing);
-
-	if (!mortgage) {
-		return (
-			<div className="container mx-auto max-w-7xl px-4 py-8">
-				<h1 className="font-bold text-2xl">Listing not found</h1>
-			</div>
-		);
-	}
+		(fetchedComparables as AppraisalComparableWithUrl[]) || [];
+	const listingData = fetchedListing;
 
 	// Transform mortgage data for components
 	const listing = transformMortgageForComponents(mortgage);

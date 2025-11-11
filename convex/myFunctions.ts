@@ -1,10 +1,7 @@
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
 import { logger } from "./logger";
-// import { withAuth } from "@workos-inc/authkit-nextjs";
-import { requireAuth } from "../lib/authhelper";
 
 // Write your Convex functions in any file inside this directory (`convex`).
 // See https://docs.convex.dev/functions for more.
@@ -20,16 +17,14 @@ export const listNumbers = query({
 	handler: async (ctx, args) => {
 		//// Read the database as many times as you need here.
 		//// See https://docs.convex.dev/database/reading-data.
-		const identity = await requireAuth(ctx, 
-			"myFunctions.listNumbers"
-		);
+		const identity = await ctx.auth.getUserIdentity();
 		const numbers = await ctx.db
 			.query("numbers")
 			// Ordered by _creationTime, return most recent
 			.order("desc")
 			.take(args.count);
 		return {
-			viewer: identity.subject ?? null,
+			viewer: identity?.subject ?? null,
 			numbers: numbers.reverse().map((number) => number.value),
 		};
 	},

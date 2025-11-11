@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	AlertCircle,
 	ArrowRightCircle,
@@ -31,6 +31,7 @@ import {
 	getTimeAgo,
 } from "@/lib/types/dealTypes";
 import { cn } from "@/lib/utils";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 // Map alert type strings to icon components
 const ALERT_ICONS: Record<string, typeof Bell> = {
@@ -124,9 +125,9 @@ function AlertItem({
 }
 
 export default function AlertsPage() {
-	const allAlerts = useQuery(api.alerts.getAllUserAlerts, {});
-	const unreadAlerts = useQuery(api.alerts.getUnreadAlerts);
-	const unreadCount = useQuery(api.alerts.getUnreadAlertCount);
+	const allAlerts = useAuthenticatedQuery(api.alerts.getAllUserAlerts, {});
+	const unreadAlerts = useAuthenticatedQuery(api.alerts.getUnreadAlerts, {});
+	const unreadCount = useAuthenticatedQuery(api.alerts.getUnreadAlertCount, {});
 
 	const markAlertAsRead = useMutation(api.alerts.markAlertAsRead);
 	const markAllAsRead = useMutation(api.alerts.markAllAlertsAsRead);

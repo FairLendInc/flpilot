@@ -1,19 +1,11 @@
-import { withAuth } from "@workos-inc/authkit-nextjs";
-import { preloadQuery } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
+"use client";
+
 import ProfileForm from "./ProfileForm";
 
-export default async function ProfileV2Page() {
-	const { accessToken } = await withAuth();
-	const profileDataPreLoad = await preloadQuery(
-		api.profile.getCurrentUserProfile,
-		{},
-		{ token: accessToken }
-	);
-
+export default function ProfileV2Page() {
 	return (
 		<div className="mx-auto w-full max-w-7xl px-4 py-8">
-			<ProfileForm userData={profileDataPreLoad} />
+			<ProfileForm />
 		</div>
 	);
 }

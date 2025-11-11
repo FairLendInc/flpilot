@@ -1,6 +1,5 @@
 "use client";
 
-import { usePreloadedQuery } from "convex/react";
 import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 import { ProfileFormFields } from "./components/ProfileFormFields";
@@ -13,12 +12,14 @@ import {
 	useProfileForm,
 } from "./hooks";
 import type { ProfileData, ProfileFormProps } from "./types";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { api } from "@/convex/_generated/api";
 
 // React Compiler handles all memoization, state tracking, and dead code elimination automatically
 // No need for manual useMemo, useCallback, or explicit optimization patterns
 
-export default function ProfileForm({ userData }: ProfileFormProps) {
-	const userProfileData = usePreloadedQuery(userData);
+export default function ProfileForm(_props: ProfileFormProps) {
+	const userProfileData = useAuthenticatedQuery(api.profile.getCurrentUserProfile, {});
 	useProvisionCurrentUser(userProfileData);
 
 	// Create a properly typed version of the data

@@ -11,7 +11,7 @@
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import {
 	AlertTriangle,
@@ -76,6 +76,7 @@ import {
 	formatDealValue,
 	getDaysInState,
 } from "@/lib/types/dealTypes";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	locked: Lock,
@@ -103,10 +104,10 @@ export default function DealDetailPage({
 	const [showTransferDialog, setShowTransferDialog] = useState(false);
 	const [cancelReason, setCancelReason] = useState("");
 
-	// Skip query until auth is fully loaded to prevent race condition
-	const dealData = useQuery(
+	// Use authenticated query - automatically handles auth checking
+	const dealData = useAuthenticatedQuery(
 		api.deals.getDealWithDetails,
-		authLoading || !user ? "skip" : { dealId }
+		{ dealId }
 	);
 	const cancelDeal = useMutation(api.deals.cancelDeal);
 	const archiveDeal = useMutation(api.deals.archiveDeal);
