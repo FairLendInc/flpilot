@@ -7,11 +7,22 @@ import { v } from "convex/values";
 import { authQuery, authMutation } from "./lib/server";
 
 /**
+ * Schema for borrower document (includes Convex system fields)
+ */
+const borrowerSchema = v.object({
+	_id: v.id("borrowers"),
+	_creationTime: v.number(),
+	name: v.string(),
+	email: v.string(),
+	rotessaCustomerId: v.string(),
+});
+
+/**
  * Get a borrower by ID
  */
 export const getBorrower = authQuery({
 	args: { id: v.id("borrowers") },
-	returns: v.union(v.any(), v.null()),
+	returns: v.union(borrowerSchema, v.null()),
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.id);
 	},
@@ -22,7 +33,7 @@ export const getBorrower = authQuery({
  */
 export const getBorrowerByRotessaId = authQuery({
 	args: { rotessaCustomerId: v.string() },
-	returns: v.union(v.any(), v.null()),
+	returns: v.union(borrowerSchema, v.null()),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("borrowers")
@@ -38,7 +49,7 @@ export const getBorrowerByRotessaId = authQuery({
  */
 export const listBorrowers = authQuery({
 	args: {},
-	returns: v.array(v.any()),
+	returns: v.array(borrowerSchema),
 	handler: async (ctx) => {
 		return await ctx.db.query("borrowers").collect();
 	},
@@ -49,7 +60,7 @@ export const listBorrowers = authQuery({
  */
 export const searchBorrowersByEmail = authQuery({
 	args: { email: v.string() },
-	returns: v.array(v.any()),
+	returns: v.array(borrowerSchema),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("borrowers")

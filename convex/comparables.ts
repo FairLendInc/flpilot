@@ -8,15 +8,59 @@ import { internalMutation } from "./_generated/server";
 import { authQuery, authMutation } from "./lib/server";
 
 /**
- * Validator for comparable property data
+ * Schema for comparable property address
+ */
+const addressSchema = v.object({
+	street: v.string(),
+	city: v.string(),
+	state: v.string(),
+	zip: v.string(),
+});
+
+/**
+ * Schema for comparable document (includes Convex system fields)
+ */
+const comparableSchema = v.object({
+	_id: v.id("appraisal_comparables"),
+	_creationTime: v.number(),
+	mortgageId: v.id("mortgages"),
+	address: addressSchema,
+	saleAmount: v.number(),
+	saleDate: v.string(),
+	distance: v.number(),
+	squareFeet: v.optional(v.number()),
+	bedrooms: v.optional(v.number()),
+	bathrooms: v.optional(v.number()),
+	propertyType: v.optional(v.string()),
+	asIf: v.optional(v.boolean()),
+	imageStorageId: v.optional(v.id("_storage")),
+});
+
+/**
+ * Schema for comparable with signed image URL (used by getComparablesForMortgage)
+ */
+const comparableWithUrlSchema = v.object({
+	_id: v.id("appraisal_comparables"),
+	_creationTime: v.number(),
+	mortgageId: v.id("mortgages"),
+	address: addressSchema,
+	saleAmount: v.number(),
+	saleDate: v.string(),
+	distance: v.number(),
+	squareFeet: v.optional(v.number()),
+	bedrooms: v.optional(v.number()),
+	bathrooms: v.optional(v.number()),
+	propertyType: v.optional(v.string()),
+	asIf: v.optional(v.boolean()),
+	imageStorageId: v.optional(v.id("_storage")),
+	imageUrl: v.union(v.string(), v.null()),
+});
+
+/**
+ * Validator for comparable property data (for input/creation)
  */
 export const comparablePayloadValidator = v.object({
-	address: v.object({
-		street: v.string(),
-		city: v.string(),
-		state: v.string(),
-		zip: v.string(),
-	}),
+	address: addressSchema,
 	saleAmount: v.number(),
 	saleDate: v.string(),
 	distance: v.number(),
@@ -32,7 +76,7 @@ export const comparablePayloadValidator = v.object({
  */
 export const getComparablesForMortgage = authQuery({
 	args: { mortgageId: v.id("mortgages") },
-	returns: v.array(v.any()),
+	returns: v.array(comparableWithUrlSchema),
 	handler: async (ctx, args) => {
 		const comparables = await ctx.db
 			.query("appraisal_comparables")
@@ -66,7 +110,7 @@ export const getComparablesWithinDistance = authQuery({
 		mortgageId: v.id("mortgages"),
 		maxMiles: v.number(),
 	},
-	returns: v.array(v.any()),
+	returns: v.array(comparableSchema),
 	handler: async (ctx, args) => {
 		const comparables = await ctx.db
 			.query("appraisal_comparables")

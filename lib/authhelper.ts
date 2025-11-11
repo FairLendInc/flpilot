@@ -5,6 +5,13 @@ import {
 	extractRole,
 	type WorkOSIdentity,
 } from "../types/workos";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const ADMIN_ROLE = "admin";
+
 // ============================================================================
 // RBAC Helper Functions
 // ============================================================================
@@ -33,7 +40,7 @@ export function hasRbacAccess(options: RbacOptions): boolean {
 	const userRole = extractRole(user_identity);
 
 	// Admins bypass all checks
-	if (userRole === "admin") {
+	if (userRole === ADMIN_ROLE) {
 		return true;
 	}
 
@@ -87,18 +94,14 @@ export function checkRbac(options: RbacOptions): void {
 		throw new Error("Unauthorized: No user identity provided");
 	}
 
-	// Extract role from identity (with fallback)
-	const userRole = extractRole(user_identity);
-
-	// Admins bypass all checks
-	if (userRole === "admin") {
+	// Use hasRbacAccess to check authorization (includes admin bypass)
+	if (hasRbacAccess(options)) {
 		return;
 	}
 
-	// Extract permissions from identity (with fallback)
+	// If authorization failed, extract details to generate specific error message
+	const userRole = extractRole(user_identity);
 	const userPermissions = extractPermissions(user_identity);
-
-	// Extract org_id from identity (with fallback)
 	const userOrgId = extractOrgId(user_identity);
 
 	// Check required roles
