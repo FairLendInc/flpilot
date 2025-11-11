@@ -1,108 +1,36 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
-import { ViewTransition } from "react";
-import { AppraisalData } from "@/components/listing-detail/appraisal-data";
-import { ComparableProperties } from "@/components/listing-detail/comparable-properties";
-import { DocumentViewerWrapper } from "@/components/listing-detail/document-viewer-wrapper";
-import { FinancialMetrics } from "@/components/listing-detail/financial-metrics";
-import { ImageCarousel } from "@/components/listing-detail/image-carousel";
-import { PaymentHistory } from "@/components/listing-detail/payment-history";
-import { PropertyInfo } from "@/components/listing-detail/property-info";
-import { PropertyMapComponent } from "@/components/listing-detail/property-map";
-import { RequestListingSection } from "@/components/listing-detail/request-listing-section";
+import { Suspense, ViewTransition } from "react";
+import { AppraisalDataAsync } from "@/components/listing-detail/appraisal-data-async";
+import { ComparablePropertiesAsync } from "@/components/listing-detail/comparable-properties-async";
+import { DocumentViewerAsync } from "@/components/listing-detail/document-viewer-async";
+import { FinancialMetricsAsync } from "@/components/listing-detail/financial-metrics-async";
+import { ImageCarouselAsync } from "@/components/listing-detail/image-carousel-async";
+import { PaymentHistoryAsync } from "@/components/listing-detail/payment-history-async";
+import { PropertyInfoAsync } from "@/components/listing-detail/property-info-async";
+import { PropertyMapAsync } from "@/components/listing-detail/property-map-async";
+import { RequestListingSectionAsync } from "@/components/listing-detail/request-listing-section-async";
+import {
+	AppraisalDataSkeleton,
+	ComparablePropertiesSkeleton,
+	DocumentViewerSkeleton,
+	FinancialMetricsSkeleton,
+	ImageCarouselSkeleton,
+	PaymentHistorySkeleton,
+	PropertyInfoSkeleton,
+	PropertyMapSkeleton,
+	RequestListingSkeleton,
+} from "@/components/skeletons";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import type {
-	AppraisalComparableWithUrl,
-	MortgageDocument,
-	MortgageImage,
-	MortgageWithUrls,
-	Payment,
-} from "@/lib/types/convex";
+import type { MortgageWithUrls } from "@/lib/types/convex";
 
 type ListingDetailPageProps = {
 	params: Promise<{
 		id: string;
 	}>;
 };
-
-/**
- * Transform Convex Mortgage to mock-like format for components
- * Uses pre-fetched signed URLs from Convex queries
- */
-function transformMortgageForComponents(mortgage: MortgageWithUrls) {
-	// Use pre-fetched signed URLs from Convex query
-	const images = mortgage.images.map((img: MortgageImage, idx) => ({
-		url: img.url || `/api/storage/${img.storageId}`,
-		alt: img.alt ?? `Property view ${idx + 1}`,
-		order: img.order,
-	}));
-
-	// Transform financial data to match component expectations
-	const financials = {
-		purchasePrice: Math.round(mortgage.appraisalMarketValue), // Use actual appraisal value
-		currentValue: mortgage.appraisalMarketValue, // Real market value from appraisal
-		monthlyPayment: Math.round(
-			(mortgage.loanAmount * (mortgage.interestRate / 100)) / 12
-		),
-		interestRate: mortgage.interestRate,
-		loanTerm: 12, // Not stored in schema, using placeholder
-		maturityDate: mortgage.maturityDate,
-		principalLoanAmount: mortgage.loanAmount,
-		propertyType: mortgage.propertyType,
-		ltv: mortgage.ltv, // Real LTV from database
-		mortgageType:
-			mortgage.mortgageType === "1st"
-				? "1st Position"
-				: mortgage.mortgageType === "2nd"
-					? "2nd Position"
-					: "Other Position",
-		priorEncumbrance: mortgage.priorEncumbrance || null,
-		asIfAppraisal: mortgage.asIfAppraisal || null,
-	};
-
-	// Transform documents - use pre-fetched signed URLs
-	const documents = (mortgage.documents ?? []).map((doc: MortgageDocument) => ({
-		_id: `${mortgage._id}-${doc.type}`,
-		name: doc.name,
-		type: (doc.type === "insurance" ? "loan" : doc.type) as
-			| "appraisal"
-			| "inspection"
-			| "loan"
-			| "title",
-		url: doc.url || `/api/storage/${doc.storageId}`,
-		uploadDate: doc.uploadDate,
-		fileSize: doc.fileSize,
-	}));
-
-	// Map mortgage type for display
-	const mortgageTypeDisplay =
-		mortgage.mortgageType === "1st"
-			? "First"
-			: mortgage.mortgageType === "2nd"
-				? "Second"
-				: "Other";
-
-	return {
-		_id: mortgage._id,
-		title: `${mortgage.address.street}`,
-		address: mortgage.address,
-		location: mortgage.location,
-		images,
-		financials,
-		documents,
-		status: mortgage.status,
-		mortgageType: mortgageTypeDisplay,
-		appraisalData: {
-			marketValue: mortgage.appraisalMarketValue,
-			method: mortgage.appraisalMethod,
-			company: mortgage.appraisalCompany,
-			date: mortgage.appraisalDate,
-		},
-		investorBrief: `Investment opportunity at ${mortgage.address.street}, ${mortgage.address.city}. ${mortgageTypeDisplay} ${mortgage.propertyType} with ${mortgage.interestRate}% interest rate. Appraised at $${mortgage.appraisalMarketValue.toLocaleString()} with ${mortgage.ltv}% LTV.`,
-	};
-}
 
 export async function generateMetadata({
 	params,
@@ -132,18 +60,30 @@ export async function generateMetadata({
 			};
 		}
 
-		const transformed = transformMortgageForComponents(mortgage);
+		const title = `${mortgage.address.street}`;
+		const mortgageTypeDisplay =
+			mortgage.mortgageType === "1st"
+				? "First"
+				: mortgage.mortgageType === "2nd"
+					? "Second"
+					: "Other";
+		const investorBrief = `Investment opportunity at ${mortgage.address.street}, ${mortgage.address.city}. ${mortgageTypeDisplay} ${mortgage.propertyType} with ${mortgage.interestRate}% interest rate. Appraised at $${mortgage.appraisalMarketValue.toLocaleString()} with ${mortgage.ltv}% LTV.`;
 
 		return {
-			title: `${transformed.title} - Investment Property`,
+			title: `${title} - Investment Property`,
 			description:
-				transformed.investorBrief ||
-				`Property located at ${transformed.address.street}, ${transformed.address.city}`,
+				investorBrief ||
+				`Property located at ${mortgage.address.street}, ${mortgage.address.city}`,
 			openGraph: {
-				title: transformed.title,
-				description: transformed.investorBrief,
+				title,
+				description: investorBrief,
 				images:
-					transformed.images.length > 0 ? [transformed.images[0].url] : [],
+					mortgage.images.length > 0
+						? [
+								mortgage.images[0].url ||
+									`/api/storage/${mortgage.images[0].storageId}`,
+							]
+						: [],
 			},
 		};
 	} catch (error) {
@@ -158,149 +98,56 @@ export default async function ListingDetailPage({
 	params,
 }: ListingDetailPageProps) {
 	const { id } = await params;
-	const { accessToken } = await withAuth();
-	// Preload all required data from Convex
-	const [fetchedMortgage, fetchedPayments, fetchedComparables, fetchedListing] =
-		await Promise.all([
-			fetchQuery(
-				api.mortgages.getMortgage,
-				{
-					id: id as Id<"mortgages">,
-				},
-				{ token: accessToken }
-			),
-			fetchQuery(
-				api.payments.getPaymentsForMortgage,
-				{
-					mortgageId: id as Id<"mortgages">,
-				},
-				{ token: accessToken }
-			),
-			fetchQuery(
-				api.comparables.getComparablesForMortgage,
-				{
-					mortgageId: id as Id<"mortgages">,
-				},
-				{ token: accessToken }
-			),
-			fetchQuery(
-				api.listings.getListingByMortgage,
-				{
-					mortgageId: id as Id<"mortgages">,
-				},
-				{ token: accessToken }
-			),
-		]);
-
-	// Extract actual data from preloaded results
-	const mortgage = fetchedMortgage as unknown as MortgageWithUrls;
-	const payments = (fetchedPayments as Payment[]) || [];
-	const comparables =
-		(fetchedComparables as AppraisalComparableWithUrl[]) || [];
-	const listingData = fetchedListing;
-
-	// Transform mortgage data for components
-	const listing = transformMortgageForComponents(mortgage);
-
-	// Transform comparables to match component expectations
-	// Use pre-fetched signed URLs from Convex query
-	const transformedComparables = comparables.map(
-		(comp: AppraisalComparableWithUrl) => ({
-			_id: comp._id,
-			address: comp.address,
-			saleAmount: comp.saleAmount,
-			saleDate: comp.saleDate,
-			distance: comp.distance,
-			squareFeet: comp.squareFeet,
-			bedrooms: comp.bedrooms,
-			bathrooms: comp.bathrooms,
-			propertyType: comp.propertyType,
-			imageUrl:
-				comp.imageUrl ||
-				(comp.imageStorageId
-					? `/api/storage/${comp.imageStorageId}`
-					: "/house.jpg"),
-		})
-	);
-
-	// Transform payments to match component expectations
-	const transformedPayments = payments.map((payment) => ({
-		...payment,
-		listingId: id,
-		date: payment.processDate,
-		type: "interest" as const, // All payments are interest-only in our schema
-	}));
 
 	return (
-		<ViewTransition name={`listing-${listing._id}`}>
+		<ViewTransition name={`listing-${id}`}>
 			<div className="container mx-auto max-w-7xl px-4 py-8">
-				{/* Property Info */}
+				{/* Property Info - High Priority */}
 				<div className="mb-8">
-					<PropertyInfo
-						address={listing.address}
-						investorBrief={listing.investorBrief}
-						status={listing.status}
-						title={listing.title}
-					/>
+					<Suspense fallback={<PropertyInfoSkeleton />}>
+						<PropertyInfoAsync mortgageId={id as Id<"mortgages">} />
+					</Suspense>
 				</div>
 
-				{/* Image Carousel and Map Grid */}
+				{/* Image Carousel and Map Grid - High Priority */}
 				<div className="mb-12 grid gap-6 lg:grid-cols-2">
-					<ImageCarousel
-						images={listing.images}
-						propertyTitle={listing.title}
-					/>
-					<PropertyMapComponent
-						address={listing.address}
-						location={listing.location}
-					/>
+					<Suspense fallback={<ImageCarouselSkeleton />}>
+						<ImageCarouselAsync mortgageId={id as Id<"mortgages">} />
+					</Suspense>
+					<Suspense fallback={<PropertyMapSkeleton />}>
+						<PropertyMapAsync mortgageId={id as Id<"mortgages">} />
+					</Suspense>
 				</div>
 
-				{/* Financial Metrics */}
-				<div className="mb-12">
-					<FinancialMetrics financials={listing.financials} />
-				</div>
+				{/* Financial Metrics - High Priority */}
+				<Suspense fallback={<FinancialMetricsSkeleton />}>
+					<FinancialMetricsAsync mortgageId={id as Id<"mortgages">} />
+				</Suspense>
 
-				{/* Payment History */}
-				<div className="mb-12">
-					<PaymentHistory payments={transformedPayments} />
-				</div>
+				{/* Payment History - Medium Priority */}
+				<Suspense fallback={<PaymentHistorySkeleton />}>
+					<PaymentHistoryAsync mortgageId={id as Id<"mortgages">} />
+				</Suspense>
 
-				{/* Document Viewer */}
-				{listing.documents && listing.documents.length > 0 && (
-					<div className="mb-12">
-						<DocumentViewerWrapper documents={listing.documents} />
-					</div>
-				)}
+				{/* Document Viewer - Low Priority */}
+				<Suspense fallback={<DocumentViewerSkeleton />}>
+					<DocumentViewerAsync mortgageId={id as Id<"mortgages">} />
+				</Suspense>
 
-				{/* Appraisal Data */}
-				<div className="mb-12">
-					<AppraisalData
-						appraisal={{
-							value: listing.appraisalData?.marketValue || 0,
-							date: listing.appraisalData?.date || new Date().toISOString(),
-							appraiser: listing.appraisalData?.company || "Not Available",
-							method: listing.appraisalData?.method || "comparative",
-						}}
-						currentValue={listing.financials?.currentValue || 0}
-					/>
-				</div>
+				{/* Appraisal Data - Medium Priority */}
+				<Suspense fallback={<AppraisalDataSkeleton />}>
+					<AppraisalDataAsync mortgageId={id as Id<"mortgages">} />
+				</Suspense>
 
-				{/* Comparable Properties */}
-				{transformedComparables.length > 0 && (
-					<div className="mb-12">
-						<ComparableProperties comparables={transformedComparables} />
-					</div>
-				)}
+				{/* Comparable Properties - Medium Priority */}
+				<Suspense fallback={<ComparablePropertiesSkeleton />}>
+					<ComparablePropertiesAsync mortgageId={id as Id<"mortgages">} />
+				</Suspense>
 
-				{/* Request Listing Section */}
-				{listingData && (
-					<RequestListingSection
-						isLocked={listingData.locked}
-						listing={listing}
-						listingId={listingData._id}
-					/>
-				)}
+				{/* Request Listing Section - Low Priority */}
+				<Suspense fallback={<RequestListingSkeleton />}>
+					<RequestListingSectionAsync mortgageId={id as Id<"mortgages">} />
+				</Suspense>
 			</div>
 		</ViewTransition>
 	);
