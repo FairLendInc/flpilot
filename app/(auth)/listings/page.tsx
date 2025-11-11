@@ -1,7 +1,6 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
-import { ViewTransition } from "react";
 import { api } from "@/convex/_generated/api";
 import { ListingsClient } from "./listings-client";
 
@@ -24,10 +23,8 @@ export default async function ListingsPage() {
 	);
 
 	return (
-		<ViewTransition name="listings">
-			<div className="container flex w-screen flex-col">
-				<ListingsClient preloaded={preloadedListings} />
-			</div>
-		</ViewTransition>
+		<div className="container flex w-screen flex-col">
+			<ListingsClient preloaded={preloadedListings} />
+		</div>
 	);
 }
