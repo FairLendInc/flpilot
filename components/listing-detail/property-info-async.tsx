@@ -13,7 +13,9 @@ type PropertyInfoAsyncProps = {
  * Async server component wrapper for PropertyInfo
  * Fetches basic mortgage data for property header independently
  */
-export async function PropertyInfoAsync({ mortgageId }: PropertyInfoAsyncProps) {
+export async function PropertyInfoAsync({
+	mortgageId,
+}: PropertyInfoAsyncProps) {
 	const { accessToken } = await withAuth();
 
 	// Fetch mortgage data
