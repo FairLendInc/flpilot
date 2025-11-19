@@ -43,6 +43,7 @@ type BorrowerPayload = Infer<typeof borrowerPayloadValidator>;
 export type ListingCreationPayload = Infer<typeof listingCreationPayloadValidator>;
 export type ListingCreationResult = Infer<typeof listingCreationResultValidator>;
 
+
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 const ensureBorrowerForPayload = async (
