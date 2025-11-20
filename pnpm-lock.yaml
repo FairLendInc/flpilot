@@ -20,6 +20,9 @@ importers:
       '@documenso/embed-react':
         specifier: ^0.3.0
         version: 0.3.0(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
+      '@documenso/sdk-typescript':
+        specifier: ^0.5.0
+        version: 0.5.0
       '@headlessui/react':
         specifier: ^2.2.9
         version: 2.2.9(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
@@ -616,6 +619,15 @@ packages:
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
+
+  '@documenso/sdk-typescript@0.5.0':
+    resolution: {integrity: sha512-6KrihGczta88HLkmQTpkYPRxaM/e8XftJpPNSZ4GVZtyq9ze0DzTrdTR4h6wFEuQp/IHHNa836is+VZFve7/1w==}
+    hasBin: true
+    peerDependencies:
+      '@modelcontextprotocol/sdk': '>=1.5.0 <1.10.0'
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
+        optional: true
 
   '@edge-runtime/primitives@6.0.0':
     resolution: {integrity: sha512-FqoxaBT+prPBHBwE1WXS1ocnu/VLTQyZ6NMUBAdbP7N2hsFTTxMC/jMu2D/8GAlMQfxeuppcPuCUk/HO3fpIvA==}
@@ -6292,6 +6304,10 @@ snapshots:
     dependencies:
       react: 19.3.0-canary-b4455a6e-20251027
       react-dom: 19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027)
+
+  '@documenso/sdk-typescript@0.5.0':
+    dependencies:
+      zod: 4.1.12
 
   '@edge-runtime/primitives@6.0.0': {}
 

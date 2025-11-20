@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { AlertCircle, AlertTriangle, CheckCircle, ChevronRight, Clock, File, FileText, Upload } from "lucide-react"
+import { AlertCircle, AlertTriangle, CheckCircle, ChevronRight, Clock, File, FileText, Upload, CheckSquare } from "lucide-react"
 import { useDealStore } from "../store/dealStore"
 import { ActionTypeEnum, FairLendRole, ActionAssignment, Document as DocumensoDoc } from "../utils/dealLogic"
 import { createLogger } from "../mocks/logger";
@@ -260,20 +260,11 @@ export function DocumentMappingDSM() {
     isLoadingDocuments: isLoadingDocuments2,
     documentsError: documentsError2,
   } = useDealStore()
-  const [documentGroups, setDocumentGroups] = useState<string[]>([])
-  //console.log("DocumentMappingDSM: User role:", userRole)
+  // Derive document groups directly from documents - React 19 compiler optimizes this
+  const documentGroups = Array.from(new Set(documents.map((doc) => doc.group)))
 
-  useEffect(() => {
-    // Get all document group IDs from the documents
-    if (documents && documents.length > 0) {
-      const groups = Array.from(new Set(documents.map((d) => d.group))) as string[]
-      setDocumentGroups(groups)
-      console.log("DocumentMappingDSM: Loaded document groups:", groups)
-    } else {
-      console.log("DocumentMappingDSM: No documents available yet")
-      setDocumentGroups([])
-    }
-  }, [documents])
+  console.log("DocumentMappingDSM documents:", documents)
+  console.log("DocumentMappingDSM documentGroups:", documentGroups)
 
   // Show loading state
   if (isLoadingDocuments2) {
@@ -317,7 +308,10 @@ export function DocumentMappingDSM() {
 
   // Show empty state if no documents or no groups
   if (!documents || documents.length === 0 || documentGroups.length === 0) {
-    console.log("DocumentMappingDSM: Empty state triggered", { documentsCount: documents?.length, documentGroups })
+    // Only log if we're not loading, to avoid noise
+    if (!isLoadingDocuments2) {
+       console.log("DocumentMappingDSM: Empty state triggered", { documentsCount: documents?.length, documentGroups })
+    }
     return (
       <Card className="group overflow-hidden rounded-lg shadow-sm">
         <CardHeader>
@@ -331,7 +325,7 @@ export function DocumentMappingDSM() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3 animate-in fade-in slide-in-from-left-4 duration-200">
       {documentGroups.map((groupId, index) => {
         try {
           // Convert the group status to the expected format (with null check)
@@ -386,17 +380,13 @@ export function DocumentProgressList() {
     setSelectedDocument: setSelectedDocument2,
     setActiveTab: setActiveTab2,
   } = useDealStore()
-  const [documentGroups, setDocumentGroups] = useState<string[]>([])
-
-  useEffect(() => {
-    const groups = documents?.map((d) => d.group) || []
-    // Get all document group IDs from the documents
+  const documentGroups = React.useMemo(() => {
+    if (!documents) return []
+    const groups = documents.map((d) => d.group)
     if (groups.length > 0) {
-      const uniqueGroups = Array.from(new Set(groups)) as string[]
-      setDocumentGroups(uniqueGroups)
-    } else {
-      setDocumentGroups([])
+      return Array.from(new Set(groups)) as string[]
     }
+    return []
   }, [documents])
 
   const handleGroupClick = (groupId: string) => {
@@ -487,52 +477,19 @@ export function DocumentProgressList() {
 }
 
 export function DocumentActionsList() {
-
   const {
-    currentUser,
+    currentUser: currentUser2,
+    getRoleAssignments: getRoleAssignments2,
+    documents,
+    getDocumentGroupName: getDocumentGroupName2,
     setActiveDocumentGroup: setActiveDocumentGroup2,
     setSelectedDocument: setSelectedDocument2,
     setActiveTab: setActiveTab2,
-    getRoleAssignments: getRoleAssignments2,
-    documents,
   } = useDealStore()
 
-  const [assignments, setAssignments] = useState<ActionAssignment[]>([])
-
-  // Update when userRole changes or when a document action is completed
-  useEffect(() => {
-    //console.log("DocumentActionsList: UserRole changed to:", userRole, "updating assignments...")
-    // Add a small delay to ensure role is properly updated
-    const timeoutId = setTimeout(() => {
-      const newAssignments = getRoleAssignments2()
-      console.log("NEW ASSIGNMENTS", newAssignments)
-      setAssignments(newAssignments)
-    }, 100)
-
-    return () => clearTimeout(timeoutId)
-  }, [getRoleAssignments2])
-
-  // Poll for changes - this catches any external state updates
-  useEffect(() => {
-    const getSignature = (arr: ActionAssignment[]) =>
-      arr
-        .map(a => `${a.docId ?? ""}|${a.action}|${a.assignedToEmail}|${a.completedAt ?? ""}`)
-        .sort()
-        .join("||")
-
-    const interval = setInterval(() => {
-      const currentAssignments = getRoleAssignments2()
-      console.log("CURRENT ASSIGNMENTS", currentAssignments)
-      // Only update if there's a difference in assignments (compare on serializable signature)
-      const prevSig = getSignature(assignments)
-      const nextSig = getSignature(currentAssignments)
-      if (prevSig !== nextSig) {
-        setAssignments(currentAssignments)
-      }
-    }, 10000) // Check every 10 seconds
-
-    return () => clearInterval(interval)
-  }, [getRoleAssignments2, assignments])
+  // Directly call getRoleAssignments2 on each render
+  // This ensures the component re-renders when store state changes
+  const assignments = getRoleAssignments2()
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -551,30 +508,58 @@ export function DocumentActionsList() {
   }
 
   const handleActionClick = (assignment: ActionAssignment) => {
-    // Switch to documents tab
-    // setActiveTab("documents")
     console.log("ASSIGNMENT", assignment)
     setActiveTab2("documents")
 
-    // Set the active document group
-    setActiveDocumentGroup2(assignment.docGroup || null)
-
-    // Get and set the selected document
-    if (!documents) {
-      console.warn("Documents not available when handling action click.")
-      return
+    // Set the document group
+    if (assignment.docGroup) {
+      setActiveDocumentGroup2(assignment.docGroup)
     }
-    const document2 = documents.find((d) => d.id === assignment.docId)
-    console.log("DOCUMENT2", document2)
-    if (document2) {
-      // setSelectedDocument(document)
-      setSelectedDocument2(document2)
+
+    // Set the selected document if we have a docId
+    if (assignment.docId) {
+      const doc = documents.find((d) => d.id === assignment.docId)
+      if (doc) {
+        setSelectedDocument2(doc)
+      }
     }
   }
 
+  // Early return if no user
+  if (!currentUser2) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckSquare className="h-5 w-5" />
+            Quick Actions
+          </CardTitle>
+          <CardDescription>No user selected</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  // Early return if no assignments
   if (assignments.length === 0) {
-    return <div className="text-muted-foreground p-4 text-center">No pending actions</div>
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckSquare className="h-5 w-5" />
+            Quick Actions
+          </CardTitle>
+          <CardDescription>No pending actions for {currentUser2.name}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-muted-foreground text-center text-sm">
+            All documents have been completed or are waiting on others.
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
+
 
   return (
     <div className="space-y-2">

@@ -165,8 +165,13 @@ export function DocumentDetailDSM() {
   }
   
   return (
-    <div className="space-y-4">
-      <Button className="flex items-center gap-1" size="sm" variant="ghost" onClick={() => setSelectedDocument2(null)}>
+    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+      <Button 
+        className="flex items-center gap-1" 
+        size="sm" 
+        variant="ghost" 
+        onClick={() => setSelectedDocument2(null)}
+      >
         <ChevronLeft className="h-4 w-4" />
         <span>Back to documents</span>
       </Button>
@@ -218,14 +223,18 @@ export function DocumentDetailDSM() {
               </div>
 
               <div className="flex gap-3 animate-in slide-in-from-bottom-8 duration-1000 fade-in fill-mode-backwards delay-300">
-                <Button variant="outline" className="gap-2">
-                  <FileText className="h-4 w-4" />
-                  View Document
-                </Button>
-                <Button variant="default" className="gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Return to Dashboard
-                </Button>
+                <div className="transition-transform hover:scale-105 active:scale-95">
+                  <Button variant="outline" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    View Document
+                  </Button>
+                </div>
+                <div className="transition-transform hover:scale-105 active:scale-95">
+                  <Button variant="default" className="gap-2" onClick={() => setSelectedDocument2(null)}>
+                    <CheckCircle className="h-4 w-4" />
+                    Return to Dashboard
+                  </Button>
+                </div>
               </div>
             </div>
           ) : EMBEDDED_DOC_URL && (

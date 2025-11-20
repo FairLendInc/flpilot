@@ -128,108 +128,112 @@ const DocumentCard = ({
   // These are computed inline in JSX for efficiency
 
   return (
-    <Card
-      className={`group overflow-hidden rounded-lg shadow-sm transition-all hover:shadow-md cursor-pointer ${
-        isSelected ? "ring-2 ring-primary" : ""
-      }`}
+    <div
+      className="cursor-pointer transition-transform duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]"
       onClick={onClick}
     >
-      <div
-        className={`h-1 w-full rounded-t-lg ${
-          hasUserAction ? "bg-destructive" :
-          !isCompleted && hasAction ? "bg-warning" :
-          "bg-success"
+      <Card
+        className={`group overflow-hidden rounded-lg shadow-sm transition-all hover:shadow-md ${ isSelected ? "ring-2 ring-primary" : ""
         }`}
-      />
+      >
+        <div
+          className={`h-1 w-full rounded-t-lg ${
+            hasUserAction ? "bg-destructive" :
+            !isCompleted && hasAction ? "bg-warning" :
+            "bg-success"
+          }`}
+        />
 
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-md flex items-center gap-2 font-semibold">
-            <FileText className="h-4 w-4 flex-shrink-0" />
-            <span className="break-words line-clamp-2">{document.name}</span>
-          </CardTitle>
-          {!isCompleted ? (
-            hasUserAction ? (
-              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive">
-                Action Required
-              </Badge>
-            ) : hasAction ? (
-              <Badge variant="outline" className="bg-warning/10 text-warning border-warning">
-                BLOCKED
-              </Badge>
-            ) : null
-          ) : (
-            <Badge variant="outline" className="bg-success/10 text-success border-success">
-              COMPLETE
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent className="pt-2 pb-0">
-        {steps.length > 0 && (
-          <div className="mt-3">
-            <HorizontalSteps
-              currentStep={currentStep}
-              steps={steps.map((step) => ({
-                title: (
-                  <>
-                    {step.assignedToName}
-                    <br />
-                    {step.action.toString().charAt(0).toUpperCase() + step.action.toString().slice(1)}
-                  </>
-                ),
-              }))}
-            />
-          </div>
-        )}
-      </CardContent>
-
-      <CardFooter className="w-full flex-col items-start pt-3">
-        {!isCompleted && hasAction && (
-          <div className="border-content3 mt-2 flex w-full items-center border-t pt-3">
-            {hasUserAction ? (
-              <Alert
-              key={`blocked-${document.id}`}
-              className="border-destructive/50 text-destructive [&>svg]:text-destructive"
-            >
-              <AlertCircle className="h-4 w-4" />
-              <div>
-                {/* <AlertTitle className="text-sm">{action.docName.toString()}</AlertTitle> */}
-                <AlertDescription className="text-sm">
-                  {"Action Required: "}
-                  <Badge variant="outline" className="mx-2">
-                    {actionTextObject.action.toString().split("_").map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
-                  </Badge>
-                </AlertDescription>
-              </div>
-            </Alert>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-md flex items-center gap-2 font-semibold">
+              <FileText className="h-4 w-4 flex-shrink-0" />
+              <span className="break-words line-clamp-2">{document.name}</span>
+            </CardTitle>
+            {!isCompleted ? (
+              hasUserAction ? (
+                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive">
+                  Action Required
+                </Badge>
+              ) : hasAction ? (
+                <Badge variant="outline" className="bg-warning/10 text-warning border-warning">
+                  BLOCKED
+                </Badge>
+              ) : null
             ) : (
-              <Alert
-              key={`blocked-${document.id}`}
-              className="border-warning/50 text-warning [&>svg]:text-warning"
-            >
-              <AlertCircle className="h-4 w-4" />
-              <div>
-                <AlertTitle className="text-sm">
-                  {"Waiting on: "}
-                  <Badge variant="outline" className="mx-2">
-                    {actionTextObject.assignedTo}
-                  </Badge>
-                  </AlertTitle>
-                <AlertDescription className="text-sm">
-                  {"Required action: "}
-                  <Badge variant="outline" className="mx-2">
-                    {actionTextObject.action.toString().split("_").map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
-                  </Badge>
-                </AlertDescription>
-              </div>
-            </Alert>
+              <Badge variant="outline" className="bg-success/10 text-success border-success">
+                COMPLETE
+              </Badge>
             )}
           </div>
-        )}
-      </CardFooter>
-    </Card>
+        </CardHeader>
+
+        <CardContent className="pt-2 pb-0">
+          {steps.length > 0 && (
+            <div className="mt-3">
+              <HorizontalSteps
+                currentStep={currentStep}
+                steps={steps.map((step) => ({
+                  title: (
+                    <>
+                      {step.assignedToName}
+                      <br />
+                      {step.action.toString().charAt(0).toUpperCase() + step.action.toString().slice(1)}
+                    </>
+                  ),
+                }))}
+              />
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="w-full flex-col items-start pt-3">
+          {!isCompleted && hasAction && (
+            <div className="border-content3 mt-2 flex w-full items-center border-t pt-3">
+              {hasUserAction ? (
+                <Alert
+                key={`blocked-${document.id}`}
+                className="border-destructive/50 text-destructive [&>svg]:text-destructive"
+              >
+                <AlertCircle className="h-4 w-4" />
+                <div>
+                  {/* <AlertTitle className="text-sm">{action.docName.toString()}</AlertTitle> */}
+                  <AlertDescription className="text-sm">
+                    {"Action Required: "}
+                    <Badge variant="outline" className="mx-2">
+                      {actionTextObject.action.toString().split("_").map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                    </Badge>
+                  </AlertDescription>
+                </div>
+              </Alert>
+              ) : (
+                <Alert
+                key={`blocked-${document.id}`}
+                className="border-warning/50 text-warning [&>svg]:text-warning"
+              >
+                <AlertCircle className="h-4 w-4" />
+                <div>
+                  <AlertTitle className="text-sm">
+                    {"Waiting on: "}
+                    <Badge variant="outline" className="mx-2">
+                      {actionTextObject.assignedTo}
+                    </Badge>
+                    </AlertTitle>
+                  <AlertDescription className="text-sm">
+                    {"Required action: "}
+                    <Badge variant="outline" className="mx-2">
+                      {actionTextObject.action.toString().split("_").map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                    </Badge>
+                  </AlertDescription>
+                </div>
+              </Alert>
+              )
+              }
+            </div>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
   )
 }
 
@@ -292,67 +296,60 @@ export function DocumentListDSM() {
   const { percent, status } = calculateGroupStatus(activeDocumentGroup2)
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Button
-          className="flex items-center gap-1"
-          size="sm"
-          variant="ghost"
-          onClick={() => setActiveDocumentGroup2(null)}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          <span>Back to groups</span>
-        </Button>
-
-        <div className="pr-2">
-          <div className="border-content3/40 bg-muted/20 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 shadow-sm">
-            <span className="text-muted-foreground inline-flex items-center gap-2 truncate text-xs font-medium sm:text-sm">
-              <GroupIcon id={activeDocumentGroup2} />
-              <span className="truncate">{getDocumentGroupName(activeDocumentGroup2 || "")}</span>
-            </span>
-            <span className="text-muted-foreground/60">•</span>
-            <Badge variant="outline" className="h-5 px-2 text-[10px] sm:text-xs">
-              {status}
-            </Badge>
-            <div className="hidden items-center gap-2 sm:flex">
-              <div className="bg-content3/40 h-1.5 w-28 overflow-hidden rounded-full">
-                <div
-                  className={`h-1.5 rounded-full ${percent === 100 ? "bg-success" : percent === 0 ? "bg-muted-foreground/40" : "bg-primary"}`}
-                  style={{ width: `${Math.max(2, percent)}%` }}
-                />
-              </div>
-              <span className="text-muted-foreground text-xs tabular-nums">{percent}%</span>
-            </div>
-          </div>
+    <div className="animate-in fade-in slide-in-from-right-4 duration-200">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveDocumentGroup2(null)}
+            className="flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <h2 className="text-xl sm:text-2xl font-semibold">
+            {getDocumentGroupName(activeDocumentGroup2)}
+          </h2>
         </div>
-      </div>
+        
+        <div className="flex items-center gap-2">
+          <Progress
+            value={percent}
+            className="bg-content3 h-2 flex-1"
+            aria-label={`${percent}% complete`}
+          />
+          <span className="text-muted-foreground text-xs tabular-nums">{percent}%</span>
+        </div>
 
-      <Card className="bg-background border-none shadow-none">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Documents</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {groupDocuments.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {groupDocuments.map((doc) => {
-                return (
-                  <DocumentCard
-                    key={doc.id}
-                    document={doc}
-                    onClick={() => setSelectedDocument2(doc)}
-                    isSelected={selectedDocument2?.id === doc.id}
-                  />
-                )
-              })}
-            </div>
-          ) : (
-            <div className="flex h-24 flex-col items-center justify-center text-center">
-              <FileText className="text-muted-foreground/50 mb-2 h-8 w-8" />
-              <p className="text-muted-foreground">No documents in this group.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <Card className="bg-background border-none shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Documents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {groupDocuments.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {groupDocuments.map((doc) => {
+                  return (
+                    <DocumentCard
+                      key={doc.id}
+                      document={doc}
+                      onClick={() => setSelectedDocument2(doc)}
+                      isSelected={selectedDocument2?.id === doc.id}
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="flex h-24 flex-col items-center justify-center text-center">
+                <FileText className="text-muted-foreground/50 mb-2 h-8 w-8" />
+                <p className="text-muted-foreground">No documents in this group.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
+
