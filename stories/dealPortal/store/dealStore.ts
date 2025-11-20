@@ -303,7 +303,8 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
   },
   logEvent: (event) => {
     console.log('Event logged:', event)
-    set((state) => ({ events: [...state.events, event] }))
+    const eventWithId = { ...event, id: Date.now() + Math.random().toString(36).substr(2, 9) }
+    set((state) => ({ events: [eventWithId, ...state.events] }))
   },
   getGroupActionSteps: (groupId) => {
     const result = getGroupActionSteps(get().documents, groupId)

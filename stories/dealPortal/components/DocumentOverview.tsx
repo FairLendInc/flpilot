@@ -6,15 +6,25 @@ import { DocumentMappingDSM } from "./DocumentMappingDSM"
 import { useDealStore } from "../store/dealStore"
 
 export function DocumentOverview() {
-  const { selectedDocument, activeDocumentGroup } = useDealStore()
+  const selectedDocument = useDealStore((state) => state.selectedDocument)
+  const activeDocumentGroup = useDealStore((state) => state.activeDocumentGroup)
 
-  if (selectedDocument) {
-    return <DocumentDetailDSM />
+  // Determine which view to show
+  const getView = () => {
+    if (selectedDocument) return "detail"
+    if (activeDocumentGroup) return "list"
+    return "mapping"
   }
 
-  if (activeDocumentGroup) {
-    return <DocumentListDSM />
-  }
-
-  return <DocumentMappingDSM />
+  return (
+    <div className="view-transition-container">
+      {selectedDocument ? (
+        <DocumentDetailDSM />
+      ) : activeDocumentGroup ? (
+        <DocumentListDSM />
+      ) : (
+        <DocumentMappingDSM />
+      )}
+    </div>
+  )
 }

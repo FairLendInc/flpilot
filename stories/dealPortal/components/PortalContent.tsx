@@ -26,90 +26,17 @@ export function PortalContent({
   profile: any
   role: string
 }) {
-  const {
-    // dsm:dsm2,
-
-    // Deal context
-    dealId:dealId2,
-    setDealId:setDealId2,
-
-    // Loading and error states
-    isLoadingDocuments:isLoadingDocuments2,
-    documentsError:documentsError2,
-    refreshDocuments:refreshDocuments2,
-
-    // User state
-    currentUser:currentUser2,
-    setCurrentUser:setCurrentUser2,
-    availableUsers:availableUsers2,
-    userRole:userRole2,
-    setUserRole,
-
-    // Lawyer confirmation state
-    isLawyerConfirmed:isLawyerConfirmed2,
-    setLawyerConfirmed:setLawyerConfirmed2,
-
-    // Deal status
-    dealStatus:dealStatus2,
-    dealData:dealData2,
-
-    // UI navigation state
-    activeTab:activeTab2,
-    setActiveTab:setActiveTab2,
-    activeDocumentGroup:activeDocumentGroup2,
-    setActiveDocumentGroup:setActiveDocumentGroup2,
-    selectedDocument:selectedDocument2,
-    setSelectedDocument:setSelectedDocument2,
-
-    // UI modals state
-    showNotePanel:showNotePanel2,
-    setShowNotePanel:setShowNotePanel2,
-    showApproveModal:showApproveModal2,
-    setShowApproveModal:setShowApproveModal2,
-    showDisputeModal:showDisputeModal2,
-    setShowDisputeModal:setShowDisputeModal2,
-    showUploadModal:showUploadModal2,
-    setShowUploadModal:setShowUploadModal2,
-    showConfirmModal:showConfirmModal2,
-    setShowConfirmModal:setShowConfirmModal2,
-
-    // Form data
-    note:note2,
-    setNote:setNote2,
-    chatInput:chatInput2,
-    setChatInput:setChatInput2,
-    confirmAmount:confirmAmount2,
-    setConfirmAmount:setConfirmAmount2,
-    mfaCode:mfaCode2,
-    setMfaCode:setMfaCode2,
-
-    // Chat and events
-    messages:messages2,
-    events:events2,
-
-    // File upload
-    uploadState:uploadState2,
-
-    // Document Actions
-    getCurrentAssignments:getCurrentAssignments2,
-    getRoleAssignments:getRoleAssignments2,
-    getAllDocuments:getAllDocuments2,
-    handleFileSelect:handleFileSelect2,
-    getDocState:getDocState2,
-    getDocStatusForUser:getDocStatusForUser2,
-
-    // Helper functions
-    sendMessage:sendMessage2,
-    uploadDocument:uploadDocument2,
-    getDocumentGroupName:getDocumentGroupName2,
-    calculateGroupStatus:calculateGroupStatus2,
-    hasPendingActions:hasPendingActions2,
-    getActionStatusText:getActionStatusText2,
-    getActionStatusColor:getActionStatusColor2,
-    requiresSignature:requiresSignature2,
-    logEvent:logEvent2,
-    getGroupActionSteps:getGroupActionSteps2,
-  } = useDealStore()
+  // Use selectors to avoid unnecessary re-renders
+  const activeTab2 = useDealStore((state) => state.activeTab)
+  const setActiveTab2 = useDealStore((state) => state.setActiveTab)
+  const activeDocumentGroup2 = useDealStore((state) => state.activeDocumentGroup)
+  const selectedDocument2 = useDealStore((state) => state.selectedDocument)
+  const isLoadingDocuments2 = useDealStore((state) => state.isLoadingDocuments)
+  const documentsError2 = useDealStore((state) => state.documentsError)
+  const refreshDocuments2 = useDealStore((state) => state.refreshDocuments)
+  const dealData2 = useDealStore((state) => state.dealData)
+  const isLawyerConfirmed2 = useDealStore((state) => state.isLawyerConfirmed)
+  const logEvent2 = useDealStore((state) => state.logEvent)
 
   // Log portal view on initial render
   useEffect(() => {
@@ -242,26 +169,26 @@ export function PortalContent({
               </TabsTrigger>
             </TabsList>
 
-            <div className="min-h-[300px]">
-              <TabsContent value="documents">
+            <div className="min-h-[300px] relative">
+              <TabsContent value="documents" className="mt-0">
                 <DocumentOverview />
               </TabsContent>
 
-              <TabsContent value="chat">
+              <TabsContent value="chat" className="mt-0">
                 {/* <ChatContent /> */}
                 <ChatWindow title="Chat" currentUserId="123" />
               </TabsContent>
 
-              <TabsContent value="activity">
+              <TabsContent value="activity" className="mt-0">
                 <ActivityContent />
               </TabsContent>
-              <TabsContent value="timeline">
+              <TabsContent value="timeline" className="mt-0">
                 <TimelineContent />
               </TabsContent>
-              <TabsContent value="shared">
+              <TabsContent value="shared" className="mt-0">
                 <SharedDocumentsPanel />
               </TabsContent>
-              <TabsContent value="invites">
+              <TabsContent value="invites" className="mt-0">
                 <LawyerInvitesPanel />
               </TabsContent>
             </div>

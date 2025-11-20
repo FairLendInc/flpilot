@@ -117,7 +117,10 @@ export function DSMPortalContent({
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false)
 
   // Use DealStore to check loading states
-  const { isLoadingDocuments, documentsError, refreshDocuments } = useDealStore()
+  // Use DealStore selectors to check loading states and avoid unnecessary re-renders
+  const isLoadingDocuments = useDealStore((state) => state.isLoadingDocuments)
+  const documentsError = useDealStore((state) => state.documentsError)
+  const refreshDocuments = useDealStore((state) => state.refreshDocuments)
 
   logger.info("DSMPortalContent", { dealId, user, profile, role, testData, deal, isLoadingDocuments, hasError: !!documentsError })
 
@@ -167,26 +170,38 @@ export default function DSMPortalPage({
   const searchParams = useSearchParams()
   const paymentSuccess = searchParams.get("payment_success")
   const sessionId = searchParams.get("session_id")
-  const { setDocuments, setAvailableUsers } = useDealStore()
+  const setDocuments = useDealStore((state) => state.setDocuments)
+  const setAvailableUsers = useDealStore((state) => state.setAvailableUsers)
 
   logger.info("DSMPortalPage", { dealId, user, profile, role, testData, deal })
   console.info("DSMPortalPage", { dealId, user, profile, role, testData, deal })
   
+  
+  // Track if we've already initialized to prevent re-initialization on every render
+  const initializedRef = React.useRef(false)
+  
   // Initialize store with props if needed
   useEffect(() => {
-    console.log('[DealPortal] useEffect triggered. initialDocuments:', initialDocuments)
+    // Only initialize once on mount, not on every props change
+    if (initializedRef.current) {
+      return
+    }
+
+    console.log('[DealPortal] useEffect triggered. initialDocuments:', initialDocuments, 'initialUsers:', initialUsers)
+    
     if (initialDocuments && initialDocuments.length > 0) {
       console.log('[DealPortal] Setting documents from initialDocuments:', initialDocuments)
       setDocuments(initialDocuments)
-    } else {
-      console.warn('[DealPortal] initialDocuments is empty or undefined:', initialDocuments)
     }
 
     if (initialUsers && initialUsers.length > 0) {
       console.log('[DealPortal] Setting available users from initialUsers:', initialUsers)
       setAvailableUsers(initialUsers)
     }
-  }, [initialDocuments, initialUsers, setDocuments, setAvailableUsers])
+    
+    // Mark as initialized only after attempting to set both
+    initializedRef.current = true
+  }, []) // Empty deps - only run once on mount
   
   return (
     <ErrorBoundary>
