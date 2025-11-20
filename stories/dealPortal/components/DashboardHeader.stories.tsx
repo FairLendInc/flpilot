@@ -17,7 +17,7 @@ type Story = StoryObj<typeof DashboardHeader>
 
 export const Default: Story = {
   args: {
-    dealId: "deal-123",
+    userRole: FairLendRole.BUYER,
   },
   parameters: {
     mockState: {
@@ -28,7 +28,7 @@ export const Default: Story = {
 
 export const Admin: Story = {
   args: {
-    dealId: "deal-123",
+    userRole: FairLendRole.ADMIN,
   },
   parameters: {
     mockState: {

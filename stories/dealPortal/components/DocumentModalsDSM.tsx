@@ -3,19 +3,18 @@
 import React from "react"
 
 import { useDealStore } from "../store/dealStore"
-import { ActionTypeEnum } from "../utils/dealLogic"
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "components/ui/dialog"
-import { Input } from "components/ui/input"
-import { Label } from "components/ui/label"
-import { Progress } from "components/ui/progress"
-import { Textarea } from "components/ui/textarea"
+import { ActionTypeEnum, FairLendRole } from "../utils/dealLogic"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { Textarea } from "@/components/ui/textarea"
 import { AlertTriangle, CheckCircle2, History, UploadCloud } from "lucide-react"
 
 export function DocumentModalsDSM() {
   const {
-    dsm,
     userRole,
     showUploadModal,
     setShowUploadModal,
@@ -48,14 +47,14 @@ export function DocumentModalsDSM() {
 
     // Determine if this is a signed document upload
     const isSigned =
-      (userRole === "broker" && selectedDocument.requirements?.requiredBrokerSignature) ||
-      (userRole === "buyer" && selectedDocument.requirements?.requiresBuyerSignature)
+      (userRole === FairLendRole.BROKER && selectedDocument.requirements?.requiredBrokerSignature) ||
+      (userRole === FairLendRole.BUYER && selectedDocument.requirements?.requiresBuyerSignature)
 
     // Upload the document with the appropriate signature flag
     //console.log("isSigned", isSigned)
     //console.log("userRole", userRole)
     //console.log("selectedDocument", selectedDocument)
-    uploadDocument(selectedDocument.id, uploadState.file, userRole, isSigned)
+    uploadDocument(uploadState.file)
 
     // Close the upload modal
     setShowUploadModal(false)

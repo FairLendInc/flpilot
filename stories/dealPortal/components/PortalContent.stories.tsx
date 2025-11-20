@@ -1,4 +1,4 @@
-import PortalContent from "./PortalContent"
+import { PortalContent } from "./PortalContent"
 import { FairLendRole } from "../utils/dealLogic"
 import { StoreDecorator } from "../utils/StoreDecorator"
 import type { Meta, StoryObj } from "@storybook/react"

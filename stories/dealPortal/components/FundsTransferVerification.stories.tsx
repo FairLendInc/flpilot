@@ -1,4 +1,4 @@
-import FundsTransferVerification from "./FundsTransferVerification"
+import { FundsTransferVerification } from "./FundsTransferVerification"
 import { StoreDecorator } from "../utils/StoreDecorator"
 import type { Meta, StoryObj } from "@storybook/react"
 

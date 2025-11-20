@@ -2,11 +2,11 @@
 
 import React, { useState } from "react"
 
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "components/ui/card"
-import { Input } from "components/ui/input"
-import { Label } from "components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Mail, RefreshCcw, Trash2 } from "lucide-react"
 import { LawyerInviteModal } from "../../mocks/LawyerInviteModal";
 import { createLogger } from "../../mocks/logger";
@@ -61,18 +61,20 @@ export function LawyerInvitesPanel() {
 
   // Mock mutations
   const resendInvite = {
-    mutate: ({ inviteId }: { inviteId: string }) => {
-      console.log("Resending invite", inviteId)
-      toast("Invite email sent", { description: "We sent a new invite email." })
+    mutate: (params: { inviteId: string }, options?: any) => {
+      console.log("Resending invite", params.inviteId)
+      toast({ title: "Invite email sent", description: "We sent a new invite email." })
+      if (options?.onSuccess) options.onSuccess()
     },
     isPending: false
   }
 
   const revokeInvite = {
-    mutate: ({ inviteId }: { inviteId: string }) => {
-      console.log("Revoking invite", inviteId)
-      setInvites(prev => prev.map(inv => inv.id === inviteId ? { ...inv, status: "REVOKED" } : inv))
-      toast("Invite revoked", { description: "The invitation can no longer be used." })
+    mutate: (params: { inviteId: string }, options?: any) => {
+      console.log("Revoking invite", params.inviteId)
+      setInvites(prev => prev.map(inv => inv.id === params.inviteId ? { ...inv, status: "REVOKED" } : inv))
+      toast({ title: "Invite revoked", description: "The invitation can no longer be used." })
+      if (options?.onSuccess) options.onSuccess()
     },
     isPending: false
   }
@@ -80,7 +82,7 @@ export function LawyerInvitesPanel() {
   const updateInvite = {
     mutate: ({ lsoLawyerId, dealId, email, phone }: any, options?: any) => {
       console.log("Updating invite", { lsoLawyerId, dealId, email, phone })
-      toast("Invite updated", { description: "Email/phone have been updated." })
+      toast({ title: "Invite updated", description: "Email/phone have been updated." })
       if (options?.onSuccess) options.onSuccess()
     }
   }
@@ -91,9 +93,10 @@ export function LawyerInvitesPanel() {
 
   // Admin remove-lawyer mutation (top-level hook; do not create inside handlers)
   const removeLawyer = {
-    mutate: ({ dealId }: { dealId: string }) => {
-      console.log("Removing lawyer from deal", dealId)
-      toast("Lawyer removed", { description: "Access revoked and invites cleared." })
+    mutate: (params: { dealId: string }, options?: any) => {
+      console.log("Removing lawyer from deal", params.dealId)
+      toast({ title: "Lawyer removed", description: "Access revoked and invites cleared." })
+      if (options?.onSuccess) options.onSuccess()
     }
   }
 
@@ -163,7 +166,7 @@ export function LawyerInvitesPanel() {
                   onOpenChange={setInviteOpen}
                   defaultEmail={assignedLawyerEmail || ""}
                   defaultPhone={assignedLawyerPhone || ""}
-                  onSubmit={async (email, phone) => {
+                  onSubmit={async (email: string, phone: string) => {
                     if (!assignedLsoLawyerId || !dealId) return
                     await new Promise<void>((resolve, reject) => {
                       updateInvite.mutate(

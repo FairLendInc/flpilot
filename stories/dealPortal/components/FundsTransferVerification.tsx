@@ -3,16 +3,16 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useDealStore } from "../store/dealStore"
 import { FairLendRole } from "../utils/dealLogic"
-import { Alert, AlertDescription, AlertTitle } from "components/ui/alert"
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "components/ui/dialog"
-import { Input } from "components/ui/input"
-import { Label } from "components/ui/label"
-import { Progress } from "components/ui/progress"
-import { Separator } from "components/ui/separator"
-import { Textarea } from "components/ui/textarea"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
 // import { api } from "trpc/react"
 import { format } from "date-fns"
 import {
@@ -27,7 +27,7 @@ import {
   Upload,
   X,
 } from "lucide-react"
-// import { useAuth } from "lib/supabase/auth"
+// import { useAuth } from "@/lib/supabase/auth"
 import Image from "next/image"
 
 // Define a type for the funds transfer state
@@ -80,7 +80,7 @@ interface DocumentGroup {
 }
 
 export function FundsTransferVerification() {
-  const { dsm, logEvent, uploadState, handleFileSelect, dealId, dealData, currentUser } = useDealStore()
+  const { documents, logEvent, uploadState, handleFileSelect, dealId, dealData, currentUser } = useDealStore()
   // const { user, userRole } = useAuth()
   const user = currentUser
   
@@ -151,18 +151,16 @@ export function FundsTransferVerification() {
 
   // Check document completion status
   useEffect(() => {
-    if (!dsm) {
-      console.log("FundsTransferVerification: DSM not available yet")
+    if (!documents) {
+      console.log("FundsTransferVerification: Documents not available yet")
       setAllDocumentGroupsComplete(false)
       return
     }
 
     try {
       // Check if all document groups are complete
-      const allComplete = Array.from(dsm.listGroups()).every((groupId) => {
-        const { percent } = calculateGroupCompletion(groupId)
-        return percent === 100
-      })
+      // Mock logic: assume all groups are complete if all documents are complete
+      const allComplete = documents.every((doc) => doc.isComplete)
 
       setAllDocumentGroupsComplete(allComplete)
       console.log("FundsTransferVerification: Document completion check completed", { allComplete })
@@ -170,24 +168,24 @@ export function FundsTransferVerification() {
       console.error("FundsTransferVerification: Error checking document completion:", error)
       setAllDocumentGroupsComplete(false)
     }
-  }, [dsm])
+  }, [documents])
 
   // Calculate group completion percentage
   const calculateGroupCompletion = (groupId: string) => {
-    if (!dsm) {
-      console.log("FundsTransferVerification: DSM not available for group completion calculation")
+    if (!documents) {
+      console.log("FundsTransferVerification: Documents not available for group completion calculation")
       return { percent: 0, status: "Loading..." }
     }
 
-    const group = dsm.getGroup(groupId)
+    const group = documents.filter((d) => d.group === groupId)
 
     if (!group || group.length === 0) {
       return { percent: 0, status: "Not Started" }
     }
 
     const docs = group
-    const completed = docs.filter((docManager) => {
-      return docManager.isComplete
+    const completed = docs.filter((doc) => {
+      return doc.isComplete
     }).length
 
     const total = docs.length

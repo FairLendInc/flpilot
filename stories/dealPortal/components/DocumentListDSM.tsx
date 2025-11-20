@@ -2,15 +2,15 @@
 
 import React, { useEffect, useState } from "react"
 
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "components/ui/card"
-import { Progress } from "components/ui/progress"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { AlertTriangle, AlertCircle, CheckCircle, ChevronLeft, Clock, FileText, ShieldCheck, Stamp, HandCoins } from "lucide-react"
 import HorizontalSteps from "./ui/horizontal-steps"
 import { useDealStore } from "../store/dealStore"
 import { ActionTypeEnum, Document as DocumensoDoc, ActionAssignment } from "../utils/dealLogic"
-import { Alert, AlertDescription, AlertTitle } from "components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const actionToTitle = (action: ActionAssignment) => {
   const actionTitle = action.type.toString().replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
@@ -35,10 +35,10 @@ const DocumentCard = ({
   isSelected,
 }: DocumentCardProps) => {
   // Use dual context hooks during migration
-  const { dsm: dsm2, currentUser: currentUser2, getDocState: getDocState2 } = useDealStore()
+  const { documents, currentUser: currentUser2, getDocState: getDocState2 } = useDealStore()
 
-  // Early return if DSM is not available yet
-  if (!dsm2) {
+  // Early return if documents are not available yet
+  if (!documents) {
     return (
       <Card className="group overflow-hidden rounded-lg shadow-sm">
         <div className="bg-muted h-1 w-full rounded-t-lg" />
@@ -55,7 +55,7 @@ const DocumentCard = ({
   // Get document manager with error handling
   // const docManager2 = dsm2.getDoc(document.id)
   // Mock docManager
-  const docManager2 = dsm2.documents.find(d => d.id === document.id)
+  const docManager2 = documents.find((d) => d.id === document.id)
 
   if (!docManager2) {
     console.warn(`DocumentCard: Document manager not found for document ${document.id}`)
@@ -199,7 +199,7 @@ const DocumentCard = ({
                 <AlertDescription className="text-sm">
                   {"Action Required: "}
                   <Badge variant="outline" className="mx-2">
-                    {actionTextObject.action.toString().split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                    {actionTextObject.action.toString().split("_").map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
                   </Badge>
                 </AlertDescription>
               </div>
@@ -220,7 +220,7 @@ const DocumentCard = ({
                 <AlertDescription className="text-sm">
                   {"Required action: "}
                   <Badge variant="outline" className="mx-2">
-                    {actionTextObject.action.toString().split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                    {actionTextObject.action.toString().split("_").map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
                   </Badge>
                 </AlertDescription>
               </div>
@@ -235,7 +235,7 @@ const DocumentCard = ({
 
 export function DocumentListDSM() {
   const {
-    dsm: dsm2,
+    documents,
     activeDocumentGroup: activeDocumentGroup2,
     setActiveDocumentGroup: setActiveDocumentGroup2,
     selectedDocument: selectedDocument2,
@@ -244,23 +244,23 @@ export function DocumentListDSM() {
     calculateGroupStatus,
   } = useDealStore()
   
-  const [documents, setDocuments] = useState<any[]>([])
+  const [groupDocuments, setGroupDocuments] = useState<any[]>([])
 
   useEffect(() => {
-    if (!activeDocumentGroup2 || !dsm2) return
+    if (!activeDocumentGroup2 || !documents) return
 
     // const group2 = dsm2.getGroup(activeDocumentGroup2)
-    const group2 = dsm2.documents.filter(d => d.group === activeDocumentGroup2)
+    const group2 = documents.filter((d) => d.group === activeDocumentGroup2)
 
     if (group2) {
-      const docs = group2.map((doc: DocumensoDoc) => doc)
-      setDocuments(docs)
+      const docs = group2.map((doc) => doc)
+      setGroupDocuments(docs)
       console.log("DocumentListDSM: Loaded documents for group", activeDocumentGroup2, docs.length)
     } else {
       console.log("DocumentListDSM: No group found for", activeDocumentGroup2)
-      setDocuments([])
+      setGroupDocuments([])
     }
-  }, [dsm2, activeDocumentGroup2])
+  }, [documents, activeDocumentGroup2])
 
   if (!activeDocumentGroup2) {
     return (
@@ -332,9 +332,9 @@ export function DocumentListDSM() {
           <CardTitle className="text-lg">Documents</CardTitle>
         </CardHeader>
         <CardContent>
-          {documents.length > 0 ? (
+          {groupDocuments.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {documents.map((doc) => {
+              {groupDocuments.map((doc) => {
                 return (
                   <DocumentCard
                     key={doc.id}

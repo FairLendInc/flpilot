@@ -52,7 +52,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
             )}
             <div className="mt-4">
               <Button 
-                variant="bordered" 
+                variant="secondary" 
                 onPress={() => window.location.reload()}
               >
                 <Icon icon="lucide:refresh-cw" className="w-4 h-4 mr-2" />
@@ -82,7 +82,7 @@ function DSMLoadingFallback({ error, retry }: { error?: string | null; retry?: (
           <div className="mt-4 space-y-2">
             <p className="text-sm text-destructive">{error}</p>
             {retry && (
-              <Button size="sm" variant="bordered" onPress={retry}>
+              <Button size="sm" variant="secondary" onPress={retry}>
                 <Icon icon="lucide:refresh-cw" className="w-4 h-4 mr-2" />
                 Retry
               </Button>
@@ -117,7 +117,7 @@ export function DSMPortalContent({
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false)
 
   // Use DealStore to check loading states
-  const { isLoadingDocuments, documentsError, refreshDocuments, dsm } = useDealStore()
+  const { isLoadingDocuments, documentsError, refreshDocuments } = useDealStore()
 
   logger.info("DSMPortalContent", { dealId, user, profile, role, testData, deal, isLoadingDocuments, hasError: !!documentsError })
 
@@ -152,31 +152,50 @@ export default function DSMPortalPage({
   role,
   testData,
   deal,
+  initialDocuments,
+  initialUsers,
 }: {
-  dealId: string
-  user: any
-  profile: any
-  role: string
+  dealId?: string
+  user?: any
+  profile?: any
+  role?: string
   testData?: any
   deal?: any
+  initialDocuments?: any[]
+  initialUsers?: any[]
 }) {
   const searchParams = useSearchParams()
   const paymentSuccess = searchParams.get("payment_success")
   const sessionId = searchParams.get("session_id")
+  const { setDocuments, setAvailableUsers } = useDealStore()
 
   logger.info("DSMPortalPage", { dealId, user, profile, role, testData, deal })
+  console.info("DSMPortalPage", { dealId, user, profile, role, testData, deal })
   
-  // Initialize store with props if needed (optional, can be done inside useEffect in content)
-  // For now, we rely on the default mock data in the store
+  // Initialize store with props if needed
+  useEffect(() => {
+    console.log('[DealPortal] useEffect triggered. initialDocuments:', initialDocuments)
+    if (initialDocuments && initialDocuments.length > 0) {
+      console.log('[DealPortal] Setting documents from initialDocuments:', initialDocuments)
+      setDocuments(initialDocuments)
+    } else {
+      console.warn('[DealPortal] initialDocuments is empty or undefined:', initialDocuments)
+    }
+
+    if (initialUsers && initialUsers.length > 0) {
+      console.log('[DealPortal] Setting available users from initialUsers:', initialUsers)
+      setAvailableUsers(initialUsers)
+    }
+  }, [initialDocuments, initialUsers, setDocuments, setAvailableUsers])
   
   return (
     <ErrorBoundary>
       <Suspense fallback={<DSMLoadingFallback />}>
         <DSMPortalContent 
-          dealId={dealId} 
+          dealId={dealId || "DEAL-123"} 
           user={user} 
           profile={profile} 
-          role={role} 
+          role={role || "buyer"} 
           testData={testData} 
           deal={deal}
           paymentSuccess={paymentSuccess}

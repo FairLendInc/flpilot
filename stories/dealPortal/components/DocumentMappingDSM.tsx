@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from "react"
 
 import HorizontalSteps from "./ui/horizontal-steps"
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "components/ui/card"
-import { Progress } from "components/ui/progress"
-import { Alert, AlertDescription, AlertTitle } from "components/ui/alert"
-import { Separator } from "components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
 import { AlertCircle, AlertTriangle, CheckCircle, ChevronRight, Clock, File, FileText, Upload } from "lucide-react"
 import { useDealStore } from "../store/dealStore"
 import { ActionTypeEnum, FairLendRole, ActionAssignment, Document as DocumensoDoc } from "../utils/dealLogic"
@@ -38,7 +38,7 @@ export type GroupSteps = {
 }
 
 const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
-  const { dsm:dsm2,
+  const { documents,
     currentUser:currentUser2,
     getGroupStatusForUser:getGroupStatusForUser2,
     setActiveDocumentGroup:setActiveDocumentGroup2,
@@ -53,21 +53,16 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [groupSteps, setGroupSteps] = useState<GroupSteps[]>([])
 
-  // Update state when DSM becomes available
+  // Update state when documents become available
   React.useEffect(() => {
-    if (dsm2) {
-      // const groupStatusData = dsm2.getGroupStatus(groupId)
-      // const groupStatusData2 = dsm2.getGroupStatus(groupId)
-      // setCurrentStep(groupStatusData2.stepIndex)
-      // setGroupSteps(groupStatusData2.stepList)
-      
+    if (documents.length > 0) {
       // Mock implementation since dsm might not have getGroupStatus
       // In a real implementation, we would use the store's helper functions
     }
-  }, [dsm2, groupId])
+  }, [documents, groupId])
 
-  // Early return if DSM is not available yet
-  if (!dsm2) {
+  // Early return if documents are not available yet
+  if (!documents) {
     return (
       <Card className="group overflow-hidden rounded-lg shadow-sm">
         <div className="bg-muted h-1 w-full rounded-t-lg" />
@@ -92,19 +87,11 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
     title: step.assignedTo.name + " " + step.action.toString().charAt(0).toUpperCase() + step.action.toString().slice(1),
   }))
 
-  // Get the group from dsm (DSM is guaranteed to exist at this point)
-  // Add defensive check for dsm and docsGroups
-  if (!dsm2) {
-    console.warn(`DocumentMappingDSM: DSM not properly initialized for group ${groupId}`)
-    return null
-  }
-  
-  // const group2 = dsm2.getGroup(groupId)
-  // Mock group
-  const group2 = dsm2.documents.filter(d => d.group === groupId)
+  // Get the group from documents
+  const group2 = documents.filter((d) => d.group === groupId)
 
   if (!group2 || group2.length === 0) {
-    console.warn(`DocumentMappingDSM: Group ${groupId} not found in DSM`)
+    console.warn(`DocumentMappingDSM: Group ${groupId} not found in documents`)
     return null
   }
 
@@ -199,17 +186,17 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
                     </Badge>
                   </div>
                   <div className="w-full flex flex-col gap-2">
-                    {pendingGroupActionsForUser.map((action, index) => (
+                    {pendingGroupActionsForUser.map((action: ActionAssignment, index: number) => (
                       <Alert key={`you-${index}`} variant="destructive" className="bg-background cursor-pointer z-50" onClick={() => {
                         console.log("CLICKED ACTION", action)
                         // setActiveDocumentGroup2(groupId)
-                        setSelectedDocument2(action.action?.doc as DocumensoDoc)
+                        setSelectedDocument2(action.doc as DocumensoDoc)
                       }}>
                         <AlertCircle className="h-4 w-4" />
                         <div>
                           <AlertTitle className="text-sm">{action.docName.toString()}</AlertTitle>
                           <AlertDescription className="text-xs">
-                            Action: {action.action.action.toString()}
+                            Action: {action.action.toString()}
                           </AlertDescription>
                         </div>
                       </Alert>
@@ -234,21 +221,22 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
                     </Badge>
                   </div>
                   <div className="w-full flex flex-col gap-2">
-                    {pendingActionsForGroup.map((action, index) => (
+                    {pendingActionsForGroup.map((action: ActionAssignment, index: number) => (
                       <Alert
                         key={`others-${index}`}
                         className="border-warning/50 text-warning [&>svg]:text-warning cursor-pointer z-50"
                         onClick={() => {
                           console.log("CLICKED ACTION", action)
                           // setActiveDocumentGroup2(groupId)
-                          setSelectedDocument2(action.action?.doc as DocumensoDoc)
+                          setSelectedDocument2(action.doc as DocumensoDoc)
                         }}
                       >
                         <AlertCircle className="h-4 w-4" />
                         <div>
                           <AlertTitle className="text-sm">{action.docName.toString()}</AlertTitle>
                           <AlertDescription className="text-xs">
-                            Waiting on {action.action.assignedToName.toString()} to {action.action.action.toString()}
+                            Action: {action.action.toString()}
+                            Waiting on {action.assignedToName.toString()} to {action.action.toString()}
                           </AlertDescription>
                         </div>
                       </Alert>
@@ -266,7 +254,7 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
 
 export function DocumentMappingDSM() {
   const {
-    dsm: dsm2,
+    documents,
     getGroupActionSteps: getGroupActionSteps2,
     getGroupStatusForUser: getGroupStatusForUser2,
     isLoadingDocuments: isLoadingDocuments2,
@@ -276,18 +264,16 @@ export function DocumentMappingDSM() {
   //console.log("DocumentMappingDSM: User role:", userRole)
 
   useEffect(() => {
-    // Get all document group IDs from the DSM (with null check)
-    if (dsm2) {
-      // const groups = dsm2.listGroups()
-      // Mock listGroups
-      const groups = Array.from(new Set(dsm2.documents.map(d => d.group)))
+    // Get all document group IDs from the documents
+    if (documents && documents.length > 0) {
+      const groups = Array.from(new Set(documents.map((d) => d.group))) as string[]
       setDocumentGroups(groups)
-      //console.log("DocumentMappingDSM: Loaded document groups:", groups)
+      console.log("DocumentMappingDSM: Loaded document groups:", groups)
     } else {
-      //console.log("DocumentMappingDSM: DSM not available yet")
+      console.log("DocumentMappingDSM: No documents available yet")
       setDocumentGroups([])
     }
-  }, [dsm2])
+  }, [documents])
 
   // Show loading state
   if (isLoadingDocuments2) {
@@ -329,14 +315,15 @@ export function DocumentMappingDSM() {
     )
   }
 
-  // Show empty state if no DSM or no groups
-  if (!dsm2 || documentGroups.length === 0) {
+  // Show empty state if no documents or no groups
+  if (!documents || documents.length === 0 || documentGroups.length === 0) {
+    console.log("DocumentMappingDSM: Empty state triggered", { documentsCount: documents?.length, documentGroups })
     return (
       <Card className="group overflow-hidden rounded-lg shadow-sm">
         <CardHeader>
           <CardTitle>No Documents Available</CardTitle>
           <CardDescription>
-            {!dsm2 ? "Document system is initializing..." : "No document groups found for this deal."}
+            {isLoadingDocuments2 ? "Document system is initializing..." : "No document groups found for this deal."}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -389,7 +376,7 @@ export function DocumentMappingDSM() {
 
 export function DocumentProgressList() {
   const {
-    dsm: dsm2,
+    documents,
     currentUser: currentUser2,
     getGroupActionSteps: getGroupActionSteps2,
     getGroupStatusForUser: getGroupStatusForUser2,
@@ -402,28 +389,25 @@ export function DocumentProgressList() {
   const [documentGroups, setDocumentGroups] = useState<string[]>([])
 
   useEffect(() => {
-    // const groups = dsm2?.listGroups()
-    const groups = dsm2 ? Array.from(new Set(dsm2.documents.map(d => d.group))) : []
-    // Get all document group IDs from the DSM (with null check)
-    if (groups) {
-      setDocumentGroups(groups)
-      //console.log("DocumentProgressList: Loaded document groups:", groups)
+    const groups = documents?.map((d) => d.group) || []
+    // Get all document group IDs from the documents
+    if (groups.length > 0) {
+      const uniqueGroups = Array.from(new Set(groups)) as string[]
+      setDocumentGroups(uniqueGroups)
     } else {
-      //console.log("DocumentProgressList: DSM not available yet")
       setDocumentGroups([])
     }
-  }, [dsm2])
+  }, [documents])
 
   const handleGroupClick = (groupId: string) => {
-    if (!dsm2) {
-      console.log("DSM not available for group click:", groupId)
+    if (!documents) {
+      console.log("Documents not available for group click:", groupId)
       return
     }
 
-    // const group2 = dsm2.getGroup(groupId)
-    const group2 = dsm2.documents.filter(d => d.group === groupId)
+    const group2 = documents.filter((d) => d.group === groupId)
     console.log("GROUP: ", group2)
-    if (!group2) return
+    if (!group2 || group2.length === 0) return
 
     // Find the first document in this group that has an action assigned to the current user
     /*
@@ -450,8 +434,7 @@ export function DocumentProgressList() {
   return (
     <div className="space-y-2">
       {documentGroups.map((groupId) => {
-        // const group = dsm2?.getGroup(groupId)
-        const group = dsm2?.documents.filter(d => d.group === groupId)
+        const group = documents?.filter((d) => d.group === groupId)
         if (!group) return null
 
         // Check if any documents in this group have actions assigned to the current user
@@ -511,7 +494,7 @@ export function DocumentActionsList() {
     setSelectedDocument: setSelectedDocument2,
     setActiveTab: setActiveTab2,
     getRoleAssignments: getRoleAssignments2,
-    dsm:dsm2,
+    documents,
   } = useDealStore()
 
   const [assignments, setAssignments] = useState<ActionAssignment[]>([])
@@ -574,17 +557,14 @@ export function DocumentActionsList() {
     setActiveTab2("documents")
 
     // Set the active document group
-    // setActiveDocumentGroup(assignment.docId)
     setActiveDocumentGroup2(assignment.docGroup || null)
 
     // Get and set the selected document
-    if (!dsm2) {
-      console.warn("DSM not available when handling action click.")
+    if (!documents) {
+      console.warn("Documents not available when handling action click.")
       return
     }
-    // const document = dsm.docsMap.get(parseInt(assignment.docId || "0"))
-    // const document2 = dsm2.getDoc(parseInt(assignment.docId || "0"))
-    const document2 = dsm2.documents.find(d => d.id === assignment.docId)
+    const document2 = documents.find((d) => d.id === assignment.docId)
     console.log("DOCUMENT2", document2)
     if (document2) {
       // setSelectedDocument(document)
@@ -610,7 +590,7 @@ export function DocumentActionsList() {
               <div className="flex-1">
                 <div className="text-sm font-medium">{assignment.docName}</div>
                 <div className="text-muted-foreground text-xs">
-                  {assignment.action === 'prepare' ? 'Prepare' : assignment.action.charAt(0).toUpperCase() + assignment.action.slice(1)}
+                  {assignment.action === ActionTypeEnum.PREPARE ? 'Prepare' : assignment.action.charAt(0).toUpperCase() + assignment.action.slice(1)}
                 </div>
               </div>
               <ChevronRight className="text-muted-foreground h-4 w-4" />

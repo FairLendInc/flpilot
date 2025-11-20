@@ -1,13 +1,10 @@
 import React from "react"
-
-import { mockDeal } from "../models/mockData"
-import { Avatar, AvatarFallback, AvatarImage } from "components/ui/avatar"
-import { Button } from "components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileTextIcon } from "lucide-react"
 import Link from "next/link"
 import { useDealStore } from "../store/dealStore"
-import { FairLendRole } from "../utils/dealLogic"
 
 export function DashboardHeader({ userRole }: { userRole?: string }) {
   const { currentUser, setCurrentUser, availableUsers, dealId, dealData } = useDealStore()
@@ -35,7 +32,7 @@ export function DashboardHeader({ userRole }: { userRole?: string }) {
       <div>
         <h1 className="text-xl font-bold sm:text-2xl">Mortgage Portal</h1>
         <p className="text-muted-foreground text-sm sm:text-base">
-          Deal {mockDeal.id} - {mockDeal.property}
+          Deal {dealId || "Unknown"} {dealData?.property ? `- ${dealData.property}` : ""}
         </p>
       </div>
 

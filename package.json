@@ -41,6 +41,7 @@
     "@convex-dev/resend": "^0.1.13",
     "@convex-dev/workos": "^0.0.1",
     "@documenso/embed-react": "^0.3.0",
+    "@documenso/sdk-typescript": "^0.5.0",
     "@headlessui/react": "^2.2.9",
     "@heroui/divider": "^2.2.20",
     "@heroui/navbar": "^2.2.25",

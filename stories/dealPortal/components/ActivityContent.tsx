@@ -1,8 +1,8 @@
 import React from "react"
 
 import { useDealStore } from "../store/dealStore"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "components/ui/card"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Bell, ClipboardList, Eye, FileText, MessageCircle } from "lucide-react"
 
 export function ActivityContent() {

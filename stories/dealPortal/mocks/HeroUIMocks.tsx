@@ -1,6 +1,6 @@
 import React from "react"
 
-export const Divider = ({ className }: { className?: string }) => (
+export const Divider = ({ className, orientation }: { className?: string; orientation?: string }) => (
   <hr className={`my-2 border-gray-200 ${className}`} />
 )
 
@@ -8,8 +8,9 @@ export const Spacer = ({ x, y }: { x?: number; y?: number }) => (
   <div style={{ width: x ? `${x * 4}px` : undefined, height: y ? `${y * 4}px` : undefined }} />
 )
 
-export const Chip = ({ children, className, color }: { children: React.ReactNode; className?: string; color?: string }) => (
+export const Chip = ({ children, className, color, variant, size, startContent }: { children: React.ReactNode; className?: string; color?: string; variant?: string; size?: string; startContent?: React.ReactNode }) => (
   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className} bg-${color || "gray"}-100 text-${color || "gray"}-800`}>
+    {startContent}
     {children}
   </span>
 )

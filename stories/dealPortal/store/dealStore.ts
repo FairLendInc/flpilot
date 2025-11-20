@@ -1,11 +1,9 @@
 import { create } from 'zustand'
-import { mockDeal } from '../models/mockData'
 import { 
   User, 
   FairLendRole, 
   Document, 
   ActionAssignment, 
-  initialDocuments, 
   calculateGroupStatus, 
   getQuickActionsForUser, 
   getDocState, 
@@ -20,7 +18,10 @@ interface DealStoreState {
   // Deal context
   dealId: string
   setDealId: (id: string) => void
+  deal: any
+  setDeal: (deal: any) => void
   documents: Document[]
+  setDocuments: (documents: Document[]) => void
   
   // Loading and error states
   isLoadingDocuments: boolean
@@ -31,6 +32,7 @@ interface DealStoreState {
   currentUser: User | null
   setCurrentUser: (user: User | null) => void
   availableUsers: User[]
+  setAvailableUsers: (users: User[]) => void
   userRole: FairLendRole
   setUserRole: (role: FairLendRole) => void
 
@@ -109,15 +111,18 @@ interface DealStoreState {
   getSelectedDocumentWithFileData: () => any
   logDocumentView: (docId: string) => void
   
-  // Legacy dsm property for compatibility (optional, can be removed if we update all components)
-  dsm: any
+  // Legacy dsm property removed
+  // dsm: any
 }
 
 export const useDealStore = create<DealStoreState>((set, get) => ({
   // Initial State
-  dealId: mockDeal.id,
+  dealId: "DEAL-123", // Default ID
   setDealId: (id) => set({ dealId: id }),
-  documents: initialDocuments,
+  deal: {}, // Empty default
+  setDeal: (deal) => set({ deal }),
+  documents: [], // Empty default
+  setDocuments: (documents) => set({ documents }),
   
   isLoadingDocuments: false,
   documentsError: null,
@@ -132,19 +137,17 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
     name: 'John Doe', 
     role: FairLendRole.BUYER 
   },
-  setCurrentUser: (user) => set({ currentUser: user }),
-  availableUsers: [
-    { id: 'user-1', email: 'user@example.com', name: 'John Doe', role: FairLendRole.BUYER },
-    { id: 'lawyer-1', email: 'lawyer@example.com', name: 'Jane Lawyer', role: FairLendRole.LAWYER }
-  ],
+  setCurrentUser: (user) => set({ currentUser: user }),  
+  availableUsers: [],
+  setAvailableUsers: (users) => set({ availableUsers: users }),
   userRole: FairLendRole.BUYER,
   setUserRole: (role) => set({ userRole: role }),
 
   isLawyerConfirmed: false,
   setLawyerConfirmed: (confirmed) => set({ isLawyerConfirmed: confirmed }),
 
-  dealStatus: mockDeal.status,
-  dealData: { ...mockDeal, lawyerUserId: 'user-1' },
+  dealStatus: "In Progress",
+  dealData: { lawyerUserId: 'user-1' },
 
   activeTab: 'documents',
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -302,7 +305,10 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
     console.log('Event logged:', event)
     set((state) => ({ events: [...state.events, event] }))
   },
-  getGroupActionSteps: (groupId) => getGroupActionSteps(get().documents, groupId),
+  getGroupActionSteps: (groupId) => {
+    const result = getGroupActionSteps(get().documents, groupId)
+    return result.steps
+  },
 
   confirmLawyerRepresentation: async (dealId) => {
     console.log('Confirming lawyer representation for deal:', dealId)
@@ -349,11 +355,6 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
     get().logEvent({ type: 'VIEW', description: `Viewed document ${docId}` })
   },
   
-  dsm: {
-    documents: initialDocuments, // Expose documents for components that access dsm.documents directly
-    getDoc: (id: string) => initialDocuments.find(d => d.id === id), // Mock getDoc
-    getDocState: (id: string) => getDocState(initialDocuments.find(d => d.id === id)!), // Mock getDocState
-    listGroups: () => Array.from(new Set(initialDocuments.map(d => d.group))), // Mock listGroups
-    getGroup: (groupId: string) => initialDocuments.filter(d => d.group === groupId), // Mock getGroup
-  } // Mock DSM object
+  // Legacy dsm property removed
+  // dsm: ...
 }))

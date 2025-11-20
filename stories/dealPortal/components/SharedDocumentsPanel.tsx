@@ -4,9 +4,9 @@ import React, { useEffect, useRef, useState } from "react"
 
 import { useDealStore } from "../store/dealStore"
 import { FairLendRole } from "../utils/dealLogic"
-import { Button } from "components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "components/ui/card"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Download, Eye, FilePlus, FileText, Trash2, Upload } from "lucide-react"
 
 // Define shared file type
