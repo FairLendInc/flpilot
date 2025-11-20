@@ -40,6 +40,7 @@ export const RoleLabels: Record<RoleType, string> = {
   [FairLendRole.BUYER]: "Buyer",
   [FairLendRole.ADMIN]: "Admin",
   [FairLendRole.BROKER]: "Broker",
+  [FairLendRole.LAWYER]: "Lawyer",
   [FairLendRole.SYSTEM]: "System",
   [FairLendRole.NONE]: "None",
 }

@@ -2,9 +2,9 @@
 
 import React, { type ComponentProps } from "react"
 
-import { cn } from "lib/utils"
+import { cn } from "@/lib/utils"
 import { Badge } from "../../../mocks/HeroUIMocks"
-import type { ButtonProps } from "@heroui/button"
+import type { ButtonProps } from "@heroui/react"
 import { Chip, Divider, Spacer } from "../../../mocks/HeroUIMocks";
 import { Icon } from "@iconify/react"
 import { useControlledState } from "../../../mocks/react-stately-utils";
@@ -32,7 +32,7 @@ export interface VerticalCollapsibleStepsProps extends React.HTMLAttributes<HTML
    *
    * @default "primary"
    */
-  color?: ButtonProps["color"]
+  color?: string
   /**
    * The current step index.
    */

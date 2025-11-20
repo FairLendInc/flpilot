@@ -1,4 +1,4 @@
-import { mockDeal } from '../models/mockData'
+
 
 export enum FairLendRole {
   BROKER = "BROKER",
@@ -7,6 +7,7 @@ export enum FairLendRole {
   ADMIN = "ADMIN",
   SYSTEM = "SYSTEM",
   BUYER_LAWYER = "BUYER_LAWYER",
+  NONE = "NONE",
 }
 
 export enum ActionTypeEnum {
@@ -15,6 +16,12 @@ export enum ActionTypeEnum {
   REVIEW = "REVIEW",
   APPROVE = "APPROVE",
   NONE = "NONE",
+  COMPLETE = "COMPLETE",
+  VIEW = "VIEW",
+  PREPARE = "PREPARE",
+  DISPUTE = "DISPUTE",
+  UPLOAD_SIGNED = "UPLOAD_SIGNED",
+
 }
 
 export interface User {
@@ -34,10 +41,28 @@ export interface Document {
   assignedToRole?: FairLendRole
   isComplete: boolean
   blocked?: boolean
+  fileData?: string
+  recipientTokens?: Record<string, string>
+  recipientStatus?: Record<string, string>
+  requirements?: {
+    requiredBrokerSignature?: boolean
+    requiresBuyerSignature?: boolean
+    requiredPrepare?: boolean
+    requiresBuyerLawyerApproval?: boolean
+    requiresBrokerApproval?: boolean
+    eSign?: boolean
+    requiredUpload?: boolean
+  }
+  bucketPath?: string
+  actionHistory?: any
+  nextAction?: any
 }
 
 export interface ActionAssignment {
   action: ActionTypeEnum
+  type: ActionTypeEnum
+  assignedTo: string
+  completedAt?: Date
   assignedToEmail: string
   assignedToName: string
   assignedToRole: FairLendRole
@@ -66,6 +91,8 @@ export const getQuickActionsForUser = (documents: Document[], userEmail: string)
     .filter(doc => !doc.isComplete && doc.assignedTo === userEmail)
     .map(doc => ({
       action: doc.requiredAction,
+      type: doc.requiredAction,
+      assignedTo: userEmail,
       assignedToEmail: userEmail,
       assignedToName: "Current User", // Placeholder
       assignedToRole: doc.assignedToRole || FairLendRole.BUYER,
@@ -112,36 +139,5 @@ export const requiresSignature = (doc: Document, userEmail: string) => {
   return doc.requiredAction === ActionTypeEnum.ESIGN && doc.assignedTo === userEmail
 }
 
-// Mock initial documents
-export const initialDocuments: Document[] = [
-  {
-    id: "1",
-    name: "Mortgage Commitment",
-    group: "mortgage",
-    status: "pending",
-    requiredAction: ActionTypeEnum.ESIGN,
-    assignedTo: "user@example.com",
-    assignedToRole: FairLendRole.BUYER,
-    isComplete: false
-  },
-  {
-    id: "2",
-    name: "ID Verification",
-    group: "mortgage",
-    status: "pending",
-    requiredAction: ActionTypeEnum.UPLOAD,
-    assignedTo: "user@example.com",
-    assignedToRole: FairLendRole.BUYER,
-    isComplete: false
-  },
-  {
-    id: "3",
-    name: "Closing Instructions",
-    group: "closing",
-    status: "pending",
-    requiredAction: ActionTypeEnum.REVIEW,
-    assignedTo: "lawyer@example.com",
-    assignedToRole: FairLendRole.LAWYER,
-    isComplete: false
-  }
-]
+// Removed mockDeal import
+// Removed initialDocuments export

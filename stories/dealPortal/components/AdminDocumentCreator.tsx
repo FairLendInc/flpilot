@@ -4,16 +4,16 @@ import React, { useMemo, useState } from "react"
 
 import { useDealStore } from "../store/dealStore"
 import { FairLendRole } from "../utils/dealLogic"
-import { Button } from "components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "components/ui/card"
-import { Checkbox } from "components/ui/checkbox"
-import { Input } from "components/ui/input"
-import { Label } from "components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FilePlus, Upload } from "lucide-react"
 
 const AdminDocumentCreator = () => {
-  const { userRole, dsm } = useDealStore()
+  const { userRole, documents } = useDealStore()
 
   // State for the form
   const [documentName, setDocumentName] = useState("")
@@ -25,10 +25,10 @@ const AdminDocumentCreator = () => {
 
   // Get unique document groups
   const documentGroups = useMemo(() => {
-    if (!dsm?.documents) return []
-    const groups = new Set(dsm.documents.map((doc) => doc.group))
-    return Array.from(groups)
-  }, [dsm])
+    if (!documents) return []
+    const groups = new Set(documents.map((doc: { group: string }) => doc.group))
+    return Array.from(groups) as string[]
+  }, [documents])
 
   // Only show for admin users
   if (userRole !== FairLendRole.ADMIN) {

@@ -3,9 +3,9 @@
 import React, { useState } from "react"
 
 import SignPortal from "./docusign/signPortal"
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   AlertCircle,
   AlertTriangle,
@@ -17,11 +17,11 @@ import {
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useDealStore } from "../store/dealStore"
-import { ActionTypeEnum } from "../utils/dealLogic"
+import { ActionTypeEnum, Document as DocumensoDoc } from "../utils/dealLogic"
 
 export function DocumentDetailDSM() {
   const {
-    dsm: dsm2,
+    documents,
     currentUser: currentUser2,
     selectedDocument: selectedDocument2,
     setSelectedDocument: setSelectedDocument2,
@@ -34,7 +34,8 @@ export function DocumentDetailDSM() {
   // Mock functions
   const userRole = "buyer" // Mock role
   const refreshDocuments = () => console.log("Refreshing documents...")
-  const getSigningTokenForUser = (docId: number, email: string) => `mock-token-${docId}-${email}`
+  // Return null to trigger fallback to demo document
+  const getSigningTokenForUser = (docId: string, email: string) => null
 
   // State for full-screen signing modal
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
@@ -64,7 +65,14 @@ export function DocumentDetailDSM() {
       return null
     }
 
-    console.log(`getSigningUrlForCurrentUser: Getting signing token for document ${selectedDocument2.id} and user ${currentUser2.email}`)
+    // Check for direct token in document (populated from Documenso recipients)
+    if (selectedDocument2.recipientTokens && selectedDocument2.recipientTokens[currentUser2.email]) {
+      const token = selectedDocument2.recipientTokens[currentUser2.email]
+      console.log(`getSigningUrlForCurrentUser: Found token for user ${currentUser2.email}: ${token}`)
+      return `https://app.documenso.com/sign/${token}`
+    }
+
+    console.log(`getSigningUrlForCurrentUser: No token found for user ${currentUser2.email}, using fallback`)
     return getSigningTokenForUser(selectedDocument2.id, currentUser2.email)
   }
 
@@ -83,8 +91,8 @@ export function DocumentDetailDSM() {
     )
   }
 
-  // Check if DSM is available
-  if (!dsm2) {
+  // Check if documents are available
+  if (!documents) {
     return (
       <div className="flex h-full flex-col items-center justify-center py-12">
         <FileText className="text-muted-foreground/50 mb-4 h-16 w-16" />
@@ -96,7 +104,7 @@ export function DocumentDetailDSM() {
 
   // const docManager2 = dsm2.getDoc(selectedDocument2.id)
   // Mock docManager
-  const docManager2 = dsm2.documents.find(d => d.id === selectedDocument2.id)
+  const docManager2 = documents.find((d) => d.id === selectedDocument2.id)
 
   if (!docManager2) {
     //console.log("DocumentDetailDSM: No document manager found for", selectedDocument.id)
@@ -189,7 +197,38 @@ export function DocumentDetailDSM() {
         </CardHeader>
 
         <CardContent className="space-y-4 p-0">
-          {EMBEDDED_DOC_URL && (
+          {/* Check if current user has already signed */}
+          {selectedDocument2.recipientStatus && 
+           currentUser2 && 
+           selectedDocument2.recipientStatus[currentUser2.email] === 'SIGNED' ? (
+            <div className="flex h-[400px] flex-col items-center justify-center space-y-6 bg-gradient-to-b from-background to-muted/20 p-8 text-center">
+              <div className="relative">
+                <div className="absolute -inset-4 animate-pulse rounded-full bg-success/20 blur-xl" />
+                <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-success/10 ring-1 ring-success/20">
+                  <CheckCircle className="h-12 w-12 text-success animate-in zoom-in duration-500" />
+                </div>
+              </div>
+              
+              <div className="space-y-2 max-w-md animate-in slide-in-from-bottom-4 duration-700 fade-in">
+                <h3 className="text-2xl font-bold tracking-tight">You're all set!</h3>
+                <p className="text-muted-foreground">
+                  You have successfully signed <span className="font-medium text-foreground">{selectedDocument2.name}</span>.
+                  We'll notify you when all other parties have completed their actions.
+                </p>
+              </div>
+
+              <div className="flex gap-3 animate-in slide-in-from-bottom-8 duration-1000 fade-in fill-mode-backwards delay-300">
+                <Button variant="outline" className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  View Document
+                </Button>
+                <Button variant="default" className="gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Return to Dashboard
+                </Button>
+              </div>
+            </div>
+          ) : EMBEDDED_DOC_URL && (
             <div className="">
 
               <Separator />

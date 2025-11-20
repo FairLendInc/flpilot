@@ -1,6 +1,6 @@
 import { type Document as DocPrepDocument } from "../types"
-import { ActionTypeEnum as ActionType, FairLendRole as RoleType } from "../../../utils/dealLogic"
-import type { Document as DSMDocument } from "../../../utils/dealLogic"
+import { ActionTypeEnum as ActionType, FairLendRole as RoleType } from "@/stories/dealPortal/utils/dealLogic"
+import type { Document as DSMDocument } from "@/stories/dealPortal/utils/dealLogic"
 
 /**
  * Converts a DocPrep Document to a DSM Document
@@ -25,7 +25,10 @@ export function createDSMDocument(docPrepDoc: DocPrepDocument): DSMDocument {
     id: docPrepDoc.id,
     name: docPrepDoc.name,
     bucketPath: `documents/${docPrepDoc.group}/${docPrepDoc.id}`,
-    groupId: docPrepDoc.group,
+    group: docPrepDoc.group,
+    status: "pending",
+    requiredAction: ActionType.PREPARE,
+    isComplete: false,
     requirements: {
       requiredPrepare: docPrepDoc.requiredPrepare ?? false,
       requiresBuyerLawyerApproval: docPrepDoc.requiresBuyerLawyerApproval ?? false,
@@ -87,7 +90,7 @@ function getNextActionType(docPrepDoc: DocPrepDocument): ActionType {
       return ActionType.ESIGN
     }
 
-    return ActionType.COMPLETED
+    return ActionType.COMPLETE
   }
 
   // For non-eSign documents, first action is upload
@@ -173,7 +176,7 @@ function generateWorkflow(docPrepDoc: DocPrepDocument): Array<{ role: RoleType; 
   // Add completion step
   workflow.push({
     role: RoleType.SYSTEM,
-    action: ActionType.COMPLETED,
+    action: ActionType.COMPLETE,
   })
 
   return workflow
@@ -186,14 +189,14 @@ export function convertDSMToDocPrep(dsmDoc: DSMDocument): DocPrepDocument {
   return {
     id: dsmDoc.id,
     name: dsmDoc.name,
-    group: dsmDoc.groupId,
+    group: dsmDoc.group,
     roleAssignments: [], // This would need to be populated from user assignments
-    requiresBuyerLawyerApproval: dsmDoc.requirements.requiresBuyerLawyerApproval,
-    requiresBuyerSignature: dsmDoc.requirements.requiresBuyerSignature,
-    requiresBrokerApproval: dsmDoc.requirements.requiresBrokerApproval,
-    requiredBrokerSignature: dsmDoc.requirements.requiredBrokerSignature,
-    eSign: dsmDoc.requirements.eSign,
-    requiredUpload: dsmDoc.requirements.requiredUpload,
+    requiresBuyerLawyerApproval: false,
+    requiresBuyerSignature: false,
+    requiresBrokerApproval: false,
+    requiredBrokerSignature: false,
+    eSign: false,
+    requiredUpload: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   }

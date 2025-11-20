@@ -6,7 +6,7 @@ import SupportCard from "./support-card"
 import VerticalCollapsibleSteps from "./vertical-collapsible-steps"
 import { useDealStore } from "../../../store/dealStore"
 import { calculateGroupStatus } from "../../../utils/dealLogic"
-import { Button } from "@heroui/button"
+import { Button } from "@heroui/react"
 import { Progress, Spacer } from "../../../mocks/HeroUIMocks";
 import { Icon } from "@iconify/react"
 import { format } from "date-fns"
@@ -20,21 +20,21 @@ interface StepData {
 }
 
 export default function Component() {
-  const { dsm, deal, isLawyerConfirmed } = useDealStore()
+  const { documents, deal, isLawyerConfirmed } = useDealStore()
   const dealStatus = deal?.status
   const dealData = deal
 
   // Check if all documents are completed by looking at DSM state
   const areAllDocumentsCompleted = React.useMemo(() => {
-    if (!dsm?.documents) return false
+    if (!documents) return false
 
     // Get all unique groups
-    const groups = Array.from(new Set(dsm.documents.map((d) => d.group)))
+    const groups = Array.from(new Set(documents.map((d) => d.group))) as string[]
 
     // Check if all document groups have completed all their requirements
     let allCompleted = true
     groups.forEach((group) => {
-      const status = calculateGroupStatus(dsm.documents, group)
+      const status = calculateGroupStatus(documents, group)
       const allDocsInGroupCompleted = status.percent === 100
       if (!allDocsInGroupCompleted) {
         allCompleted = false
@@ -42,7 +42,7 @@ export default function Component() {
     })
 
     return allCompleted
-  }, [dsm])
+  }, [documents])
 
   // Map deal status to step progression, but override with document completion state
   const getStepFromDealStatus = (dealStatus: string): number => {
@@ -162,18 +162,9 @@ export default function Component() {
         Follow the transaction process. The current step requires action before proceeding.
       </p>
       <Progress
-        classNames={{
-          base: "px-0.5 mb-5",
-          label: "text-small",
-          value: "text-small text-default-400",
-        }}
+        className="px-0.5 mb-5"
         label="Step"
-        maxValue={steps.length - 1}
-        minValue={0}
-        showValueLabel={true}
-        size="md"
         value={currentStep}
-        valueLabel={`${currentStep + 1} of ${steps.length}`}
       />
       <VerticalCollapsibleSteps
         currentStep={currentStep}

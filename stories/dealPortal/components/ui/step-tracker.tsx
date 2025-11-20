@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 
 import HorizontalSteps from "./horizontal-steps"
-import { Button } from "@heroui/button"
+import { Button } from "@heroui/react"
 
 const steps = [
   {

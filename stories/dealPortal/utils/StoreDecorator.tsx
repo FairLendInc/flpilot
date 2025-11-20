@@ -33,5 +33,5 @@ export const StoreDecorator = (Story: StoryFn, context: StoryContext) => {
     }
   }, [mockState, setUserRole, setDeal])
 
-  return <Story />
+  return Story(context.args, context)
 }

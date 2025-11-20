@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react"
 
 import { useDealStore } from "../store/dealStore"
 import { ActionTypeEnum } from "../utils/dealLogic"
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "components/ui/select"
-import { Textarea } from "components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import {
   AlertCircle,
   CheckCircle,
@@ -74,33 +74,6 @@ const PDFViewer = ({ url }: { url: string }) => {
 
 const DocumentViewer = () => {
   const {
-    dsm,
-    userRole,
-    selectedDocument: originalDocument,
-    setSelectedDocument,
-    activeDocumentGroup,
-    documentViewMode,
-    setDocumentViewMode,
-    showNotePanel,
-    setShowNotePanel,
-    showApproveModal,
-    setShowApproveModal,
-    showDisputeModal,
-    setShowDisputeModal,
-    showConfirmModal,
-    setShowConfirmModal,
-    note,
-    setNote,
-    uploadState,
-    getActionStatusText,
-    getActionStatusColor,
-    completeDocumentAction,
-    setShowUploadModal,
-    handleFileSelect,
-    uploadDocument,
-    getSelectedDocumentWithFileData,
-    getDocState: getDocumentState,
-    getDocumentVersions,
     logEvent,
     logDocumentView,
   } = useDealStore()
@@ -226,12 +199,7 @@ const DocumentViewer = () => {
   const handleUploadSubmit = () => {
     if (!selectedDocument || !uploadState.file) return
 
-    uploadDocument(
-      selectedDocument.id,
-      uploadState.file,
-      userRole,
-      selectedDocument.nextAction?.type === ActionTypeEnum.UPLOAD_SIGNED
-    )
+    uploadDocument(uploadState.file)
 
     setShowConfirmModal(false)
   }

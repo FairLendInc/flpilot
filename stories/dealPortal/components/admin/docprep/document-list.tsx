@@ -13,10 +13,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "components/ui/alert-dialog"
-import { Badge } from "components/ui/badge"
-import { Button } from "components/ui/button"
-import { Card } from "components/ui/card"
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,11 +24,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "components/ui/dropdown-menu"
-import { Popover, PopoverContent, PopoverTrigger } from "components/ui/popover"
-import { ScrollArea } from "components/ui/scroll-area"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "components/ui/table"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "components/ui/tooltip"
+} from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Edit, Link, MoreHorizontal, Trash2, Users } from "lucide-react"
 
 interface DocumentListProps {
@@ -60,6 +60,7 @@ export function DocumentList({ documents, onEditAction, onDeleteAction }: Docume
       [RoleType.BUYER_LAWYER]: 0,
       [RoleType.BROKER]: 0,
       [RoleType.ADMIN]: 0,
+      [RoleType.LAWYER]: 0,
       [RoleType.SYSTEM]: 0,
       [RoleType.NONE]: 0,
     }

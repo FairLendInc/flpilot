@@ -1,7 +1,7 @@
 import React from "react"
 
 import { useDealStore } from "../store/dealStore"
-import { Button } from "components/ui/button"
+import { Button } from "@/components/ui/button"
 import { FileText } from "lucide-react"
 
 export function ChatContent() {
@@ -40,9 +40,9 @@ export function ChatContent() {
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage(chatInput)}
           />
-          <Button onClick={() => sendMessage()}>Send</Button>
+          <Button onClick={() => sendMessage(chatInput)}>Send</Button>
         </div>
       </div>
     </div>

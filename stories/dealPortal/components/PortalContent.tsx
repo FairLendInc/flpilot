@@ -1,8 +1,8 @@
 import { useEffect } from "react"
 
 import ChatWindow from "../mocks/ChatWindow";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClipboardList, Clock, FileText, Mail, MessageCircle, Share } from "lucide-react"
 import { useDealStore } from "../store/dealStore"
 import { ActivityContent } from "./ActivityContent"
@@ -27,7 +27,7 @@ export function PortalContent({
   role: string
 }) {
   const {
-    dsm:dsm2,
+    // dsm:dsm2,
 
     // Deal context
     dealId:dealId2,
@@ -169,7 +169,7 @@ export function PortalContent({
       <DashboardHeader userRole={role} />
 
       {/* Show loading/error states */}
-      {isLoadingDocuments2 && !dsm2 && (
+      {isLoadingDocuments2 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
