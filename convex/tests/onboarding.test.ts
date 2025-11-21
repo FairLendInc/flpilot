@@ -259,7 +259,7 @@ describe("Onboarding journeys", () => {
 		const pendingReject = await admin.query(api.onboarding.listPending, {});
 		expect(pendingReject).not.toBeNull();
 		const rejectionJourney = pendingReject!.find(
-			(entry) => entry.journey.userId !== pending![0]!.journey.userId
+			(entry: { journey: { userId: string } }) => entry.journey.userId !== pending![0]!.journey.userId
 		);
 		expect(rejectionJourney).toBeDefined();
 

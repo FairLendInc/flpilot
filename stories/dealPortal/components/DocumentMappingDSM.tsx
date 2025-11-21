@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 
 import HorizontalSteps from "./ui/horizontal-steps"
 import { Badge } from "@/components/ui/badge"
@@ -49,17 +49,6 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
   
   const logger = createLogger("app:DocumentMappingDSM")
 
-  // Initialize state with null-safe defaults
-  const [currentStep, setCurrentStep] = useState(0)
-  const [groupSteps, setGroupSteps] = useState<GroupSteps[]>([])
-
-  // Update state when documents become available
-  React.useEffect(() => {
-    if (documents.length > 0) {
-      // Mock implementation since dsm might not have getGroupStatus
-      // In a real implementation, we would use the store's helper functions
-    }
-  }, [documents, groupId])
 
   // Early return if documents are not available yet
   if (!documents) {
@@ -79,13 +68,6 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
       </Card>
     )
   }
-
-  // Use the state variables that were initialized before the early return
-  // groupStatusData, currentStep, and groupSteps are already defined above
-
-  const steps = groupSteps.map((step) => ({
-    title: step.assignedTo.name + " " + step.action.toString().charAt(0).toUpperCase() + step.action.toString().slice(1),
-  }))
 
   // Get the group from documents
   const group2 = documents.filter((d) => d.group === groupId)
@@ -111,9 +93,13 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
   const groupSteps2 = groupStatusForUser?.groupSteps ?? []
   const groupStepIndex = groupStatusForUser?.groupStepIndex ?? 0
 
+  console.log('GROUP STEPS', groupSteps2)
+  const steps = groupSteps2.map((step: GroupSteps) => ({
+    title: step.assignedTo.name + " " + step.action.toString().charAt(0).toUpperCase() + step.action.toString().slice(1),
+  }))
 
   const docGroupName = getDocumentGroupName2(groupId)
-  let pendingAction = groupSteps[currentStep]
+  let pendingAction = groupSteps2[groupStepIndex]
   if (!pendingAction) pendingAction = { action: ActionTypeEnum.COMPLETE, assignedTo: { email: "", name: "" }, assignedToRole: undefined }
   const showActionRequired = pendingAction.action !== ActionTypeEnum.COMPLETE
 
@@ -236,7 +222,7 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
                           <AlertTitle className="text-sm">{action.docName.toString()}</AlertTitle>
                           <AlertDescription className="text-xs">
                             Action: {action.action.toString()}
-                            Waiting on {action.assignedToName.toString()} to {action.action.toString()}
+                            Waiting on {action.assignedToName?.toString() ?? "someone"} to {action.action?.toString() ?? "complete"}
                           </AlertDescription>
                         </div>
                       </Alert>
@@ -455,7 +441,7 @@ export function DocumentProgressList() {
               <FileText className="text-primary h-5 w-5" />
               <div className="flex-1">
                 <div className="text-sm font-medium">{groupId}</div>
-                <div className="text-muted-foreground text-xs">
+                <div className="text-muted-500 text-xs">
                   {/*
                     group.filter((docManager) => {
                       const nextAction = docManager.getCurrentAssignment()

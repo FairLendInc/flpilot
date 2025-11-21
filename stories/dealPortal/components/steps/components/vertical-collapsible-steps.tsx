@@ -255,14 +255,14 @@ const VerticalCollapsibleSteps = React.forwardRef<HTMLDivElement, VerticalCollap
                         <div className="flex-1 text-left">
                           <div
                             className={cn(
-                              "text-medium text-default-foreground font-medium transition-[color,opacity] duration-300"
+                              "text-medium font-medium transition-[color,opacity] duration-300 text-foreground"
                             )}
                           >
                             {step.title}
                           </div>
                           <div
                             className={cn(
-                              "text-tiny text-default-600 lg:text-small transition-[color,opacity] duration-300"
+                              "text-tiny lg:text-small transition-[color,opacity] duration-300 text-foreground/70"
                             )}
                           >
                             {step.description}
@@ -282,9 +282,10 @@ const VerticalCollapsibleSteps = React.forwardRef<HTMLDivElement, VerticalCollap
                         <div className="flex flex-col">
                           <div
                             className={cn(
-                              "text-medium text-default-foreground font-medium transition-[color,opacity] duration-300",
+                              "text-medium font-medium transition-[color,opacity] duration-300",
                               {
-                                "text-default-500": status === "inactive",
+                                "text-foreground/50": status === "inactive",
+                                "text-foreground": status !== "inactive",
                               }
                             )}
                           >
@@ -292,9 +293,10 @@ const VerticalCollapsibleSteps = React.forwardRef<HTMLDivElement, VerticalCollap
                           </div>
                           <div
                             className={cn(
-                              "text-tiny text-default-600 lg:text-small transition-[color,opacity] duration-300",
+                              "text-tiny lg:text-small transition-[color,opacity] duration-300",
                               {
-                                "text-default-500": status === "inactive",
+                                "text-foreground/40": status === "inactive",
+                                "text-foreground/70": status !== "inactive",
                               }
                             )}
                           >
@@ -331,7 +333,7 @@ const VerticalCollapsibleSteps = React.forwardRef<HTMLDivElement, VerticalCollap
                     >
                       <div className="flex">
                         <Spacer x={14} />
-                        <ul className="text-default-400 list-disc pr-12 pb-2 pl-1">
+                        <ul className="text-foreground/60 list-disc pr-12 pb-2 pl-1">
                           {step.details.map((detail, idx) => (
                             <li key={idx} className="text-tiny mb-1">
                               {detail}

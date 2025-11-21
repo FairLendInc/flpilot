@@ -335,7 +335,7 @@ describe("lockListing - RBAC Authorization", () => {
 			role: "broker",
 		});
 
-		const result = await brokerT.mutation(api.listings.lockListing, {
+		const result = await brokerT.action(api.listings.lockListing, {
 			listingId,
 			userId,
 		});
@@ -358,7 +358,7 @@ describe("lockListing - RBAC Authorization", () => {
 			role: "admin",
 		});
 
-		const result = await adminT.mutation(api.listings.lockListing, {
+		const result = await adminT.action(api.listings.lockListing, {
 			listingId,
 			userId,
 		});
@@ -381,7 +381,7 @@ describe("lockListing - RBAC Authorization", () => {
 		});
 
 		await expect(
-			investorT.mutation(api.listings.lockListing, {
+			investorT.action(api.listings.lockListing, {
 				listingId,
 				userId,
 			})
@@ -396,7 +396,7 @@ describe("lockListing - RBAC Authorization", () => {
 		const userId = await createTestUser(t, "locker");
 
 		await expect(
-			t.mutation(api.listings.lockListing, {
+			t.action(api.listings.lockListing, {
 				listingId,
 				userId,
 			})

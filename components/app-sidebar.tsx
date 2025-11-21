@@ -22,14 +22,12 @@ import {
 	getRoleNavigation,
 } from "@/lib/utils/role-helpers";
 
-// This is sample data - in production, user would come from auth
-const userData = {
-	name: "Admin User",
-	email: "admin@fairlend.com",
-	avatar: "/avatars/admin.jpg",
-};
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+	user,
+	...props
+}: React.ComponentProps<typeof Sidebar> & {
+	user: { name: string; email: string; avatar: string };
+}) {
 	const router = useRouter();
 
 	// For now, mock all roles as available. In production, this would come from:
@@ -68,7 +66,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				<NavMain items={navigation} />
 			</SidebarContent>
 			<SidebarFooter>
-				<NavUser user={userData} />
+				<NavUser user={user} />
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>

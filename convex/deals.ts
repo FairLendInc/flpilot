@@ -7,13 +7,15 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, action, internalQuery } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
 import { createActor } from "xstate";
 import { dealMachine, type DealContext, type DealEvent } from "./dealStateMachine";
 import { createOwnershipInternal } from "./ownership";
+import { generateDocumentsFromTemplates } from "../lib/documenso";
+import { internal, api } from "./_generated/api";
 
 /**
  * Get user document from identity
@@ -127,41 +129,6 @@ async function requireAdmin<T extends boolean = false>(
  */
 export const getDeal = query({
 	args: { dealId: v.id("deals") },
-	returns: v.union(
-		v.object({
-			_id: v.id("deals"),
-			lockRequestId: v.id("lock_requests"),
-			listingId: v.id("listings"),
-			mortgageId: v.id("mortgages"),
-			investorId: v.id("users"),
-			stateMachineState: v.string(),
-			currentState: v.string(),
-			purchasePercentage: v.number(),
-			dealValue: v.number(),
-			createdAt: v.number(),
-			updatedAt: v.number(),
-			completedAt: v.optional(v.number()),
-			archivedAt: v.optional(v.number()),
-			stateHistory: v.array(
-				v.object({
-					fromState: v.string(),
-					toState: v.string(),
-					timestamp: v.number(),
-					triggeredBy: v.id("users"),
-					notes: v.optional(v.string()),
-				})
-			),
-			validationChecks: v.optional(
-				v.object({
-					lawyerConfirmed: v.boolean(),
-					docsComplete: v.boolean(),
-					fundsReceived: v.boolean(),
-					fundsVerified: v.boolean(),
-				})
-			),
-		}),
-		v.null()
-	),
 	handler: async (ctx, args) => {
 		try {
 			const adminUserId = await requireAdmin(ctx, {
@@ -191,16 +158,17 @@ export const getAllActiveDeals = query({
 	returns: v.array(
 		v.object({
 			_id: v.id("deals"),
-			lockRequestId: v.id("lock_requests"),
+			lockRequestId: v.optional(v.id("lock_requests")),
 			listingId: v.id("listings"),
 			mortgageId: v.id("mortgages"),
 			investorId: v.id("users"),
-			currentState: v.string(),
-			purchasePercentage: v.number(),
-			dealValue: v.number(),
+			currentState: v.optional(v.string()),
+			purchasePercentage: v.optional(v.number()),
+			dealValue: v.optional(v.number()),
 			createdAt: v.number(),
-			updatedAt: v.number(),
 			completedAt: v.optional(v.number()),
+			updatedAt: v.number(),
+			// Joined data
 			mortgageAddress: v.string(),
 			investorName: v.string(),
 		})
@@ -288,7 +256,7 @@ export const getDealsByState = query({
 			_id: v.id("deals"),
 			mortgageId: v.id("mortgages"),
 			investorId: v.id("users"),
-			dealValue: v.number(),
+			dealValue: v.optional(v.number()),
 			createdAt: v.number(),
 			updatedAt: v.number(),
 		})
@@ -336,9 +304,9 @@ export const getArchivedDeals = query({
 	returns: v.array(
 		v.object({
 			_id: v.id("deals"),
-			lockRequestId: v.id("lock_requests"),
-			currentState: v.string(),
-			dealValue: v.number(),
+			lockRequestId: v.optional(v.id("lock_requests")),
+			currentState: v.optional(v.string()),
+			dealValue: v.optional(v.number()),
 			createdAt: v.number(),
 			completedAt: v.optional(v.number()),
 			archivedAt: v.optional(v.number()),
@@ -391,19 +359,19 @@ export const getDealWithDetails = query({
 			deal: v.object({
 				_id: v.id("deals"),
 				_creationTime: v.number(),
-				lockRequestId: v.id("lock_requests"),
+				lockRequestId: v.optional(v.id("lock_requests")),
 				listingId: v.id("listings"),
 				mortgageId: v.id("mortgages"),
 				investorId: v.id("users"),
-				stateMachineState: v.string(),
-				currentState: v.string(),
-				purchasePercentage: v.number(),
-				dealValue: v.number(),
+				stateMachineState: v.optional(v.string()),
+				currentState: v.optional(v.string()),
+				purchasePercentage: v.optional(v.number()),
+				dealValue: v.optional(v.number()),
 				createdAt: v.number(),
 				updatedAt: v.number(),
 				completedAt: v.optional(v.number()),
 				archivedAt: v.optional(v.number()),
-				stateHistory: v.array(
+				stateHistory: v.optional(v.array(
 					v.object({
 						fromState: v.string(),
 						toState: v.string(),
@@ -411,7 +379,7 @@ export const getDealWithDetails = query({
 						triggeredBy: v.id("users"),
 						notes: v.optional(v.string()),
 					})
-				),
+				)),
 				validationChecks: v.optional(
 					v.object({
 						lawyerConfirmed: v.boolean(),
@@ -489,7 +457,7 @@ export const getDealWithDetails = query({
 			return null;
 		}
 
-		const lockRequest = await ctx.db.get(deal.lockRequestId);
+		const lockRequest = deal.lockRequestId ? await ctx.db.get(deal.lockRequestId) : null;
 		const listing = await ctx.db.get(deal.listingId);
 		const mortgage = await ctx.db.get(deal.mortgageId);
 		const investor = await ctx.db.get(deal.investorId);
@@ -594,7 +562,9 @@ export const getDealMetrics = query({
 		for (const deal of allDeals) {
 			if (deal.currentState === "archived") continue;
 			
+			if (deal.currentState) {
 			byState[deal.currentState] = (byState[deal.currentState] || 0) + 1;
+		}
 
 			if (deal.currentState === "completed") totalCompleted++;
 			if (deal.currentState === "cancelled") totalCancelled++;
@@ -623,13 +593,15 @@ export const getDealMetrics = query({
 		}> = [];
 
 		for (const deal of allDeals) {
-			for (const transition of deal.stateHistory) {
-				recentActivity.push({
-					dealId: deal._id,
-					fromState: transition.fromState,
-					toState: transition.toState,
-					timestamp: transition.timestamp,
-				});
+			if (deal.stateHistory) {
+				for (const transition of deal.stateHistory) {
+					recentActivity.push({
+						dealId: deal._id,
+						fromState: transition.fromState,
+						toState: transition.toState,
+						timestamp: transition.timestamp,
+					});
+				}
 			}
 		}
 
@@ -654,7 +626,7 @@ export const getDealByLockRequest = query({
 	returns: v.union(
 		v.object({
 			_id: v.id("deals"),
-			currentState: v.string(),
+			currentState: v.optional(v.string()),
 		}),
 		v.null()
 	),
@@ -696,59 +668,136 @@ export const getDealByLockRequest = query({
 // ============================================================================
 
 /**
+ * Internal mutation to create a deal record
+ * Called by the createDeal action
+ */
+export const createDealInternal = internalMutation({
+	args: {
+		lockRequestId: v.id("lock_requests"),
+		listingId: v.id("listings"),
+		mortgageId: v.id("mortgages"),
+		investorId: v.id("users"),
+		stateMachineState: v.string(),
+		currentState: v.union(
+			v.literal("locked"),
+			v.literal("pending_lawyer"),
+			v.literal("pending_docs"),
+			v.literal("pending_transfer"),
+			v.literal("pending_verification"),
+			v.literal("completed"),
+			v.literal("cancelled"),
+			v.literal("archived")
+		),
+		purchasePercentage: v.number(),
+		dealValue: v.number(),
+		stateHistory: v.array(
+			v.object({
+				fromState: v.string(),
+				toState: v.string(),
+				timestamp: v.number(),
+				triggeredBy: v.id("users"),
+				notes: v.optional(v.string()),
+			})
+		),
+	},
+	returns: v.id("deals"),
+	handler: async (ctx, args) => {
+		const dealId = await ctx.db.insert("deals", {
+			lockRequestId: args.lockRequestId,
+			listingId: args.listingId,
+			mortgageId: args.mortgageId,
+			investorId: args.investorId,
+			stateMachineState: args.stateMachineState,
+			currentState: args.currentState,
+			purchasePercentage: args.purchasePercentage,
+			dealValue: args.dealValue,
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
+			stateHistory: args.stateHistory,
+			status: "pending", // Initial status
+		});
+		return dealId;
+	},
+});
+
+/**
+ * Internal mutation to update deal status
+ */
+export const updateDealStatusInternal = internalMutation({
+	args: {
+		dealId: v.id("deals"),
+		status: v.union(
+			v.literal("pending"),
+			v.literal("active"),
+			v.literal("completed"),
+			v.literal("cancelled"),
+			v.literal("archived")
+		),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.dealId, {
+			status: args.status,
+			updatedAt: Date.now(),
+		});
+	},
+});
+
+/**
  * Create a new deal from an approved lock request
  * 
  * This is called manually by admin via "Create Deal" button on approved requests.
  * Initializes the XState machine and creates the deal in "locked" state.
+ * Also generates documents from mortgage templates.
  */
-export const createDeal = mutation({
+export const createDeal = action({
 	args: {
 		lockRequestId: v.id("lock_requests"),
 	},
-	returns: v.id("deals"),
+	returns: v.object({
+		dealId: v.id("deals"),
+		documentResults: v.array(v.object({
+			templateId: v.string(),
+			documentId: v.optional(v.string()),
+			error: v.optional(v.string()),
+			success: v.boolean(),
+		})),
+	}),
 	handler: async (ctx, args) => {
-		const adminUserId = await requireAdmin(ctx);
-
-		// Get and validate lock request
-		const lockRequest = await ctx.db.get(args.lockRequestId);
-		if (!lockRequest) {
-			throw new Error("Lock request not found");
+		// 1. Validate admin authorization (via query)
+		// We can't use requireAdmin directly in action as it uses ctx.db
+		// So we fetch identity and check roles via helper or assume caller is authorized
+		// For actions, we typically rely on the internal mutations to enforce data integrity
+		// But we should check auth here too.
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
 		}
+		
+		// Check RBAC via a query helper if needed, or trust the internal mutation checks later
+		// For now, we'll proceed and let the internal mutation fail if user is invalid,
+		// but ideally we'd check here.
+		// Since we need the user ID for the audit trail, we'll get it from the internal mutation return or pass it in.
+		// Actually, we need to fetch data first.
+
+		// 2. Fetch necessary data via query
+		const data: any = await ctx.runQuery(internal.deals.getDealCreationData, {
+			lockRequestId: args.lockRequestId,
+		});
+
+		if (!data) {
+			throw new Error("Lock request not found or invalid");
+		}
+
+		const { lockRequest, listing, mortgage, investor, adminUserId } = data;
 
 		if (lockRequest.status !== "approved") {
 			throw new Error("Lock request must be approved before creating deal");
 		}
 
-		// Check if deal already exists for this lock request
-		const existingDeal = await ctx.db
-			.query("deals")
-			.withIndex("by_lock_request", (q) =>
-				q.eq("lockRequestId", args.lockRequestId)
-			)
-			.first();
-
-		if (existingDeal) {
-			throw new Error(
-				`Deal already exists for this lock request (Deal ID: ${existingDeal._id})`
-			);
-		}
-
-		// Get listing and mortgage details
-		const listing = await ctx.db.get(lockRequest.listingId);
-		if (!listing) {
-			throw new Error("Listing not found");
-		}
-
-		const mortgage = await ctx.db.get(listing.mortgageId);
-		if (!mortgage) {
-			throw new Error("Mortgage not found");
-		}
-
-		// Calculate deal value (100% purchase for pilot)
+		// 3. Initialize XState machine
 		const dealValue = mortgage.loanAmount;
 		const purchasePercentage = 100;
 
-		// Initialize XState machine context
 		const initialContext: Omit<DealContext, "dealId"> = {
 			lockRequestId: args.lockRequestId,
 			listingId: lockRequest.listingId,
@@ -760,16 +809,11 @@ export const createDeal = mutation({
 			stateHistory: [],
 		};
 
-		// Create initial actor to get proper XState snapshot format
-		// XState v5 requires a proper snapshot structure, not just { value, context }
 		const initialActor = createActor(dealMachine);
 		initialActor.start();
-
-		// Get the initial snapshot structure from XState
 		let initialSnapshot = initialActor.getSnapshot();
 		initialActor.stop();
 
-		// Update the snapshot's context with our initial context (with placeholder ID)
 		const placeholderContext: DealContext = {
 			...initialContext,
 			dealId: "PLACEHOLDER" as Id<"deals">,
@@ -779,8 +823,8 @@ export const createDeal = mutation({
 			context: placeholderContext,
 		};
 
-		// Create the deal with proper XState snapshot
-		const dealId = await ctx.db.insert("deals", {
+		// 4. Create deal record via internal mutation
+		const dealId: Id<"deals"> = await ctx.runMutation(internal.deals.createDealInternal, {
 			lockRequestId: args.lockRequestId,
 			listingId: lockRequest.listingId,
 			mortgageId: listing.mortgageId,
@@ -789,8 +833,6 @@ export const createDeal = mutation({
 			currentState: "locked",
 			purchasePercentage,
 			dealValue,
-			createdAt: Date.now(),
-			updatedAt: Date.now(),
 			stateHistory: [
 				{
 					fromState: "none",
@@ -802,8 +844,7 @@ export const createDeal = mutation({
 			],
 		});
 
-		// Update state machine context with actual deal ID
-		// Create actor, update context, and get new snapshot
+		// 5. Update state machine with actual deal ID
 		const tempActor = createActor(dealMachine);
 		tempActor.start();
 		let updatedSnapshot = tempActor.getSnapshot();
@@ -818,31 +859,139 @@ export const createDeal = mutation({
 			context: updatedContext,
 		};
 
-		await ctx.db.patch(dealId, {
+		await ctx.runMutation(internal.deals.updateDealStateMachine, {
+			dealId,
 			stateMachineState: JSON.stringify(updatedSnapshot),
 		});
 
-		// Create alert for admin
+		// 6. Generate documents from templates
+		const templates = mortgage.documentTemplates || [];
+		let documentResults: any[] = [];
+
+		if (templates.length > 0) {
+			// Prepare recipient data
+			// We need broker details - for now hardcoding or fetching from config
+			// In a real app, this might come from an organization settings table
+			const broker = {
+				name: "FairLend Broker",
+				email: "broker@fairlend.ca", // TODO: Get from config
+			};
+
+			const investorDetails = {
+				name: `${investor.first_name || ""} ${investor.last_name || ""}`.trim() || investor.email,
+				email: investor.email,
+			};
+
+			// Call Documenso lib
+			documentResults = await generateDocumentsFromTemplates(
+				templates,
+				broker,
+				investorDetails
+			);
+
+			// Store results
+			for (const result of documentResults) {
+				if (result.success && result.documentId) {
+					const template = templates.find((t: { documensoTemplateId: string }) => t.documensoTemplateId === result.templateId);
+					if (template) {
+						await ctx.runMutation(internal.deal_documents.createDealDocumentInternal, {
+							dealId,
+							documensoDocumentId: result.documentId,
+							templateId: template.documensoTemplateId,
+							templateName: template.name,
+							signatories: [
+								{ role: "Broker", ...broker },
+								{ role: "Investor", ...investorDetails }
+							]
+						});
+					}
+				}
+			}
+		}
+
+		// 7. Create alerts (via internal mutation to keep action clean)
+		await ctx.runMutation(internal.deals.createDealCreationAlerts, {
+			dealId,
+			adminUserId,
+			mortgageAddress: mortgage.address.street,
+			listingId: lockRequest.listingId,
+			lockRequestId: args.lockRequestId,
+		});
+
+		return { dealId, documentResults };
+	},
+});
+
+/**
+ * Helper query to fetch data for deal creation
+ * Ensures we have all necessary data and permissions before proceeding
+ */
+export const getDealCreationData = internalQuery({
+	args: { lockRequestId: v.id("lock_requests") },
+	handler: async (ctx, args) => {
+		const adminUserId = await requireAdmin(ctx);
+		
+		const lockRequest = await ctx.db.get(args.lockRequestId);
+		if (!lockRequest) return null;
+
+		const listing = await ctx.db.get(lockRequest.listingId);
+		if (!listing) return null;
+
+		const mortgage = await ctx.db.get(listing.mortgageId);
+		if (!mortgage) return null;
+
+		const investor = await ctx.db.get(lockRequest.requestedBy);
+		if (!investor) return null;
+
+		return {
+			lockRequest,
+			listing,
+			mortgage,
+			investor,
+			adminUserId,
+		};
+	},
+});
+
+/**
+ * Internal mutation to update deal state machine
+ */
+export const updateDealStateMachine = internalMutation({
+	args: {
+		dealId: v.id("deals"),
+		stateMachineState: v.string(),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.dealId, {
+			stateMachineState: args.stateMachineState,
+		});
+	},
+});
+
+/**
+ * Internal mutation to create alerts after deal creation
+ */
+export const createDealCreationAlerts = internalMutation({
+	args: {
+		dealId: v.id("deals"),
+		adminUserId: v.id("users"),
+		mortgageAddress: v.string(),
+		listingId: v.id("listings"),
+		lockRequestId: v.id("lock_requests"),
+	},
+	handler: async (ctx, args) => {
 		await ctx.db.insert("alerts", {
-			userId: adminUserId,
+			userId: args.adminUserId,
 			type: "deal_created",
 			severity: "info",
 			title: "Deal Created",
-			message: `Deal created for mortgage at ${mortgage.address.street}`,
-			relatedDealId: dealId,
-			relatedListingId: lockRequest.listingId,
+			message: `Deal created for mortgage at ${args.mortgageAddress}`,
+			relatedDealId: args.dealId,
+			relatedListingId: args.listingId,
 			relatedLockRequestId: args.lockRequestId,
 			read: false,
 			createdAt: Date.now(),
 		});
-
-		logger.info("Deal created", {
-			dealId,
-			lockRequestId: args.lockRequestId,
-			createdBy: adminUserId,
-		});
-
-		return dealId;
 	},
 });
 
@@ -874,6 +1023,9 @@ export const transitionDealState = mutation({
 		}
 
 		// Parse current state machine state
+		if (!deal.stateMachineState) {
+			throw new Error("Deal has no state machine state");
+		}
 		const machineState = JSON.parse(deal.stateMachineState);
 		
 		// Create actor and restore state
@@ -962,6 +1114,9 @@ export const cancelDeal = mutation({
 		});
 
 		// Update deal to cancelled state
+		if (!deal.stateMachineState) {
+			throw new Error("Deal has no state machine state");
+		}
 		const machineState = JSON.parse(deal.stateMachineState);
 		const cancelEvent: DealEvent = {
 			type: "CANCEL",
@@ -1056,7 +1211,7 @@ export const completeDeal = mutation({
 		await createOwnershipInternal(ctx, {
 			mortgageId: deal.mortgageId,
 			ownerId: deal.investorId,
-			ownershipPercentage: deal.purchasePercentage,
+			ownershipPercentage: deal.purchasePercentage ?? 100,
 		});
 
 		// Mark deal as fully completed
@@ -1125,6 +1280,9 @@ export const archiveDeal = mutation({
 		}
 
 		// Transition to archived state
+		if (!deal.stateMachineState) {
+			throw new Error("Deal has no state machine state");
+		}
 		const machineState = JSON.parse(deal.stateMachineState);
 		const archiveEvent: DealEvent = {
 			type: "ARCHIVE",

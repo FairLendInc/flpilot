@@ -76,43 +76,43 @@ const HorizontalSteps = React.forwardRef<HTMLDivElement, HorizontalStepsProps>(
       let fgColor
 
       const colorsVars = [
-        "[--active-fg-color:hsl(var(--step-fg-color))]",
-        "[--active-border-color:hsl(var(--step-color))]",
-        "[--active-color:hsl(var(--step-color))]",
-        "[--complete-background-color:hsl(var(--step-color))]",
-        "[--complete-border-color:hsl(var(--step-color))]",
-        "[--inactive-border-color:hsl(var(--heroui-default-300))]",
-        "[--inactive-color:hsl(var(--heroui-default-300))]",
+        "[--active-fg-color:var(--step-fg-color)]",
+        "[--active-border-color:var(--step-color)]",
+        "[--active-color:var(--step-color)]",
+        "[--complete-background-color:var(--step-color)]",
+        "[--complete-border-color:var(--step-color)]",
+        "[--inactive-border-color:var(--muted-foreground)]",
+        "[--inactive-color:var(--muted-foreground)]",
       ]
 
       switch (color) {
         case "primary":
-          userColor = "[--step-color:var(--heroui-primary)]"
-          fgColor = "[--step-fg-color:var(--heroui-primary-foreground)]"
+          userColor = "[--step-color:var(--primary)]"
+          fgColor = "[--step-fg-color:var(--primary-foreground)]"
           break
         case "secondary":
-          userColor = "[--step-color:var(--heroui-secondary)]"
-          fgColor = "[--step-fg-color:var(--heroui-secondary-foreground)]"
+          userColor = "[--step-color:var(--secondary)]"
+          fgColor = "[--step-fg-color:var(--secondary-foreground)]"
           break
         case "success":
-          userColor = "[--step-color:var(--heroui-success)]"
-          fgColor = "[--step-fg-color:var(--heroui-success-foreground)]"
+          userColor = "[--step-color:var(--success)]"
+          fgColor = "[--step-fg-color:var(--success-foreground)]"
           break
         case "warning":
-          userColor = "[--step-color:var(--heroui-warning)]"
-          fgColor = "[--step-fg-color:var(--heroui-warning-foreground)]"
+          userColor = "[--step-color:var(--warning)]"
+          fgColor = "[--step-fg-color:var(--warning-foreground)]"
           break
         case "danger":
-          userColor = "[--step-color:var(--heroui-error)]"
-          fgColor = "[--step-fg-color:var(--heroui-error-foreground)]"
+          userColor = "[--step-color:var(--destructive)]"
+          fgColor = "[--step-fg-color:var(--destructive-foreground)]"
           break
         case "default":
-          userColor = "[--step-color:var(--heroui-default)]"
-          fgColor = "[--step-fg-color:var(--heroui-default-foreground)]"
+          userColor = "[--step-color:var(--foreground)]"
+          fgColor = "[--step-fg-color:var(--background)]"
           break
         default:
-          userColor = "[--step-color:var(--heroui-primary)]"
-          fgColor = "[--step-fg-color:var(--heroui-primary-foreground)]"
+          userColor = "[--step-color:var(--primary)]"
+          fgColor = "[--step-fg-color:var(--primary-foreground)]"
           break
       }
 
@@ -185,12 +185,14 @@ const HorizontalSteps = React.forwardRef<HTMLDivElement, HorizontalStepsProps>(
                     </LazyMotion>
                   </div>
                   
-                  <div className="mt-1 px-1 text-center" id="step title">
+                  <div className="mt-1 px-0.5 text-center min-w-[50px]" id="step title">
                     <p
                       className={cn(
-                        "text-default-foreground line-clamp-2 text-[10px] leading-tight font-medium transition-[color,opacity] duration-300",
+                        "text-[9px] leading-tight font-medium transition-[color,opacity] duration-300 break-words",
                         {
-                          "text-default-500": status === "inactive",
+                          "text-default-400": status === "inactive",
+                          "text-[hsl(var(--step-color))]": status === "active",
+                          "text-success": status === "complete",
                         }
                       )}
                     >
@@ -201,13 +203,13 @@ const HorizontalSteps = React.forwardRef<HTMLDivElement, HorizontalStepsProps>(
                 
                 {/* Connector line positioned absolutely */}
                 {stepIdx < steps.length - 1 && !hideProgressBars && (
-                  <div className="absolute left-[calc(50%+12px)] mx-[6px] top-3 right-[calc(-50%+12px)] h-[1px] bg-default-200 z-0">
+                  <div className="absolute left-[calc(50%+12px)] mx-[6px] top-3 right-[calc(-50%+12px)] h-[2px] bg-border z-0">
                     <div
                       className={cn(
-                        "h-[1px] bg-[var(--inactive-border-color)] transition-[width] duration-300",
-                        stepIdx < currentStep - 1
-                          ? "bg-[var(--active-border-color)] w-full"
-                          : "w-0"
+                        "h-[2px] transition-[width,background-color] duration-300",
+                        stepIdx < currentStep
+                          ? "bg-success w-full"
+                          : "bg-transparent w-0"
                       )}
                     />
                   </div>

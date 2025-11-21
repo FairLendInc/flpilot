@@ -76,6 +76,8 @@ const DocumentViewer = () => {
   const {
     logEvent,
     logDocumentView,
+    getDocState,
+    getSelectedDocumentWithFileData,
   } = useDealStore()
 
   // Get the enhanced document with file data
@@ -89,7 +91,7 @@ const DocumentViewer = () => {
   const previousDocumentIdRef = React.useRef<string | null>(null)
 
   // Get document state for status checking
-  const documentState = selectedDocument ? getDocumentState(selectedDocument.id) : null
+  const documentState = selectedDocument ? getDocState(selectedDocument.id) : null
 
   // Log document view when document is opened
   useEffect(() => {
@@ -205,13 +207,13 @@ const DocumentViewer = () => {
   }
 
   // Check if document has completed status
-  const isDocumentCompleted = documentState?.status === "completed"
+  const isDocumentCompleted = documentState?.isComplete || selectedDocument?.isComplete
 
-  // Check if document is approved
-  const isDocumentApproved = documentState?.status === "lawyer_approved"
+  // Check if document is approved (using status from document)
+  const isDocumentApproved = selectedDocument?.status === "APPROVED" || selectedDocument?.status === "lawyer_approved"
 
   // Check if document is disputed
-  const isDocumentDisputed = documentState?.status === "buyer_lawyer_disputed"
+  const isDocumentDisputed = selectedDocument?.status === "REJECTED" || selectedDocument?.status === "buyer_lawyer_disputed"
 
   if (!selectedDocument) {
     return (

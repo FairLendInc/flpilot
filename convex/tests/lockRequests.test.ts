@@ -847,7 +847,7 @@ describe("getPendingLockRequests - Query Tests", () => {
 		);
 
 		expect(pendingRequests).toHaveLength(2);
-		expect(pendingRequests?.every((r) => r.status === "pending")).toBe(true);
+		expect(pendingRequests?.every((r: { status: string }) => r.status === "pending")).toBe(true);
 	});
 });
 

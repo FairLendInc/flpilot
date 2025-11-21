@@ -495,7 +495,9 @@ function DealsContent() {
 	return (
 		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{deals.map((deal) => {
-				const StateIcon = DEAL_STATE_ICONS[deal.currentState] || Lock;
+				const StateIcon = deal.currentState
+					? DEAL_STATE_ICONS[deal.currentState] || Lock
+					: Lock;
 				const stateColor =
 					DEAL_STATE_COLORS[
 						deal.currentState as keyof typeof DEAL_STATE_COLORS
@@ -528,7 +530,7 @@ function DealsContent() {
 								<div className="flex items-center justify-between">
 									<span>Value:</span>
 									<span className="font-medium text-foreground">
-										{formatDealValue(deal.dealValue)}
+										{formatDealValue(deal.dealValue ?? 0)}
 									</span>
 								</div>
 								<div className="flex items-center justify-between">

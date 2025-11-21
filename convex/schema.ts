@@ -288,6 +288,12 @@ export default defineSchema({
 				fileSize: v.optional(v.number()), // bytes
 			})
 		),
+		// Documenso template configurations
+		documentTemplates: v.optional(v.array(v.object({
+			documensoTemplateId: v.string(), // e.g., 
+			name: v.string(), // Display name (e.g., "Purchase Agreement")
+			signatoryRoles: v.array(v.string()) // e.g., ["Broker", "Investor"]
+		}))),
 	})
 		.index("by_borrower", ["borrowerId"])
 		.index("by_status", ["status"])
@@ -408,14 +414,23 @@ export default defineSchema({
 
 	deals: defineTable({
 		// References to related entities
-		lockRequestId: v.id("lock_requests"),
+		lockRequestId: v.optional(v.id("lock_requests")), // Made optional as we transition
 		listingId: v.id("listings"),
 		mortgageId: v.id("mortgages"),
 		investorId: v.id("users"),
 
+		// Status tracking
+		status: v.optional(v.union(
+			v.literal("pending"),
+			v.literal("active"),
+			v.literal("completed"),
+			v.literal("cancelled"),
+			v.literal("archived")
+		)),
+
 		// XState machine state (serialized JSON)
-		stateMachineState: v.string(),
-		currentState: v.union(
+		stateMachineState: v.optional(v.string()),
+		currentState: v.optional(v.union(
 			v.literal("locked"),
 			v.literal("pending_lawyer"),
 			v.literal("pending_docs"),
@@ -424,11 +439,11 @@ export default defineSchema({
 			v.literal("completed"),
 			v.literal("cancelled"),
 			v.literal("archived")
-		),
+		)),
 
 		// Deal financial details
-		purchasePercentage: v.number(), // 100 for pilot, variable in future
-		dealValue: v.number(), // Calculated at creation
+		purchasePercentage: v.optional(v.number()), // 100 for pilot, variable in future
+		dealValue: v.optional(v.number()), // Calculated at creation
 
 		// Timestamps
 		createdAt: v.number(),
@@ -438,7 +453,7 @@ export default defineSchema({
 		cancelledAt: v.optional(v.number()),
 
 		// Audit trail - tracks all state transitions
-		stateHistory: v.array(
+		stateHistory: v.optional(v.array(
 			v.object({
 				fromState: v.string(),
 				toState: v.string(),
@@ -446,7 +461,7 @@ export default defineSchema({
 				triggeredBy: v.id("users"),
 				notes: v.optional(v.string()),
 			})
-		),
+		)),
 
 		// Future: validation tracking (stubbed for now)
 		validationChecks: v.optional(
@@ -462,8 +477,31 @@ export default defineSchema({
 		.index("by_listing", ["listingId"])
 		.index("by_mortgage", ["mortgageId"])
 		.index("by_investor", ["investorId"])
+		.index("by_status", ["status"])
 		.index("by_current_state", ["currentState"])
 		.index("by_created_at", ["createdAt"]),
+
+	deal_documents: defineTable({
+		dealId: v.id("deals"),
+		documensoDocumentId: v.string(), // Actual Documenso document ID
+		templateId: v.string(), // Original template ID from mortgage config
+		templateName: v.string(), // Display name for UI
+		status: v.union(
+			v.literal("draft"),
+			v.literal("pending"),
+			v.literal("signed"),
+			v.literal("rejected")
+		),
+		signatories: v.array(v.object({
+			role: v.string(),
+			name: v.string(),
+			email: v.string()
+		})),
+		createdAt: v.number(),
+		updatedAt: v.number()
+	})
+		.index("by_deal", ["dealId"])
+		.index("by_status", ["status"]),
 
 	alerts: defineTable({
 		// Who should see this alert
