@@ -198,6 +198,11 @@ export default function DSMPortalPage({
       console.log('[DealPortal] Setting available users from initialUsers:', initialUsers)
       setAvailableUsers(initialUsers)
     }
+
+    if (deal) {
+      console.log('[DealPortal] Setting deal:', deal)
+      useDealStore.getState().setDeal(deal)
+    }
     
     // Mark as initialized only after attempting to set both
     initializedRef.current = true

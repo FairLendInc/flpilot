@@ -17,6 +17,7 @@ import type * as deal_documents from "../deal_documents.js";
 import type * as deals from "../deals.js";
 import type * as documenso from "../documenso.js";
 import type * as http from "../http.js";
+import type * as lib_broker from "../lib/broker.js";
 import type * as lib_client from "../lib/client.js";
 import type * as lib_server from "../lib/server.js";
 import type * as listings from "../listings.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   deals: typeof deals;
   documenso: typeof documenso;
   http: typeof http;
+  "lib/broker": typeof lib_broker;
   "lib/client": typeof lib_client;
   "lib/server": typeof lib_server;
   listings: typeof listings;

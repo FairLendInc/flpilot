@@ -33,4 +33,14 @@ crons.daily(
 	internal.sync.performDailySync
 );
 
+/**
+ * Check for completed documents and transition deals
+ * Runs every 10 minutes
+ */
+crons.interval(
+	"check-pending-docs-deals",
+	{ minutes: 10 },
+	internal.deals.checkPendingDocsDeals
+);
+
 export default crons;
