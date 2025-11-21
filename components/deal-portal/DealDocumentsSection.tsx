@@ -106,51 +106,44 @@ export function DealDocumentsSection({
 		<div className="space-y-4">
 			<h2 className="font-semibold text-xl">Deal Documents</h2>
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-				{documents.map(
-					(doc: {
-						_id: string;
-						templateName: string;
-						status: string;
-						signatories: Array<{ role: string; name: string; email: string }>;
-					}) => (
-						<Card key={doc._id}>
-							<CardHeader className="pb-2">
-								<div className="flex items-start justify-between">
-									<FileText className="h-8 w-8 text-muted-foreground" />
-									{getStatusBadge(doc.status)}
+				{documents.map((doc) => (
+					<Card key={doc._id}>
+						<CardHeader className="pb-2">
+							<div className="flex items-start justify-between">
+								<FileText className="h-8 w-8 text-muted-foreground" />
+								{getStatusBadge(doc.status)}
+							</div>
+							<CardTitle className="text-base">{doc.templateName}</CardTitle>
+							<CardDescription className="text-xs">
+								Created {new Date(doc.createdAt).toLocaleDateString()}
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<div className="flex flex-col gap-2">
+								<div className="text-muted-foreground text-xs">
+									Signatories:
+									<ul className="mt-1 list-inside list-disc">
+										{doc.signatories.map(
+											(s: { role: string; name: string; email: string }) => (
+												<li key={s.email}>
+													{s.name} ({s.role})
+												</li>
+											)
+										)}
+									</ul>
 								</div>
-								<CardTitle className="text-base">{doc.templateName}</CardTitle>
-								<CardDescription className="text-xs">
-									Created {new Date(doc.createdAt).toLocaleDateString()}
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<div className="flex flex-col gap-2">
-									<div className="text-muted-foreground text-xs">
-										Signatories:
-										<ul className="mt-1 list-inside list-disc">
-											{doc.signatories.map(
-												(s: { role: string; name: string; email: string }) => (
-													<li key={s.email}>
-														{s.name} ({s.role})
-													</li>
-												)
-											)}
-										</ul>
-									</div>
-									{doc.status === "pending" && (
-										<Button
-											className="mt-2 w-full"
-											onClick={() => handleSignClick(doc)}
-										>
-											Sign Document
-										</Button>
-									)}
-								</div>
-							</CardContent>
-						</Card>
-					)
-				)}
+								{doc.status === "pending" && (
+									<Button
+										className="mt-2 w-full"
+										onClick={() => handleSignClick(doc)}
+									>
+										Sign Document
+									</Button>
+								)}
+							</div>
+						</CardContent>
+					</Card>
+				))}
 			</div>
 
 			<Dialog
