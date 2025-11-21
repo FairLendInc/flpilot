@@ -61,10 +61,6 @@ export function DocumensoTemplateAutocomplete({
 			setLoading(true);
 			try {
 				const results = await searchTemplates({ query: searchQuery });
-				console.log("Results:", {
-					results,
-					searchQuery,
-				});
 				setTemplates(results);
 			} catch (error) {
 				console.error("Failed to search templates:", error);

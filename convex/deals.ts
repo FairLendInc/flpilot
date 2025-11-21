@@ -12,10 +12,12 @@ import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
 import { createActor } from "xstate";
-import { dealMachine, type DealContext, type DealEvent } from "./dealStateMachine";
+import { dealMachine, type DealContext, type DealEvent, type DealEventWithAdmin } from "./dealStateMachine";
 import { createOwnershipInternal } from "./ownership";
 import { generateDocumentsFromTemplates } from "../lib/documenso";
 import { internal, api } from "./_generated/api";
+import { getBrokerOfRecord } from "./lib/broker";
+import { authAction, authMutation } from "./lib/server";
 
 /**
  * Get user document from identity
@@ -388,6 +390,20 @@ export const getDealWithDetails = query({
 						fundsVerified: v.boolean(),
 					})
 				),
+				currentUpload: v.optional(v.object({
+					storageId: v.id("_storage"),
+					uploadedBy: v.string(),
+					uploadedAt: v.number(),
+					fileName: v.string(),
+					fileType: v.string(),
+				})),
+				uploadHistory: v.optional(v.array(v.object({
+					storageId: v.id("_storage"),
+					uploadedBy: v.string(),
+					uploadedAt: v.number(),
+					fileName: v.string(),
+					fileType: v.string(),
+				}))),
 			}),
 			lockRequest: v.union(
 				v.object({
@@ -699,6 +715,13 @@ export const createDealInternal = internalMutation({
 				notes: v.optional(v.string()),
 			})
 		),
+		// New fields
+		brokerId: v.optional(v.id("users")),
+		brokerName: v.optional(v.string()),
+		brokerEmail: v.optional(v.string()),
+		lawyerName: v.optional(v.string()),
+		lawyerEmail: v.optional(v.string()),
+		lawyerLSONumber: v.optional(v.string()),
 	},
 	returns: v.id("deals"),
 	handler: async (ctx, args) => {
@@ -715,6 +738,13 @@ export const createDealInternal = internalMutation({
 			updatedAt: Date.now(),
 			stateHistory: args.stateHistory,
 			status: "pending", // Initial status
+			// New fields
+			brokerId: args.brokerId,
+			brokerName: args.brokerName,
+			brokerEmail: args.brokerEmail,
+			lawyerName: args.lawyerName,
+			lawyerEmail: args.lawyerEmail,
+			lawyerLSONumber: args.lawyerLSONumber,
 		});
 		return dealId;
 	},
@@ -824,6 +854,8 @@ export const createDeal = action({
 		};
 
 		// 4. Create deal record via internal mutation
+		const broker = getBrokerOfRecord();
+		
 		const dealId: Id<"deals"> = await ctx.runMutation(internal.deals.createDealInternal, {
 			lockRequestId: args.lockRequestId,
 			listingId: lockRequest.listingId,
@@ -842,6 +874,13 @@ export const createDeal = action({
 					notes: "Deal created from approved lock request",
 				},
 			],
+			// Populate broker and lawyer fields
+			brokerId: broker.brokerId,
+			brokerName: broker.brokerName,
+			brokerEmail: broker.brokerEmail,
+			lawyerName: lockRequest.lawyerName,
+			lawyerEmail: lockRequest.lawyerEmail,
+			lawyerLSONumber: lockRequest.lawyerLSONumber,
 		});
 
 		// 5. Update state machine with actual deal ID
@@ -1033,11 +1072,11 @@ export const transitionDealState = mutation({
 			snapshot: machineState,
 		});
 
-		// Send event with admin ID
+		// Send event with admin ID injected from auth context
 		const eventWithAdmin = {
 			...args.event,
 			adminId: adminUserId,
-		} as DealEvent;
+		} as DealEventWithAdmin;
 
 		// Start actor and send event
 		actor.start();
@@ -1118,7 +1157,7 @@ export const cancelDeal = mutation({
 			throw new Error("Deal has no state machine state");
 		}
 		const machineState = JSON.parse(deal.stateMachineState);
-		const cancelEvent: DealEvent = {
+		const cancelEvent: DealEventWithAdmin = {
 			type: "CANCEL",
 			adminId: adminUserId,
 			reason: args.reason,
@@ -1284,7 +1323,7 @@ export const archiveDeal = mutation({
 			throw new Error("Deal has no state machine state");
 		}
 		const machineState = JSON.parse(deal.stateMachineState);
-		const archiveEvent: DealEvent = {
+		const archiveEvent: DealEventWithAdmin = {
 			type: "ARCHIVE",
 			adminId: adminUserId,
 		};
@@ -1382,5 +1421,383 @@ export const validateFundVerification = internalMutation({
 		// - Verify no chargebacks
 		// - Validate sufficient funds
 		return true; // Pass-through for now
+	},
+});
+
+/**
+ * Check for deals in pending_docs state and transition if all docs signed
+ * Called by cron job
+ */
+export const checkPendingDocsDeals = internalMutation({
+	args: {},
+	handler: async (ctx) => {
+		// 1. Get all deals in pending_docs state
+		const deals = await ctx.db
+			.query("deals")
+			.withIndex("by_current_state", (q) => q.eq("currentState", "pending_docs"))
+			.collect();
+
+		if (deals.length === 0) return;
+
+		logger.info("Checking pending_docs deals for completion", { count: deals.length });
+
+		for (const deal of deals) {
+			// 2. Check if all documents are signed
+			const documents = await ctx.db
+				.query("deal_documents")
+				.withIndex("by_deal", (q) => q.eq("dealId", deal._id))
+				.collect();
+			
+			if (documents.length === 0) continue;
+			
+			const allSigned = documents.every(doc => doc.status === "signed");
+
+			if (allSigned) {
+				logger.info("All documents signed for deal, transitioning to pending_transfer", { dealId: deal._id });
+				
+				// 3. Transition state
+				if (!deal.stateMachineState) {
+					logger.error("Deal has no state machine state", { dealId: deal._id });
+					continue;
+				}
+
+				const machineState = JSON.parse(deal.stateMachineState);
+				const actor = createActor(dealMachine, {
+					snapshot: machineState,
+				});
+
+				// Send COMPLETE_DOCS event (system-triggered, use investor as triggeredBy)
+				const event: DealEventWithAdmin = {
+					type: "COMPLETE_DOCS",
+					adminId: deal.investorId,
+					notes: "Automatically transitioned by system after all documents signed",
+				};
+
+				actor.start();
+				actor.send(event);
+
+				const newSnapshot = actor.getSnapshot();
+				const newContext = newSnapshot.context;
+
+				if (newContext.currentState !== "pending_transfer") {
+					logger.warn("Failed to transition to pending_transfer", { 
+						dealId: deal._id, 
+						currentState: newContext.currentState 
+					});
+					actor.stop();
+					continue;
+				}
+
+				await ctx.db.patch(deal._id, {
+					stateMachineState: JSON.stringify(newSnapshot),
+					currentState: newContext.currentState,
+					updatedAt: Date.now(),
+					stateHistory: newContext.stateHistory,
+				});
+
+				actor.stop();
+
+				// Create alert for investor
+				await ctx.db.insert("alerts", {
+					userId: deal.investorId,
+					type: "deal_state_changed",
+					severity: "info",
+					title: "Documents Signed",
+					message: "All documents have been signed. Please proceed with fund transfer.",
+					relatedDealId: deal._id,
+					relatedListingId: deal.listingId,
+					read: false,
+					createdAt: Date.now(),
+				});
+			}
+		}
+	},
+});
+
+/**
+ * Internal query to get deal for action validation
+ */
+export const getDealInternal = internalQuery({
+	args: { dealId: v.id("deals") },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.dealId);
+	},
+});
+
+/**
+ * Generate upload URL for fund transfer proof
+ * Only accessible by investor or their lawyer
+ */
+export const generateFundTransferUploadUrl = authAction({
+	args: { dealId: v.id("deals") },
+	handler: async (ctx, args) => {
+		const { role, subject, email } = ctx;
+		
+		// Check if user is authorized for this deal
+		const deal = await ctx.runQuery(internal.deals.getDealInternal, { dealId: args.dealId });
+		if (!deal) throw new Error("Deal not found");
+
+		// Check permissions
+		const isInvestor = deal.investorId === subject;
+		const isLawyer = deal.lawyerEmail === email;
+		const isAdmin = role === "admin";
+
+		if (!isInvestor && !isLawyer && !isAdmin) {
+			throw new Error("Unauthorized: Only investor or their lawyer can upload fund transfer proof");
+		}
+
+		return await ctx.storage.generateUploadUrl();
+	},
+});
+
+/**
+ * Record fund transfer upload metadata
+ * Validates file type and updates deal history
+ */
+export const recordFundTransferUpload = authMutation({
+	args: {
+		dealId: v.id("deals"),
+		storageId: v.id("_storage"),
+		fileName: v.string(),
+		fileType: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { role, subject, email } = ctx;
+		const deal = await ctx.db.get(args.dealId);
+		if (!deal) throw new Error("Deal not found");
+
+		// 1. Validate permissions
+		const isInvestor = deal.investorId === subject;
+		const isLawyer = deal.lawyerEmail === email;
+		const isAdmin = role === "admin";
+
+		if (!isInvestor && !isLawyer && !isAdmin) {
+			throw new Error("Unauthorized");
+		}
+
+		// 2. Validate file type
+		const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+		if (!allowedTypes.includes(args.fileType)) {
+			throw new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed.");
+		}
+
+		// 3. Handle history
+		const currentUpload = deal.currentUpload;
+		const newUpload = {
+			storageId: args.storageId,
+			uploadedBy: subject, // or email if lawyer? subject is safer if they have account
+			uploadedAt: Date.now(),
+			fileName: args.fileName,
+			fileType: args.fileType,
+		};
+
+		let uploadHistory = deal.uploadHistory || [];
+		if (currentUpload) {
+			uploadHistory.push(currentUpload);
+		}
+
+		// 4. Update deal
+		await ctx.db.patch(args.dealId, {
+			currentUpload: newUpload,
+			uploadHistory: uploadHistory,
+			updatedAt: Date.now(),
+		});
+
+		logger.info("Fund transfer proof uploaded", { dealId: args.dealId, uploadedBy: subject });
+	},
+});
+
+/**
+ * Confirm lawyer representation
+ * Called by the lawyer to confirm they represent the investor
+ */
+export const confirmLawyerRepresentation = authMutation({
+	args: { dealId: v.id("deals") },
+	handler: async (ctx, args) => {
+		const { email } = ctx;
+		const deal = await ctx.db.get(args.dealId);
+		if (!deal) throw new Error("Deal not found");
+
+		// Validate that the caller is the assigned lawyer
+		if (deal.lawyerEmail !== email) {
+			throw new Error("Unauthorized: You are not the assigned lawyer for this deal");
+		}
+
+		// Get user ID for the event
+		const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!userId) throw new Error("User not found");
+
+		// Update deal state
+		if (!deal.stateMachineState) {
+			throw new Error("Deal has no state machine state");
+		}
+
+		const machineState = JSON.parse(deal.stateMachineState);
+		const actor = createActor(dealMachine, {
+			snapshot: machineState,
+		});
+
+		const event: DealEventWithAdmin = {
+			type: "CONFIRM_LAWYER",
+			adminId: userId, // Lawyer acts as admin/user here for the transition
+			notes: "Lawyer confirmed representation",
+		};
+
+		actor.start();
+		actor.send(event);
+
+		const newSnapshot = actor.getSnapshot();
+		const newContext = newSnapshot.context;
+
+		await ctx.db.patch(args.dealId, {
+			stateMachineState: JSON.stringify(newSnapshot),
+			currentState: newContext.currentState,
+			updatedAt: Date.now(),
+			stateHistory: newContext.stateHistory,
+			validationChecks: {
+				...deal.validationChecks,
+				lawyerConfirmed: true,
+				docsComplete: deal.validationChecks?.docsComplete ?? false,
+				fundsReceived: deal.validationChecks?.fundsReceived ?? false,
+				fundsVerified: deal.validationChecks?.fundsVerified ?? false,
+			},
+		});
+
+		actor.stop();
+
+		logger.info("Lawyer confirmed representation", { dealId: args.dealId, lawyerEmail: email });
+	},
+});
+
+/**
+ * Resend lawyer invite
+ * Called by admin or investor to resend the invitation email
+ */
+export const resendLawyerInvite = authMutation({
+	args: { dealId: v.id("deals") },
+	handler: async (ctx, args) => {
+		const { role, subject } = ctx;
+		const deal = await ctx.db.get(args.dealId);
+		if (!deal) throw new Error("Deal not found");
+
+		// Validate permissions
+		const isInvestor = deal.investorId === subject;
+		const isAdmin = role === "admin";
+
+		if (!isInvestor && !isAdmin) {
+			throw new Error("Unauthorized");
+		}
+
+		// TODO: Integrate with email service (Resend) to actually send the email
+		// For now, we'll just log it and create an alert for the admin
+		logger.info("Resending lawyer invite", { 
+			dealId: args.dealId, 
+			lawyerEmail: deal.lawyerEmail,
+			requestedBy: subject 
+		});
+
+		return true;
+	},
+});
+
+/**
+ * Update lawyer email
+ * Called by admin or investor to correct the lawyer's email address
+ */
+export const updateLawyerEmail = authMutation({
+	args: { 
+		dealId: v.id("deals"),
+		newEmail: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { role, subject } = ctx;
+		const deal = await ctx.db.get(args.dealId);
+		if (!deal) throw new Error("Deal not found");
+
+		// Validate permissions
+		const isInvestor = deal.investorId === subject;
+		const isAdmin = role === "admin";
+
+		if (!isInvestor && !isAdmin) {
+			throw new Error("Unauthorized");
+		}
+
+		if (deal.currentState !== "pending_lawyer" && deal.currentState !== "locked") {
+			throw new Error("Cannot update lawyer email in current state");
+		}
+
+		const oldEmail = deal.lawyerEmail;
+
+		await ctx.db.patch(args.dealId, {
+			lawyerEmail: args.newEmail,
+			updatedAt: Date.now(),
+			// Reset confirmation if it was somehow set (though state check prevents this mostly)
+			validationChecks: {
+				...deal.validationChecks,
+				lawyerConfirmed: false,
+				docsComplete: deal.validationChecks?.docsComplete ?? false,
+				fundsReceived: deal.validationChecks?.fundsReceived ?? false,
+				fundsVerified: deal.validationChecks?.fundsVerified ?? false,
+			}
+		});
+
+		logger.info("Lawyer email updated", { 
+			dealId: args.dealId, 
+			oldEmail, 
+			newEmail: args.newEmail,
+			updatedBy: subject 
+		});
+
+		// TODO: Send revocation email to old address and new invite to new address
+	},
+});
+
+/**
+ * Select new lawyer
+ * Called by admin or investor to replace the lawyer entirely
+ */
+export const selectNewLawyer = authMutation({
+	args: { 
+		dealId: v.id("deals"),
+		name: v.string(),
+		email: v.string(),
+		lsoNumber: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { role, subject } = ctx;
+		const deal = await ctx.db.get(args.dealId);
+		if (!deal) throw new Error("Deal not found");
+
+		// Validate permissions
+		const isInvestor = deal.investorId === subject;
+		const isAdmin = role === "admin";
+
+		if (!isInvestor && !isAdmin) {
+			throw new Error("Unauthorized");
+		}
+
+		if (deal.currentState !== "pending_lawyer" && deal.currentState !== "locked") {
+			throw new Error("Cannot change lawyer in current state");
+		}
+
+		await ctx.db.patch(args.dealId, {
+			lawyerName: args.name,
+			lawyerEmail: args.email,
+			lawyerLSONumber: args.lsoNumber,
+			updatedAt: Date.now(),
+			validationChecks: {
+				...deal.validationChecks,
+				lawyerConfirmed: false,
+				docsComplete: deal.validationChecks?.docsComplete ?? false,
+				fundsReceived: deal.validationChecks?.fundsReceived ?? false,
+				fundsVerified: deal.validationChecks?.fundsVerified ?? false,
+			}
+		});
+
+		logger.info("New lawyer selected", { 
+			dealId: args.dealId, 
+			newLawyerEmail: args.email,
+			updatedBy: subject 
+		});
 	},
 });

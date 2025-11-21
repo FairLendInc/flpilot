@@ -224,8 +224,6 @@ export function DealKanbanBoard() {
 			return;
 		}
 
-		const adminId = userProfile.user._id;
-
 		// Capture original values before any reassignment for logging
 		const {
 			dealId,
@@ -244,15 +242,15 @@ export function DealKanbanBoard() {
 			if (nextState === originalToState) {
 				// Forward transition
 				if (originalToState === "pending_lawyer") {
-					event = { type: "CONFIRM_LAWYER", adminId };
+					event = { type: "CONFIRM_LAWYER" };
 				} else if (originalToState === "pending_docs") {
-					event = { type: "COMPLETE_DOCS", adminId };
+					event = { type: "COMPLETE_DOCS" };
 				} else if (originalToState === "pending_transfer") {
-					event = { type: "RECEIVE_FUNDS", adminId };
+					event = { type: "RECEIVE_FUNDS" };
 				} else if (originalToState === "pending_verification") {
-					event = { type: "VERIFY_FUNDS", adminId };
+					event = { type: "VERIFY_FUNDS" };
 				} else if (originalToState === "completed") {
-					event = { type: "COMPLETE_DEAL", adminId };
+					event = { type: "COMPLETE_DEAL" };
 				} else {
 					throw new Error(`Invalid forward transition to ${originalToState}`);
 				}
@@ -260,7 +258,6 @@ export function DealKanbanBoard() {
 				// Backward transition
 				event = {
 					type: "GO_BACK",
-					adminId,
 					toState: originalToState,
 					notes: "Moved backwards via Kanban board",
 				};

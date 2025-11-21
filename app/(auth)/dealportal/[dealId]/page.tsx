@@ -1,15 +1,20 @@
 "use client";
 
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { AlertCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DealPortalLoading } from "@/components/deal-portal/DealPortalLoading";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { useAuthenticatedQuery } from "@/convex/lib/client";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import {
+	useAuthenticatedQuery,
+	useAuthenticatedQueryWithStatus,
+} from "@/convex/lib/client";
 import type { DocumensoDocumentSummary } from "@/lib/types/documenso";
+import { LawyerInviteManagement } from "@/stories/dealPortal/components/LawyerInviteManagement";
+import { LawyerRepresentationConfirmation } from "@/stories/dealPortal/components/LawyerRepresentationConfirmation";
 import DealPortal from "@/stories/dealPortal/DealPortal";
 import {
 	ActionTypeEnum,
@@ -86,6 +91,35 @@ function extractUsers(doc: DocumensoDocumentSummary) {
 	}));
 }
 
+function PendingLawyerState({
+	deal,
+	dealId,
+}: {
+	deal: Doc<"deals">;
+	dealId: Id<"deals">;
+}) {
+	const viewer = useQuery(api.users.viewer);
+
+	if (viewer === undefined) {
+		return <DealPortalLoading />;
+	}
+
+	const isLawyer = viewer?.email === deal.lawyerEmail;
+
+	if (isLawyer) {
+		return <LawyerRepresentationConfirmation dealId={dealId} />;
+	}
+
+	return (
+		<LawyerInviteManagement
+			dealId={dealId}
+			lawyerEmail={deal.lawyerEmail}
+			lawyerLSONumber={deal.lawyerLSONumber}
+			lawyerName={deal.lawyerName}
+		/>
+	);
+}
+
 export default function DealPortalPage() {
 	const params = useParams();
 	const dealId =
@@ -93,7 +127,7 @@ export default function DealPortalPage() {
 			? (params.dealId as Id<"deals">)
 			: undefined;
 
-	const deal = useAuthenticatedQuery(
+	const { data: dealData, isPending } = useAuthenticatedQueryWithStatus(
 		api.deals.getDealWithDetails,
 		dealId ? { dealId } : "skip"
 	);
@@ -148,11 +182,11 @@ export default function DealPortalPage() {
 		);
 	}
 
-	if (!deal || loading) {
+	if (isPending || loading) {
 		return <DealPortalLoading />;
 	}
 
-	if (!deal.deal) {
+	if (!dealData?.deal?.currentState) {
 		return (
 			<div className="flex flex-1 items-center justify-center p-6">
 				<Card className="max-w-md">
@@ -165,6 +199,10 @@ export default function DealPortalPage() {
 		);
 	}
 
+	if (dealData.deal.currentState === "pending_lawyer") {
+		return <PendingLawyerState deal={dealData.deal} dealId={dealId} />;
+	}
+
 	const mappedDocuments = documensoData
 		? [mapDocumensoToDocument(documensoData)]
 		: [];
@@ -172,17 +210,17 @@ export default function DealPortalPage() {
 
 	return (
 		<DealPortal
-			deal={deal}
+			deal={dealData}
 			dealId={dealId}
 			initialDocuments={mappedDocuments}
 			initialUsers={initialUsers}
 			profile={{
 				name:
-					[deal.investor?.first_name, deal.investor?.last_name]
+					[dealData?.investor?.first_name, dealData?.investor?.last_name]
 						.filter(Boolean)
 						.join(" ") || "Investor",
 			}}
-			user={{ id: deal.investor?._id, email: deal.investor?.email }}
+			user={{ id: dealData?.investor?._id, email: dealData?.investor?.email }}
 		/>
 	);
 }

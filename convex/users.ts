@@ -191,3 +191,14 @@ export const provisionCurrentUser = action({
 		return await ctx.runMutation(internal.users.createFromWorkOS, payload);
 	},
 });
+
+export const viewer = query({
+	args: {},
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			return null;
+		}
+		return await userByExternalId(ctx, identity.subject);
+	},
+});

@@ -11,9 +11,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { Textarea } from "@/components/ui/textarea"
-// import { api } from "trpc/react"
 import { format } from "date-fns"
 import {
   AlertTriangle,
@@ -26,9 +23,13 @@ import {
   FileText,
   Upload,
   X,
+  Loader2
 } from "lucide-react"
 // import { useAuth } from "@/lib/supabase/auth"
 import Image from "next/image"
+import { useMutation, useAction } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 
 // Define a type for the funds transfer state
 export interface FundsTransferState {
@@ -80,94 +81,42 @@ interface DocumentGroup {
 }
 
 export function FundsTransferVerification() {
-  const { documents, logEvent, uploadState, handleFileSelect, dealId, dealData, currentUser } = useDealStore()
+  const { documents, logEvent, dealId, deal, currentUser } = useDealStore()
   // const { user, userRole } = useAuth()
   const user = currentUser
   
+  // Convex actions/mutations
+  const generateUploadUrl = useAction(api.deals.generateFundTransferUploadUrl);
+  const recordUpload = useMutation(api.deals.recordFundTransferUpload);
+
   // State for the component
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
-  const [disputeReason, setDisputeReason] = useState("")
-
-  // Mock data for receipt
-  const [existingReceipt, setExistingReceipt] = useState<any>(null)
-  const [signedUrl, setSignedUrl] = useState<{ url: string } | null>(null)
-
-  // Mock mutations
-  const uploadReceiptMutation = { mutateAsync: async (data: any) => { console.log("Mock upload", data); setExistingReceipt({ ...data, id: 123, createdAt: new Date().toISOString() }) } }
-  const updateReceiptMutation = { mutateAsync: async (data: any) => { console.log("Mock update", data); setExistingReceipt({ ...existingReceipt, ...data }) } }
-  const deleteReceiptMutation = { mutateAsync: async (data: any) => { console.log("Mock delete", data); setExistingReceipt(null) } }
-  const approveReceiptMutation = { mutateAsync: async (data: any) => { console.log("Mock approve", data); setExistingReceipt({ ...existingReceipt, brokerApproved: true }) } }
-  const rollbackApprovalMutation = { mutateAsync: async (data: any) => { console.log("Mock rollback", data); setExistingReceipt({ ...existingReceipt, brokerApproved: false }) } }
-  
-  const refetchReceipt = async () => { console.log("Mock refetch") }
-
-  /*
-  // tRPC queries and mutations
-  const { data: existingReceipt, refetch: refetchReceipt } = api.fundTransferReceipt.getByDeal.useQuery(
-    { dealId: dealId! },
-    { enabled: !!dealId }
-  )
-
-  const uploadReceiptMutation = api.fundTransferReceipt.upload.useMutation()
-  const updateReceiptMutation = api.fundTransferReceipt.update.useMutation()
-  const deleteReceiptMutation = api.fundTransferReceipt.delete.useMutation()
-  const approveReceiptMutation = api.fundTransferReceipt.approve.useMutation()
-  const rollbackApprovalMutation = api.fundTransferReceipt.rollbackApproval.useMutation()
-  const shouldFetchSignedUrl = !!existingReceipt?.id
-  const { data: signedUrl } = api.fundTransferReceipt.getSignedUrl.useQuery(
-    shouldFetchSignedUrl ? { receiptId: Number(existingReceipt.id) } : (undefined as never),
-    { enabled: shouldFetchSignedUrl }
-  )
-  */
-
-  // Check if all document groups are complete
-  const [allDocumentGroupsComplete, setAllDocumentGroupsComplete] = useState(false)
-
-  // Modal states
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
-  const [approveModalOpen, setApproveModalOpen] = useState(false)
-  const [disputeModalOpen, setDisputeModalOpen] = useState(false)
-
-  // Form inputs
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [enteredAmount, setEnteredAmount] = useState("")
-
-  // Drag and drop states
   const [isDragging, setIsDragging] = useState(false)
   const [dragCounter, setDragCounter] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Expected amount (would come from the actual transaction details in a real app)
   const expectedAmount = "250,000.00"
 
-  // Local state for funds transfer data
-  const [fundsTransfer, setFundsTransfer] = useState<FundsTransferState>({
-    isUploaded: false,
-    isApproved: false,
-    isDisputed: false,
-  })
+  // Check if all document groups are complete
+  const [allDocumentGroupsComplete, setAllDocumentGroupsComplete] = useState(false)
+
+  // Get current upload from deal data
+  // deal.deal is where the actual deal object is, based on getDealWithDetails return
+  const currentUpload = deal?.deal?.currentUpload;
+  const isApproved = deal?.deal?.validationChecks?.fundsReceived; // Or verified? Using fundsReceived as proxy for now or add a field
 
   // Check document completion status
   useEffect(() => {
     if (!documents) {
-      console.log("FundsTransferVerification: Documents not available yet")
       setAllDocumentGroupsComplete(false)
       return
     }
-
-    try {
-      // Check if all document groups are complete
-      // Mock logic: assume all groups are complete if all documents are complete
-      const allComplete = documents.every((doc) => doc.isComplete)
-
-      setAllDocumentGroupsComplete(allComplete)
-      console.log("FundsTransferVerification: Document completion check completed", { allComplete })
-    } catch (error) {
-      console.error("FundsTransferVerification: Error checking document completion:", error)
-      setAllDocumentGroupsComplete(false)
-    }
+    const allComplete = documents.every((doc) => doc.isComplete)
+    setAllDocumentGroupsComplete(allComplete)
   }, [documents])
 
   // Calculate group completion percentage
@@ -197,19 +146,12 @@ export function FundsTransferVerification() {
     return { percent, status: "In Progress" }
   }
 
-  // Set file preview URL when signed URL is available
-  useEffect(() => {
-    if (signedUrl?.url && existingReceipt?.mimeType?.startsWith("image/")) {
-      setFilePreviewUrl(signedUrl.url)
-    }
-  }, [signedUrl, existingReceipt])
-
   // Handler functions
   const processFile = async (file: File) => {
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "application/pdf"]
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
     if (!allowedTypes.includes(file.type)) {
-      alert("Please upload a valid file type (JPEG, PNG, GIF, or PDF)")
+      alert("Please upload a valid file type (JPEG, PNG, PDF)")
       return
     }
 
@@ -226,49 +168,32 @@ export function FundsTransferVerification() {
 
     setUploadedFile(file)
     setIsUploading(true)
+    setUploadModalOpen(true) // Show modal to show progress
 
     try {
-      // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const result = reader.result
-          if (typeof result === "string") {
-            const base64 = result.split(",")[1]
-            if (base64 !== undefined) {
-              resolve(base64) // Remove data:image/jpeg;base64, prefix
-            } else {
-              reject(new Error("Failed to extract base64 string from file"))
-            }
-          } else {
-            reject(new Error("FileReader result is not a string"))
-          }
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      // 1. Get upload URL
+      const postUrl = await generateUploadUrl({ dealId: dealId as Id<"deals"> });
 
-      // Upload or update receipt
-      if (existingReceipt && !existingReceipt.brokerApproved) {
-        await updateReceiptMutation.mutateAsync({
-          receiptId: existingReceipt.id,
-          originalFileName: file.name,
-          fileSize: file.size.toString(),
-          mimeType: file.type,
-          fileBase64: base64,
-        })
-      } else if (!existingReceipt) {
-        await uploadReceiptMutation.mutateAsync({
-          dealId,
-          originalFileName: file.name,
-          fileSize: file.size.toString(),
-          mimeType: file.type,
-          fileBase64: base64,
-        })
+      // 2. Upload file
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!result.ok) {
+        throw new Error(`Upload failed: ${result.statusText}`);
       }
 
-      // Refetch receipt data
-      await refetchReceipt()
+      const { storageId } = await result.json();
+
+      // 3. Record upload
+      await recordUpload({
+        dealId: dealId as Id<"deals">,
+        storageId: storageId as Id<"_storage">,
+        fileName: file.name,
+        fileType: file.type,
+      });
 
       // Log the upload event
       logEvent({
@@ -278,12 +203,13 @@ export function FundsTransferVerification() {
         documentGroup: "funds_transfer",
       })
 
-      setIsUploading(false)
+      setUploadModalOpen(false)
+      setUploadedFile(null)
     } catch (error) {
       console.error("Upload failed:", error)
       alert("Upload failed. Please try again.")
+    } finally {
       setIsUploading(false)
-      setUploadedFile(null)
     }
   }
 
@@ -336,83 +262,6 @@ export function FundsTransferVerification() {
     fileInputRef.current?.click()
   }
 
-  const handleUpload = () => {
-    if (!uploadedFile) return
-
-    setIsUploading(true)
-
-    // Simulate upload progress
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += 10
-      setUploadProgress(progress)
-
-      if (progress >= 100) {
-        clearInterval(interval)
-        setIsUploading(false)
-        setUploadModalOpen(false)
-
-        // Log the upload event
-        logEvent({
-          type: "upload",
-          description: `Funds transfer receipt uploaded: ${uploadedFile.name}`,
-          documentName: uploadedFile.name,
-          documentGroup: "funds_transfer",
-        })
-      }
-    }, 300)
-  }
-
-  const handleApproveConfirmation = async () => {
-    // Check if the entered amount matches the expected amount
-    if (enteredAmount.replace(/,/g, "") === expectedAmount.replace(/,/g, "")) {
-      if (!existingReceipt) {
-        alert("No receipt found to approve")
-        return
-      }
-
-      try {
-        await approveReceiptMutation.mutateAsync({
-          receiptId: existingReceipt.id,
-        })
-
-        await refetchReceipt()
-        setApproveModalOpen(false)
-
-        // Log the approval event
-        logEvent({
-          type: "approve",
-          description: `Funds transfer receipt approved for $${expectedAmount}`,
-          documentGroup: "funds_transfer",
-        })
-      } catch (error) {
-        console.error("Approval failed:", error)
-        alert("Approval failed. Please try again.")
-      }
-    } else {
-      // Handle amount mismatch - could show an error
-      alert("Amount does not match the expected value. Please verify and try again.")
-    }
-  }
-
-  const handleDisputeSubmission = () => {
-    if (disputeReason.trim() === "") {
-      alert("Please provide a reason for the dispute.")
-      return
-    }
-
-    // setIsDisputed(true)
-    // setIsApproved(false)
-    setDisputeModalOpen(false)
-
-    // Log the dispute event
-    logEvent({
-      type: "dispute",
-      description: `Funds transfer disputed: ${disputeReason}`,
-      documentGroup: "funds_transfer",
-    })
-  }
-
   // Determine if the component should be disabled
   const isDisabled = !allDocumentGroupsComplete
 
@@ -421,20 +270,20 @@ export function FundsTransferVerification() {
   console.log("FundsTransferVerification: user", user)
   console.log("FundsTransferVerification: userRole", user?.role)
   //TODO: This is a temporary fix to determine the role of the user. We need to improve this.
-  const isBuyer = user?.role === FairLendRole.BUYER || user?.role?.toLowerCase().search("investor") !== -1
-  const isBroker = user?.role === FairLendRole.BROKER || user?.role?.toLowerCase().search("broker") !== -1
-  const isAdmin = user?.role === FairLendRole.ADMIN || user?.role?.toLowerCase().search("admin") !== -1
+  // const isBuyer = user?.role === FairLendRole.BUYER || user?.role?.toLowerCase().search("investor") !== -1
+  // const isBroker = user?.role === FairLendRole.BROKER || user?.role?.toLowerCase().search("broker") !== -1
+  // const isAdmin = user?.role === FairLendRole.ADMIN || user?.role?.toLowerCase().search("admin") !== -1
 
   // Generate status badge
   const getStatusBadge = () => {
-    if (existingReceipt?.brokerApproved)
+    if (isApproved)
       return (
         <Badge className="border-0 bg-gradient-to-r from-emerald-500 to-green-500 px-3 py-1 text-white shadow-md shadow-emerald-200/50">
           <CheckCircle className="mr-1 h-3 w-3" />
           Approved
         </Badge>
       )
-    if (existingReceipt && !existingReceipt.brokerApproved)
+    if (currentUpload && !isApproved)
       return (
         <Badge className="bg-primary text-primary-foreground border-0 px-3 py-1 shadow-md">
           <Clock className="mr-1 h-3 w-3" />
@@ -483,7 +332,7 @@ export function FundsTransferVerification() {
               </div>
             </div>
           </Alert>
-        ) : existingReceipt ? (
+        ) : currentUpload ? (
           <div className="space-y-4">
             <div className="bg-accent/30 border-border rounded-xl border p-4">
               <div className="flex items-center gap-4">
@@ -493,143 +342,52 @@ export function FundsTransferVerification() {
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-foreground truncate font-semibold">{existingReceipt.originalFileName}</p>
+                  <p className="text-foreground truncate font-semibold">{currentUpload.fileName}</p>
                   <p className="text-muted-foreground mt-1 text-sm">
                     Uploaded{" "}
-                    {existingReceipt.createdAt
-                      ? format(new Date(existingReceipt.createdAt), "MMM d, yyyy 'at' h:mm a")
+                    {currentUpload.uploadedAt
+                      ? format(new Date(currentUpload.uploadedAt), "MMM d, yyyy 'at' h:mm a")
                       : ""}
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs">
-                    {(Number(existingReceipt.fileSize) / 1024 / 1024).toFixed(2)} MB •{" "}
-                    {existingReceipt.mimeType?.split("/")[1]?.toUpperCase() || "Unknown"}
+                    {currentUpload.fileType}
                   </p>
                 </div>
               </div>
             </div>
 
-            {filePreviewUrl && (
-              <div className="border-border bg-card relative h-[300px] overflow-hidden rounded-xl border shadow-sm">
-                <div className="absolute top-3 right-3 z-10">
-                  <Badge variant="outline" className="bg-card/90 backdrop-blur-sm">
-                    Preview
-                  </Badge>
-                </div>
-                <Image
-                  src={filePreviewUrl}
-                  alt="Receipt preview"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 768px"
-                  className="bg-card object-contain"
-                />
-              </div>
-            )}
-
-            {/* Download link for non-image files */}
-            {!existingReceipt.mimeType?.startsWith("image/") && (
-              <div className="flex items-center gap-2">
-                <Button asChild variant="outline" className="border-primary/20 text-primary hover:bg-primary/10">
-                  <a href={signedUrl?.url || "#"} target="_blank" rel="noopener noreferrer">
-                    <FileText className="mr-2 h-4 w-4" /> Download Receipt
-                  </a>
-                </Button>
-              </div>
-            )}
-
-            {/* Add Update/Delete buttons for non-approved receipts */}
-            {!existingReceipt.brokerApproved && isBuyer && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const fileInput = document.createElement("input")
-                    fileInput.type = "file"
-                    fileInput.accept = "image/*,.pdf"
-                    fileInput.onchange = (e) => {
-                      const file = (e.target as HTMLInputElement).files?.[0]
-                      if (file) processFile(file)
-                    }
-                    fileInput.click()
-                  }}
-                  className="text-primary border-primary/20 hover:bg-primary/10"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Update Receipt
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (confirm("Are you sure you want to delete this receipt?")) {
-                      try {
-                        await deleteReceiptMutation.mutateAsync({
-                          receiptId: existingReceipt.id,
-                        })
-                        await refetchReceipt()
-                        setUploadedFile(null)
-                        setFilePreviewUrl(null)
-                      } catch (error) {
-                        console.error("Delete failed:", error)
-                        alert("Delete failed. Please try again.")
-                      }
-                    }
-                  }}
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Delete Receipt
-                </Button>
-              </div>
-            )}
-
-            {/* Admin-only rollback button when approved */}
-            {existingReceipt.brokerApproved && (isAdmin || isBroker) && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (!existingReceipt) return
-                    if (
-                      !confirm(
-                        "Rollback approval for this receipt? This will move the deal back to Pending Funds Transfer."
-                      )
-                    ) {
-                      return
-                    }
-                    try {
-                      await rollbackApprovalMutation.mutateAsync({ receiptId: existingReceipt.id })
-                      await refetchReceipt()
-                    } catch (error) {
-                      console.error("Rollback failed:", error)
-                      alert("Rollback failed. Please try again.")
-                    }
-                  }}
-                  className="border-destructive/20 text-destructive hover:bg-destructive/10"
-                >
-                  <X className="mr-2 h-4 w-4" /> Rollback Approval
-                </Button>
-              </div>
+            {/* Replace/Update button */}
+            {!isApproved && (
+               <div className="flex gap-2">
+                 <Button
+                   variant="outline"
+                   onClick={() => {
+                     const fileInput = document.createElement("input")
+                     fileInput.type = "file"
+                     fileInput.accept = "image/*,.pdf"
+                     fileInput.onchange = (e) => {
+                       const file = (e.target as HTMLInputElement).files?.[0]
+                       if (file) processFile(file)
+                     }
+                     fileInput.click()
+                   }}
+                   className="text-primary border-primary/20 hover:bg-primary/10"
+                 >
+                   <Upload className="mr-2 h-4 w-4" />
+                   Replace Receipt
+                 </Button>
+               </div>
             )}
           </div>
         ) : isUploading ? (
           <div className="bg-accent/30 border-border rounded-xl border p-6">
             <div className="space-y-4 text-center">
               <div className="flex items-center justify-center">
-                <div className="relative">
-                  <div className="bg-primary flex h-16 w-16 items-center justify-center rounded-full shadow-lg">
-                    <Upload className="text-primary-foreground h-8 w-8 animate-pulse" />
-                  </div>
-                  <div className="bg-card absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full shadow-md">
-                    <div className="bg-primary h-3 w-3 animate-spin rounded-full" />
-                  </div>
-                </div>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
               <div>
                 <h3 className="text-foreground mb-1 text-lg font-semibold">Uploading Receipt</h3>
                 <p className="text-muted-foreground text-sm">Processing your transfer verification...</p>
-              </div>
-              <div className="space-y-2">
-                <Progress value={uploadProgress} className="h-2 w-full" />
-                <p className="text-foreground text-center text-sm font-medium">{uploadProgress}% complete</p>
               </div>
             </div>
           </div>
@@ -679,7 +437,7 @@ export function FundsTransferVerification() {
               <div className="text-muted-foreground flex items-center justify-center space-x-4 text-xs">
                 <div className="flex items-center space-x-1">
                   <div className="bg-primary h-2 w-2 rounded-full" />
-                  <span>JPEG, PNG, GIF</span>
+                  <span>JPEG, PNG</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <div className="bg-destructive h-2 w-2 rounded-full" />
@@ -705,123 +463,18 @@ export function FundsTransferVerification() {
         )}
       </CardContent>
 
-      {existingReceipt && !existingReceipt.brokerApproved && isBroker && (
-        <CardFooter className="border-border flex justify-end gap-3 border-t pt-4">
-          <Button
-            variant="outline"
-            onClick={() => setDisputeModalOpen(true)}
-            className="group border-destructive/20 text-destructive hover:bg-destructive/10 hover:border-destructive/30 shadow-sm transition-all duration-200"
-          >
-            <X className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-            Dispute Transfer
-          </Button>
-          <Button
-            variant="default"
-            onClick={() => setApproveModalOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground group shadow-md transition-all duration-200"
-          >
-            <Check className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-            Approve Transfer
-          </Button>
-        </CardFooter>
-      )}
-
-      {/* Upload Modal */}
+      {/* Upload Modal (Progress) */}
       <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload Funds Transfer Receipt</DialogTitle>
-            <DialogDescription>Please upload a receipt or invoice showing the funds transfer.</DialogDescription>
+            <DialogTitle>Uploading Funds Transfer Receipt</DialogTitle>
+            <DialogDescription>Please wait while we upload your file.</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="receipt">Receipt File</Label>
-              <Input id="receipt" type="file" accept="image/*,.pdf" ref={fileInputRef} onChange={handleFileChange} />
-              <p className="text-sm text-gray-500">Accepted formats: PDF, JPEG, PNG</p>
-            </div>
-
-            {isUploading && (
-              <div className="space-y-2">
-                <Progress value={uploadProgress} className="w-full" />
-                <p className="text-center text-sm text-gray-500">Uploading: {uploadProgress}%</p>
-              </div>
-            )}
+          <div className="py-4">
+             <div className="flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+             </div>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpload} disabled={!uploadedFile || isUploading}>
-              Upload
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Approve Modal */}
-      <Dialog open={approveModalOpen} onOpenChange={setApproveModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Approve Funds Transfer</DialogTitle>
-            <DialogDescription>Please verify the amount before approving.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="amount">Confirm Amount ($)</Label>
-              <Input
-                id="amount"
-                type="text"
-                value={enteredAmount}
-                onChange={(e) => setEnteredAmount(e.target.value)}
-                placeholder="Enter amount from receipt"
-              />
-              <p className="text-sm text-gray-500">Expected amount: ${expectedAmount}</p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleApproveConfirmation} disabled={!enteredAmount}>
-              Confirm Approval
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dispute Modal */}
-      <Dialog open={disputeModalOpen} onOpenChange={setDisputeModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dispute Funds Transfer</DialogTitle>
-            <DialogDescription>Please provide a reason for disputing this transfer.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="reason">Reason for Dispute</Label>
-              <Textarea
-                id="reason"
-                value={disputeReason}
-                onChange={(e) => setDisputeReason(e.target.value)}
-                placeholder="Please explain why you're disputing this transfer"
-                className="min-h-[100px]"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDisputeModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDisputeSubmission} disabled={!disputeReason.trim()}>
-              Submit Dispute
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

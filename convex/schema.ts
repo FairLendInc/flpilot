@@ -472,6 +472,30 @@ export default defineSchema({
 				fundsVerified: v.boolean(),
 			})
 		),
+
+		// Broker and Lawyer details
+		brokerId: v.optional(v.id("users")),
+		brokerName: v.optional(v.string()),
+		brokerEmail: v.optional(v.string()),
+		lawyerName: v.optional(v.string()),
+		lawyerEmail: v.optional(v.string()),
+		lawyerLSONumber: v.optional(v.string()),
+
+		// Fund Transfer Uploads
+		currentUpload: v.optional(v.object({
+			storageId: v.id("_storage"),
+			uploadedBy: v.string(),
+			uploadedAt: v.number(),
+			fileName: v.string(),
+			fileType: v.string(),
+		})),
+		uploadHistory: v.optional(v.array(v.object({
+			storageId: v.id("_storage"),
+			uploadedBy: v.string(),
+			uploadedAt: v.number(),
+			fileName: v.string(),
+			fileType: v.string(),
+		}))),
 	})
 		.index("by_lock_request", ["lockRequestId"])
 		.index("by_listing", ["listingId"])
