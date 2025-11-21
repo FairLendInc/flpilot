@@ -28,7 +28,6 @@ export default function DealPortalPage() {
 			initialDocuments={documents}
 			initialUsers={users}
 			profile={{ name: "Connor Beleznay" }}
-			role="buyer"
 			user={{ id: "562879", email: currentUserEmail }}
 		/>
 	);

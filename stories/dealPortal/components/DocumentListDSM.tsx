@@ -74,9 +74,9 @@ const DocumentCard = ({
   // const requiredAction = docManager2.getCurrentAssignment()
   // const isCompleted = docManager2.isComplete()
   
-  // Mock logic
-  const requiredAction = docManager2.status === 'pending' ? { assignedToEmail: 'buyer@example.com', type: 'sign' } : null
-  const isCompleted = docManager2.status === 'completed'
+  // Use document properties
+  const requiredAction = !docManager2.isComplete ? { assignedToEmail: docManager2.assignedTo, type: docManager2.requiredAction } : null
+  const isCompleted = docManager2.isComplete
   
   // const currentUser2 = getCurrentUser2()
   const hasUserAction = requiredAction?.assignedToEmail === currentUser2?.email
@@ -294,6 +294,7 @@ export function DocumentListDSM() {
   }
 
   const { percent, status } = calculateGroupStatus(activeDocumentGroup2)
+  console.log("DOC GROUP PERCENT: ", percent)
 
   return (
     <div className="animate-in fade-in slide-in-from-right-4 duration-200">

@@ -232,16 +232,28 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
     const actionsNotAssignedToUser = groupDocs
       .filter(d => !d.isComplete && d.assignedTo !== currentUser.email)
       .map(d => ({
-        action: {
-          action: d.requiredAction,
-          assignedToName: d.assignedTo || "Unknown",
-          doc: d
-        },
-        docName: d.name
+        action: d.requiredAction,
+        type: d.requiredAction,
+        assignedTo: d.assignedTo || "",
+        assignedToEmail: d.assignedTo || "",
+        assignedToName: d.assignedTo || "Unknown",
+        assignedToRole: d.assignedToRole || FairLendRole.NONE,
+        docName: d.name,
+        docId: d.id,
+        docGroup: d.group,
+        doc: d
       }))
 
-    // Group steps for visualization
-    const groupSteps = groupDocs.map(d => ({
+    // Group steps for visualization - use signingSteps from documents if available
+    const firstDocWithSteps = groupDocs.find(d => d.signingSteps && d.signingSteps.length > 0)
+    const groupSteps = firstDocWithSteps?.signingSteps?.map(step => ({
+      action: step.role === FairLendRole.LAWYER ? ActionTypeEnum.APPROVE : ActionTypeEnum.ESIGN,
+      assignedTo: {
+        email: step.email,
+        name: step.name || step.email
+      },
+      assignedToRole: step.role
+    })) ?? groupDocs.map(d => ({
       action: d.requiredAction,
       assignedTo: {
         email: d.assignedTo || "",
@@ -249,11 +261,13 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
       },
       assignedToRole: d.assignedToRole
     }))
-    
-    // Find first incomplete step index
-    const firstIncompleteIndex = groupSteps.findIndex(s => 
-      groupDocs.find(d => d.requiredAction === s.action && d.assignedTo === s.assignedTo.email && !d.isComplete)
-    )
+
+    // Find first incomplete step index based on signing status
+    const firstIncompleteIndex = firstDocWithSteps?.signingSteps
+      ? firstDocWithSteps.signingSteps.findIndex(s => s.status !== "SIGNED")
+      : groupSteps.findIndex(s =>
+          groupDocs.find(d => d.requiredAction === s.action && d.assignedTo === s.assignedTo.email && !d.isComplete)
+        )
     const groupStepIndex = firstIncompleteIndex === -1 ? groupSteps.length : firstIncompleteIndex
 
     return {

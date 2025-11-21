@@ -9,7 +9,7 @@
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -51,7 +51,7 @@ export function CreateDealButton({
 		authLoading || !user ? "skip" : { lockRequestId }
 	);
 
-	const createDeal = useMutation(api.deals.createDeal);
+	const createDeal = useAction(api.deals.createDeal);
 
 	// Don't show button if auth is loading or deal query is loading
 	if (authLoading || existingDeal === undefined) {
@@ -76,11 +76,22 @@ export function CreateDealButton({
 		setIsCreating(true);
 
 		try {
-			const dealId = await createDeal({ lockRequestId });
+			const result = await createDeal({ lockRequestId });
+			const dealId = result.dealId;
 
-			toast.success("Deal Created", {
-				description: `Deal has been created for ${listingAddress}`,
-			});
+			// Check for document generation errors
+			const failedDocs = result.documentResults.filter(
+				(r: { success: boolean }) => !r.success
+			);
+			if (failedDocs.length > 0) {
+				toast.warning("Deal Created with Warnings", {
+					description: `Deal created, but ${failedDocs.length} documents failed to generate. Check logs for details.`,
+				});
+			} else {
+				toast.success("Deal Created", {
+					description: `Deal has been created for ${listingAddress}`,
+				});
+			}
 
 			// Navigate to deal detail page
 			router.push(`/dashboard/admin/deals/${dealId}`);

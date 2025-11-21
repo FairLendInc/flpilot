@@ -55,6 +55,12 @@ const mortgageDocumentValidator = v.object({
 	fileSize: v.optional(v.number()),
 });
 
+const mortgageTemplateValidator = v.object({
+	documensoTemplateId: v.string(),
+	name: v.string(),
+	signatoryRoles: v.array(v.string()),
+});
+
 const mortgageDetailsFields = {
 	loanAmount: v.number(),
 	interestRate: v.number(),
@@ -73,6 +79,7 @@ const mortgageDetailsFields = {
 	ltv: v.number(),
 	images: v.optional(v.array(mortgageImageValidator)),
 	documents: v.optional(v.array(mortgageDocumentValidator)),
+	documentTemplates: v.optional(v.array(mortgageTemplateValidator)),
 	externalMortgageId: v.string(),
 	priorEncumbrance: v.optional(
 		v.object({
@@ -148,6 +155,7 @@ const normalizeMortgageDetails = (
 	ltv: details.ltv,
 	images: details.images ?? [],
 	documents: details.documents ?? [],
+	documentTemplates: details.documentTemplates ?? [],
 });
 
 export const ensureMortgage = async (
@@ -199,6 +207,12 @@ export const ensureMortgage = async (
 		} else {
 			delete patchData.documents;
 		}
+
+		if (details.documentTemplates !== undefined) {
+			patchData.documentTemplates = normalized.documentTemplates;
+		} else {
+			delete patchData.documentTemplates;
+		}
 		
 		patchData.externalMortgageId = externalMortgageId;
 
@@ -238,7 +252,7 @@ export const getMortgage = query({
 
 		// Fetch signed URLs for all property images
 		const imagesWithUrls = await Promise.all(
-			mortgage.images.map(async (img) => ({
+			(mortgage.images ?? []).map(async (img) => ({
 				...img,
 				url: await ctx.storage.getUrl(img.storageId),
 			}))
@@ -451,6 +465,38 @@ export const addDocumentToMortgage = mutation({
 });
 
 /**
+ * Update mortgage document templates
+ */
+export const updateMortgageTemplates = mutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+		templates: v.array(mortgageTemplateValidator),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		checkRbac({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		const mortgage = await ctx.db.get(args.mortgageId);
+		if (!mortgage) {
+			throw new Error("Mortgage not found");
+		}
+
+		await ctx.db.patch(args.mortgageId, {
+			documentTemplates: args.templates,
+		});
+
+		return args.mortgageId;
+	},
+});
+
+/**
  * Core business logic for updating a mortgage (without auth checks)
  * Used by both authenticated mutations and internal webhook handlers
  */
@@ -494,6 +540,11 @@ async function updateMortgageCore(
 			storageId: Id<"_storage">;
 			uploadDate: string;
 			fileSize?: number;
+		}>;
+		documentTemplates?: Array<{
+			documensoTemplateId: string;
+			name: string;
+			signatoryRoles: string[];
 		}>;
 		priorEncumbrance?: {
 			amount: number;
@@ -668,6 +719,11 @@ async function updateMortgageCore(
 		updates.documents = args.documents;
 	}
 
+	// Update document templates
+	if (args.documentTemplates !== undefined) {
+		updates.documentTemplates = args.documentTemplates;
+	}
+
 	// Update prior encumbrance
 	if (args.priorEncumbrance !== undefined) {
 		if (args.priorEncumbrance.amount <= 0) {
@@ -836,6 +892,7 @@ export const updateMortgage = mutation({
 		borrowerId: v.optional(v.id("borrowers")),
 		images: v.optional(v.array(mortgageImageValidator)),
 		documents: v.optional(v.array(mortgageDocumentValidator)),
+		documentTemplates: v.optional(v.array(mortgageTemplateValidator)),
 		priorEncumbrance: v.optional(
 			v.object({
 				amount: v.number(),

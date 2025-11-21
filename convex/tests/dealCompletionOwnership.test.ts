@@ -198,9 +198,10 @@ async function createCompleteDealSetup(t: ReturnType<typeof createTest>) {
 
 	// Create deal
 	const adminT = await getAdminTest(t);
-	const dealId = await adminT.mutation(api.deals.createDeal, {
+	const result = await adminT.action(api.deals.createDeal, {
 		lockRequestId,
 	});
+	const dealId = result.dealId;
 
 	return { dealId, mortgageId, listingId, lockRequestId, investorId };
 }
@@ -561,9 +562,10 @@ describe("completeDeal integration scenarios", () => {
 		// 4. Approve lock request and create deal
 		await approveLockRequest(t, lockRequestId);
 		const adminT = await getAdminTest(t);
-		const dealId = await adminT.mutation(api.deals.createDeal, {
+		const result = await adminT.action(api.deals.createDeal, {
 			lockRequestId,
 		});
+		const dealId = result.dealId;
 
 		// Verify deal is in "locked" state
 		const dealAfterCreation = await adminT.query(api.deals.getDeal, { dealId });
@@ -619,9 +621,10 @@ describe("completeDeal integration scenarios", () => {
 		await approveLockRequest(t, lock1);
 
 		const adminT = await getAdminTest(t);
-		const deal1 = await adminT.mutation(api.deals.createDeal, {
+		const result1 = await adminT.action(api.deals.createDeal, {
 			lockRequestId: lock1,
 		});
+		const deal1 = result1.dealId;
 
 		// Second lock request cannot be approved because the listing is already locked
 		// by the first deal
@@ -632,7 +635,7 @@ describe("completeDeal integration scenarios", () => {
 		// Creating a deal with the second lock request should also fail
 		// because the lock request was never approved
 		await expect(
-			adminT.mutation(api.deals.createDeal, {
+			adminT.action(api.deals.createDeal, {
 				lockRequestId: lock2,
 			})
 		).rejects.toThrow("Lock request must be approved before creating deal");
@@ -685,10 +688,10 @@ describe("completeDeal integration scenarios", () => {
 		// Verify deal state history was updated
 		const deal = await adminT.query(api.deals.getDeal, { dealId });
 		expect(deal?.stateHistory).toBeTruthy();
-		expect(deal?.stateHistory.length).toBeGreaterThan(0);
+		expect(deal?.stateHistory?.length).toBeGreaterThan(0);
 
 		// Find the completion transition
-		const completionTransition = deal?.stateHistory.find(
+		const completionTransition = deal?.stateHistory?.find(
 			(h: { toState: string }) => h.toState === "completed"
 		);
 		expect(completionTransition).toBeTruthy();

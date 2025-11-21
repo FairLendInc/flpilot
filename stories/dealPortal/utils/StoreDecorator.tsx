@@ -1,6 +1,7 @@
 import React, { useEffect } from "react"
 
 import { useDealStore } from "../store/dealStore"
+import type { Document, User } from "./dealLogic"
 import { FairLendRole } from "./dealLogic"
 import type { StoryContext, StoryFn } from "@storybook/react"
 
@@ -8,12 +9,14 @@ import type { StoryContext, StoryFn } from "@storybook/react"
 interface MockState {
   userRole?: FairLendRole
   dealStatus?: string
-  // Add other state properties as needed for specific stories
+  documents?: Document[]
+  users?: User[]
+  currentUser?: User
 }
 
 export const StoreDecorator = (Story: StoryFn, context: StoryContext) => {
-  const { setUserRole, setDeal } = useDealStore()
-  
+  const { setUserRole, setDeal, setDocuments, setAvailableUsers, setCurrentUser } = useDealStore()
+
   // Extract mock state from story parameters if available
   const mockState = context.parameters?.mockState as MockState | undefined
 
@@ -22,16 +25,26 @@ export const StoreDecorator = (Story: StoryFn, context: StoryContext) => {
     if (mockState?.userRole) {
       setUserRole(mockState.userRole)
     }
-    
+
+    if (mockState?.documents) {
+      setDocuments(mockState.documents)
+    }
+
+    if (mockState?.users) {
+      setAvailableUsers(mockState.users)
+    }
+
+    if (mockState?.currentUser) {
+      setCurrentUser(mockState.currentUser)
+    }
+
     if (mockState?.dealStatus) {
-      // We need to be careful not to overwrite the entire deal object if we just want to change status
-      // This assumes the store has a way to update just the status or we update the whole mock deal
       const currentDeal = useDealStore.getState().deal
       if (currentDeal) {
         setDeal({ ...currentDeal, status: mockState.dealStatus })
       }
     }
-  }, [mockState, setUserRole, setDeal])
+  }, [mockState, setUserRole, setDeal, setDocuments, setAvailableUsers, setCurrentUser])
 
   return Story(context.args, context)
 }

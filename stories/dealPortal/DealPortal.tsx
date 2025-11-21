@@ -122,7 +122,7 @@ export function DSMPortalContent({
   const documentsError = useDealStore((state) => state.documentsError)
   const refreshDocuments = useDealStore((state) => state.refreshDocuments)
 
-  logger.info("DSMPortalContent", { dealId, user, profile, role, testData, deal, isLoadingDocuments, hasError: !!documentsError })
+  // logger.info("DSMPortalContent", { dealId, user, profile, role, testData, deal, isLoadingDocuments, hasError: !!documentsError })
 
   useEffect(() => {
     if (paymentSuccess === "true" && sessionId) {

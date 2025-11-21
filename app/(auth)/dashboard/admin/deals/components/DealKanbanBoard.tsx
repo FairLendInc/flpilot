@@ -165,7 +165,7 @@ export function DealKanbanBoard() {
 				column.deals.push({
 					_id: deal._id,
 					currentState: deal.currentState as DealStateValue,
-					dealValue: deal.dealValue,
+					dealValue: deal.dealValue ?? 0,
 					createdAt: deal.createdAt,
 					updatedAt: deal.updatedAt,
 					daysInState: Math.floor(

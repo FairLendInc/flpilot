@@ -44,6 +44,13 @@ export interface Document {
   fileData?: string
   recipientTokens?: Record<string, string>
   recipientStatus?: Record<string, string>
+  signingSteps?: Array<{
+    email: string
+    name: string
+    role: FairLendRole
+    status: string
+    order: number
+  }>
   requirements?: {
     requiredBrokerSignature?: boolean
     requiresBuyerSignature?: boolean

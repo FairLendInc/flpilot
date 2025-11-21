@@ -1,7 +1,6 @@
 "use client";
 
-import type { Preloaded } from "convex/react";
-import { useMutation, usePreloadedQuery } from "convex/react";
+import { useConvexAuth, useMutation } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -17,13 +16,14 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
-type Props = {
-	preloaded: Preloaded<typeof api.mortgages.listAllMortgagesWithBorrowers>;
-};
-
-export function AdminMortgagesManagePageClient({ preloaded }: Props) {
-	const allMortgages = usePreloadedQuery(preloaded);
+export function AdminMortgagesManagePageClient() {
+	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+	const allMortgages = useAuthenticatedQuery(
+		api.mortgages.listAllMortgagesWithBorrowers,
+		{}
+	);
 
 	const [editingMortgageId, setEditingMortgageId] =
 		useState<Id<"mortgages"> | null>(null);
@@ -71,9 +71,8 @@ export function AdminMortgagesManagePageClient({ preloaded }: Props) {
 		}
 	}
 
-	const isLoading = allMortgages === undefined;
-
-	if (isLoading) {
+	// Show loading state while auth is loading or query is pending
+	if (authLoading || (isAuthenticated && allMortgages === undefined)) {
 		return (
 			<>
 				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

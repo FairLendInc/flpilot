@@ -77,6 +77,7 @@ import {
 	formatDealValue,
 	getDaysInState,
 } from "@/lib/types/dealTypes";
+import { DocumentDetailsSection } from "../components/DocumentDetailsSection";
 
 const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	locked: Lock,
@@ -405,6 +406,9 @@ export default function DealDetailPage({
 							</Card>
 						)}
 
+						{/* Document Details */}
+						<DocumentDetailsSection dealId={deal._id} />
+
 						{/* Audit Trail */}
 						<Card>
 							<CardHeader>
@@ -415,14 +419,14 @@ export default function DealDetailPage({
 							</CardHeader>
 							<CardContent>
 								<div className="space-y-4">
-									{deal.stateHistory.map((entry, idx) => (
+									{deal.stateHistory?.map((entry, idx) => (
 										<div
 											className="flex gap-4"
 											key={`${entry.timestamp}-${entry.fromState}-${entry.toState}`}
 										>
 											<div className="flex flex-col items-center">
 												<div className="h-2 w-2 rounded-full bg-primary" />
-												{idx < deal.stateHistory.length - 1 && (
+												{idx < (deal.stateHistory?.length ?? 0) - 1 && (
 													<div className="mt-1 w-px flex-1 bg-border" />
 												)}
 											</div>
@@ -464,7 +468,7 @@ export default function DealDetailPage({
 										Deal Value
 									</Label>
 									<p className="font-bold text-2xl">
-										{formatDealValue(deal.dealValue)}
+										{formatDealValue(deal.dealValue ?? 0)}
 									</p>
 								</div>
 
@@ -659,7 +663,8 @@ export default function DealDetailPage({
 										: investor.email}
 								</div>
 								<div>
-									<strong>Amount:</strong> {formatDealValue(deal.dealValue)}
+									<strong>Amount:</strong>{" "}
+									{formatDealValue(deal.dealValue ?? 0)}
 								</div>
 							</div>
 						)}

@@ -201,7 +201,7 @@ export function formatDealValue(value: number): string {
  * Helper function to calculate days in current state
  */
 export function getDaysInState(deal: Deal): number {
-	const lastTransition = deal.stateHistory.at(-1);
+	const lastTransition = deal.stateHistory?.at(-1);
 	if (!lastTransition) {
 		// Use creation time if no transitions yet
 		return Math.floor((Date.now() - deal.createdAt) / (1000 * 60 * 60 * 24));
@@ -215,6 +215,7 @@ export function getDaysInState(deal: Deal): number {
  * Check if deal can progress forward
  */
 export function canProgressForward(deal: Deal): boolean {
+	if (!deal.currentState) return false;
 	return (
 		getNextState(deal.currentState) !== null &&
 		!isTerminalState(deal.currentState)
@@ -225,6 +226,7 @@ export function canProgressForward(deal: Deal): boolean {
  * Check if deal can move backward
  */
 export function canGoBackward(deal: Deal): boolean {
+	if (!deal.currentState) return false;
 	return getPreviousState(deal.currentState) !== null;
 }
 
@@ -232,6 +234,7 @@ export function canGoBackward(deal: Deal): boolean {
  * Check if deal can be cancelled
  */
 export function canCancel(deal: Deal): boolean {
+	if (!deal.currentState) return false;
 	return canCancelFromState(deal.currentState);
 }
 
