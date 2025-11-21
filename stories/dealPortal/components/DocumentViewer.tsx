@@ -78,6 +78,14 @@ const DocumentViewer = () => {
     logDocumentView,
     getDocState,
     getSelectedDocumentWithFileData,
+    getDocumentVersions,
+    handleFileSelect,
+    activeDocumentGroup,
+    completeDocumentAction,
+    userRole,
+    uploadState,
+    uploadDocument,
+    setShowConfirmModal,
   } = useDealStore()
 
   // Get the enhanced document with file data
