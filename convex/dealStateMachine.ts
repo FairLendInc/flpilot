@@ -58,15 +58,19 @@ export type DealContext = {
 /**
  * Deal events - all possible transitions the state machine can handle
  */
+// Client-facing event types - adminId is injected by the server from auth context
 export type DealEvent =
-	| { type: 'CONFIRM_LAWYER'; adminId: Id<"users">; notes?: string }
-	| { type: 'COMPLETE_DOCS'; adminId: Id<"users">; notes?: string }
-	| { type: 'RECEIVE_FUNDS'; adminId: Id<"users">; notes?: string }
-	| { type: 'VERIFY_FUNDS'; adminId: Id<"users">; notes?: string }
-	| { type: 'COMPLETE_DEAL'; adminId: Id<"users">; notes?: string }
-	| { type: 'GO_BACK'; adminId: Id<"users">; toState: DealStateValue; notes?: string }
-	| { type: 'CANCEL'; adminId: Id<"users">; reason: string }
-	| { type: 'ARCHIVE'; adminId: Id<"users"> };
+	| { type: 'CONFIRM_LAWYER'; notes?: string }
+	| { type: 'COMPLETE_DOCS'; notes?: string }
+	| { type: 'RECEIVE_FUNDS'; notes?: string }
+	| { type: 'VERIFY_FUNDS'; notes?: string }
+	| { type: 'COMPLETE_DEAL'; notes?: string }
+	| { type: 'GO_BACK'; toState: DealStateValue; notes?: string }
+	| { type: 'CANCEL'; reason: string }
+	| { type: 'ARCHIVE' };
+
+// Internal event type with adminId injected by the server
+export type DealEventWithAdmin = DealEvent & { adminId: Id<"users"> };
 
 /**
  * Deal state machine definition
@@ -78,7 +82,7 @@ export type DealEvent =
 export const dealMachine = setup({
 	types: {
 		context: {} as DealContext,
-		events: {} as DealEvent,
+		events: {} as DealEventWithAdmin,
 	},
 	guards: {
 		/**
@@ -118,7 +122,7 @@ export const dealMachine = setup({
 		 * Captures: from/to states, timestamp, admin who triggered, optional notes
 		 */
 		logTransition: assign(({ context, event }) => {
-			const adminId = 'adminId' in event ? event.adminId : context.investorId;
+			const { adminId } = event;
 			const notes = 'notes' in event ? event.notes : undefined;
 			
 			// Determine target state based on event type
