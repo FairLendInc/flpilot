@@ -24,14 +24,14 @@ export default function ControlledStepper() {
     <div>
       <Button
         onPress={() => {
-          setCurrentStep(currentStep + 1)
+          setCurrentStep(Math.min(currentStep + 1, steps.length - 1))
         }}
       >
         next state
       </Button>
       <Button
         onPress={() => {
-          setCurrentStep(currentStep - 1)
+          setCurrentStep(Math.max(currentStep - 1, 0))
         }}
       >
         prev state

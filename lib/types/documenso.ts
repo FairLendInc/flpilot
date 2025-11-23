@@ -11,12 +11,7 @@ export type DocumensoRecipientRole =
 	| "APPROVER"
 	| "CC"
 	| "ASSISTANT"
-	| "VIEWER"
-	| "DELEGATE"
-	| "IN_PERSON_HOST"
-	| "WITNESS"
-	| "SHAREHOLDER"
-	| string;
+	| "VIEWER";
 
 export type DocumensoRecipientSigningStatus =
 	| "NOT_SIGNED"

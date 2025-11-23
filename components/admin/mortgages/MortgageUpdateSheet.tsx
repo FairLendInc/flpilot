@@ -123,7 +123,8 @@ export function MortgageUpdateSheet({
 	// Load mortgage data when it becomes available
 	useEffect(() => {
 		if (open && fullMortgageData && mortgageId) {
-			loadFromMortgage(fullMortgageData);
+			// biome-ignore lint/suspicious/noExplicitAny: Type mismatch between local and Convex types
+			loadFromMortgage(fullMortgageData as any);
 		}
 	}, [open, fullMortgageData, mortgageId, loadFromMortgage]);
 

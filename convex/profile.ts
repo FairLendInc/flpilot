@@ -6,7 +6,6 @@ import schema from "./schema";
 type User = Infer<typeof schema.tables.users.validator>;
 type Organization = Infer<typeof schema.tables.organizations.validator>;
 type Membership = Infer<typeof schema.tables.organization_memberships.validator>;
-import logger from "../lib/logger";
 import type { WorkOSIdentity } from "../types/workos";
 
 export const getUserIdentity = query(async (ctx) => {

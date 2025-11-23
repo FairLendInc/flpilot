@@ -385,7 +385,7 @@ describe("lockListing - RBAC Authorization", () => {
 				listingId,
 				userId,
 			})
-		).rejects.toThrow("Broker or admin privileges required");
+		).rejects.toThrow("Unauthorized: Admin privileges required");
 	});
 
 	test("should reject lock listing without authentication", async () => {

@@ -15,7 +15,7 @@ import { useDealStore } from "../../store/dealStore"
 
 const logger = createLogger("LawyerInvitesPanel")
 
-export function LawyerInvitesPanel() {
+export function LawyerInvitesPanel({user}: {user: any}) {
   const { dealId, deal } = useDealStore()
   
   const assignedLsoLawyerId: string | undefined = deal?.lawyerId
@@ -89,7 +89,8 @@ export function LawyerInvitesPanel() {
 
   // Check admin authorization once at top-level (never inside loops/conditions)
   // Mock admin auth
-  const isAdmin = true
+  const isAdmin = user?.role === "admin"
+  console.log("isAdmin", { isAdmin })
 
   // Admin remove-lawyer mutation (top-level hook; do not create inside handlers)
   const removeLawyer = {

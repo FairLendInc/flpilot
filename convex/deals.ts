@@ -839,19 +839,15 @@ export const createDeal = action({
 			stateHistory: [],
 		};
 
-		const initialActor = createActor(dealMachine);
-		initialActor.start();
-		let initialSnapshot = initialActor.getSnapshot();
-		initialActor.stop();
-
 		const placeholderContext: DealContext = {
 			...initialContext,
 			dealId: "PLACEHOLDER" as Id<"deals">,
 		};
-		initialSnapshot = {
-			...initialSnapshot,
-			context: placeholderContext,
-		};
+
+		const initialActor = createActor(dealMachine, { input: placeholderContext });
+		initialActor.start();
+		let initialSnapshot = initialActor.getSnapshot();
+		initialActor.stop();
 
 		// 4. Create deal record via internal mutation
 		const broker = getBrokerOfRecord();
@@ -884,19 +880,15 @@ export const createDeal = action({
 		});
 
 		// 5. Update state machine with actual deal ID
-		const tempActor = createActor(dealMachine);
-		tempActor.start();
-		let updatedSnapshot = tempActor.getSnapshot();
-		tempActor.stop();
-
 		const updatedContext: DealContext = {
 			...initialContext,
 			dealId,
 		};
-		updatedSnapshot = {
-			...updatedSnapshot,
-			context: updatedContext,
-		};
+
+		const tempActor = createActor(dealMachine, { input: updatedContext });
+		tempActor.start();
+		let updatedSnapshot = tempActor.getSnapshot();
+		tempActor.stop();
 
 		await ctx.runMutation(internal.deals.updateDealStateMachine, {
 			dealId,
@@ -1069,6 +1061,7 @@ export const transitionDealState = mutation({
 		
 		// Create actor and restore state
 		const actor = createActor(dealMachine, {
+			input: machineState.context,
 			snapshot: machineState,
 		});
 
@@ -1164,6 +1157,7 @@ export const cancelDeal = mutation({
 		};
 
 		const actor = createActor(dealMachine, {
+			input: machineState.context,
 			snapshot: machineState,
 		});
 		actor.start();
@@ -1329,6 +1323,7 @@ export const archiveDeal = mutation({
 		};
 
 		const actor = createActor(dealMachine, {
+			input: machineState.context,
 			snapshot: machineState,
 		});
 		actor.start();
@@ -1463,6 +1458,7 @@ export const checkPendingDocsDeals = internalMutation({
 
 				const machineState = JSON.parse(deal.stateMachineState);
 				const actor = createActor(dealMachine, {
+					input: machineState.context, // XState v5 requires input even with snapshot
 					snapshot: machineState,
 				});
 
@@ -1538,7 +1534,10 @@ export const generateFundTransferUploadUrl = authAction({
 		if (!deal) throw new Error("Deal not found");
 
 		// Check permissions
-		const isInvestor = deal.investorId === subject;
+		// Resolve user ID from subject (use runQuery since actions can't access db directly)
+		const user = await ctx.runQuery(internal.users.getUserByIdpId, { idpId: subject });
+
+		const isInvestor = user && deal.investorId === user._id;
 		const isLawyer = deal.lawyerEmail === email;
 		const isAdmin = role === "admin";
 
@@ -1567,13 +1566,19 @@ export const recordFundTransferUpload = authMutation({
 		if (!deal) throw new Error("Deal not found");
 
 		// 1. Validate permissions
-		const isInvestor = deal.investorId === subject;
-		const isLawyer = deal.lawyerEmail === email;
-		const isAdmin = role === "admin";
+	// Resolve user ID from subject
+	const user = await ctx.db
+		.query("users")
+		.withIndex("by_idp_id", (q) => q.eq("idp_id", subject))
+		.unique();
 
-		if (!isInvestor && !isLawyer && !isAdmin) {
-			throw new Error("Unauthorized");
-		}
+	const isInvestor = user && deal.investorId === user._id;
+	const isLawyer = deal.lawyerEmail === email;
+	const isAdmin = role === "admin";
+
+	if (!isInvestor && !isLawyer && !isAdmin) {
+		throw new Error("Unauthorized");
+	}
 
 		// 2. Validate file type
 		const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
@@ -1583,9 +1588,9 @@ export const recordFundTransferUpload = authMutation({
 
 		// 3. Handle history
 		const currentUpload = deal.currentUpload;
-		const newUpload = {
-			storageId: args.storageId,
-			uploadedBy: subject, // or email if lawyer? subject is safer if they have account
+	const newUpload = {
+		storageId: args.storageId,
+		uploadedBy: subject, // or email if lawyer? subject is safer if they have account
 			uploadedAt: Date.now(),
 			fileName: args.fileName,
 			fileType: args.fileType,
@@ -1634,6 +1639,7 @@ export const confirmLawyerRepresentation = authMutation({
 
 		const machineState = JSON.parse(deal.stateMachineState);
 		const actor = createActor(dealMachine, {
+			input: machineState.context,
 			snapshot: machineState,
 		});
 

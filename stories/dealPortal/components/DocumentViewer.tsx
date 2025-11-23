@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { useDealStore } from "../store/dealStore"
 import { ActionTypeEnum } from "../utils/dealLogic"
@@ -39,20 +40,15 @@ interface DocumentVersion {
   fileSize: number
 }
 
-// PDF Viewer component with error handling
+// PDF Viewer component
 const PDFViewer = ({ url }: { url: string }) => {
-  // const [numPages, setNumPages] = useState<number | null>(null);
-  // const [pageNumber, setPageNumber] = useState(1);
-  // const [scale, setScale] = useState(1);
-  // const [rotation, setRotation] = useState(0);
-  // const [width, setWidth] = useState<number | undefined>(undefined);
-  const [loadError, setLoadError] = useState<boolean>(false)
-
-  // Set up the worker with proper error handling
-
-  // If there's an error, show download option
-  if (loadError) {
-    return (
+  return (
+    <object
+      data={url}
+      type="application/pdf"
+      className="h-full min-h-[75vh] w-full"
+      aria-label="PDF document viewer"
+    >
       <div className="bg-muted/20 flex h-[300px] flex-col items-center justify-center">
         <FileText className="mb-4 h-12 w-12 text-red-500" />
         <p className="mb-2 text-center">Unable to display PDF document in browser</p>
@@ -60,14 +56,6 @@ const PDFViewer = ({ url }: { url: string }) => {
           <Download className="mr-2" size={16} /> Open PDF in new tab
         </Button>
       </div>
-    )
-  }
-
-  return (
-    <object data={url} type="application/pdf" className="h-full min-h-[75vh] w-full">
-      <p>
-        Alternative text - include a link <a href={url}>to the PDF!</a>
-      </p>
     </object>
   )
 }
@@ -171,11 +159,17 @@ const DocumentViewer = () => {
   const handleESign = () => {
     if (!selectedDocument || !activeDocumentGroup) return
 
-    // Complete the e-sign action
-    completeDocumentAction(selectedDocument.id, ActionTypeEnum.ESIGN, userRole)
+    try {
+      // Complete the e-sign action
+      completeDocumentAction(selectedDocument.id, ActionTypeEnum.ESIGN, userRole)
 
-    // Show confirmation to the user
-    alert("Document has been successfully e-signed")
+      // Show non-blocking success toast
+      toast.success("Document has been successfully e-signed")
+    } catch (error) {
+      // Show error toast if something goes wrong
+      toast.error("Failed to e-sign document. Please try again.")
+      console.error("E-sign error:", error)
+    }
   }
 
   // Function to download the selected version

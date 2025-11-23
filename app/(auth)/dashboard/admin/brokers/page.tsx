@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export default function AdminBrokersPage() {
+export default async function AdminBrokersPage() {
 	return (
 		<>
 			<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

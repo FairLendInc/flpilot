@@ -424,6 +424,15 @@ export const lockListing = action({
 			throw new Error("Authentication required");
 		}
 
+		if (!hasRbacAccess({
+			required_roles: ["admin", "broker", "padmin"],
+			user_identity: identity,
+		})) {
+			//TODO: extract errors to re-use a standard set of "FairLend" errors
+			throw new Error("Unauthorized: Admin privileges require");
+		}
+
+
 		// Check broker/admin authorization
 		// We can't use hasRbacAccess directly in action as it might need db access for roles
 		// But we can check roles from identity if they are in the token

@@ -56,8 +56,7 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 			const details = await getTemplateDetails({ templateId: template.id });
 
 			// Map template recipients to form state
-			// Prefer 'recipients' array, fallback to 'Recipient' if that's what the API returns
-			const templateRecipients = details.recipients || details.Recipient || [];
+			const templateRecipients = details.recipients || [];
 
 			setSignatories(
 				templateRecipients.map((r) => ({
@@ -71,7 +70,16 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 			setStep("signatories");
 		} catch (error) {
 			console.error("Failed to load template details:", error);
-			toast.error("Failed to load template details");
+			toast.error("Failed to load template details", {
+				description:
+					error instanceof Error
+						? error.message
+						: "Please try again or select a different template",
+			});
+			// Reset to clean state on error
+			setSelectedTemplateId(null);
+			setSignatories([]);
+			// Keep step at "template" - don't progress on error
 		} finally {
 			setLoading(false);
 		}

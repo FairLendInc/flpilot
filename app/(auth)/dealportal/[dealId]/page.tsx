@@ -1,9 +1,11 @@
 "use client";
 
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
+import type { UserIdentity } from "convex/server";
 import { AlertCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { DealPortalLoading } from "@/components/deal-portal/DealPortalLoading";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
@@ -12,94 +14,26 @@ import {
 	useAuthenticatedQuery,
 	useAuthenticatedQueryWithStatus,
 } from "@/convex/lib/client";
+import { useDocumentGroupResolution } from "@/hooks/useDocumentCategorization";
+import {
+	extractUsers,
+	mapDocumensoToDocument,
+	mapDocumensoToDocumentLegacy,
+} from "@/lib/mappers/documenso";
 import type { DocumensoDocumentSummary } from "@/lib/types/documenso";
 import { LawyerInviteManagement } from "@/stories/dealPortal/components/LawyerInviteManagement";
 import { LawyerRepresentationConfirmation } from "@/stories/dealPortal/components/LawyerRepresentationConfirmation";
 import DealPortal from "@/stories/dealPortal/DealPortal";
-import {
-	ActionTypeEnum,
-	FairLendRole,
-} from "@/stories/dealPortal/utils/dealLogic";
-
-// Map Documenso role to FairLendRole
-function mapRole(role: string): FairLendRole {
-	switch (role) {
-		case "SIGNER":
-			return FairLendRole.BUYER;
-		case "APPROVER":
-			return FairLendRole.LAWYER;
-		case "VIEWER":
-			return FairLendRole.BROKER;
-		default:
-			return FairLendRole.NONE;
-	}
-}
-
-// Map Documenso document to DealPortal document format
-function mapDocumensoToDocument(doc: DocumensoDocumentSummary) {
-	const pendingRecipient = doc.recipients
-		.sort((a, b) => (a.signingOrder ?? 0) - (b.signingOrder ?? 0))
-		.find((r) => r.signingStatus !== "SIGNED");
-
-	let requiredAction = ActionTypeEnum.NONE;
-	if (pendingRecipient) {
-		if (pendingRecipient.role === "SIGNER")
-			requiredAction = ActionTypeEnum.ESIGN;
-		else if (pendingRecipient.role === "APPROVER")
-			requiredAction = ActionTypeEnum.APPROVE;
-		else requiredAction = ActionTypeEnum.REVIEW;
-	} else if (doc.status === "COMPLETED") {
-		requiredAction = ActionTypeEnum.COMPLETE;
-	}
-
-	return {
-		id: String(doc.id),
-		name: doc.title,
-		group: "mortgage",
-		status: doc.status,
-		requiredAction,
-		assignedTo: pendingRecipient?.email || "",
-		assignedToRole: pendingRecipient
-			? mapRole(pendingRecipient.role)
-			: FairLendRole.NONE,
-		isComplete: doc.status === "COMPLETED",
-		recipientTokens: Object.fromEntries(
-			doc.recipients.filter((r) => r.token).map((r) => [r.email, r.token])
-		),
-		recipientStatus: Object.fromEntries(
-			doc.recipients.map((r) => [r.email, r.signingStatus])
-		),
-		signingSteps: doc.recipients
-			.sort((a, b) => (a.signingOrder ?? 0) - (b.signingOrder ?? 0))
-			.map((r) => ({
-				email: r.email,
-				name: r.name,
-				role: mapRole(r.role),
-				status: r.signingStatus,
-				order: r.signingOrder ?? 0,
-			})),
-	};
-}
-
-// Extract users from Documenso recipients
-function extractUsers(doc: DocumensoDocumentSummary) {
-	return doc.recipients.map((r) => ({
-		id: String(r.id),
-		email: r.email,
-		name: r.name,
-		role: mapRole(r.role),
-	}));
-}
 
 function PendingLawyerState({
 	deal,
 	dealId,
+	viewer,
 }: {
 	deal: Doc<"deals">;
 	dealId: Id<"deals">;
+	viewer: UserIdentity;
 }) {
-	const viewer = useQuery(api.users.viewer);
-
 	if (viewer === undefined) {
 		return <DealPortalLoading />;
 	}
@@ -121,6 +55,7 @@ function PendingLawyerState({
 }
 
 export default function DealPortalPage() {
+	const viewer = useAuthenticatedQuery(api.profile.getUserIdentity, {});
 	const params = useParams();
 	const dealId =
 		typeof params.dealId === "string"
@@ -142,6 +77,21 @@ export default function DealPortalPage() {
 	const [documensoData, setDocumensoData] =
 		useState<DocumensoDocumentSummary | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [documensoError, setDocumensoError] = useState<string | null>(null);
+
+	// Use dynamic document group resolution for Documenso documents
+	const documentGroup = useDocumentGroupResolution(
+		documensoData
+			? {
+					type: "documenso_document", // Generic type for Documenso documents
+					metadata: {
+						documentId: documensoData.id,
+						externalId: documensoData.externalId,
+						title: documensoData.title,
+					},
+				}
+			: undefined
+	);
 
 	useEffect(() => {
 		async function fetchDocumensoDocuments() {
@@ -153,12 +103,26 @@ export default function DealPortalPage() {
 			const firstDoc = dealDocuments[0];
 			if (firstDoc?.documensoDocumentId) {
 				try {
+					// Clear any previous errors
+					setDocumensoError(null);
+
 					const doc = await getDocumensoDocument({
 						documentId: firstDoc.documensoDocumentId,
 					});
 					setDocumensoData(doc);
 				} catch (error) {
+					const errorMessage =
+						error instanceof Error
+							? error.message
+							: "Failed to load document from Documenso";
+
+					setDocumensoError(errorMessage);
 					console.error("Error fetching Documenso document:", error);
+
+					// Show user-visible error notification
+					toast.error("Failed to load document", {
+						description: errorMessage,
+					});
 				}
 			}
 			setLoading(false);
@@ -199,13 +163,50 @@ export default function DealPortalPage() {
 		);
 	}
 
-	if (dealData.deal.currentState === "pending_lawyer") {
-		return <PendingLawyerState deal={dealData.deal} dealId={dealId} />;
+	if (dealData.deal.currentState === "pending_lawyer" && viewer) {
+		return (
+			<PendingLawyerState
+				deal={dealData.deal}
+				dealId={dealId}
+				viewer={viewer}
+			/>
+		);
 	}
 
-	const mappedDocuments = documensoData
-		? [mapDocumensoToDocument(documensoData)]
-		: [];
+	// Show error banner if Documenso fetch failed
+	if (documensoError) {
+		return (
+			<div className="flex flex-1 items-center justify-center p-6">
+				<Card className="max-w-md">
+					<CardContent className="p-6">
+						<div className="flex items-start gap-3">
+							<AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive" />
+							<div className="flex flex-col gap-2">
+								<p className="font-medium text-sm">Failed to load documents</p>
+								<p className="text-muted-foreground text-sm">
+									{documensoError}
+								</p>
+								<button
+									className="text-left text-primary text-sm hover:underline"
+									onClick={() => window.location.reload()}
+									type="button"
+								>
+									Refresh page to try again
+								</button>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
+	const mappedDocuments =
+		documensoData && documentGroup
+			? [mapDocumensoToDocument(documensoData, documentGroup)]
+			: documensoData
+				? [mapDocumensoToDocumentLegacy(documensoData)] // Fallback if group resolution not ready
+				: [];
 	const initialUsers = documensoData ? extractUsers(documensoData) : [];
 
 	return (
@@ -220,7 +221,7 @@ export default function DealPortalPage() {
 						.filter(Boolean)
 						.join(" ") || "Investor",
 			}}
-			user={{ id: dealData?.investor?._id, email: dealData?.investor?.email }}
+			user={viewer}
 		/>
 	);
 }

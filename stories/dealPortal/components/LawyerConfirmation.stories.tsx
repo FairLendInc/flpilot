@@ -1,31 +1,25 @@
-import { LawyerConfirmation } from "./LawyerConfirmation"
+import { LawyerRepresentationConfirmation } from "./LawyerRepresentationConfirmation"
 import { FairLendRole } from "../utils/dealLogic"
 import { StoreDecorator } from "../utils/StoreDecorator"
+import { Id } from "@/convex/_generated/dataModel"
 import type { Meta, StoryObj } from "@storybook/react"
 
-const meta: Meta<typeof LawyerConfirmation> = {
+const meta: Meta<typeof LawyerRepresentationConfirmation> = {
   title: "DealPortal/Features/LawyerConfirmation",
-  component: LawyerConfirmation,
+  component: LawyerRepresentationConfirmation,
   decorators: [StoreDecorator],
 }
 
 export default meta
-type Story = StoryObj<typeof LawyerConfirmation>
+type Story = StoryObj<typeof LawyerRepresentationConfirmation>
 
 export const Default: Story = {
-  parameters: {
-    mockState: {
-      userRole: FairLendRole.BUYER_LAWYER,
-    },
+  args: {
+    dealId: "test-deal-id" as Id<"deals">,
   },
-}
-
-export const Confirmed: Story = {
   parameters: {
     mockState: {
       userRole: FairLendRole.BUYER_LAWYER,
-      // We would need to update the deal state to reflect confirmation here
-      // For now, the component will read the initial mock state
     },
   },
 }

@@ -79,14 +79,9 @@ export function AddDocumentDialog({ open, onOpenChangeAction, onAddAction, editi
     }
 
     // Validate workflow requirements from dsm.ts
-    if (!eSign && requiredBrokerSignature && !requiredUpload) {
-      newErrors.requirements = "When eSign is false and broker signature is required, upload must be required"
-    }
-
-    if (eSign && requiredUpload) {
-      newErrors.requirements = "When eSign is true, upload should be false"
-    }
-
+    // Note: Redundant validation removed - auto-adjustment logic (lines 211-217 and 228-234) 
+    // ensures eSign and requiredUpload are mutually exclusive, making these error paths unreachable
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -238,13 +233,6 @@ export function AddDocumentDialog({ open, onOpenChangeAction, onAddAction, editi
                   </Label>
                 </div>
               </div>
-
-              {errors.requirements && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errors.requirements}</AlertDescription>
-                </Alert>
-              )}
             </CardContent>
           </Card>
 

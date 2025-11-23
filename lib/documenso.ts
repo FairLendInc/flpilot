@@ -62,13 +62,6 @@ export type DocumensoTemplate = {
 	externalId?: string | null;
 	createdAt: string;
 	updatedAt: string;
-	Recipient?: {
-		id: number;
-		email: string;
-		name: string;
-		role: DocumensoRecipientRole;
-		signingOrder: number | null;
-	}[];
 	recipients?: {
 		id: number;
 		email: string;
@@ -142,12 +135,13 @@ function getDocumensoCredentials() {
 
 async function documensoRequest<T>(
 	path: string,
-	init?: RequestInit & { signal?: AbortSignal }
+	init?: RequestInit & { signal?: AbortSignal; timeout?: number }
 ) {
 	const { apiKey, serverURL } = getDocumensoCredentials();
 	const url = new URL(path, ensureTrailingSlash(serverURL));
 	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), DOCUMENSO_TIMEOUT_MS);
+	const timeoutMs = init?.timeout ?? DOCUMENSO_TIMEOUT_MS;
+	const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
 	try {
 		const response = await fetch(url.toString(), {
@@ -195,8 +189,17 @@ async function documensoRequest<T>(
 					break;
 			}
 
-			// Append original error text if available and not generic
-			if (errorText && !errorText.includes("<!DOCTYPE html>")) {
+			// Append original error text if available and not HTML
+			// Check Content-Type header to avoid appending HTML error pages
+			const contentType =
+				response.headers?.get("content-type")?.toLowerCase() ?? "";
+			const isHtml =
+				contentType.includes("text/html") ||
+				contentType.includes("application/xhtml+xml") ||
+				// Fallback: check body if header is missing
+				(!contentType && errorText.includes("<!DOCTYPE html>"));
+
+			if (errorText && !isHtml) {
 				message += ` Details: ${errorText}`;
 			}
 
@@ -232,22 +235,66 @@ function _toEnvelopeId(id: string | number): string {
 
 // --- Template Operations ---
 
+// Internal type for API responses (from documenso out of our control) that may have either field name
+type DocumensoTemplateApiResponse = {
+	id: number;
+	title: string;
+	externalId?: string | null;
+	createdAt: string;
+	updatedAt: string;
+	Recipient?: {
+		id: number;
+		email: string;
+		name: string;
+		role: DocumensoRecipientRole;
+		signingOrder: number | null;
+	}[];
+	recipients?: {
+		id: number;
+		email: string;
+		name: string;
+		role: DocumensoRecipientRole;
+		signingOrder: number | null;
+	}[];
+};
+
 export async function searchTemplates(
-	query = ""
+	query = "",
+	perPage = 100
 ): Promise<DocumensoTemplateSummary[]> {
-	const searchParams = new URLSearchParams();
-	// Fetch more templates to allow for better client-side filtering
-	searchParams.set("perPage", "100");
+	const allTemplates: DocumensoTemplate[] = [];
+	let currentPage = 1;
+	let hasMorePages = true;
 
-	const response = await documensoRequest<{ data: DocumensoTemplate[] }>(
-		`template?${searchParams.toString()}`
-	);
+	// Fetch all pages until we get fewer items than perPage
+	while (hasMorePages) {
+		const searchParams = new URLSearchParams();
+		searchParams.set("page", String(currentPage));
+		searchParams.set("perPage", String(perPage));
 
-	const templates = (response?.data || []).map((t) => ({
+		const response = await documensoRequest<{
+			data: DocumensoTemplateApiResponse[];
+		}>(`template?${searchParams.toString()}`);
+
+		const pageData = response?.data || [];
+		// Normalize API response: ensure each template has recipients field
+		const normalizedData: DocumensoTemplate[] = pageData.map((t) => ({
+			...t,
+			recipients: t.recipients || t.Recipient || [],
+		}));
+		allTemplates.push(...normalizedData);
+
+		// Stop if we got fewer items than perPage (last page) or empty response
+		hasMorePages = pageData.length >= perPage;
+		currentPage += 1;
+	}
+
+	// Map all accumulated templates to the summary format
+	const templates = allTemplates.map((t) => ({
 		id: t.id,
 		title: t.title,
 		externalId: t.externalId,
-		recipients: (t.Recipient || t.recipients || []).map((r) => ({
+		recipients: (t.recipients || []).map((r) => ({
 			id: r.id,
 			email: r.email,
 			name: r.name,
@@ -267,7 +314,14 @@ export async function getTemplateDetails(
 	templateId: string | number
 ): Promise<DocumensoTemplate> {
 	const numericId = envelopeIdToNumericId(templateId);
-	return await documensoRequest<DocumensoTemplate>(`template/${numericId}`);
+	const template = await documensoRequest<DocumensoTemplateApiResponse>(
+		`template/${numericId}`
+	);
+	// Normalize API response: ensure template has recipients field
+	return {
+		...template,
+		recipients: template.recipients || template.Recipient || [],
+	};
 }
 
 // --- Document Generation ---
@@ -276,54 +330,15 @@ export async function generateDocumentFromTemplate({
 	templateId,
 	recipients,
 }: CreateDocumentFromTemplateParams): Promise<DocumensoDocument> {
-	// const envelopeId = toEnvelopeId(templateId);
-
-	// Use longer timeout for creation
-	const { apiKey, serverURL } = getDocumensoCredentials();
-	const url = new URL("template/use", ensureTrailingSlash(serverURL));
-	const controller = new AbortController();
-	const timeout = setTimeout(
-		() => controller.abort(),
-		DOCUMENSO_CREATE_TIMEOUT_MS
-	);
-
-	try {
-		const response = await fetch(url.toString(), {
-			method: "POST",
-			headers: {
-				Accept: "application/json",
-				Authorization: `Bearer ${apiKey}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				templateId,
-				recipients,
-				distributeDocument: true,
-			}),
-			signal: controller.signal,
-		});
-
-		if (!response.ok) {
-			const errorText = await response.text().catch(() => "");
-			throw new DocumensoApiError(
-				errorText ||
-					`Documenso document creation failed with ${response.status}`,
-				response.status
-			);
-		}
-
-		return (await response.json()) as DocumensoDocument;
-	} catch (error) {
-		if (error instanceof Error && error.name === "AbortError") {
-			throw new DocumensoApiError(
-				"Documenso document creation timed out.",
-				504
-			);
-		}
-		throw error;
-	} finally {
-		clearTimeout(timeout);
-	}
+	return await documensoRequest<DocumensoDocument>("template/use", {
+		method: "POST",
+		body: JSON.stringify({
+			templateId,
+			recipients,
+			distributeDocument: true,
+		}),
+		timeout: DOCUMENSO_CREATE_TIMEOUT_MS,
+	});
 }
 
 // --- Recipient Mapping Helper ---
@@ -335,24 +350,42 @@ export async function mapRecipientsForListing(
 ): Promise<CreateDocumentFromTemplateParams["recipients"]> {
 	// ALWAYS fetch template first to get current recipient IDs
 	const template = await getTemplateDetails(templateId);
-	const templateRecipients = template.Recipient || template.recipients || [];
+	const templateRecipients = template.recipients || [];
 
 	const recipients: CreateDocumentFromTemplateParams["recipients"] = [];
 
 	for (const r of templateRecipients) {
-		const nameLower = r.name.toLowerCase();
+		// Normalize template recipient name: trim whitespace and lowercase
+		const normalizedName = r.name.trim().toLowerCase();
 
-		// Match by name pattern (case-insensitive, with or without {{}})
-		if (nameLower.includes("{{broker}}") || nameLower.includes("broker")) {
+		// Exact placeholder matching (case-insensitive)
+		if (normalizedName === "{{broker}}" || normalizedName === "broker") {
+			if (!(broker.email && broker.name)) {
+				throw new Error(
+					`Broker email and name are required for template recipient "${r.name}"`
+				);
+			}
 			recipients.push({ id: r.id, email: broker.email, name: broker.name });
 		} else if (
-			nameLower.includes("{{investor}}") ||
-			nameLower.includes("investor")
+			normalizedName === "{{investor}}" ||
+			normalizedName === "investor"
 		) {
+			if (!(investor.email && investor.name)) {
+				throw new Error(
+					`Investor email and name are required for template recipient "${r.name}"`
+				);
+			}
 			recipients.push({ id: r.id, email: investor.email, name: investor.name });
 		} else {
-			// Keep other recipients unchanged (or maybe throw error if strict?)
-			// For now, we'll keep them but this might fail if email is invalid/placeholder
+			// For non-placeholder recipients, validate they have proper email/name
+			if (!(r.email && r.name)) {
+				throw new Error(
+					`Template recipient "${r.name}" has invalid email or name. ` +
+						'Expected exact placeholders: "{{broker}}", "{{investor}}", "broker", or "investor", ' +
+						"or valid email/name pairs."
+				);
+			}
+			// Keep other recipients unchanged
 			recipients.push({ id: r.id, email: r.email, name: r.name });
 		}
 	}
@@ -360,7 +393,17 @@ export async function mapRecipientsForListing(
 	// Validate all template recipients were mapped
 	if (recipients.length !== templateRecipients.length) {
 		throw new Error(
-			`Failed to map all template recipients for template ${templateId}`
+			`Failed to map all template recipients for template ${templateId}. ` +
+				`Expected ${templateRecipients.length} recipients, got ${recipients.length}.`
+		);
+	}
+
+	// Validate all mapped emails are non-empty
+	const emptyEmails = recipients.filter((rec) => !rec.email);
+	if (emptyEmails.length > 0) {
+		throw new Error(
+			`Template ${templateId} has ${emptyEmails.length} recipients with empty emails. ` +
+				"All recipients must have valid email addresses."
 		);
 	}
 

@@ -83,6 +83,7 @@ export const dealMachine = setup({
 	types: {
 		context: {} as DealContext,
 		events: {} as DealEventWithAdmin,
+		input: {} as DealContext,
 	},
 	guards: {
 		/**
@@ -98,23 +99,16 @@ export const dealMachine = setup({
 
 		/**
 		 * Validate backward state transitions
-		 * Currently always allowed (per requirements)
-		 * @future May add restrictions for certain backward moves
+		 * Always allowed unless in terminal state (checked by machine structure)
 		 */
-		canTransitionBackward: () => {
-			// Always allow backward transitions
-			return true;
-		},
+		canTransitionBackward: () => true,
 
 		/**
 		 * Validate deal cancellation
 		 * Currently always allowed from non-terminal states
 		 * @future May add approval requirements for cancellations
 		 */
-		canCancel: () => {
-			// Always allow cancellation
-			return true;
-		},
+		canCancel: () => true,
 	},
 	actions: {
 		/**
@@ -153,10 +147,10 @@ export const dealMachine = setup({
 		}),
 	},
 }).createMachine({
-	/** @xstate-layout N4IgpgJg5mDOIC5QAoC2BDAxgCwJYDswBKAOgAcBiAZ1wElZYAbMA9vQgBtyB7MAGQD6AJQDyAUQBKAEQDaABgC6iUAAdUsXH0aUAFrJAAPRAFoAHAGYAbMiMAOAJwAWYwCYArAA4XJu8YA0IACeiO4ATAGh3gGhwZGhdt5xAL4ZwWiY2LgExGTklNR0NKq03NJM3DQATN7IAKKspJWyFQAyspU1VdKtctIo9k4uCC7x-gGhUV7+fqF9UT6hCT4J+Ulp6FhQOHikFJS0dPLMAIJtnMKi5ZZW-cYhOX7Gsb5+G7HhY7dJ85n+a6phJG8b3cHl2fnmG1WEXWa02vG2qCIDDIhSqYlI5DuJCKGj4xVKABUxKVyHdpPc7iAnq5XgEghE2dERsFRmNJlN3M9kBzNn0tr1dnRiAJCgA3X4AW2I0R0OOwfEO1DIqAAYhxNRrCRSngN4sZAn1+r5giZBs8TACjF7DVETPNkHL5coKFRxHx1UcqicBEDtaBwZDoVx6Iw2BwhAAFX0UolkimU15hVF9D0ZY4g6ZTOa5BJQkHaGj8GWyVQMAhS7hyqV1v0GpPGvpmPyx-o2j38uzekYmAL+5LBjYi7FpTG2TIEFL0GtNhgUpu52gWa20Ft1t4tDZ94ks3n80ZDNHTGKBjncmKmUxJM+RZB5K-eokhXKV+o1es8HgAVgATABmR-PwHM9gmKwEjDdEFKXWeFzDBX1olPQY9nDYIjwPVZj3fZ90XvJZojCbxz0sQYkHgvg6AVWUINeKg4BIW0WkEDNJVqepoLuNE0UQ0L2k8J4hgGAJh3-ADgm9c8r3+VZkPQiBEXGOIjFFYjCKoYsNgibZ-SGbxQgCYJ9kTL8p2KUYQmMAxjKKVTqTTCy+Cje4Uz-EMrz8zyglYyJPF8m8FKMYNElGMc9m-IIkG4ygqWCW96y7Q9gPHAYohqQoijKDjdL0gyqKswK7NgocLwQnwhl8XwIvTc9jE8eLElSxyXOXBBkAKb9CLPD1kMcqYkqIr8MtEj8ijGG84jSgIKus0yrIOejLIA5ApwDED0z-UcRsWQd7kSkFqrPWqkvmIYglsbxTBykrGvM5AOtILrjT6iLLMc-bXJikdvHSuaxwGcZRgnUIImQsMvEmLxNk8m6SHIShbXYuhWMNdi0WxfFlK8fyg1Y3xp0+yN4gXE8-jnUqxoQfopQVPM7kBqbr0c54MYQPiD2QU9bP2lyT28u9TwGfx0YPcdEm-RZjDKImOy+n7fpJn6JXNKV1RTfaMeS9YTDqzyjDyqq0u2YIgA */
+	/** @xstate-layout N4IgpgJg5mDOIC5QAoC2BDAxgCwJYDswBKAOgAcBiAZ1wElZYAbMA9vQgBtyB7MAGQD6AJQDyAUQBKAEQDaABgC6iUAAdUsXH0aUAFrJAAPRAFoAHAGYAbMiMAOAJwAWYwCYArAA4XJu8YA0IACeiO4ATAGh3gGhwZGhdt5xAL4ZwWiY2LgExGTklNR0NKq03NJM3DQATN7IAKKspJWyFQAyspU1VdKtctIo9k4uCC7x-gGhUV7+fqF9UT6hCT4J+Ulp6FhQOHikFJS0dPLMAIJtnMKi5ZZW-cYhOX7Gsb5+G7HhY7dJ85n+a6phJG8b3cHl2fnmG1WEXWa02vG2qCIDDIhSqYlI5DuJCKGj4xVKABUxKVyHdpPc7iAnq5XgEghE2dERsFRmNJlN3M9kBzNn0tr1dnRiAJCgA3X4AW2I0R0OOwfEO1DIqAAYhxNRrCRSngN4sZAn1+r5giZBs8TACjF7DVETPNkHL5coKFRxHx1UcqicBEDtaBwZDoVx6Iw2BwhAAFX0UolkimU15hVF9D0ZY4g6ZTOa5BJQkHaGj8GWyVQMAhS7hyqV1v0GpPGvpmPyx-o2j38uzekYmAL+5LBjYi7FpTG2TIEFL0GtNhgUpu52gWa20Ft1t4tDZ94ks3n80ZDNHTGKBjncmKmUxJM+RZB5K-eokhXKV+o1es8HgAVgATABmR-PwHM9gmKwEjDdEFKXWeFzDBX1olPQY9nDYIjwPVZj3fZ90XvJZojGbxz0sYgkHgvg6AVWUINeKg4BIW0WkEDNJVqepoLuNE0UQ0L2k8J4hgGAJh3-ADgm9c8r3+VZkPQiBEXGOIjFFYjCKoYsNgibZ-SGbxQgCYJ9kTL8p2KUYQmMAxjKKVTqTTCy+Cje4Uz-EMrz8zyglYyJPF8m8FKMYNElGMc9m-IIkG4ygqWCW96y7Q9gPHAYohqQoijKDjdL0gyqKswK7NgocLwQnwhl8XwIvTc9jE8eLElSxyXOXBBkAKb9CLPD1kMcqYkqIr8MtEj8ijGG84jSgIKus0yrIOejLIA5ApwDED0z-UcRsWQd7kSkFqrPWqkvmIYglsbxTBykrGvM5AOtILrjT6iLLMc-bXJikdvHSuaxwGcZRgnUIImQsMvEmLxNk8m6SHIShbXYuhWMNdi0WxfFlK8fyg1Y3xp0+yN4gXE8-jnUqxoQfopQVPM7kBqbr0c54MYQPiD2QU9bP2lyT28u9TwGfx0YPcdEm_RZjDKImOy+n7fpJn6JXNKV1RTfaMeS9YTDqzyjDyqq0u2YIgA */
 	id: 'dealWorkflow',
 	initial: 'locked',
-	context: {} as DealContext,
+	context: ({ input }) => input,
 	states: {
 		/**
 		 * LOCKED

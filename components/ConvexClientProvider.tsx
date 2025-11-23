@@ -47,6 +47,7 @@ function useAuthFromAuthKit() {
 	return {
 		isLoading: loading,
 		isAuthenticated: authenticated,
+		user,
 		fetchAccessToken,
 	};
 }

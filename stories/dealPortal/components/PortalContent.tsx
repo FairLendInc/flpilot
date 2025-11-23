@@ -11,9 +11,11 @@ import { DocumentActionsList } from "./DocumentMappingDSM"
 import { DocumentOverview } from "./DocumentOverview"
 import { FundsTransferVerification } from "./FundsTransferVerification"
 import { LawyerInvitesPanel } from "./invites/LawyerInvitesPanel"
-import { LawyerConfirmation } from "./LawyerConfirmation"
+import { LawyerRepresentationConfirmation } from "./LawyerRepresentationConfirmation"
 import SharedDocumentsPanel from "./SharedDocumentsPanel"
 import TimelineContent from "./steps/Steps"
+import { Id } from "@/convex/_generated/dataModel"
+import { withAuth } from "@workos-inc/authkit-nextjs";
 
 export function PortalContent({
   dealId,
@@ -88,7 +90,7 @@ export function PortalContent({
   const needsConfirmation = isAssignedLawyer && !isLawyerConfirmed2
 
   if (needsConfirmation) {
-    return <LawyerConfirmation />
+    return <LawyerRepresentationConfirmation dealId={dealId as Id<"deals">} />
   }
 
   return (
@@ -176,7 +178,7 @@ export function PortalContent({
 
               <TabsContent value="chat" className="mt-0">
                 {/* <ChatContent /> */}
-                <ChatWindow title="Chat" currentUserId="123" />
+                <ChatWindow title="Chat" />
               </TabsContent>
 
               <TabsContent value="activity" className="mt-0">
@@ -189,7 +191,7 @@ export function PortalContent({
                 <SharedDocumentsPanel />
               </TabsContent>
               <TabsContent value="invites" className="mt-0">
-                <LawyerInvitesPanel />
+                <LawyerInvitesPanel user={user}/>
               </TabsContent>
             </div>
           </Tabs>

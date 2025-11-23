@@ -173,8 +173,6 @@ export default function DSMPortalPage({
   const setDocuments = useDealStore((state) => state.setDocuments)
   const setAvailableUsers = useDealStore((state) => state.setAvailableUsers)
 
-  logger.info("DSMPortalPage", { dealId, user, profile, role, testData, deal })
-  console.info("DSMPortalPage", { dealId, user, profile, role, testData, deal })
   
   
   // Track if we've already initialized to prevent re-initialization on every render
@@ -187,26 +185,22 @@ export default function DSMPortalPage({
       return
     }
 
-    console.log('[DealPortal] useEffect triggered. initialDocuments:', initialDocuments, 'initialUsers:', initialUsers)
     
     if (initialDocuments && initialDocuments.length > 0) {
-      console.log('[DealPortal] Setting documents from initialDocuments:', initialDocuments)
       setDocuments(initialDocuments)
     }
 
     if (initialUsers && initialUsers.length > 0) {
-      console.log('[DealPortal] Setting available users from initialUsers:', initialUsers)
       setAvailableUsers(initialUsers)
     }
 
     if (deal) {
-      console.log('[DealPortal] Setting deal:', deal)
       useDealStore.getState().setDeal(deal)
     }
     
     // Mark as initialized only after attempting to set both
     initializedRef.current = true
-  }, []) // Empty deps - only run once on mount
+  }, [initialDocuments, initialUsers, deal, setDocuments, setAvailableUsers])
   
   return (
     <ErrorBoundary>

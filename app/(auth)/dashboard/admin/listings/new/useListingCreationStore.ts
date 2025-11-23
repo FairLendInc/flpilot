@@ -27,12 +27,7 @@ export type MortgageLocationState = {
 	lng: string;
 };
 
-export type ListingDocumentType =
-	| "appraisal"
-	| "title"
-	| "inspection"
-	| "loan_agreement"
-	| "insurance";
+export type ListingDocumentType = string; // Now supports dynamic document types
 
 export type MortgageFormState = {
 	loanAmount: string;

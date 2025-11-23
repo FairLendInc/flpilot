@@ -33,6 +33,12 @@ export default defineSchema({
 		external_id: v.optional(v.string()),
 		// Flexible metadata storage
 		metadata: v.optional(v.any()),
+		// User preferences for document management
+		preferences: v.optional(v.object({
+			autoDocumentTypeAssignment: v.boolean(),
+			autoAssignmentThreshold: v.number(),
+			requireConfirmationForAutoAssignment: v.boolean(),
+		})),
 	})
 		.index("by_idp_id", ["idp_id"])
 		.index("by_email", ["email"]),
@@ -276,16 +282,22 @@ export default defineSchema({
 		documents: v.array(
 			v.object({
 				name: v.string(),
-				type: v.union(
-					v.literal("appraisal"),
-					v.literal("title"),
-					v.literal("inspection"),
-					v.literal("loan_agreement"),
-					v.literal("insurance")
-				),
+				// Flexible type field (supports backward compatibility)
+				type: v.string(),
+				// Optional explicit group assignment
+				group: v.optional(v.string()),
 				storageId: v.id("_storage"), // Convex storage ID
 				uploadDate: v.string(), // ISO date string
 				fileSize: v.optional(v.number()), // bytes
+				// Metadata for custom properties and migration tracking
+				metadata: v.optional(v.object({
+					// User-defined custom properties
+					customProperties: v.optional(v.record(v.string(), v.string())),
+					// User-defined type for custom categorization
+					userDefinedType: v.optional(v.string()),
+					// Original hardcoded type for migration tracking
+					originalHardcodedType: v.optional(v.string()),
+				})),
 			})
 		),
 		// Documenso template configurations
@@ -490,7 +502,7 @@ export default defineSchema({
 			fileType: v.string(),
 		})),
 		uploadHistory: v.optional(v.array(v.object({
-			storageId: v.id("_storage"),
+			storageId: v.id("_storage"), 
 			uploadedBy: v.string(),
 			uploadedAt: v.number(),
 			fileName: v.string(),
@@ -562,4 +574,59 @@ export default defineSchema({
 		.index("by_user_read", ["userId", "read"])
 		.index("by_user_created_at", ["userId", "createdAt"])
 		.index("by_deal", ["relatedDealId"]),
+
+	// Dynamic document groups for categorization
+	document_groups: defineTable({
+		// Machine-readable name (unique)
+		name: v.string(),
+		// Human-readable display name
+		displayName: v.string(),
+		// Optional description
+		description: v.optional(v.string()),
+		// Icon identifier (e.g., "lucide:home")
+		icon: v.optional(v.string()),
+		// Color for UI theming
+		color: v.optional(v.string()),
+		// System default flag
+		isDefault: v.optional(v.boolean()),
+		// Active status for soft delete
+		isActive: v.boolean(),
+		// Creator reference
+		createdBy: v.id("users"),
+		// Timestamps
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_name", ["name"])
+		.index("by_active", ["isActive"]),
+
+	// Dynamic document types within groups
+	document_types: defineTable({
+		// Machine-readable name (unique within group)
+		name: v.string(),
+		// Human-readable display name
+		displayName: v.string(),
+		// Optional description
+		description: v.optional(v.string()),
+		// Reference to document group
+		groupName: v.string(),
+		// Icon identifier
+		icon: v.optional(v.string()),
+		// Validation rules for this type
+		validationRules: v.optional(v.object({
+			maxSize: v.optional(v.number()), // bytes
+			allowedFormats: v.optional(v.array(v.string())),
+			requiredFields: v.optional(v.array(v.string())),
+		})),
+		// Active status for soft delete
+		isActive: v.boolean(),
+		// Creator reference
+		createdBy: v.id("users"),
+		// Timestamps
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_group", ["groupName"])
+		.index("by_name", ["name"])
+		.index("by_group_name", ["groupName", "name"]),
 });

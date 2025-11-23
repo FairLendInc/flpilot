@@ -1,7 +1,7 @@
 // import { type UserJSON } from '@workos-inc/authkit-node';
 import { v } from "convex/values";
 import { crud } from "convex-helpers/server/crud";
-import { internalMutation, query, mutation, type QueryCtx, action } from "./_generated/server";
+import { internalMutation, internalQuery, query, mutation, type QueryCtx, action } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
@@ -199,6 +199,17 @@ export const viewer = query({
 		if (!identity) {
 			return null;
 		}
-		return await userByExternalId(ctx, identity.subject);
+		const user = await userByExternalId(ctx, identity.subject);
+	},
+});
+
+/**
+ * Internal query to get user by IDP ID
+ * For use by actions that need to resolve user IDs
+ */
+export const getUserByIdpId = internalQuery({
+	args: { idpId: v.string() },
+	handler: async (ctx, { idpId }) => {
+		return await userByExternalId(ctx, idpId);
 	},
 });

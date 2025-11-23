@@ -74,7 +74,7 @@ export function DashboardHeader({ userRole }: { userRole?: string }) {
         {currentUser && (
           <div className="flex items-center gap-2">
             <Avatar>
-              <AvatarImage alt="User" src="" />
+              <AvatarImage alt="User" />
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {getUserInitials(currentUser?.name, currentUser?.email)}
               </AvatarFallback>

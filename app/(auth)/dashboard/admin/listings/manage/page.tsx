@@ -12,7 +12,6 @@ export default async function AdminListingsManagePage() {
 		{},
 		{ token: accessToken }
 	);
-	console.log(preloaded);
 
 	// Pass preloaded data to client component
 	return <AdminListingsManagePageClient preloaded={preloaded} />;

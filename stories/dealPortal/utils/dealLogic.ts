@@ -101,7 +101,7 @@ export const getQuickActionsForUser = (documents: Document[], userEmail: string)
       type: doc.requiredAction,
       assignedTo: userEmail,
       assignedToEmail: userEmail,
-      assignedToName: "Current User", // Placeholder
+      assignedToName: userEmail,
       assignedToRole: doc.assignedToRole || FairLendRole.BUYER,
       docName: doc.name,
       docId: doc.id,

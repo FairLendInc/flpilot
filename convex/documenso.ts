@@ -8,6 +8,7 @@ import {
 	generateDocumentFromTemplate,
 } from "../lib/documenso";
 import { checkRbac } from "../lib/authhelper";
+import { DocumensoRecipientRole } from "../lib/types/documenso";
 
 export const searchTemplatesAction = action({
 	args: { query: v.optional(v.string()) },
@@ -112,7 +113,13 @@ export const createDocumentFromTemplateAction = action({
 				id: v.number(), // Template recipient ID
 				email: v.string(),
 				name: v.string(),
-				role: v.optional(v.string()),
+				role: v.optional(v.union(
+					v.literal("SIGNER"),
+					v.literal("APPROVER"),
+					v.literal("CC"),
+					v.literal("ASSISTANT"),
+					v.literal("VIEWER"),
+				)),
 			})
 		),
 	},

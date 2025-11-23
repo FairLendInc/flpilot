@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useDealStore } from "../store/dealStore"
 import { FairLendRole } from "../utils/dealLogic"
+import { toast } from "sonner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -151,18 +152,19 @@ export function FundsTransferVerification() {
     // Validate file type
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
     if (!allowedTypes.includes(file.type)) {
-      alert("Please upload a valid file type (JPEG, PNG, PDF)")
+      toast.error("Please upload a valid file type (JPEG, PNG, PDF)")
       return
     }
 
     // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
-      alert("File size must be less than 10MB")
+      toast.error("File size must be less than 10MB")
       return
     }
 
-    if (!dealId) {
-      alert("Deal ID is required for upload")
+    // Runtime type guard for dealId
+    if (!dealId || typeof dealId !== "string" || dealId.trim() === "") {
+      toast.error("Deal ID is required for upload")
       return
     }
 
@@ -185,12 +187,17 @@ export function FundsTransferVerification() {
         throw new Error(`Upload failed: ${result.statusText}`);
       }
 
-      const { storageId } = await result.json();
+      const responseData = await result.json();
+      
+      // Runtime type guard for storageId
+      if (!responseData.storageId || typeof responseData.storageId !== "string") {
+        throw new Error("Invalid response: storageId is missing or not a string");
+      }
 
       // 3. Record upload
       await recordUpload({
         dealId: dealId as Id<"deals">,
-        storageId: storageId as Id<"_storage">,
+        storageId: responseData.storageId as Id<"_storage">,
         fileName: file.name,
         fileType: file.type,
       });
@@ -205,9 +212,10 @@ export function FundsTransferVerification() {
 
       setUploadModalOpen(false)
       setUploadedFile(null)
+      toast.success("File uploaded successfully!")
     } catch (error) {
       console.error("Upload failed:", error)
-      alert("Upload failed. Please try again.")
+      toast.error("Upload failed. Please try again.")
     } finally {
       setIsUploading(false)
     }
@@ -232,10 +240,11 @@ export function FundsTransferVerification() {
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setDragCounter((prev) => prev - 1)
-    if (dragCounter === 1) {
-      setIsDragging(false)
-    }
+    setDragCounter((prev) => {
+      const next = prev - 1;
+      if (next === 0) setIsDragging(false);
+      return next;
+    })
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -270,9 +279,9 @@ export function FundsTransferVerification() {
   console.log("FundsTransferVerification: user", user)
   console.log("FundsTransferVerification: userRole", user?.role)
   //TODO: This is a temporary fix to determine the role of the user. We need to improve this.
-  // const isBuyer = user?.role === FairLendRole.BUYER || user?.role?.toLowerCase().search("investor") !== -1
-  // const isBroker = user?.role === FairLendRole.BROKER || user?.role?.toLowerCase().search("broker") !== -1
-  // const isAdmin = user?.role === FairLendRole.ADMIN || user?.role?.toLowerCase().search("admin") !== -1
+  // const isBuyer = user?.role === FairLendRole.BUYER || user?.role?.toLowerCase().search('investor') !== -1
+  // const isBroker = user?.role === FairLendRole.BROKER || user?.role?.toLowerCase().search('broker') !== -1
+  // const isAdmin = user?.role === FairLendRole.ADMIN || user?.role?.toLowerCase().search('admin') !== -1
 
   // Generate status badge
   const getStatusBadge = () => {

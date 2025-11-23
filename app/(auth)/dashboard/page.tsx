@@ -1,7 +1,11 @@
+import { withAuth } from "@workos-inc/authkit-nextjs";
 import { redirect } from "next/navigation";
+export default async function DashboardPage() {
+	const user = await withAuth();
+	console.log("USER FROM DASHBOARD PAGE", user);
+	if (user?.role === "member") {
+		redirect("/profile");
+	}
 
-export default function DashboardPage() {
-	// Redirect to admin dashboard as default
-	// In production, this would check user's role and redirect accordingly
-	redirect("/dashboard/admin");
+	redirect(`/dashboard/${user.role}`);
 }
