@@ -52,10 +52,10 @@ describe("myFunctions", () => {
 		test("should handle decimal numbers", async () => {
 			const t = createTest();
 
-			await t.mutation(api.myFunctions.addNumber, { value: 3.14159 });
+			await t.mutation(api.myFunctions.addNumber, { value: Math.PI });
 
 			const result = await t.query(api.myFunctions.listNumbers, { count: 10 });
-			expect(result.numbers[0]).toBeCloseTo(3.14159);
+			expect(result.numbers[0]).toBeCloseTo(Math.PI);
 		});
 
 		test("should handle very large numbers", async () => {
@@ -95,7 +95,7 @@ describe("myFunctions", () => {
 			const t = createTest();
 
 			// Add 10 numbers
-			for (let i = 1; i <= 10; i++) {
+			for (let i = 1; i <= 10; i += 1) {
 				await t.mutation(api.myFunctions.addNumber, { value: i });
 			}
 
@@ -221,7 +221,7 @@ describe("myFunctions", () => {
 			const t = createTest();
 
 			// Add more than 10 numbers
-			for (let i = 1; i <= 15; i++) {
+			for (let i = 1; i <= 15; i += 1) {
 				await t.mutation(api.myFunctions.addNumber, { value: i });
 			}
 

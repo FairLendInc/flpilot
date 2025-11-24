@@ -2,8 +2,8 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import schema from "../schema";
 import type { Id } from "../_generated/dataModel";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -58,21 +58,22 @@ async function createTestUser(
 	role = "investor"
 ) {
 	const idp_id = `test_${userIdentifier}`;
-	const userId = await t.run(async (ctx) => {
-		return await ctx.db.insert("users", {
-			idp_id,
-			email: `${userIdentifier}@test.example.com`,
-			email_verified: true,
-			first_name: "Test",
-			last_name: userIdentifier,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-			metadata: {
-				testUser: true,
-				role,
-			},
-		});
-	});
+	const userId = await t.run(
+		async (ctx) =>
+			await ctx.db.insert("users", {
+				idp_id,
+				email: `${userIdentifier}@test.example.com`,
+				email_verified: true,
+				first_name: "Test",
+				last_name: userIdentifier,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: {
+					testUser: true,
+					role,
+				},
+			})
+	);
 	return { userId, idp_id };
 }
 
@@ -80,13 +81,14 @@ async function createTestUser(
  * Create a test borrower
  */
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("borrowers", {
-			name: "Test Borrower",
-			email: `test_borrower_${Date.now()}@example.com`,
-			rotessaCustomerId: `rotessa_${Date.now()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("borrowers", {
+				name: "Test Borrower",
+				email: `test_borrower_${Date.now()}@example.com`,
+				rotessaCustomerId: `rotessa_${Date.now()}`,
+			})
+	);
 }
 
 /**
@@ -249,14 +251,15 @@ async function getFairlendOwnership(
 	t: ReturnType<typeof createTest>,
 	mortgageId: Id<"mortgages">
 ) {
-	const ownership = await t.run(async (ctx) => {
-		return await ctx.db
-			.query("mortgage_ownership")
-			.withIndex("by_mortgage_owner", (q) =>
-				q.eq("mortgageId", mortgageId).eq("ownerId", "fairlend")
-			)
-			.first();
-	});
+	const ownership = await t.run(
+		async (ctx) =>
+			await ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", "fairlend")
+				)
+				.first()
+	);
 	return ownership;
 }
 
@@ -268,14 +271,15 @@ async function getInvestorOwnership(
 	mortgageId: Id<"mortgages">,
 	investorId: Id<"users">
 ) {
-	const ownership = await t.run(async (ctx) => {
-		return await ctx.db
-			.query("mortgage_ownership")
-			.withIndex("by_mortgage_owner", (q) =>
-				q.eq("mortgageId", mortgageId).eq("ownerId", investorId)
-			)
-			.first();
-	});
+	const ownership = await t.run(
+		async (ctx) =>
+			await ctx.db
+				.query("mortgage_ownership")
+				.withIndex("by_mortgage_owner", (q) =>
+					q.eq("mortgageId", mortgageId).eq("ownerId", investorId)
+				)
+				.first()
+	);
 	return ownership;
 }
 
@@ -292,7 +296,9 @@ async function verifyTotalOwnership(
 		mortgageId,
 	});
 
+	// biome-ignore lint/suspicious/noMisplacedAssertion: helper executed within tests
 	expect(result.totalPercentage).toBeCloseTo(expectedTotal, 2);
+	// biome-ignore lint/suspicious/noMisplacedAssertion: helper executed within tests
 	expect(result.isValid).toBe(Math.abs(result.totalPercentage - 100) < 0.01);
 
 	return result;
@@ -322,7 +328,11 @@ describe("completeDeal ownership transfer", () => {
 		});
 
 		// Verify investor now has 100% ownership
-		const investorOwnership = await getInvestorOwnership(t, mortgageId, investorId);
+		const investorOwnership = await getInvestorOwnership(
+			t,
+			mortgageId,
+			investorId
+		);
 		expect(investorOwnership).toBeTruthy();
 		expect(investorOwnership?.ownershipPercentage).toBe(100);
 
@@ -421,36 +431,38 @@ describe("completeDeal ownership transfer", () => {
 		});
 
 		// Get alerts for admin
-		const adminAlerts = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("alerts")
-				.filter((q) =>
-					q.and(
-						q.eq(q.field("userId"), adminUserId),
-						q.eq(q.field("type"), "deal_completed"),
-						q.eq(q.field("relatedDealId"), dealId)
+		const adminAlerts = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("alerts")
+					.filter((q) =>
+						q.and(
+							q.eq(q.field("userId"), adminUserId),
+							q.eq(q.field("type"), "deal_completed"),
+							q.eq(q.field("relatedDealId"), dealId)
+						)
 					)
-				)
-				.collect();
-		});
+					.collect()
+		);
 
 		expect(adminAlerts.length).toBeGreaterThan(0);
 		expect(adminAlerts[0]?.severity).toBe("info");
 		expect(adminAlerts[0]?.title).toBe("Deal Completed");
 
 		// Get alerts for investor
-		const investorAlerts = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("alerts")
-				.filter((q) =>
-					q.and(
-						q.eq(q.field("userId"), investorId),
-						q.eq(q.field("type"), "deal_completed"),
-						q.eq(q.field("relatedDealId"), dealId)
+		const investorAlerts = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("alerts")
+					.filter((q) =>
+						q.and(
+							q.eq(q.field("userId"), investorId),
+							q.eq(q.field("type"), "deal_completed"),
+							q.eq(q.field("relatedDealId"), dealId)
+						)
 					)
-				)
-				.collect();
-		});
+					.collect()
+		);
 
 		expect(investorAlerts.length).toBeGreaterThan(0);
 		expect(investorAlerts[0]?.severity).toBe("info");
@@ -473,7 +485,9 @@ describe("completeDeal error conditions", () => {
 			adminT.mutation(api.deals.completeDeal, {
 				dealId,
 			})
-		).rejects.toThrow("Deal must be in completed state before transferring ownership");
+		).rejects.toThrow(
+			"Deal must be in completed state before transferring ownership"
+		);
 	});
 
 	test("should reject completion if ownership already transferred", async () => {
@@ -589,7 +603,11 @@ describe("completeDeal integration scenarios", () => {
 		expect(finalDeal?.completedAt).toBeTruthy();
 
 		// Verify ownership transferred
-		const investorOwnership = await getInvestorOwnership(t, mortgageId, investorId);
+		const investorOwnership = await getInvestorOwnership(
+			t,
+			mortgageId,
+			investorId
+		);
 		expect(investorOwnership?.ownershipPercentage).toBe(100);
 
 		const fairlendOwnership = await getFairlendOwnership(t, mortgageId);
@@ -647,24 +665,33 @@ describe("completeDeal integration scenarios", () => {
 		});
 
 		// Verify only investor1 owns the mortgage
-		const investor1Ownership = await getInvestorOwnership(t, mortgageId, investor1);
+		const investor1Ownership = await getInvestorOwnership(
+			t,
+			mortgageId,
+			investor1
+		);
 		expect(investor1Ownership?.ownershipPercentage).toBe(100);
 
-		const investor2Ownership = await getInvestorOwnership(t, mortgageId, investor2);
+		const investor2Ownership = await getInvestorOwnership(
+			t,
+			mortgageId,
+			investor2
+		);
 		expect(investor2Ownership).toBeNull();
 	});
 
 	test("should maintain ownership history and audit trail", async () => {
 		const t = createTest();
-		const { dealId, mortgageId, investorId } = await createCompleteDealSetup(t);
+		const { dealId, mortgageId } = await createCompleteDealSetup(t);
 
 		// Get initial ownership records
-		const initialRecords = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("mortgage_ownership")
-				.withIndex("by_mortgage", (q) => q.eq("mortgageId", mortgageId))
-				.collect();
-		});
+		const initialRecords = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("mortgage_ownership")
+					.withIndex("by_mortgage", (q) => q.eq("mortgageId", mortgageId))
+					.collect()
+		);
 
 		expect(initialRecords).toHaveLength(1); // Only FairLend
 
@@ -676,12 +703,13 @@ describe("completeDeal integration scenarios", () => {
 		});
 
 		// Get final ownership records
-		const finalRecords = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("mortgage_ownership")
-				.withIndex("by_mortgage", (q) => q.eq("mortgageId", mortgageId))
-				.collect();
-		});
+		const finalRecords = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("mortgage_ownership")
+					.withIndex("by_mortgage", (q) => q.eq("mortgageId", mortgageId))
+					.collect()
+		);
 
 		expect(finalRecords).toHaveLength(1); // Only investor
 

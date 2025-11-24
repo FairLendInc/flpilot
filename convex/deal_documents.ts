@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { authQuery, authMutation } from "./lib/server";
+import { authMutation, authQuery } from "./lib/server";
 
 /**
  * Get all documents for a specific deal
@@ -10,7 +10,7 @@ export const getDealDocuments = authQuery({
 	handler: async (ctx, args) => {
 		// RBAC context automatically available
 		// TODO: Add more granular RBAC (e.g., only investor or admin can see)
-		
+
 		return await ctx.db
 			.query("deal_documents")
 			.withIndex("by_deal", (q) => q.eq("dealId", args.dealId))
@@ -23,9 +23,7 @@ export const getDealDocuments = authQuery({
  */
 export const getDocument = authQuery({
 	args: { documentId: v.id("deal_documents") },
-	handler: async (ctx, args) => {
-		return await ctx.db.get(args.documentId);
-	},
+	handler: async (ctx, args) => await ctx.db.get(args.documentId),
 });
 
 /**
@@ -54,10 +52,10 @@ export const createDealDocumentInternal = internalMutation({
 			templateId: args.templateId,
 			templateName: args.templateName,
 			status: "pending", // Initial status
-			signatories: args.signatories.map(s => ({
+			signatories: args.signatories.map((s) => ({
 				role: s.role || "signer", // Default if missing
 				name: s.name,
-				email: s.email
+				email: s.email,
 			})),
 			createdAt: Date.now(),
 			updatedAt: Date.now(),
@@ -85,7 +83,7 @@ export const updateDocumentStatus = authMutation({
 		if (role !== "admin") {
 			// We might want to allow system updates via internal mutation instead
 			// But for manual updates, restrict to admin
-			// throw new Error("Unauthorized"); 
+			// throw new Error("Unauthorized");
 			// Keeping loose for now to match previous behavior but logging would be good
 		}
 
@@ -107,9 +105,9 @@ export const areAllDocumentsSigned = internalQuery({
 			.query("deal_documents")
 			.withIndex("by_deal", (q) => q.eq("dealId", args.dealId))
 			.collect();
-		
+
 		if (documents.length === 0) return false;
-		
-		return documents.every(doc => doc.status === "signed");
-	}
+
+		return documents.every((doc) => doc.status === "signed");
+	},
 });

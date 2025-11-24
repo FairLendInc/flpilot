@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
+import type { Doc, Id } from "../_generated/dataModel";
 import schema from "../schema";
-import type { Id, Doc } from "../_generated/dataModel";
 
 // Ensure webhook configuration is present before modules load
 process.env.LISTINGS_WEBHOOK_API_KEY = "test-webhook-key";
@@ -74,9 +74,9 @@ describe("/listings/create webhook", () => {
 		expect(body.code).toBe("listing_created");
 		expect(body.result.created).toBe(true);
 
-		const listings = await t.run(async (ctx) => {
-			return await ctx.db.query("listings").collect();
-		});
+		const listings = await t.run(
+			async (ctx) => await ctx.db.query("listings").collect()
+		);
 		expect(listings).toHaveLength(1);
 	});
 
@@ -96,9 +96,9 @@ describe("/listings/create webhook", () => {
 		const body = (await response.json()) as { code: string };
 		expect(body.code).toBe("invalid_api_key");
 
-		const listings = await t.run(async (ctx) => {
-			return await ctx.db.query("listings").collect();
-		});
+		const listings = await t.run(
+			async (ctx) => await ctx.db.query("listings").collect()
+		);
 		expect(listings).toHaveLength(0);
 	});
 
@@ -207,9 +207,9 @@ describe("/listings/create webhook", () => {
 		expect(body.code).toBe("listing_created");
 		expect(body.result.created).toBe(true);
 
-		const comparables = await t.run(async (ctx) => {
-			return await ctx.db.query("appraisal_comparables").collect();
-		});
+		const comparables = await t.run(
+			async (ctx) => await ctx.db.query("appraisal_comparables").collect()
+		);
 		expect(comparables).toHaveLength(2);
 	});
 
@@ -237,9 +237,9 @@ describe("/listings/create webhook", () => {
 		expect(body.code).toBe("listing_created");
 		expect(body.result.created).toBe(true);
 
-		const comparables = await t.run(async (ctx) => {
-			return await ctx.db.query("appraisal_comparables").collect();
-		});
+		const comparables = await t.run(
+			async (ctx) => await ctx.db.query("appraisal_comparables").collect()
+		);
 		expect(comparables).toHaveLength(0);
 	});
 
@@ -265,9 +265,9 @@ describe("/listings/create webhook", () => {
 		expect(body.code).toBe("listing_created");
 		expect(body.result.created).toBe(true);
 
-		const comparables = await t.run(async (ctx) => {
-			return await ctx.db.query("appraisal_comparables").collect();
-		});
+		const comparables = await t.run(
+			async (ctx) => await ctx.db.query("appraisal_comparables").collect()
+		);
 		expect(comparables).toHaveLength(0);
 	});
 
@@ -309,10 +309,18 @@ describe("/listings/create webhook", () => {
 			e.path.startsWith("comparables")
 		);
 		expect(comparableErrors.length).toBeGreaterThan(0);
-		expect(comparableErrors.find((e) => e.path.includes("address.street"))).toBeDefined();
-		expect(comparableErrors.find((e) => e.path.includes("saleAmount"))).toBeDefined();
-		expect(comparableErrors.find((e) => e.path.includes("saleDate"))).toBeDefined();
-		expect(comparableErrors.find((e) => e.path.includes("distance"))).toBeDefined();
+		expect(
+			comparableErrors.find((e) => e.path.includes("address.street"))
+		).toBeDefined();
+		expect(
+			comparableErrors.find((e) => e.path.includes("saleAmount"))
+		).toBeDefined();
+		expect(
+			comparableErrors.find((e) => e.path.includes("saleDate"))
+		).toBeDefined();
+		expect(
+			comparableErrors.find((e) => e.path.includes("distance"))
+		).toBeDefined();
 	});
 });
 
@@ -360,9 +368,12 @@ describe("/listings/update webhook", () => {
 		expect(updateBody.listingId).toBe(listingId);
 
 		// Verify the update
-		const listing = await t.run(async (ctx) => {
-			return await ctx.db.get(listingId as Id<"listings">) as Doc<"listings"> | null;
-		});
+		const listing = await t.run(
+			async (ctx) =>
+				(await ctx.db.get(
+					listingId as Id<"listings">
+				)) as Doc<"listings"> | null
+		);
 		expect(listing?.visible).toBe(false);
 		expect(listing?.locked).toBe(true);
 	});
@@ -449,9 +460,9 @@ describe("/listings/delete webhook", () => {
 		expect(deleteBody.listingId).toBe(listingId);
 
 		// Verify the deletion
-		const listing = await t.run(async (ctx) => {
-			return await ctx.db.get(listingId as any);
-		});
+		const listing = await t.run(
+			async (ctx) => await ctx.db.get(listingId as any)
+		);
 		expect(listing).toBeNull();
 	});
 
@@ -537,9 +548,12 @@ describe("/mortgages/update webhook", () => {
 		expect(updateBody.mortgageId).toBe(mortgageId);
 
 		// Verify the update
-		const mortgage = await t.run(async (ctx) => {
-			return await ctx.db.get(mortgageId as Id<"mortgages">) as Doc<"mortgages"> | null;
-		});
+		const mortgage = await t.run(
+			async (ctx) =>
+				(await ctx.db.get(
+					mortgageId as Id<"mortgages">
+				)) as Doc<"mortgages"> | null
+		);
 		expect(mortgage?.loanAmount).toBe(500000);
 		expect(mortgage?.interestRate).toBe(5.5);
 		expect(mortgage?.status).toBe("renewed");
@@ -635,15 +649,15 @@ describe("/mortgages/delete webhook", () => {
 		expect(deleteBody.deletedCounts.listings).toBe(1);
 
 		// Verify the deletion
-		const mortgage = await t.run(async (ctx) => {
-			return await ctx.db.get(mortgageId as any);
-		});
+		const mortgage = await t.run(
+			async (ctx) => await ctx.db.get(mortgageId as any)
+		);
 		expect(mortgage).toBeNull();
 
 		// Verify listing was deleted
-		const listing = await t.run(async (ctx) => {
-			return await ctx.db.get(listingId as any);
-		});
+		const listing = await t.run(
+			async (ctx) => await ctx.db.get(listingId as any)
+		);
 		expect(listing).toBeNull();
 	});
 

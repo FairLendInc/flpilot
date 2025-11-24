@@ -22,6 +22,9 @@
       "!components/skeletons/*",
       "!components/ui",
       "!components/ui/*",
+      "convex",
+      "convex/*",
+      "convex/**",
       "hooks",
       "hooks/*",
       "hooks/**",
@@ -47,8 +50,6 @@
       "!components/__tests__/*",
       "!convex/_generated",
       "!convex/tsconfig.json",
-      "!convex",
-      "!convex/*",
       "!vitest.config.mts",
       "!biome.json",
       "!.storybook",
@@ -79,7 +80,44 @@
         "noNestedTernary": "off",
         "useNumericSeparators": "off",
         "useBlockStatements": "off",
-        "useFilenamingConvention": "off"
+        "useFilenamingConvention": "off",
+        "noRestrictedImports": {
+          "level": "warn",
+          "options": {
+            "paths": {
+              "./lib/server": {
+                "importNames": [
+                  "authQuery",
+                  "authMutation",
+                  "authAction",
+                  "query",
+                  "mutation",
+                  "action"
+                ],
+                "message": "Use createAuthorizedQuery/createAuthorizedMutation/createAuthorizedAction instead."
+              },
+              "convex/lib/server": {
+                "importNames": [
+                  "authQuery",
+                  "authMutation",
+                  "authAction",
+                  "query",
+                  "mutation",
+                  "action"
+                ],
+                "message": "Use createAuthorizedQuery/createAuthorizedMutation/createAuthorizedAction instead."
+              },
+              "convex/server": {
+                "importNames": ["query", "mutation", "action"],
+                "message": "Use createAuthorizedQuery/createAuthorizedMutation/createAuthorizedAction from convex/lib/server."
+              },
+              "convex/": {
+                "importNames": ["query", "mutation", "action"],
+                "message": "Use createAuthorizedQuery/createAuthorizedMutation/createAuthorizedAction from convex/lib/server."
+              }
+            }
+          }
+        }
       },
       "suspicious": {
         "noTsIgnore": "off",

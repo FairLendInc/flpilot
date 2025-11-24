@@ -4,9 +4,11 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
 import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 /**
  * Get cap table for a specific mortgage (all ownership records)
@@ -130,10 +132,10 @@ export const getTotalOwnership = query({
  * @internal
  */
 export async function createOwnershipInternal(
-	ctx: any,
+	ctx: Pick<MutationCtx, "db">,
 	args: {
-		mortgageId: any;
-		ownerId: any;
+		mortgageId: Id<"mortgages">;
+		ownerId: Id<"users"> | "fairlend";
 		ownershipPercentage: number;
 	}
 ) {
@@ -158,7 +160,7 @@ export async function createOwnershipInternal(
 	// Check for duplicate ownership record
 	const existing = await ctx.db
 		.query("mortgage_ownership")
-		.withIndex("by_mortgage_owner", (q: any) =>
+		.withIndex("by_mortgage_owner", (q) =>
 			q.eq("mortgageId", args.mortgageId).eq("ownerId", args.ownerId)
 		)
 		.first();
@@ -172,16 +174,19 @@ export async function createOwnershipInternal(
 	// Get FairLend's current ownership
 	let fairlendOwnership = await ctx.db
 		.query("mortgage_ownership")
-		.withIndex("by_mortgage_owner", (q: any) =>
+		.withIndex("by_mortgage_owner", (q) =>
 			q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
 		)
 		.first();
 
 	// Auto-create FairLend ownership if missing (for backward compatibility)
 	if (!fairlendOwnership) {
-		logger.warn("Auto-creating missing FairLend ownership record for mortgage", {
-			mortgageId: args.mortgageId.toString(),
-		});
+		logger.warn(
+			"Auto-creating missing FairLend ownership record for mortgage",
+			{
+				mortgageId: args.mortgageId.toString(),
+			}
+		);
 
 		await ctx.db.insert("mortgage_ownership", {
 			mortgageId: args.mortgageId,
@@ -192,7 +197,7 @@ export async function createOwnershipInternal(
 		// Re-fetch the newly created FairLend ownership
 		fairlendOwnership = await ctx.db
 			.query("mortgage_ownership")
-			.withIndex("by_mortgage_owner", (q: any) =>
+			.withIndex("by_mortgage_owner", (q) =>
 				q.eq("mortgageId", args.mortgageId).eq("ownerId", "fairlend")
 			)
 			.first();
@@ -280,7 +285,7 @@ export const updateOwnershipPercentage = mutation({
 		if (!identity) {
 			throw new Error("Authentication required");
 		}
-		
+
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -292,10 +297,7 @@ export const updateOwnershipPercentage = mutation({
 		}
 
 		// Validate percentage range
-		if (
-			args.ownershipPercentage < 0 ||
-			args.ownershipPercentage > 100
-		) {
+		if (args.ownershipPercentage < 0 || args.ownershipPercentage > 100) {
 			throw new Error("Ownership percentage must be between 0 and 100");
 		}
 
@@ -322,9 +324,7 @@ export const updateOwnershipPercentage = mutation({
 		const fairlendOwnership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage_owner", (q) =>
-				q
-					.eq("mortgageId", ownershipRecord.mortgageId)
-					.eq("ownerId", "fairlend")
+				q.eq("mortgageId", ownershipRecord.mortgageId).eq("ownerId", "fairlend")
 			)
 			.first();
 
@@ -389,7 +389,7 @@ export const transferOwnership = mutation({
 		if (!identity) {
 			throw new Error("Authentication required");
 		}
-		
+
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -426,7 +426,7 @@ export const deleteOwnership = mutation({
 		if (!identity) {
 			throw new Error("Authentication required");
 		}
-		
+
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -454,9 +454,7 @@ export const deleteOwnership = mutation({
 		const fairlendOwnership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage_owner", (q) =>
-				q
-					.eq("mortgageId", ownershipRecord.mortgageId)
-					.eq("ownerId", "fairlend")
+				q.eq("mortgageId", ownershipRecord.mortgageId).eq("ownerId", "fairlend")
 			)
 			.first();
 

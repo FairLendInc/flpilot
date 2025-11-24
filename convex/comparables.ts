@@ -5,7 +5,7 @@
 
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
-import { authQuery, authMutation } from "./lib/server";
+import { authMutation, authQuery } from "./lib/server";
 
 /**
  * Schema for comparable property address
@@ -86,7 +86,7 @@ export const getComparablesForMortgage = authQuery({
 		// Fetch signed URLs for comparable images
 		const comparablesWithUrls = await Promise.all(
 			comparables.map(async (comp) => {
-				let imageUrl = null;
+				let imageUrl: string | null = null;
 				if (comp.imageStorageId) {
 					imageUrl = await ctx.storage.getUrl(comp.imageStorageId);
 				}

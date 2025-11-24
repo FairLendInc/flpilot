@@ -2,8 +2,8 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import schema from "../schema";
 import type { Id } from "../_generated/dataModel";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -44,29 +44,31 @@ async function createTestUser(
 	role = "investor"
 ) {
 	const idp_id = `test_${userIdentifier}`;
-	const userId = await t.run(async (ctx) => {
-		return await ctx.db.insert("users", {
-			idp_id,
-			email: `${userIdentifier}@test.example.com`,
-			email_verified: true,
-			first_name: "Test",
-			last_name: userIdentifier,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-			metadata: { testUser: true, role },
-		});
-	});
+	const userId = await t.run(
+		async (ctx) =>
+			await ctx.db.insert("users", {
+				idp_id,
+				email: `${userIdentifier}@test.example.com`,
+				email_verified: true,
+				first_name: "Test",
+				last_name: userIdentifier,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: { testUser: true, role },
+			})
+	);
 	return { userId, idp_id };
 }
 
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("borrowers", {
-			name: "Test Borrower",
-			email: `test_borrower_${Date.now()}@example.com`,
-			rotessaCustomerId: `rotessa_${Date.now()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("borrowers", {
+				name: "Test Borrower",
+				email: `test_borrower_${Date.now()}@example.com`,
+				rotessaCustomerId: `rotessa_${Date.now()}`,
+			})
+	);
 }
 
 async function createTestMortgage(t: ReturnType<typeof createTest>) {
@@ -115,7 +117,10 @@ async function createLockRequest(
 	listingId: Id<"listings">,
 	investorIdpId: string
 ) {
-	const investorT = t.withIdentity({ subject: investorIdpId, role: "investor" });
+	const investorT = t.withIdentity({
+		subject: investorIdpId,
+		role: "investor",
+	});
 	return await investorT.mutation(api.lockRequests.createLockRequest, {
 		listingId,
 		lawyerName: "Test Lawyer",
@@ -171,14 +176,15 @@ async function createDealInPendingTransfer(t: ReturnType<typeof createTest>) {
 // Upload URL Generation Tests
 // ============================================================================
 
-async function generateFakeStorageId(t: ReturnType<typeof createTest>): Promise<Id<"_storage">> {
+async function generateFakeStorageId(
+	_t: ReturnType<typeof createTest>
+): Promise<Id<"_storage">> {
 	// Use convex-test's internal ID generation to create a valid storage ID
 	// The format is: <number>;<tableName>
 	// We'll generate a unique number and use "_storage" as the table name
 	const uniqueNum = Math.floor(Math.random() * 1000000000);
 	return `${uniqueNum};_storage` as Id<"_storage">;
 }
-
 
 // ============================================================================
 // Upload URL Generation Tests
@@ -187,8 +193,7 @@ async function generateFakeStorageId(t: ReturnType<typeof createTest>): Promise<
 describe("generateFundTransferUploadUrl - Authorization", () => {
 	test("should allow investor to generate upload URL", async () => {
 		const t = createTest();
-		const { dealId, investorId, investorIdpId } =
-			await createDealInPendingTransfer(t);
+		const { dealId, investorIdpId } = await createDealInPendingTransfer(t);
 
 		const investorT = t.withIdentity({
 			subject: investorIdpId,
@@ -367,7 +372,8 @@ describe("recordFundTransferUpload - File Upload", () => {
 				dealId,
 				storageId: fakeStorageId,
 				fileName: "document.docx",
-				fileType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+				fileType:
+					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 			})
 		).rejects.toThrow("Invalid file type");
 	});
@@ -484,9 +490,7 @@ describe("recordFundTransferUpload - Upload History", () => {
 		expect(deal?.currentUpload?.uploadedAt).toBeGreaterThanOrEqual(
 			beforeTimestamp
 		);
-		expect(deal?.currentUpload?.uploadedAt).toBeLessThanOrEqual(
-			afterTimestamp
-		);
+		expect(deal?.currentUpload?.uploadedAt).toBeLessThanOrEqual(afterTimestamp);
 	});
 
 	test("should record uploader identity", async () => {

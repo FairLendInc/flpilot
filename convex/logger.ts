@@ -3,12 +3,12 @@
 // compatible with the central `lib/logger` in future.
 
 export type Logger = {
-	trace: (msg: string | Error, meta?: Record<string, any>) => void;
-	debug: (msg: string | Error, meta?: Record<string, any>) => void;
-	info: (msg: string | Error, meta?: Record<string, any>) => void;
-	warn: (msg: string | Error, meta?: Record<string, any>) => void;
-	error: (msg: string | Error, meta?: Record<string, any>) => void;
-	child: (ctx: Record<string, any>) => Logger;
+	trace: (msg: string | Error, meta?: Record<string, unknown>) => void;
+	debug: (msg: string | Error, meta?: Record<string, unknown>) => void;
+	info: (msg: string | Error, meta?: Record<string, unknown>) => void;
+	warn: (msg: string | Error, meta?: Record<string, unknown>) => void;
+	error: (msg: string | Error, meta?: Record<string, unknown>) => void;
+	child: (ctx: Record<string, unknown>) => Logger;
 };
 
 const base: Logger = {

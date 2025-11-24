@@ -1,9 +1,9 @@
 import { httpRouter } from "convex/server";
+import { z } from "zod";
 import { logger } from "../lib/logger";
 import { internal } from "./_generated/api";
-import { httpAction } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { z } from "zod";
+import { httpAction } from "./_generated/server";
 import type { ListingCreationPayload } from "./listings";
 
 const http = httpRouter();
@@ -37,13 +37,14 @@ const corsJsonHeaders = {
 const borrowerWebhookSchema = z.object({
 	name: z.string().min(1, "borrower.name.required"),
 	email: z.string().email("borrower.email.invalid"),
-	rotessaCustomerId: z
-		.string()
-		.min(1, "borrower.rotessaCustomerId.required"),
+	rotessaCustomerId: z.string().min(1, "borrower.rotessaCustomerId.required"),
 });
 
 const locationWebhookSchema = z.object({
-	lat: z.number().gte(-90, "mortgage.location.lat.range").lte(90, "mortgage.location.lat.range"),
+	lat: z
+		.number()
+		.gte(-90, "mortgage.location.lat.range")
+		.lte(90, "mortgage.location.lat.range"),
 	lng: z
 		.number()
 		.gte(-180, "mortgage.location.lng.range")
@@ -92,7 +93,10 @@ const documentWebhookSchema = z.object({
 			(value) => Date.parse(value) <= Date.now(),
 			"mortgage.documents.uploadDate.future"
 		),
-	fileSize: z.number().nonnegative("mortgage.documents.fileSize.range").optional(),
+	fileSize: z
+		.number()
+		.nonnegative("mortgage.documents.fileSize.range")
+		.optional(),
 });
 
 const comparableWebhookSchema = z
@@ -110,7 +114,10 @@ const comparableWebhookSchema = z
 				"comparable.saleDate.future"
 			),
 		distance: z.number().gte(0, "comparable.distance.range"),
-		squareFeet: z.number().positive("comparable.squareFeet.positive").optional(),
+		squareFeet: z
+			.number()
+			.positive("comparable.squareFeet.positive")
+			.optional(),
 		bedrooms: z.number().int().min(0, "comparable.bedrooms.range").optional(),
 		bathrooms: z.number().min(0, "comparable.bathrooms.range").optional(),
 		propertyType: z.string().optional(),
@@ -135,73 +142,68 @@ const comparableWebhookSchema = z
 
 const mortgageWebhookSchema = z
 	.object({
-	loanAmount: z.number().gt(0, "mortgage.loanAmount.positive"),
-	interestRate: z
-		.number()
-		.gt(0, "mortgage.interestRate.range")
-		.lt(100, "mortgage.interestRate.range"),
-	originationDate: z
-		.string()
-		.refine(
-			(value) => !Number.isNaN(Date.parse(value)),
-			"mortgage.originationDate.invalid"
-		),
-	maturityDate: z
-		.string()
-		.refine(
-			(value) => !Number.isNaN(Date.parse(value)),
-			"mortgage.maturityDate.invalid"
-		),
-	status: z
-		.enum(["active", "renewed", "closed", "defaulted"], {
-			message: "mortgage.status.invalid",
-		})
-		.optional(),
-	mortgageType: z.enum(["1st", "2nd", "other"], {
-		message: "mortgage.mortgageType.invalid",
-	}),
-	address: addressWebhookSchema,
-	location: locationWebhookSchema,
-	propertyType: z
-		.string()
-		.min(1, "mortgage.propertyType.required"),
-	appraisalMarketValue: z
-		.number()
-		.gt(0, "mortgage.appraisalMarketValue.positive"),
-	appraisalMethod: z
-		.string()
-		.min(1, "mortgage.appraisalMethod.required"),
-	appraisalCompany: z
-		.string()
-		.min(1, "mortgage.appraisalCompany.required"),
-	appraisalDate: z
-		.string()
-		.refine(
-			(value) => !Number.isNaN(Date.parse(value)),
-			"mortgage.appraisalDate.invalid"
-		)
-		.refine(
-			(value) => Date.parse(value) <= Date.now(),
-			"mortgage.appraisalDate.future"
-		),
-	ltv: z.number().min(0, "mortgage.ltv.range").max(100, "mortgage.ltv.range"),
-	images: z.array(imageWebhookSchema).optional(),
-	documents: z.array(documentWebhookSchema).optional(),
-	externalMortgageId: z
-		.string()
-		.min(1, "mortgage.externalMortgageId.required"),
-})
+		loanAmount: z.number().gt(0, "mortgage.loanAmount.positive"),
+		interestRate: z
+			.number()
+			.gt(0, "mortgage.interestRate.range")
+			.lt(100, "mortgage.interestRate.range"),
+		originationDate: z
+			.string()
+			.refine(
+				(value) => !Number.isNaN(Date.parse(value)),
+				"mortgage.originationDate.invalid"
+			),
+		maturityDate: z
+			.string()
+			.refine(
+				(value) => !Number.isNaN(Date.parse(value)),
+				"mortgage.maturityDate.invalid"
+			),
+		status: z
+			.enum(["active", "renewed", "closed", "defaulted"], {
+				message: "mortgage.status.invalid",
+			})
+			.optional(),
+		mortgageType: z.enum(["1st", "2nd", "other"], {
+			message: "mortgage.mortgageType.invalid",
+		}),
+		address: addressWebhookSchema,
+		location: locationWebhookSchema,
+		propertyType: z.string().min(1, "mortgage.propertyType.required"),
+		appraisalMarketValue: z
+			.number()
+			.gt(0, "mortgage.appraisalMarketValue.positive"),
+		appraisalMethod: z.string().min(1, "mortgage.appraisalMethod.required"),
+		appraisalCompany: z.string().min(1, "mortgage.appraisalCompany.required"),
+		appraisalDate: z
+			.string()
+			.refine(
+				(value) => !Number.isNaN(Date.parse(value)),
+				"mortgage.appraisalDate.invalid"
+			)
+			.refine(
+				(value) => Date.parse(value) <= Date.now(),
+				"mortgage.appraisalDate.future"
+			),
+		ltv: z.number().min(0, "mortgage.ltv.range").max(100, "mortgage.ltv.range"),
+		images: z.array(imageWebhookSchema).optional(),
+		documents: z.array(documentWebhookSchema).optional(),
+		externalMortgageId: z
+			.string()
+			.min(1, "mortgage.externalMortgageId.required"),
+	})
 	.superRefine((value, ctx) => {
 		const origination = Date.parse(value.originationDate);
 		const maturity = Date.parse(value.maturityDate);
-		if (!Number.isNaN(origination) && !Number.isNaN(maturity)) {
-			if (origination > maturity) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					path: ["maturityDate"],
-					message: "mortgage.maturityDate.beforeOrigination",
-				});
-			}
+		if (
+			!(Number.isNaN(origination) || Number.isNaN(maturity)) &&
+			origination > maturity
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["maturityDate"],
+				message: "mortgage.maturityDate.beforeOrigination",
+			});
 		}
 	});
 
@@ -248,7 +250,10 @@ const mortgageUpdateWebhookSchema = z
 			.optional(),
 		address: addressWebhookSchema.optional(),
 		location: locationWebhookSchema.optional(),
-		propertyType: z.string().min(1, "mortgage.propertyType.required").optional(),
+		propertyType: z
+			.string()
+			.min(1, "mortgage.propertyType.required")
+			.optional(),
 		borrowerId: z.string().optional(), // Will be converted to Id<"borrowers">
 		documents: z.array(documentWebhookSchema).optional(),
 	})
@@ -257,14 +262,15 @@ const mortgageUpdateWebhookSchema = z
 		if (value.originationDate && value.maturityDate) {
 			const origination = Date.parse(value.originationDate);
 			const maturity = Date.parse(value.maturityDate);
-			if (!Number.isNaN(origination) && !Number.isNaN(maturity)) {
-				if (origination > maturity) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						path: ["maturityDate"],
-						message: "mortgage.maturityDate.beforeOrigination",
-					});
-				}
+			if (
+				!(Number.isNaN(origination) || Number.isNaN(maturity)) &&
+				origination > maturity
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["maturityDate"],
+					message: "mortgage.maturityDate.beforeOrigination",
+				});
 			}
 		}
 	});
@@ -484,7 +490,7 @@ http.route({
 		}
 
 		try {
-			const updateData: {
+			const listingUpdate: {
 				listingId: Id<"listings">;
 				visible?: boolean;
 				locked?: boolean;
@@ -501,7 +507,10 @@ http.route({
 					lockedBy: parsedPayload.data.lockedBy as Id<"users">,
 				}),
 			};
-			const result = await ctx.runMutation(internal.listings.updateListingInternal, updateData);
+			const result = await ctx.runMutation(
+				internal.listings.updateListingInternal,
+				listingUpdate
+			);
 
 			return corsJsonResponse(200, {
 				code: "listing_updated",
@@ -578,10 +587,13 @@ http.route({
 		}
 
 		try {
-			const result = await ctx.runMutation(internal.listings.deleteListingInternal, {
-				listingId: listingId as Id<"listings">,
-				...parsedPayload.data,
-			});
+			const result = await ctx.runMutation(
+				internal.listings.deleteListingInternal,
+				{
+					listingId: listingId as Id<"listings">,
+					...parsedPayload.data,
+				}
+			);
 
 			return corsJsonResponse(200, {
 				code: "listing_deleted",
@@ -664,7 +676,7 @@ http.route({
 				storageId: doc.storageId as Id<"_storage">,
 			}));
 
-			const updateData: {
+			const mortgageUpdate: {
 				mortgageId: Id<"mortgages">;
 				loanAmount?: number;
 				interestRate?: number;
@@ -686,7 +698,12 @@ http.route({
 				borrowerId?: Id<"borrowers">;
 				documents?: Array<{
 					name: string;
-					type: "appraisal" | "title" | "inspection" | "loan_agreement" | "insurance";
+					type:
+						| "appraisal"
+						| "title"
+						| "inspection"
+						| "loan_agreement"
+						| "insurance";
 					storageId: Id<"_storage">;
 					uploadDate: string;
 					fileSize?: number;
@@ -706,7 +723,11 @@ http.route({
 					maturityDate: parsedPayload.data.maturityDate,
 				}),
 				...(parsedPayload.data.status && {
-					status: parsedPayload.data.status as "active" | "renewed" | "closed" | "defaulted",
+					status: parsedPayload.data.status as
+						| "active"
+						| "renewed"
+						| "closed"
+						| "defaulted",
 				}),
 				...(parsedPayload.data.address && {
 					address: parsedPayload.data.address,
@@ -722,7 +743,10 @@ http.route({
 				}),
 				...(documents && { documents }),
 			};
-			const result = await ctx.runMutation(internal.mortgages.updateMortgageInternal, updateData);
+			const result = await ctx.runMutation(
+				internal.mortgages.updateMortgageInternal,
+				mortgageUpdate
+			);
 
 			return corsJsonResponse(200, {
 				code: "mortgage_updated",
@@ -799,10 +823,13 @@ http.route({
 		}
 
 		try {
-			const result = await ctx.runMutation(internal.mortgages.deleteMortgageInternal, {
-				mortgageId: mortgageId as Id<"mortgages">,
-				...parsedPayload.data,
-			});
+			const result = await ctx.runMutation(
+				internal.mortgages.deleteMortgageInternal,
+				{
+					mortgageId: mortgageId as Id<"mortgages">,
+					...parsedPayload.data,
+				}
+			);
 
 			return corsJsonResponse(200, {
 				code: "mortgage_deleted",
@@ -825,7 +852,7 @@ http.route({
 	path: "/create-test-user",
 	method: "OPTIONS",
 	handler: httpAction(
-		async (ctx, request) =>
+		async (_ctx, _request) =>
 			new Response(null, {
 				status: 204,
 				headers: {
@@ -841,7 +868,7 @@ http.route({
 http.route({
 	path: "/create-test-user",
 	method: "POST",
-	handler: httpAction(async (ctx, request) => {
+	handler: httpAction(async (_ctx, request) => {
 		logger.info("Creating test user");
 		const body = await request.formData();
 		const ltv = body.get("ltv");
@@ -938,7 +965,7 @@ http.route({
 				}
 				case "user.updated": {
 					logger.info("Processing user.updated event");
-					const res = await ctx.runMutation(internal.users.updateFromWorkOS, {
+					const _res = await ctx.runMutation(internal.users.updateFromWorkOS, {
 						idp_id: data.id,
 						email: data.email,
 						email_verified: data.email_verified,
@@ -981,18 +1008,21 @@ http.route({
 						JSON.stringify({ message: "Test user deleted" }),
 						{ status: 200, headers: { "Content-Type": "application/json" } }
 					);
-					break;
 				}
 
 				case "role.created": {
 					logger.info("Processing role.created event");
-					const res = await ctx.runMutation(internal.roles.createOrUpdateRole, {
-						slug: data.slug,
-						name: data.name || data.slug, // Use slug as name if not provided
-						permissions: data.permissions || [],
-						created_at: data.created_at,
-						updated_at: data.updated_at,
-					});
+					const _res = await ctx.runMutation(
+						internal.roles.createOrUpdateRole,
+						{
+							slug: data.slug,
+							name: data.name || data.slug, // Use slug as name if not provided
+							permissions: data.permissions || [],
+							created_at: data.created_at,
+							updated_at: data.updated_at,
+						}
+					);
+					break;
 				}
 				case "role.updated": {
 					logger.info("Processing role.updated event");

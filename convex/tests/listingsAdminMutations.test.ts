@@ -2,8 +2,8 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import schema from "../schema";
 import type { Id } from "../_generated/dataModel";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -17,13 +17,14 @@ const createTest = () => convexTest(schema, modules);
  * Create a test borrower
  */
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("borrowers", {
-			name: "Test Borrower",
-			email: `test_${Date.now()}@example.com`,
-			rotessaCustomerId: `rotessa_${Date.now()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("borrowers", {
+				name: "Test Borrower",
+				email: `test_${Date.now()}@example.com`,
+				rotessaCustomerId: `rotessa_${Date.now()}`,
+			})
+	);
 }
 
 /**
@@ -33,37 +34,38 @@ async function createTestMortgage(
 	t: ReturnType<typeof createTest>,
 	borrowerId: Id<"borrowers">
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("mortgages", {
-			borrowerId,
-			loanAmount: 500000,
-			interestRate: 5.5,
-			originationDate: "2024-01-01",
-			maturityDate: "2025-01-01",
-			status: "active" as const,
-			mortgageType: "1st" as const,
-			address: {
-				street: "123 Test St",
-				city: "Test City",
-				state: "CA",
-				zip: "12345",
-				country: "USA",
-			},
-			location: {
-				lat: 37.7749,
-				lng: -122.4194,
-			},
-			propertyType: "Single Family",
-			appraisalMarketValue: 600000,
-			appraisalMethod: "Comparative Market Analysis",
-			appraisalCompany: "Test Appraisal Co",
-			appraisalDate: "2023-12-01",
-			ltv: 83.33,
-			images: [],
-			documents: [],
-			externalMortgageId: `test-mortgage-${Date.now()}-${Math.random()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("mortgages", {
+				borrowerId,
+				loanAmount: 500000,
+				interestRate: 5.5,
+				originationDate: "2024-01-01",
+				maturityDate: "2025-01-01",
+				status: "active" as const,
+				mortgageType: "1st" as const,
+				address: {
+					street: "123 Test St",
+					city: "Test City",
+					state: "CA",
+					zip: "12345",
+					country: "USA",
+				},
+				location: {
+					lat: 37.7749,
+					lng: -122.4194,
+				},
+				propertyType: "Single Family",
+				appraisalMarketValue: 600000,
+				appraisalMethod: "Comparative Market Analysis",
+				appraisalCompany: "Test Appraisal Co",
+				appraisalDate: "2023-12-01",
+				ltv: 83.33,
+				images: [],
+				documents: [],
+				externalMortgageId: `test-mortgage-${Date.now()}-${Math.random()}`,
+			})
+	);
 }
 
 /**
@@ -73,31 +75,33 @@ async function createTestListing(
 	t: ReturnType<typeof createTest>,
 	mortgageId: Id<"mortgages">
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("listings", {
-			mortgageId,
-			visible: true,
-			locked: false,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("listings", {
+				mortgageId,
+				visible: true,
+				locked: false,
+			})
+	);
 }
 
 /**
  * Create a test user
  */
 async function createTestUser(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("users", {
-			idp_id: `test_user_${Date.now()}`,
-			email: `testuser_${Date.now()}@example.com`,
-			email_verified: true,
-			first_name: "Test",
-			last_name: "User",
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-			metadata: {},
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("users", {
+				idp_id: `test_user_${Date.now()}`,
+				email: `testuser_${Date.now()}@example.com`,
+				email_verified: true,
+				first_name: "Test",
+				last_name: "User",
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: {},
+			})
+	);
 }
 
 // ============================================================================
@@ -227,15 +231,16 @@ describe("updateListing - Broker/Admin Authorization", () => {
 		const userId = await createTestUser(t);
 
 		// Create locked listing
-		const listingId = await t.run(async (ctx) => {
-			return await ctx.db.insert("listings", {
-				mortgageId,
-				visible: true,
-				locked: true,
-				lockedBy: userId,
-				lockedAt: Date.now(),
-			});
-		});
+		const listingId = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("listings", {
+					mortgageId,
+					visible: true,
+					locked: true,
+					lockedBy: userId,
+					lockedAt: Date.now(),
+				})
+		);
 
 		// Mock broker identity and use returned instance
 		const brokerT = t.withIdentity({
@@ -264,15 +269,16 @@ describe("updateListing - Broker/Admin Authorization", () => {
 		const userId = await createTestUser(t);
 
 		// Create locked listing
-		const listingId = await t.run(async (ctx) => {
-			return await ctx.db.insert("listings", {
-				mortgageId,
-				visible: true,
-				locked: true,
-				lockedBy: userId,
-				lockedAt: Date.now(),
-			});
-		});
+		const listingId = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("listings", {
+					mortgageId,
+					visible: true,
+					locked: true,
+					lockedBy: userId,
+					lockedAt: Date.now(),
+				})
+		);
 
 		// Mock admin identity and use returned instance
 		const adminT = t.withIdentity({
@@ -403,43 +409,45 @@ describe("deleteListing - Broker/Admin Authorization and Cascade", () => {
 		const listingId = await createTestListing(t, mortgageId);
 
 		// Create comparables
-		const comparable1 = await t.run(async (ctx) => {
-			return await ctx.db.insert("appraisal_comparables", {
-				mortgageId,
-				address: {
-					street: "456 Compare St",
-					city: "Test City",
-					state: "CA",
-					zip: "12345",
-				},
-				distance: 0.5,
-				saleAmount: 550000,
-				saleDate: "2023-11-01",
-				propertyType: "Single Family",
-				bedrooms: 3,
-				bathrooms: 2,
-				squareFeet: 2000,
-			});
-		});
+		const comparable1 = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("appraisal_comparables", {
+					mortgageId,
+					address: {
+						street: "456 Compare St",
+						city: "Test City",
+						state: "CA",
+						zip: "12345",
+					},
+					distance: 0.5,
+					saleAmount: 550000,
+					saleDate: "2023-11-01",
+					propertyType: "Single Family",
+					bedrooms: 3,
+					bathrooms: 2,
+					squareFeet: 2000,
+				})
+		);
 
-		const comparable2 = await t.run(async (ctx) => {
-			return await ctx.db.insert("appraisal_comparables", {
-				mortgageId,
-				address: {
-					street: "789 Compare Ave",
-					city: "Test City",
-					state: "CA",
-					zip: "12345",
-				},
-				distance: 0.8,
-				saleAmount: 575000,
-				saleDate: "2023-10-15",
-				propertyType: "Single Family",
-				bedrooms: 4,
-				bathrooms: 2.5,
-				squareFeet: 2200,
-			});
-		});
+		const comparable2 = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("appraisal_comparables", {
+					mortgageId,
+					address: {
+						street: "789 Compare Ave",
+						city: "Test City",
+						state: "CA",
+						zip: "12345",
+					},
+					distance: 0.8,
+					saleAmount: 575000,
+					saleDate: "2023-10-15",
+					propertyType: "Single Family",
+					bedrooms: 4,
+					bathrooms: 2.5,
+					squareFeet: 2200,
+				})
+		);
 
 		// Mock admin identity and use returned instance
 		const adminT = t.withIdentity({
@@ -467,15 +475,16 @@ describe("deleteListing - Broker/Admin Authorization and Cascade", () => {
 		const userId = await createTestUser(t);
 
 		// Create locked listing
-		const listingId = await t.run(async (ctx) => {
-			return await ctx.db.insert("listings", {
-				mortgageId,
-				visible: true,
-				locked: true,
-				lockedBy: userId,
-				lockedAt: Date.now(),
-			});
-		});
+		const listingId = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("listings", {
+					mortgageId,
+					visible: true,
+					locked: true,
+					lockedBy: userId,
+					lockedAt: Date.now(),
+				})
+		);
 
 		// Mock admin identity and use returned instance
 		const adminT = t.withIdentity({
@@ -499,15 +508,16 @@ describe("deleteListing - Broker/Admin Authorization and Cascade", () => {
 		const userId = await createTestUser(t);
 
 		// Create locked listing
-		const listingId = await t.run(async (ctx) => {
-			return await ctx.db.insert("listings", {
-				mortgageId,
-				visible: true,
-				locked: true,
-				lockedBy: userId,
-				lockedAt: Date.now(),
-			});
-		});
+		const listingId = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("listings", {
+					mortgageId,
+					visible: true,
+					locked: true,
+					lockedBy: userId,
+					lockedAt: Date.now(),
+				})
+		);
 
 		// Mock admin identity and use returned instance
 		const adminT = t.withIdentity({
@@ -564,4 +574,3 @@ describe("deleteListing - Broker/Admin Authorization and Cascade", () => {
 		).rejects.toThrow("Broker or admin privileges are required");
 	});
 });
-

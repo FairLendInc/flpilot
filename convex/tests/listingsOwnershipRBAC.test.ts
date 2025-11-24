@@ -2,8 +2,8 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import schema from "../schema";
 import type { Doc, Id } from "../_generated/dataModel";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -17,13 +17,14 @@ const createTest = () => convexTest(schema, modules);
  * Create a test borrower
  */
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("borrowers", {
-			name: "Test Borrower",
-			email: `test_${Date.now()}@example.com`,
-			rotessaCustomerId: `rotessa_${Date.now()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("borrowers", {
+				name: "Test Borrower",
+				email: `test_${Date.now()}@example.com`,
+				rotessaCustomerId: `rotessa_${Date.now()}`,
+			})
+	);
 }
 
 /**
@@ -79,15 +80,16 @@ async function createTestListing(
 	mortgageId: Id<"mortgages">,
 	options?: { visible?: boolean; locked?: boolean; lockedBy?: Id<"users"> }
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("listings", {
-			mortgageId,
-			visible: options?.visible ?? true,
-			locked: options?.locked ?? false,
-			lockedBy: options?.lockedBy,
-			lockedAt: options?.locked ? Date.now() : undefined,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("listings", {
+				mortgageId,
+				visible: options?.visible ?? true,
+				locked: options?.locked ?? false,
+				lockedBy: options?.lockedBy,
+				lockedAt: options?.locked ? Date.now() : undefined,
+			})
+	);
 }
 
 /**
@@ -97,18 +99,19 @@ async function createTestUser(
 	t: ReturnType<typeof createTest>,
 	userIdentifier: string
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("users", {
-			idp_id: `test_${userIdentifier}`,
-			email: `${userIdentifier}@test.example.com`,
-			email_verified: true,
-			first_name: "Test",
-			last_name: userIdentifier,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-			metadata: {},
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("users", {
+				idp_id: `test_${userIdentifier}`,
+				email: `${userIdentifier}@test.example.com`,
+				email_verified: true,
+				first_name: "Test",
+				last_name: userIdentifier,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: {},
+			})
+	);
 }
 
 /**
@@ -146,7 +149,9 @@ describe("createListing - RBAC Authorization", () => {
 		});
 
 		expect(listingId).toBeDefined();
-		const listing = await t.run(async (ctx) => ctx.db.get(listingId)) as Doc<"listings"> | null;
+		const listing = (await t.run(async (ctx) =>
+			ctx.db.get(listingId)
+		)) as Doc<"listings"> | null;
 		expect(listing?.mortgageId).toBe(mortgageId);
 		expect(listing?.visible).toBe(true);
 	});
@@ -167,7 +172,9 @@ describe("createListing - RBAC Authorization", () => {
 		});
 
 		expect(listingId).toBeDefined();
-		const listing = await t.run(async (ctx) => ctx.db.get(listingId)) as Doc<"listings"> | null;
+		const listing = (await t.run(async (ctx) =>
+			ctx.db.get(listingId)
+		)) as Doc<"listings"> | null;
 		expect(listing?.mortgageId).toBe(mortgageId);
 	});
 
@@ -275,13 +282,10 @@ describe("updateListingVisibility - RBAC Authorization", () => {
 			role: "admin",
 		});
 
-		const result = await adminT.mutation(
-			api.listings.updateListingVisibility,
-			{
-				listingId,
-				visible: false,
-			}
-		);
+		const result = await adminT.mutation(api.listings.updateListingVisibility, {
+			listingId,
+			visible: false,
+		});
 
 		expect(result).toBe(listingId);
 		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
@@ -684,7 +688,7 @@ describe("deleteListing - RBAC Authorization", () => {
 describe("createFromPayload - RBAC Authorization", () => {
 	test("should create from payload with broker role", async () => {
 		const t = createTest();
-		const borrowerId = await createTestBorrower(t);
+		const _borrowerId = await createTestBorrower(t);
 
 		const brokerT = t.withIdentity({
 			subject: "broker-user-123",
@@ -1475,4 +1479,3 @@ describe("deleteOwnership - RBAC Authorization", () => {
 		).rejects.toThrow("Authentication required");
 	});
 });
-

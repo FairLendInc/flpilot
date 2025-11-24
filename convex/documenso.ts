@@ -1,14 +1,13 @@
 import { v } from "convex/values";
-import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { checkRbac } from "../lib/authhelper";
 import {
-	searchTemplates,
+	generateDocumentFromTemplate,
 	getDocument,
 	getTemplateDetails,
-	generateDocumentFromTemplate,
+	searchTemplates,
 } from "../lib/documenso";
-import { checkRbac } from "../lib/authhelper";
-import { DocumensoRecipientRole } from "../lib/types/documenso";
+import { internal } from "./_generated/api";
+import { action } from "./_generated/server";
 
 export const searchTemplatesAction = action({
 	args: { query: v.optional(v.string()) },
@@ -40,10 +39,10 @@ export const getSigningTokenAction = action({
 		}
 
 		// Verify the user is requesting token for themselves or is an admin
-		// We'll allow admins to get tokens for debugging/support if needed, 
+		// We'll allow admins to get tokens for debugging/support if needed,
 		// but primarily this is for the signer.
 		const isSelf = identity.email?.toLowerCase() === args.email.toLowerCase();
-		
+
 		// We can't easily check RBAC for admin here without DB access if checkRbac uses DB?
 		// checkRbac implementation usually checks the identity's claims or roles.
 		// Let's assume checkRbac works with identity object.
@@ -54,12 +53,14 @@ export const getSigningTokenAction = action({
 				user_identity: identity,
 			});
 			isAdmin = true;
-		} catch (e) {
+		} catch (_e) {
 			isAdmin = false;
 		}
 
-		if (!isSelf && !isAdmin) {
-			throw new Error("Unauthorized: You can only access your own signing tokens.");
+		if (!(isSelf || isAdmin)) {
+			throw new Error(
+				"Unauthorized: You can only access your own signing tokens."
+			);
 		}
 
 		const document = await getDocument(args.documentId);
@@ -113,13 +114,15 @@ export const createDocumentFromTemplateAction = action({
 				id: v.number(), // Template recipient ID
 				email: v.string(),
 				name: v.string(),
-				role: v.optional(v.union(
-					v.literal("SIGNER"),
-					v.literal("APPROVER"),
-					v.literal("CC"),
-					v.literal("ASSISTANT"),
-					v.literal("VIEWER"),
-				)),
+				role: v.optional(
+					v.union(
+						v.literal("SIGNER"),
+						v.literal("APPROVER"),
+						v.literal("CC"),
+						v.literal("ASSISTANT"),
+						v.literal("VIEWER")
+					)
+				),
 			})
 		),
 	},

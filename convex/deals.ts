@@ -1,23 +1,33 @@
 /**
  * Deal Management Functions
- * 
+ *
  * Handles the complete lifecycle of mortgage purchase deals from creation
  * through ownership transfer. Integrates with XState machine for state
  * management and maintains comprehensive audit trails.
  */
 
 import { v } from "convex/values";
-import { mutation, query, internalMutation, action, internalQuery } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { hasRbacAccess } from "../lib/authhelper";
-import { logger } from "../lib/logger";
 import { createActor } from "xstate";
-import { dealMachine, type DealContext, type DealEvent, type DealEventWithAdmin } from "./dealStateMachine";
-import { createOwnershipInternal } from "./ownership";
+import { hasRbacAccess } from "../lib/authhelper";
 import { generateDocumentsFromTemplates } from "../lib/documenso";
-import { internal, api } from "./_generated/api";
+import { logger } from "../lib/logger";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
+import {
+	internalMutation,
+	internalQuery,
+	mutation,
+	query,
+} from "./_generated/server";
+import {
+	type DealContext,
+	type DealEventWithAdmin,
+	dealMachine,
+} from "./dealStateMachine";
 import { getBrokerOfRecord } from "./lib/broker";
 import { authAction, authMutation } from "./lib/server";
+import { createOwnershipInternal } from "./ownership";
 
 /**
  * Get user document from identity
@@ -28,8 +38,10 @@ type UserIdentityOptions = {
 	createIfMissing?: boolean;
 };
 
+type IdentityCtx = QueryCtx | MutationCtx | ActionCtx;
+
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any },
+	ctx: IdentityCtx,
 	options?: UserIdentityOptions
 ): Promise<Id<"users"> | null> {
 	const { createIfMissing = false } = options ?? {};
@@ -38,9 +50,9 @@ async function getUserFromIdentity(
 		throw new Error("Authentication required");
 	}
 
-	let user = await ctx.db
+	const user = await ctx.db
 		.query("users")
-		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
+		.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
 		.unique();
 
 	// If user doesn't exist, optionally create from WorkOS identity data
@@ -61,11 +73,12 @@ async function getUserFromIdentity(
 
 		const userId = await ctx.db.insert("users", {
 			idp_id: idpId,
-			email: email,
+			email,
 			email_verified: identity.email_verified ?? false,
 			first_name: identity.first_name ?? undefined,
 			last_name: identity.last_name ?? undefined,
-			profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+			profile_picture_url:
+				identity.profile_picture_url ?? identity.profile_picture ?? undefined,
 			created_at: new Date().toISOString(),
 		});
 
@@ -89,14 +102,33 @@ type RequireAdminOptions<T extends boolean = false> = {
 	createIfMissing?: boolean;
 };
 
-type RequireAdminReturn<T extends boolean> = T extends true ? Id<"users"> | null : Id<"users">;
+type RequireAdminReturn<T extends boolean> = T extends true
+	? Id<"users"> | null
+	: Id<"users">;
+
+type GeneratedDocumentResult = {
+	templateId: string;
+	documentId?: string;
+	error?: string;
+	success: boolean;
+};
+
+type DealCreationData = {
+	lockRequest: Doc<"lock_requests">;
+	listing: Doc<"listings">;
+	mortgage: Doc<"mortgages">;
+	investor: Doc<"users">;
+	adminUserId: Id<"users">;
+};
+
+type CompletedDealDoc = Doc<"deals"> & { completedAt: number };
 
 async function requireAdmin<T extends boolean = false>(
-	ctx: { db: any; auth: any },
+	ctx: IdentityCtx,
 	options?: RequireAdminOptions<T>
 ): Promise<RequireAdminReturn<T>> {
-	const { allowMissingUser = false as T, createIfMissing = true } =
-		(options ?? {}) as RequireAdminOptions<T>;
+	const { allowMissingUser = false as T, createIfMissing = true } = (options ??
+		{}) as RequireAdminOptions<T>;
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
 		throw new Error("Authentication required");
@@ -138,7 +170,9 @@ export const getDeal = query({
 				createIfMissing: false,
 			});
 			if (!adminUserId) {
-				logger.warn("getDeal: admin identity not provisioned yet, returning null");
+				logger.warn(
+					"getDeal: admin identity not provisioned yet, returning null"
+				);
 				return null;
 			}
 		} catch (error) {
@@ -182,7 +216,9 @@ export const getAllActiveDeals = query({
 				createIfMissing: false,
 			});
 			if (!adminUserId) {
-				logger.warn("getAllActiveDeals: admin identity missing, returning empty list");
+				logger.warn(
+					"getAllActiveDeals: admin identity missing, returning empty list"
+				);
 				return [];
 			}
 		} catch (error) {
@@ -211,7 +247,7 @@ export const getAllActiveDeals = query({
 
 				// Build investor name string
 				const investorName =
-					investor && investor.first_name && investor.last_name
+					investor?.first_name && investor.last_name
 						? `${investor.first_name} ${investor.last_name}`
 						: investor?.email || "Investor not available";
 
@@ -241,7 +277,7 @@ export const getAllActiveDeals = query({
  * Get deals by specific state (for filtering Kanban columns)
  */
 export const getDealsByState = query({
-	args: { 
+	args: {
 		state: v.union(
 			v.literal("locked"),
 			v.literal("pending_lawyer"),
@@ -251,7 +287,7 @@ export const getDealsByState = query({
 			v.literal("completed"),
 			v.literal("cancelled"),
 			v.literal("archived")
-		)
+		),
 	},
 	returns: v.array(
 		v.object({
@@ -270,7 +306,9 @@ export const getDealsByState = query({
 				createIfMissing: false,
 			});
 			if (!adminUserId) {
-				logger.warn("getDealsByState: admin identity missing, returning empty list");
+				logger.warn(
+					"getDealsByState: admin identity missing, returning empty list"
+				);
 				return [];
 			}
 		} catch (error) {
@@ -282,9 +320,7 @@ export const getDealsByState = query({
 
 		const deals = await ctx.db
 			.query("deals")
-			.withIndex("by_current_state", (q) =>
-				q.eq("currentState", args.state)
-			)
+			.withIndex("by_current_state", (q) => q.eq("currentState", args.state))
 			.collect();
 
 		return deals.map((deal) => ({
@@ -321,7 +357,9 @@ export const getArchivedDeals = query({
 				createIfMissing: false,
 			});
 			if (!adminUserId) {
-				logger.warn("getArchivedDeals: admin identity missing, returning empty list");
+				logger.warn(
+					"getArchivedDeals: admin identity missing, returning empty list"
+				);
 				return [];
 			}
 		} catch (error) {
@@ -333,9 +371,7 @@ export const getArchivedDeals = query({
 
 		const deals = await ctx.db
 			.query("deals")
-			.withIndex("by_current_state", (q) =>
-				q.eq("currentState", "archived")
-			)
+			.withIndex("by_current_state", (q) => q.eq("currentState", "archived"))
 			.order("desc")
 			.collect();
 
@@ -373,15 +409,17 @@ export const getDealWithDetails = query({
 				updatedAt: v.number(),
 				completedAt: v.optional(v.number()),
 				archivedAt: v.optional(v.number()),
-				stateHistory: v.optional(v.array(
-					v.object({
-						fromState: v.string(),
-						toState: v.string(),
-						timestamp: v.number(),
-						triggeredBy: v.id("users"),
-						notes: v.optional(v.string()),
-					})
-				)),
+				stateHistory: v.optional(
+					v.array(
+						v.object({
+							fromState: v.string(),
+							toState: v.string(),
+							timestamp: v.number(),
+							triggeredBy: v.id("users"),
+							notes: v.optional(v.string()),
+						})
+					)
+				),
 				validationChecks: v.optional(
 					v.object({
 						lawyerConfirmed: v.boolean(),
@@ -390,20 +428,26 @@ export const getDealWithDetails = query({
 						fundsVerified: v.boolean(),
 					})
 				),
-				currentUpload: v.optional(v.object({
-					storageId: v.id("_storage"),
-					uploadedBy: v.string(),
-					uploadedAt: v.number(),
-					fileName: v.string(),
-					fileType: v.string(),
-				})),
-				uploadHistory: v.optional(v.array(v.object({
-					storageId: v.id("_storage"),
-					uploadedBy: v.string(),
-					uploadedAt: v.number(),
-					fileName: v.string(),
-					fileType: v.string(),
-				}))),
+				currentUpload: v.optional(
+					v.object({
+						storageId: v.id("_storage"),
+						uploadedBy: v.string(),
+						uploadedAt: v.number(),
+						fileName: v.string(),
+						fileType: v.string(),
+					})
+				),
+				uploadHistory: v.optional(
+					v.array(
+						v.object({
+							storageId: v.id("_storage"),
+							uploadedBy: v.string(),
+							uploadedAt: v.number(),
+							fileName: v.string(),
+							fileType: v.string(),
+						})
+					)
+				),
 			}),
 			lockRequest: v.union(
 				v.object({
@@ -458,7 +502,9 @@ export const getDealWithDetails = query({
 				createIfMissing: false,
 			});
 			if (!adminUserId) {
-				logger.warn("getDealWithDetails: admin identity missing, returning null");
+				logger.warn(
+					"getDealWithDetails: admin identity missing, returning null"
+				);
 				return null;
 			}
 		} catch (error) {
@@ -473,7 +519,9 @@ export const getDealWithDetails = query({
 			return null;
 		}
 
-		const lockRequest = deal.lockRequestId ? await ctx.db.get(deal.lockRequestId) : null;
+		const lockRequest = deal.lockRequestId
+			? await ctx.db.get(deal.lockRequestId)
+			: null;
 		const listing = await ctx.db.get(deal.listingId);
 		const mortgage = await ctx.db.get(deal.mortgageId);
 		const investor = await ctx.db.get(deal.investorId);
@@ -544,7 +592,9 @@ export const getDealMetrics = query({
 				createIfMissing: false,
 			});
 			if (!adminUserId) {
-				logger.warn("getDealMetrics: admin identity missing, returning empty metrics");
+				logger.warn(
+					"getDealMetrics: admin identity missing, returning empty metrics"
+				);
 				return {
 					totalActive: 0,
 					byState: {},
@@ -577,25 +627,31 @@ export const getDealMetrics = query({
 
 		for (const deal of allDeals) {
 			if (deal.currentState === "archived") continue;
-			
-			if (deal.currentState) {
-			byState[deal.currentState] = (byState[deal.currentState] || 0) + 1;
-		}
 
-			if (deal.currentState === "completed") totalCompleted++;
-			if (deal.currentState === "cancelled") totalCancelled++;
+			if (deal.currentState) {
+				byState[deal.currentState] = (byState[deal.currentState] || 0) + 1;
+			}
+
+			if (deal.currentState === "completed") totalCompleted += 1;
+			if (deal.currentState === "cancelled") totalCancelled += 1;
 		}
 
 		const totalActive = allDeals.filter(
-			(d) => d.currentState !== "archived" && d.currentState !== "completed" && d.currentState !== "cancelled"
+			(d) =>
+				d.currentState !== "archived" &&
+				d.currentState !== "completed" &&
+				d.currentState !== "cancelled"
 		).length;
 
 		// Calculate average days to complete
-		const completedDeals = allDeals.filter((d) => d.completedAt);
+		const completedDeals = allDeals.filter(
+			(deal): deal is CompletedDealDoc => typeof deal.completedAt === "number"
+		);
 		const averageDaysToComplete =
 			completedDeals.length > 0
 				? completedDeals.reduce(
-						(sum, d) => sum + (d.completedAt! - d.createdAt) / (1000 * 60 * 60 * 24),
+						(sum, deal) =>
+							sum + (deal.completedAt - deal.createdAt) / (1000 * 60 * 60 * 24),
 						0
 					) / completedDeals.length
 				: 0;
@@ -653,7 +709,9 @@ export const getDealByLockRequest = query({
 				createIfMissing: false,
 			});
 			if (!adminUserId) {
-				logger.warn("getDealByLockRequest: admin identity missing, returning null");
+				logger.warn(
+					"getDealByLockRequest: admin identity missing, returning null"
+				);
 				return null;
 			}
 		} catch (error) {
@@ -774,7 +832,7 @@ export const updateDealStatusInternal = internalMutation({
 
 /**
  * Create a new deal from an approved lock request
- * 
+ *
  * This is called manually by admin via "Create Deal" button on approved requests.
  * Initializes the XState machine and creates the deal in "locked" state.
  * Also generates documents from mortgage templates.
@@ -785,12 +843,14 @@ export const createDeal = authAction({
 	},
 	returns: v.object({
 		dealId: v.id("deals"),
-		documentResults: v.array(v.object({
-			templateId: v.string(),
-			documentId: v.optional(v.string()),
-			error: v.optional(v.string()),
-			success: v.boolean(),
-		})),
+		documentResults: v.array(
+			v.object({
+				templateId: v.string(),
+				documentId: v.optional(v.string()),
+				error: v.optional(v.string()),
+				success: v.boolean(),
+			})
+		),
 	}),
 	handler: async (ctx, args) => {
 		// 1. Validate admin authorization (via query)
@@ -798,7 +858,7 @@ export const createDeal = authAction({
 		// So we fetch identity and check roles via helper or assume caller is authorized
 		// For actions, we typically rely on the internal mutations to enforce data integrity
 		// But we should check auth here too.
-		
+
 		// Check RBAC via a query helper if needed, or trust the internal mutation checks later
 		// For now, we'll proceed and let the internal mutation fail if user is invalid,
 		// but ideally we'd check here.
@@ -806,9 +866,12 @@ export const createDeal = authAction({
 		// Actually, we need to fetch data first.
 
 		// 2. Fetch necessary data via query
-		const data: any = await ctx.runQuery(internal.deals.getDealCreationData, {
-			lockRequestId: args.lockRequestId,
-		});
+		const data: DealCreationData | null = await ctx.runQuery(
+			internal.deals.getDealCreationData,
+			{
+				lockRequestId: args.lockRequestId,
+			}
+		);
 
 		if (!data) {
 			throw new Error("Lock request not found or invalid");
@@ -840,40 +903,45 @@ export const createDeal = authAction({
 			dealId: "PLACEHOLDER" as Id<"deals">,
 		};
 
-		const initialActor = createActor(dealMachine, { input: placeholderContext });
+		const initialActor = createActor(dealMachine, {
+			input: placeholderContext,
+		});
 		initialActor.start();
-		let initialSnapshot = initialActor.getSnapshot();
+		const initialSnapshot = initialActor.getSnapshot();
 		initialActor.stop();
 
 		// 4. Create deal record via internal mutation
 		const broker = getBrokerOfRecord();
-		
-		const dealId: Id<"deals"> = await ctx.runMutation(internal.deals.createDealInternal, {
-			lockRequestId: args.lockRequestId,
-			listingId: lockRequest.listingId,
-			mortgageId: listing.mortgageId,
-			investorId: lockRequest.requestedBy,
-			stateMachineState: JSON.stringify(initialSnapshot),
-			currentState: "locked",
-			purchasePercentage,
-			dealValue,
-			stateHistory: [
-				{
-					fromState: "none",
-					toState: "locked",
-					timestamp: Date.now(),
-					triggeredBy: adminUserId,
-					notes: "Deal created from approved lock request",
-				},
-			],
-			// Populate broker and lawyer fields
-			brokerId: broker.brokerId,
-			brokerName: broker.brokerName,
-			brokerEmail: broker.brokerEmail,
-			lawyerName: lockRequest.lawyerName,
-			lawyerEmail: lockRequest.lawyerEmail,
-			lawyerLSONumber: lockRequest.lawyerLSONumber,
-		});
+
+		const dealId: Id<"deals"> = await ctx.runMutation(
+			internal.deals.createDealInternal,
+			{
+				lockRequestId: args.lockRequestId,
+				listingId: lockRequest.listingId,
+				mortgageId: listing.mortgageId,
+				investorId: lockRequest.requestedBy,
+				stateMachineState: JSON.stringify(initialSnapshot),
+				currentState: "locked",
+				purchasePercentage,
+				dealValue,
+				stateHistory: [
+					{
+						fromState: "none",
+						toState: "locked",
+						timestamp: Date.now(),
+						triggeredBy: adminUserId,
+						notes: "Deal created from approved lock request",
+					},
+				],
+				// Populate broker and lawyer fields
+				brokerId: broker.brokerId,
+				brokerName: broker.brokerName,
+				brokerEmail: broker.brokerEmail,
+				lawyerName: lockRequest.lawyerName,
+				lawyerEmail: lockRequest.lawyerEmail,
+				lawyerLSONumber: lockRequest.lawyerLSONumber,
+			}
+		);
 
 		// 5. Update state machine with actual deal ID
 		const updatedContext: DealContext = {
@@ -883,7 +951,7 @@ export const createDeal = authAction({
 
 		const tempActor = createActor(dealMachine, { input: updatedContext });
 		tempActor.start();
-		let updatedSnapshot = tempActor.getSnapshot();
+		const updatedSnapshot = tempActor.getSnapshot();
 		tempActor.stop();
 
 		await ctx.runMutation(internal.deals.updateDealStateMachine, {
@@ -893,44 +961,52 @@ export const createDeal = authAction({
 
 		// 6. Generate documents from templates
 		const templates = mortgage.documentTemplates || [];
-		let documentResults: any[] = [];
+		let documentResults: GeneratedDocumentResult[] = [];
 
 		if (templates.length > 0) {
 			// Prepare recipient data
 			// We need broker details - for now hardcoding or fetching from config
 			// In a real app, this might come from an organization settings table
-			const broker = {
+			const signingBroker = {
 				name: "FairLend Broker",
 				email: "broker@fairlend.ca", // TODO: Get from config
 			};
 
 			const investorDetails = {
-				name: `${investor.first_name || ""} ${investor.last_name || ""}`.trim() || investor.email,
+				name:
+					`${investor.first_name || ""} ${investor.last_name || ""}`.trim() ||
+					investor.email,
 				email: investor.email,
 			};
 
 			// Call Documenso lib
 			documentResults = await generateDocumentsFromTemplates(
 				templates,
-				broker,
+				signingBroker,
 				investorDetails
 			);
 
 			// Store results
 			for (const result of documentResults) {
 				if (result.success && result.documentId) {
-					const template = templates.find((t: { documensoTemplateId: string }) => t.documensoTemplateId === result.templateId);
+					const template = templates.find(
+						(t: { documensoTemplateId: string }) =>
+							t.documensoTemplateId === result.templateId
+					);
 					if (template) {
-						await ctx.runMutation(internal.deal_documents.createDealDocumentInternal, {
-							dealId,
-							documensoDocumentId: result.documentId,
-							templateId: template.documensoTemplateId,
-							templateName: template.name,
-							signatories: [
-								{ role: "Broker", ...broker },
-								{ role: "Investor", ...investorDetails }
-							]
-						});
+						await ctx.runMutation(
+							internal.deal_documents.createDealDocumentInternal,
+							{
+								dealId,
+								documensoDocumentId: result.documentId,
+								templateId: template.documensoTemplateId,
+								templateName: template.name,
+								signatories: [
+									{ role: "Broker", ...signingBroker },
+									{ role: "Investor", ...investorDetails },
+								],
+							}
+						);
 					}
 				}
 			}
@@ -955,9 +1031,9 @@ export const createDeal = authAction({
  */
 export const getDealCreationData = internalQuery({
 	args: { lockRequestId: v.id("lock_requests") },
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<DealCreationData | null> => {
 		const adminUserId = await requireAdmin(ctx);
-		
+
 		const lockRequest = await ctx.db.get(args.lockRequestId);
 		if (!lockRequest) return null;
 
@@ -1024,7 +1100,7 @@ export const createDealCreationAlerts = internalMutation({
 
 /**
  * Transition deal to a new state
- * 
+ *
  * Handles both forward and backward state transitions via XState machine.
  * Updates the database and creates audit trail entries.
  */
@@ -1032,12 +1108,31 @@ export const transitionDealState = mutation({
 	args: {
 		dealId: v.id("deals"),
 		event: v.union(
-			v.object({ type: v.literal("CONFIRM_LAWYER"), notes: v.optional(v.string()) }),
-			v.object({ type: v.literal("COMPLETE_DOCS"), notes: v.optional(v.string()) }),
-			v.object({ type: v.literal("RECEIVE_FUNDS"), notes: v.optional(v.string()) }),
-			v.object({ type: v.literal("VERIFY_FUNDS"), notes: v.optional(v.string()) }),
-			v.object({ type: v.literal("COMPLETE_DEAL"), notes: v.optional(v.string()) }),
-			v.object({ type: v.literal("GO_BACK"), toState: v.string(), notes: v.optional(v.string()) }),
+			v.object({
+				type: v.literal("CONFIRM_LAWYER"),
+				notes: v.optional(v.string()),
+			}),
+			v.object({
+				type: v.literal("COMPLETE_DOCS"),
+				notes: v.optional(v.string()),
+			}),
+			v.object({
+				type: v.literal("RECEIVE_FUNDS"),
+				notes: v.optional(v.string()),
+			}),
+			v.object({
+				type: v.literal("VERIFY_FUNDS"),
+				notes: v.optional(v.string()),
+			}),
+			v.object({
+				type: v.literal("COMPLETE_DEAL"),
+				notes: v.optional(v.string()),
+			}),
+			v.object({
+				type: v.literal("GO_BACK"),
+				toState: v.string(),
+				notes: v.optional(v.string()),
+			})
 		),
 	},
 	returns: v.id("deals"),
@@ -1054,7 +1149,7 @@ export const transitionDealState = mutation({
 			throw new Error("Deal has no state machine state");
 		}
 		const machineState = JSON.parse(deal.stateMachineState);
-		
+
 		// Create actor and restore state
 		const actor = createActor(dealMachine, {
 			input: machineState.context,
@@ -1112,7 +1207,7 @@ export const transitionDealState = mutation({
 
 /**
  * Cancel a deal
- * 
+ *
  * Moves deal to cancelled state, unlocks the listing, and creates alerts.
  * All changes are reverted per requirements.
  */
@@ -1210,7 +1305,7 @@ export const cancelDeal = mutation({
 
 /**
  * Complete deal and transfer ownership
- * 
+ *
  * This is called when admin clicks "Transfer Ownership" button on completed deals.
  * Transfers 100% ownership from FairLend to investor.
  */
@@ -1228,7 +1323,9 @@ export const completeDeal = mutation({
 		}
 
 		if (deal.currentState !== "completed") {
-			throw new Error("Deal must be in completed state before transferring ownership");
+			throw new Error(
+				"Deal must be in completed state before transferring ownership"
+			);
 		}
 
 		if (deal.completedAt) {
@@ -1268,7 +1365,8 @@ export const completeDeal = mutation({
 			type: "deal_completed",
 			severity: "info",
 			title: "Your Deal Is Complete!",
-			message: "Congratulations! Ownership has been transferred. You now own this mortgage.",
+			message:
+				"Congratulations! Ownership has been transferred. You now own this mortgage.",
 			relatedDealId: args.dealId,
 			relatedListingId: deal.listingId,
 			read: false,
@@ -1288,7 +1386,7 @@ export const completeDeal = mutation({
 
 /**
  * Archive a deal
- * 
+ *
  * Moves completed or cancelled deals to archived state for audit purposes.
  */
 export const archiveDeal = mutation({
@@ -1304,7 +1402,10 @@ export const archiveDeal = mutation({
 			throw new Error("Deal not found");
 		}
 
-		if (deal.currentState !== "completed" && deal.currentState !== "cancelled") {
+		if (
+			deal.currentState !== "completed" &&
+			deal.currentState !== "cancelled"
+		) {
 			throw new Error("Only completed or cancelled deals can be archived");
 		}
 
@@ -1358,7 +1459,7 @@ export const archiveDeal = mutation({
 export const validateLawyerConfirmation = internalMutation({
 	args: { dealId: v.id("deals") },
 	returns: v.boolean(),
-	handler: async (ctx, args) => {
+	handler: async (_ctx, _args) => {
 		// TODO: Implement lawyer credential checks
 		// - Verify LSO number is valid
 		// - Check lawyer email confirmation
@@ -1374,7 +1475,7 @@ export const validateLawyerConfirmation = internalMutation({
 export const validateDocumentCompletion = internalMutation({
 	args: { dealId: v.id("deals") },
 	returns: v.boolean(),
-	handler: async (ctx, args) => {
+	handler: async (_ctx, _args) => {
 		// TODO: Implement document validation
 		// - Check all required documents are uploaded
 		// - Verify signatures are complete
@@ -1390,7 +1491,7 @@ export const validateDocumentCompletion = internalMutation({
 export const validateFundTransfer = internalMutation({
 	args: { dealId: v.id("deals") },
 	returns: v.boolean(),
-	handler: async (ctx, args) => {
+	handler: async (_ctx, _args) => {
 		// TODO: Implement payment validation
 		// - Check funds have been received
 		// - Verify amount matches deal value
@@ -1406,7 +1507,7 @@ export const validateFundTransfer = internalMutation({
 export const validateFundVerification = internalMutation({
 	args: { dealId: v.id("deals") },
 	returns: v.boolean(),
-	handler: async (ctx, args) => {
+	handler: async (_ctx, _args) => {
 		// TODO: Implement fund verification
 		// - Check funds have cleared
 		// - Verify no chargebacks
@@ -1425,12 +1526,16 @@ export const checkPendingDocsDeals = internalMutation({
 		// 1. Get all deals in pending_docs state
 		const deals = await ctx.db
 			.query("deals")
-			.withIndex("by_current_state", (q) => q.eq("currentState", "pending_docs"))
+			.withIndex("by_current_state", (q) =>
+				q.eq("currentState", "pending_docs")
+			)
 			.collect();
 
 		if (deals.length === 0) return;
 
-		logger.info("Checking pending_docs deals for completion", { count: deals.length });
+		logger.info("Checking pending_docs deals for completion", {
+			count: deals.length,
+		});
 
 		for (const deal of deals) {
 			// 2. Check if all documents are signed
@@ -1438,14 +1543,17 @@ export const checkPendingDocsDeals = internalMutation({
 				.query("deal_documents")
 				.withIndex("by_deal", (q) => q.eq("dealId", deal._id))
 				.collect();
-			
+
 			if (documents.length === 0) continue;
-			
-			const allSigned = documents.every(doc => doc.status === "signed");
+
+			const allSigned = documents.every((doc) => doc.status === "signed");
 
 			if (allSigned) {
-				logger.info("All documents signed for deal, transitioning to pending_transfer", { dealId: deal._id });
-				
+				logger.info(
+					"All documents signed for deal, transitioning to pending_transfer",
+					{ dealId: deal._id }
+				);
+
 				// 3. Transition state
 				if (!deal.stateMachineState) {
 					logger.error("Deal has no state machine state", { dealId: deal._id });
@@ -1462,7 +1570,8 @@ export const checkPendingDocsDeals = internalMutation({
 				const event: DealEventWithAdmin = {
 					type: "COMPLETE_DOCS",
 					adminId: deal.investorId,
-					notes: "Automatically transitioned by system after all documents signed",
+					notes:
+						"Automatically transitioned by system after all documents signed",
 				};
 
 				actor.start();
@@ -1472,9 +1581,9 @@ export const checkPendingDocsDeals = internalMutation({
 				const newContext = newSnapshot.context;
 
 				if (newContext.currentState !== "pending_transfer") {
-					logger.warn("Failed to transition to pending_transfer", { 
-						dealId: deal._id, 
-						currentState: newContext.currentState 
+					logger.warn("Failed to transition to pending_transfer", {
+						dealId: deal._id,
+						currentState: newContext.currentState,
 					});
 					actor.stop();
 					continue;
@@ -1495,7 +1604,8 @@ export const checkPendingDocsDeals = internalMutation({
 					type: "deal_state_changed",
 					severity: "info",
 					title: "Documents Signed",
-					message: "All documents have been signed. Please proceed with fund transfer.",
+					message:
+						"All documents have been signed. Please proceed with fund transfer.",
 					relatedDealId: deal._id,
 					relatedListingId: deal.listingId,
 					read: false,
@@ -1511,9 +1621,7 @@ export const checkPendingDocsDeals = internalMutation({
  */
 export const getDealInternal = internalQuery({
 	args: { dealId: v.id("deals") },
-	handler: async (ctx, args) => {
-		return await ctx.db.get(args.dealId);
-	},
+	handler: async (ctx, args) => await ctx.db.get(args.dealId),
 });
 
 /**
@@ -1524,21 +1632,27 @@ export const generateFundTransferUploadUrl = authAction({
 	args: { dealId: v.id("deals") },
 	handler: async (ctx, args) => {
 		const { role, subject, email } = ctx;
-		
+
 		// Check if user is authorized for this deal
-		const deal = await ctx.runQuery(internal.deals.getDealInternal, { dealId: args.dealId });
+		const deal = await ctx.runQuery(internal.deals.getDealInternal, {
+			dealId: args.dealId,
+		});
 		if (!deal) throw new Error("Deal not found");
 
 		// Check permissions
 		// Resolve user ID from subject (use runQuery since actions can't access db directly)
-		const user = await ctx.runQuery(internal.users.getUserByIdpId, { idpId: subject });
+		const user = await ctx.runQuery(internal.users.getUserByIdpId, {
+			idpId: subject,
+		});
 
 		const isInvestor = user && deal.investorId === user._id;
 		const isLawyer = deal.lawyerEmail === email;
 		const isAdmin = role === "admin";
 
-		if (!isInvestor && !isLawyer && !isAdmin) {
-			throw new Error("Unauthorized: Only investor or their lawyer can upload fund transfer proof");
+		if (!(isInvestor || isLawyer || isAdmin)) {
+			throw new Error(
+				"Unauthorized: Only investor or their lawyer can upload fund transfer proof"
+			);
 		}
 
 		return await ctx.storage.generateUploadUrl();
@@ -1562,37 +1676,44 @@ export const recordFundTransferUpload = authMutation({
 		if (!deal) throw new Error("Deal not found");
 
 		// 1. Validate permissions
-	// Resolve user ID from subject
-	const user = await ctx.db
-		.query("users")
-		.withIndex("by_idp_id", (q) => q.eq("idp_id", subject))
-		.unique();
+		// Resolve user ID from subject
+		const user = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", subject))
+			.unique();
 
-	const isInvestor = user && deal.investorId === user._id;
-	const isLawyer = deal.lawyerEmail === email;
-	const isAdmin = role === "admin";
+		const isInvestor = user && deal.investorId === user._id;
+		const isLawyer = deal.lawyerEmail === email;
+		const isAdmin = role === "admin";
 
-	if (!isInvestor && !isLawyer && !isAdmin) {
-		throw new Error("Unauthorized");
-	}
+		if (!(isInvestor || isLawyer || isAdmin)) {
+			throw new Error("Unauthorized");
+		}
 
 		// 2. Validate file type
-		const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+		const allowedTypes = [
+			"application/pdf",
+			"image/png",
+			"image/jpeg",
+			"image/jpg",
+		];
 		if (!allowedTypes.includes(args.fileType)) {
-			throw new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed.");
+			throw new Error(
+				"Invalid file type. Only PDF, PNG, and JPEG are allowed."
+			);
 		}
 
 		// 3. Handle history
 		const currentUpload = deal.currentUpload;
-	const newUpload = {
-		storageId: args.storageId,
-		uploadedBy: subject, // or email if lawyer? subject is safer if they have account
+		const newUpload = {
+			storageId: args.storageId,
+			uploadedBy: subject, // or email if lawyer? subject is safer if they have account
 			uploadedAt: Date.now(),
 			fileName: args.fileName,
 			fileType: args.fileType,
 		};
 
-		let uploadHistory = deal.uploadHistory || [];
+		const uploadHistory = deal.uploadHistory || [];
 		if (currentUpload) {
 			uploadHistory.push(currentUpload);
 		}
@@ -1600,11 +1721,14 @@ export const recordFundTransferUpload = authMutation({
 		// 4. Update deal
 		await ctx.db.patch(args.dealId, {
 			currentUpload: newUpload,
-			uploadHistory: uploadHistory,
+			uploadHistory,
 			updatedAt: Date.now(),
 		});
 
-		logger.info("Fund transfer proof uploaded", { dealId: args.dealId, uploadedBy: subject });
+		logger.info("Fund transfer proof uploaded", {
+			dealId: args.dealId,
+			uploadedBy: subject,
+		});
 	},
 });
 
@@ -1621,7 +1745,9 @@ export const confirmLawyerRepresentation = authMutation({
 
 		// Validate that the caller is the assigned lawyer
 		if (deal.lawyerEmail !== email) {
-			throw new Error("Unauthorized: You are not the assigned lawyer for this deal");
+			throw new Error(
+				"Unauthorized: You are not the assigned lawyer for this deal"
+			);
 		}
 
 		// Get user ID for the event
@@ -1667,7 +1793,10 @@ export const confirmLawyerRepresentation = authMutation({
 
 		actor.stop();
 
-		logger.info("Lawyer confirmed representation", { dealId: args.dealId, lawyerEmail: email });
+		logger.info("Lawyer confirmed representation", {
+			dealId: args.dealId,
+			lawyerEmail: email,
+		});
 	},
 });
 
@@ -1686,16 +1815,16 @@ export const resendLawyerInvite = authMutation({
 		const isInvestor = deal.investorId === subject;
 		const isAdmin = role === "admin";
 
-		if (!isInvestor && !isAdmin) {
+		if (!(isInvestor || isAdmin)) {
 			throw new Error("Unauthorized");
 		}
 
 		// TODO: Integrate with email service (Resend) to actually send the email
 		// For now, we'll just log it and create an alert for the admin
-		logger.info("Resending lawyer invite", { 
-			dealId: args.dealId, 
+		logger.info("Resending lawyer invite", {
+			dealId: args.dealId,
 			lawyerEmail: deal.lawyerEmail,
-			requestedBy: subject 
+			requestedBy: subject,
 		});
 
 		return true;
@@ -1707,7 +1836,7 @@ export const resendLawyerInvite = authMutation({
  * Called by admin or investor to correct the lawyer's email address
  */
 export const updateLawyerEmail = authMutation({
-	args: { 
+	args: {
 		dealId: v.id("deals"),
 		newEmail: v.string(),
 	},
@@ -1720,11 +1849,14 @@ export const updateLawyerEmail = authMutation({
 		const isInvestor = deal.investorId === subject;
 		const isAdmin = role === "admin";
 
-		if (!isInvestor && !isAdmin) {
+		if (!(isInvestor || isAdmin)) {
 			throw new Error("Unauthorized");
 		}
 
-		if (deal.currentState !== "pending_lawyer" && deal.currentState !== "locked") {
+		if (
+			deal.currentState !== "pending_lawyer" &&
+			deal.currentState !== "locked"
+		) {
 			throw new Error("Cannot update lawyer email in current state");
 		}
 
@@ -1740,14 +1872,14 @@ export const updateLawyerEmail = authMutation({
 				docsComplete: deal.validationChecks?.docsComplete ?? false,
 				fundsReceived: deal.validationChecks?.fundsReceived ?? false,
 				fundsVerified: deal.validationChecks?.fundsVerified ?? false,
-			}
+			},
 		});
 
-		logger.info("Lawyer email updated", { 
-			dealId: args.dealId, 
-			oldEmail, 
+		logger.info("Lawyer email updated", {
+			dealId: args.dealId,
+			oldEmail,
 			newEmail: args.newEmail,
-			updatedBy: subject 
+			updatedBy: subject,
 		});
 
 		// TODO: Send revocation email to old address and new invite to new address
@@ -1759,7 +1891,7 @@ export const updateLawyerEmail = authMutation({
  * Called by admin or investor to replace the lawyer entirely
  */
 export const selectNewLawyer = authMutation({
-	args: { 
+	args: {
 		dealId: v.id("deals"),
 		name: v.string(),
 		email: v.string(),
@@ -1774,11 +1906,14 @@ export const selectNewLawyer = authMutation({
 		const isInvestor = deal.investorId === subject;
 		const isAdmin = role === "admin";
 
-		if (!isInvestor && !isAdmin) {
+		if (!(isInvestor || isAdmin)) {
 			throw new Error("Unauthorized");
 		}
 
-		if (deal.currentState !== "pending_lawyer" && deal.currentState !== "locked") {
+		if (
+			deal.currentState !== "pending_lawyer" &&
+			deal.currentState !== "locked"
+		) {
 			throw new Error("Cannot change lawyer in current state");
 		}
 
@@ -1793,13 +1928,13 @@ export const selectNewLawyer = authMutation({
 				docsComplete: deal.validationChecks?.docsComplete ?? false,
 				fundsReceived: deal.validationChecks?.fundsReceived ?? false,
 				fundsVerified: deal.validationChecks?.fundsVerified ?? false,
-			}
+			},
 		});
 
-		logger.info("New lawyer selected", { 
-			dealId: args.dealId, 
+		logger.info("New lawyer selected", {
+			dealId: args.dealId,
 			newLawyerEmail: args.email,
-			updatedBy: subject 
+			updatedBy: subject,
 		});
 	},
 });

@@ -3,11 +3,11 @@
  * Core loan + property data with embedded property information
  */
 
-import { v, Infer } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import { type Infer, v } from "convex/values";
+import { checkRbac } from "../lib/authhelper";
 import type { Doc, Id } from "./_generated/dataModel";
-import { checkRbac, requireAuth } from "../lib/authhelper";
+import type { MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 const mortgageStatusValidator = v.union(
 	v.literal("active"),
@@ -100,7 +100,9 @@ const mortgageDetailsFields = {
 export const mortgageDetailsValidator = v.object(mortgageDetailsFields);
 
 export type MortgageDetailsInput = Infer<typeof mortgageDetailsValidator>;
-export type MortgageWriteInput = MortgageDetailsInput & { borrowerId: Id<"borrowers"> };
+export type MortgageWriteInput = MortgageDetailsInput & {
+	borrowerId: Id<"borrowers">;
+};
 
 const validateMortgageDetails = (details: MortgageDetailsInput): void => {
 	if (details.loanAmount <= 0) {
@@ -193,27 +195,27 @@ export const ensureMortgage = async (
 			borrowerId,
 			...normalized,
 		};
-		
+
 		// Only include images/documents if they were present in the incoming details
 		// This preserves existing media on partial/replayed updates
 		if (details.images !== undefined) {
 			patchData.images = normalized.images;
 		} else {
-			delete patchData.images;
+			patchData.images = undefined;
 		}
-		
+
 		if (details.documents !== undefined) {
 			patchData.documents = normalized.documents;
 		} else {
-			delete patchData.documents;
+			patchData.documents = undefined;
 		}
 
 		if (details.documentTemplates !== undefined) {
 			patchData.documentTemplates = normalized.documentTemplates;
 		} else {
-			delete patchData.documentTemplates;
+			patchData.documentTemplates = undefined;
 		}
-		
+
 		patchData.externalMortgageId = externalMortgageId;
 
 		await ctx.db.patch(existing._id, patchData);
@@ -432,18 +434,18 @@ export const addDocumentToMortgage = mutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		document: v.object({
-		name: v.string(),
-		type: v.union(
-			v.literal("appraisal"),
-			v.literal("title"),
-			v.literal("inspection"),
-			v.literal("loan_agreement"),
-			v.literal("insurance")
-		),
-		storageId: v.id("_storage"),
-		uploadDate: v.string(),
-		fileSize: v.optional(v.number()),
-	}),
+			name: v.string(),
+			type: v.union(
+				v.literal("appraisal"),
+				v.literal("title"),
+				v.literal("inspection"),
+				v.literal("loan_agreement"),
+				v.literal("insurance")
+			),
+			storageId: v.id("_storage"),
+			uploadDate: v.string(),
+			fileSize: v.optional(v.number()),
+		}),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -455,10 +457,10 @@ export const addDocumentToMortgage = mutation({
 			throw new Error("Mortgage not found");
 		}
 
-	// Append document to existing documents
-	await ctx.db.patch(args.mortgageId, {
-		documents: [...(mortgage.documents ?? []), args.document],
-	});
+		// Append document to existing documents
+		await ctx.db.patch(args.mortgageId, {
+			documents: [...(mortgage.documents ?? []), args.document],
+		});
 
 		return args.mortgageId;
 	},
@@ -536,7 +538,12 @@ async function updateMortgageCore(
 		}>;
 		documents?: Array<{
 			name: string;
-			type: "appraisal" | "title" | "inspection" | "loan_agreement" | "insurance";
+			type:
+				| "appraisal"
+				| "title"
+				| "inspection"
+				| "loan_agreement"
+				| "insurance";
 			storageId: Id<"_storage">;
 			uploadDate: string;
 			fileSize?: number;
@@ -592,9 +599,10 @@ async function updateMortgageCore(
 	}
 
 	// Ensure maturity date is after origination date
-	const finalOriginationDate = updates.originationDate ?? mortgage.originationDate;
+	const finalOriginationDate =
+		updates.originationDate ?? mortgage.originationDate;
 	const finalMaturityDate = updates.maturityDate ?? mortgage.maturityDate;
-	
+
 	if (Date.parse(finalMaturityDate) <= Date.parse(finalOriginationDate)) {
 		throw new Error("Maturity date must be after origination date");
 	}
@@ -613,8 +621,15 @@ async function updateMortgageCore(
 	// Update property information
 	if (args.address !== undefined) {
 		// Validate all required address fields
-		if (!args.address.street || !args.address.city || !args.address.state || 
-		    !args.address.zip || !args.address.country) {
+		if (
+			!(
+				args.address.street &&
+				args.address.city &&
+				args.address.state &&
+				args.address.zip &&
+				args.address.country
+			)
+		) {
 			throw new Error("All address fields are required");
 		}
 		updates.address = args.address;
@@ -679,9 +694,7 @@ async function updateMortgageCore(
 			.first();
 
 		if (existing && existing._id !== args.mortgageId) {
-			throw new Error(
-				"Mortgage with this externalMortgageId already exists"
-			);
+			throw new Error("Mortgage with this externalMortgageId already exists");
 		}
 
 		updates.externalMortgageId = args.externalMortgageId;
@@ -700,7 +713,7 @@ async function updateMortgageCore(
 	if (args.images !== undefined) {
 		// Validate image order values are sequential and start at 0
 		const sortedImages = [...args.images].sort((a, b) => a.order - b.order);
-		for (let i = 0; i < sortedImages.length; i++) {
+		for (let i = 0; i < sortedImages.length; i += 1) {
 			if (sortedImages[i].order !== i) {
 				throw new Error("Image order must be sequential starting from 0");
 			}
@@ -712,7 +725,15 @@ async function updateMortgageCore(
 	if (args.documents !== undefined) {
 		// Validate all document types
 		for (const doc of args.documents) {
-			if (!["appraisal", "title", "inspection", "loan_agreement", "insurance"].includes(doc.type)) {
+			if (
+				![
+					"appraisal",
+					"title",
+					"inspection",
+					"loan_agreement",
+					"insurance",
+				].includes(doc.type)
+			) {
 				throw new Error(`Invalid document type: ${doc.type}`);
 			}
 		}
@@ -729,7 +750,10 @@ async function updateMortgageCore(
 		if (args.priorEncumbrance.amount <= 0) {
 			throw new Error("Prior encumbrance amount must be greater than 0");
 		}
-		if (!args.priorEncumbrance.lender || args.priorEncumbrance.lender.trim() === "") {
+		if (
+			!args.priorEncumbrance.lender ||
+			args.priorEncumbrance.lender.trim() === ""
+		) {
 			throw new Error("Prior encumbrance lender is required");
 		}
 		updates.priorEncumbrance = args.priorEncumbrance;
@@ -743,7 +767,10 @@ async function updateMortgageCore(
 		if (!args.asIfAppraisal.method || args.asIfAppraisal.method.trim() === "") {
 			throw new Error("As-if appraisal method is required");
 		}
-		if (!args.asIfAppraisal.company || args.asIfAppraisal.company.trim() === "") {
+		if (
+			!args.asIfAppraisal.company ||
+			args.asIfAppraisal.company.trim() === ""
+		) {
 			throw new Error("As-if appraisal company is required");
 		}
 		if (!args.asIfAppraisal.date || args.asIfAppraisal.date.trim() === "") {
@@ -814,7 +841,7 @@ async function deleteMortgageCore(
 		// Delete all listings
 		for (const listing of listings) {
 			await ctx.db.delete(listing._id);
-			deletedCounts.listings++;
+			deletedCounts.listings += 1;
 		}
 
 		// 2. Delete all comparables
@@ -825,7 +852,7 @@ async function deleteMortgageCore(
 
 		for (const comparable of comparables) {
 			await ctx.db.delete(comparable._id);
-			deletedCounts.comparables++;
+			deletedCounts.comparables += 1;
 		}
 
 		// 3. Delete all ownership records
@@ -836,7 +863,7 @@ async function deleteMortgageCore(
 
 		for (const record of ownershipRecords) {
 			await ctx.db.delete(record._id);
-			deletedCounts.ownership++;
+			deletedCounts.ownership += 1;
 		}
 
 		// 4. Delete all payment records
@@ -847,7 +874,7 @@ async function deleteMortgageCore(
 
 		for (const payment of payments) {
 			await ctx.db.delete(payment._id);
-			deletedCounts.payments++;
+			deletedCounts.payments += 1;
 		}
 
 		// 5. Finally, delete the mortgage itself (preserve borrower)
@@ -1030,7 +1057,5 @@ export const deleteMortgageInternal = internalMutation({
 			payments: v.number(),
 		}),
 	}),
-	handler: async (ctx, args) => {
-		return await deleteMortgageCore(ctx, args);
-	},
+	handler: async (ctx, args) => await deleteMortgageCore(ctx, args),
 });

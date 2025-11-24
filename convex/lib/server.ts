@@ -1,15 +1,14 @@
-import { UserIdentity } from 'convex/server';
-import { action, mutation, query } from '../_generated/server';
-import type { QueryCtx, MutationCtx, ActionCtx } from '../_generated/server';
+import type { UserIdentity } from "convex/server";
+import { v } from "convex/values";
 import {
-  customAction,
-  customCtx,
-  customMutation,
-  customQuery,
-  customCtxAndArgs
-} from 'convex-helpers/server/customFunctions';
-import {v} from "convex/values"
-
+	customAction,
+	customCtx,
+	customCtxAndArgs,
+	customMutation,
+	customQuery,
+} from "convex-helpers/server/customFunctions";
+import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
+import { action, mutation, query } from "../_generated/server";
 
 // ============================================================================
 // AUTHENTICATION HELPERS - PREVENTING RACE CONDITIONS
@@ -23,7 +22,6 @@ import {v} from "convex/values"
 //
 // TODO: Logging, telemetry and audit trail layers to be added here
 // ============================================================================
-
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -133,14 +131,13 @@ export type AuthAction = ReturnType<typeof customAction>;
  * ```
  */
 export type AuthenticationRequiredParams = {
-  /** The Convex context from a query, mutation, or action */
-  ctx: QueryCtx | MutationCtx | ActionCtx;
+	/** The Convex context from a query, mutation, or action */
+	ctx: QueryCtx | MutationCtx | ActionCtx;
 };
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
 // ============================================================================
-
 
 /**
  * Authenticated query with automatic RBAC context extension.
@@ -239,15 +236,9 @@ export type AuthenticationRequiredParams = {
  * @see {@link authMutation}, {@link authAction} - For mutations/actions
  */
 export const authQuery = customQuery(
-  query,
-  customCtx(async (ctx) => {
-    return await AuthenticationRequired({ ctx });
-  }),
+	query,
+	customCtx(async (ctx) => await AuthenticationRequired({ ctx }))
 );
-
-
-
-
 
 /**
  * Authenticated mutation with automatic RBAC context extension.
@@ -309,10 +300,8 @@ export const authQuery = customQuery(
  * @see {@link authQuery}, {@link authAction}
  */
 export const authMutation = customMutation(
-  mutation,
-  customCtx(async (ctx) => {
-    return await AuthenticationRequired({ ctx });
-  }),
+	mutation,
+	customCtx(async (ctx) => await AuthenticationRequired({ ctx }))
 );
 
 /**
@@ -379,16 +368,9 @@ export const authMutation = customMutation(
  * @see {@link authQuery}, {@link authMutation}
  */
 export const authAction = customAction(
-  action,
-  customCtx(async (ctx) => {
-    return await AuthenticationRequired({ ctx });
-  }),
+	action,
+	customCtx(async (ctx) => await AuthenticationRequired({ ctx }))
 );
-
-
-
-
-
 
 /**
  * Core authentication check with RBAC context extension.
@@ -424,218 +406,231 @@ export const authAction = customAction(
  * @see {@link authQuery}, {@link authMutation}, {@link authAction}
  */
 export async function AuthenticationRequired({
-  ctx,
+	ctx,
 }: {
-  ctx: QueryCtx | MutationCtx | ActionCtx;
+	ctx: QueryCtx | MutationCtx | ActionCtx;
 }) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (identity === null) {
-    //TODO: Implement custom error types for Convex, should capture caller
-    throw new Error('Not authenticated!');
-  }
+	const identity = await ctx.auth.getUserIdentity();
+	if (identity === null) {
+		//TODO: Implement custom error types for Convex, should capture caller
+		throw new Error("Not authenticated!");
+	}
 
-  return {
-    tokenIdentifier: identity.tokenIdentifier,
-    subject: identity.subject,
-    email: identity.email,
-    email_verified: identity.email_verified,
-    first_name: identity.first_name,
-    last_name: identity.last_name,
-    profile_picture_url: identity.profile_picture_url,
-    org_id: identity.org_id,
-    permissions: identity.permissions,
-    role: identity.role,
-    roles: identity.roles,
-   };
+	return {
+		tokenIdentifier: identity.tokenIdentifier,
+		subject: identity.subject,
+		email: identity.email,
+		email_verified: identity.email_verified,
+		first_name: identity.first_name,
+		last_name: identity.last_name,
+		profile_picture_url: identity.profile_picture_url,
+		org_id: identity.org_id,
+		permissions: identity.permissions,
+		role: identity.role,
+		roles: identity.roles,
+	};
 }
 
-const fairLendRoles = v.union(
-  v.literal('admin'),
-  v.literal('member'),
-  v.literal('investor'),
-  v.literal('lawyer'),
-  v.literal('broker')
+const _fairLendRoles = v.union(
+	v.literal("admin"),
+	v.literal("member"),
+	v.literal("investor"),
+	v.literal("lawyer"),
+	v.literal("broker")
 );
 
 function roleCheck({
-  identity,
-  roles
-}:{
-  identity: UserIdentity,
-  roles?: string[]
+	identity,
+	roles,
+}: {
+	identity: UserIdentity;
+	roles?: string[];
 }) {
-  if (!roles) return true;
-  const roleSet = new Set(roles)
+	if (!roles) return true;
+	const roleSet = new Set(roles);
 
-  if (roleSet.size === 0 || roleSet.has("any")) return true
+	if (roleSet.size === 0 || roleSet.has("any")) return true;
 
-  const userRole = identity.role
-  if (!userRole) return false;
+	const userRole = identity.role;
+	if (!userRole) return false;
 
-  if (userRole === 'admin') return true;
-  if (roleSet.has(userRole as string)) return true;
-  return false
+	if (userRole === "admin") return true;
+	if (roleSet.has(userRole as string)) return true;
+	return false;
 }
 
 async function permissionsCheck({
-  identity,
-  permissions
-}:{
-  identity: UserIdentity,
-  permissions: string[]
+	identity,
+	permissions,
+}: {
+	identity: UserIdentity;
+	permissions: string[];
 }) {
-  const permissionSet = new Set(permissions)
+	const permissionSet = new Set(permissions);
 
-  if (permissionSet.size === 0 || permissionSet.has("any")) return true
+	if (permissionSet.size === 0 || permissionSet.has("any")) return true;
 
-  const userPermissionsValue = identity.permissions;
-  const userPermissions = Array.isArray(userPermissionsValue)
-    ? new Set(userPermissionsValue as string[])
-    : new Set<string>();
+	const userPermissionsValue = identity.permissions;
+	const userPermissions = Array.isArray(userPermissionsValue)
+		? new Set(userPermissionsValue as string[])
+		: new Set<string>();
 
-  if ([...permissionSet].every((permission) => userPermissions.has(permission))) return true;
+	if ([...permissionSet].every((permission) => userPermissions.has(permission)))
+		return true;
 
-  return false
+	return false;
 }
 
 const authorizedQueryContextAndArgs = customCtxAndArgs({
-  args: {
-    roles: v.array(v.string()),
-    permissions: v.array(v.string()),
-    orgs: v.optional(v.string()),
-  },
-  input: async (ctx, args) => {
-    //ensure authentication
-    const identity = await ctx.auth.getUserIdentity();
-    if (identity === null) {
-      //TODO: Implement custom error types for Convex, should capture caller
-      throw new Error('Not authenticated!');
-    }
+	args: {
+		roles: v.array(v.string()),
+		permissions: v.array(v.string()),
+		orgs: v.optional(v.string()),
+	},
+	input: async (ctx, args) => {
+		//ensure authentication
+		const identity = await ctx.auth.getUserIdentity();
+		if (identity === null) {
+			//TODO: Implement custom error types for Convex, should capture caller
+			throw new Error("Not authenticated!");
+		}
 
-    if (!roleCheck({identity, roles: args.roles}))  {
-      throw new Error(`Not authorized! Required Role(s): ${args.roles.join(', ')} \n Your roles: ${identity.roles.join(', ')}`);
-    }
-    if (!permissionsCheck({identity, permissions: args.permissions})) {
-      throw new Error(`Not authorized! Required Permission(s): ${args.permissions.join(', ')} \n Your permissions: ${identity.permissions.join(', ')}`);
-    }
+		if (!roleCheck({ identity, roles: args.roles })) {
+			throw new Error(
+				`Not authorized! Required Role(s): ${args.roles.join(", ")} \n Your roles: ${identity.roles.join(", ")}`
+			);
+		}
+		if (!permissionsCheck({ identity, permissions: args.permissions })) {
+			throw new Error(
+				`Not authorized! Required Permission(s): ${args.permissions.join(", ")} \n Your permissions: ${identity.permissions.join(", ")}`
+			);
+		}
 
-    return { ctx, args: {
-      roles: args.roles,
-      permissions: args.permissions
-    } };
-  },
+		return {
+			ctx,
+			args: {
+				roles: args.roles,
+				permissions: args.permissions,
+			},
+		};
+	},
 });
 
 export const authorizedQuery = customQuery(
-  query,
-authorizedQueryContextAndArgs
-)
-
+	query,
+	authorizedQueryContextAndArgs
+);
 
 export const createAuthorizedQuery = (
-  requiredRoles: string[]=[],
-  requiredPermissions: string[] = [],
-  auth=true
-) => {
-  return customQuery(
-    query,
-    customCtxAndArgs({
-      args: {
-        orgs: v.optional(v.string()),
-      },
-      input: async (ctx, args) => {
-        if (!auth) {
-          return { ctx, args };
-        }
+	requiredRoles: string[] = [],
+	requiredPermissions: string[] = [],
+	auth = true
+) =>
+	customQuery(
+		query,
+		customCtxAndArgs({
+			args: {
+				orgs: v.optional(v.string()),
+			},
+			input: async (ctx, args) => {
+				if (!auth) {
+					return { ctx, args };
+				}
 
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-          throw new Error('Not authenticated!');
-        }
+				const identity = await ctx.auth.getUserIdentity();
+				if (identity === null) {
+					throw new Error("Not authenticated!");
+				}
 
+				if (!roleCheck({ identity, roles: requiredRoles })) {
+					throw new Error(
+						`Not authorized! Required Role(s): ${requiredRoles.join(", ")} \n Your roles: ${identity?.roles}`
+					);
+				}
 
+				if (!permissionsCheck({ identity, permissions: requiredPermissions })) {
+					throw new Error(
+						`Not authorized! Required Permission(s): ${requiredPermissions.join(", ")} \n Your permissions: ${identity.permissions}`
+					);
+				}
 
-        if (!roleCheck({identity, roles: requiredRoles}))  {
-          throw new Error(`Not authorized! Required Role(s): ${requiredRoles.join(', ')} \n Your roles: ${identity?.roles}`);
-        }
-
-        if (!permissionsCheck({identity, permissions: requiredPermissions})) {
-          throw new Error(`Not authorized! Required Permission(s): ${requiredPermissions.join(', ')} \n Your permissions: ${identity.permissions}`);
-        }
-
-        return { ctx, args };
-      },
-    })
-  );
-};
-
+				return { ctx, args };
+			},
+		})
+	);
 
 export const createAuthorizedMutation = (
-  requiredRoles: string[]=[],
-  requiredPermissions: string[] = [],
-  auth=true
-) => {
-  return customMutation(
-    mutation,
-    customCtxAndArgs({
-      args: {
-        orgs: v.optional(v.string()),
-      },
-      input: async (ctx, args) => {
-        if (!auth) {
-          return { ctx, args };
-        }
+	requiredRoles: string[] = [],
+	requiredPermissions: string[] = [],
+	auth = true
+) =>
+	customMutation(
+		mutation,
+		customCtxAndArgs({
+			args: {
+				orgs: v.optional(v.string()),
+			},
+			input: async (ctx, args) => {
+				if (!auth) {
+					return { ctx, args };
+				}
 
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-          throw new Error('Not authenticated!');
-        }
+				const identity = await ctx.auth.getUserIdentity();
+				if (identity === null) {
+					throw new Error("Not authenticated!");
+				}
 
-        if (!roleCheck({identity, roles: requiredRoles}))  {
-          throw new Error(`Not authorized! Required Role(s): ${requiredRoles.join(', ')} \n Your roles: ${identity?.roles}`);
-        }
+				if (!roleCheck({ identity, roles: requiredRoles })) {
+					throw new Error(
+						`Not authorized! Required Role(s): ${requiredRoles.join(", ")} \n Your roles: ${identity?.roles}`
+					);
+				}
 
-        if (!permissionsCheck({identity, permissions: requiredPermissions})) {
-          throw new Error(`Not authorized! Required Permission(s): ${requiredPermissions.join(', ')} \n Your permissions: ${identity.permissions}`);
-        }
+				if (!permissionsCheck({ identity, permissions: requiredPermissions })) {
+					throw new Error(
+						`Not authorized! Required Permission(s): ${requiredPermissions.join(", ")} \n Your permissions: ${identity.permissions}`
+					);
+				}
 
-        return { ctx, args };
-      },
-    })
-  );
-};
+				return { ctx, args };
+			},
+		})
+	);
 
 export const createAuthorizedAction = (
-  requiredRoles: string[]=[],
-  requiredPermissions: string[] = [],
-  auth=true,
-) => {
-  return customAction(
-    action,
-    customCtxAndArgs({
-      args: {
-        orgs: v.optional(v.string()),
-      },
-      input: async (ctx, args) => {
-        if (!auth) {
-          return { ctx, args };
-        }
+	requiredRoles: string[] = [],
+	requiredPermissions: string[] = [],
+	auth = true
+) =>
+	customAction(
+		action,
+		customCtxAndArgs({
+			args: {
+				orgs: v.optional(v.string()),
+			},
+			input: async (ctx, args) => {
+				if (!auth) {
+					return { ctx, args };
+				}
 
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-          throw new Error('Not authenticated!');
-        }
+				const identity = await ctx.auth.getUserIdentity();
+				if (identity === null) {
+					throw new Error("Not authenticated!");
+				}
 
-        if (!roleCheck({identity, roles: requiredRoles}))  {
-          throw new Error(`Not authorized! Required Role(s): ${requiredRoles.join(', ')} \n Your roles: ${identity?.roles}`);
-        }
+				if (!roleCheck({ identity, roles: requiredRoles })) {
+					throw new Error(
+						`Not authorized! Required Role(s): ${requiredRoles.join(", ")} \n Your roles: ${identity?.roles}`
+					);
+				}
 
-        if (!permissionsCheck({identity, permissions: requiredPermissions})) {
-          throw new Error(`Not authorized! Required Permission(s): ${requiredPermissions.join(', ')} \n Your permissions: ${identity.permissions}`);
-        }
+				if (!permissionsCheck({ identity, permissions: requiredPermissions })) {
+					throw new Error(
+						`Not authorized! Required Permission(s): ${requiredPermissions.join(", ")} \n Your permissions: ${identity.permissions}`
+					);
+				}
 
-        return { ctx, args };
-      },
-    })
-  );
-};
+				return { ctx, args };
+			},
+		})
+	);

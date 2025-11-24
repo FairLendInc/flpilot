@@ -2,9 +2,9 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import schema from "../schema";
 import type { Id } from "../_generated/dataModel";
 import type { DealStateValue } from "../dealStateMachine";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -57,21 +57,22 @@ async function createTestUser(
 	role = "investor"
 ) {
 	const idp_id = `test_${userIdentifier}`;
-	const userId = await t.run(async (ctx) => {
-		return await ctx.db.insert("users", {
-			idp_id,
-			email: `${userIdentifier}@test.example.com`,
-			email_verified: true,
-			first_name: "Test",
-			last_name: userIdentifier,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-			metadata: {
-				testUser: true,
-				role,
-			},
-		});
-	});
+	const userId = await t.run(
+		async (ctx) =>
+			await ctx.db.insert("users", {
+				idp_id,
+				email: `${userIdentifier}@test.example.com`,
+				email_verified: true,
+				first_name: "Test",
+				last_name: userIdentifier,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: {
+					testUser: true,
+					role,
+				},
+			})
+	);
 	return { userId, idp_id };
 }
 
@@ -79,13 +80,14 @@ async function createTestUser(
  * Create a test borrower
  */
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("borrowers", {
-			name: "Test Borrower",
-			email: `test_borrower_${Date.now()}@example.com`,
-			rotessaCustomerId: `rotessa_${Date.now()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("borrowers", {
+				name: "Test Borrower",
+				email: `test_borrower_${Date.now()}@example.com`,
+				rotessaCustomerId: `rotessa_${Date.now()}`,
+			})
+	);
 }
 
 /**
@@ -358,7 +360,7 @@ describe("transitionDealState - Forward Transitions", () => {
 		expect(deal?.currentState).toBe("locked");
 
 		// Execute each transition
-		for (let i = 0; i < transitions.length; i++) {
+		for (let i = 0; i < transitions.length; i += 1) {
 			await adminT.mutation(api.deals.transitionDealState, {
 				dealId,
 				event: transitions[i],
@@ -560,7 +562,11 @@ describe("transitionDealState - Audit Trail", () => {
 		const transitions = [
 			{ type: "CONFIRM_LAWYER" as const, notes: "First" },
 			{ type: "COMPLETE_DOCS" as const, notes: "Second" },
-			{ type: "GO_BACK" as const, toState: "pending_lawyer" as const, notes: "Third" },
+			{
+				type: "GO_BACK" as const,
+				toState: "pending_lawyer" as const,
+				notes: "Third",
+			},
 			{ type: "COMPLETE_DOCS" as const, notes: "Fourth" },
 		];
 
@@ -778,17 +784,18 @@ describe("transitionDealState - Error Handling", () => {
 		});
 
 		// Check for state change alert
-		const alerts = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("alerts")
-				.filter((q) =>
-					q.and(
-						q.eq(q.field("relatedDealId"), dealId),
-						q.eq(q.field("type"), "deal_state_changed")
+		const alerts = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("alerts")
+					.filter((q) =>
+						q.and(
+							q.eq(q.field("relatedDealId"), dealId),
+							q.eq(q.field("type"), "deal_state_changed")
+						)
 					)
-				)
-				.collect();
-		});
+					.collect()
+		);
 
 		expect(alerts.length).toBeGreaterThan(0);
 		expect(alerts[0]?.message).toContain("locked");
@@ -885,7 +892,10 @@ describe("transitionDealState - Integration Scenarios", () => {
 
 		// Verify state machine state is still valid JSON
 		expect(deal?.stateMachineState).toBeDefined();
-		const snapshot = JSON.parse(deal!.stateMachineState!);
+		if (!deal?.stateMachineState) {
+			throw new Error("Missing state machine state");
+		}
+		const snapshot = JSON.parse(deal.stateMachineState);
 		expect(snapshot.context.currentState).toBe("cancelled");
 	});
 });

@@ -2,8 +2,8 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import schema from "../schema";
 import type { ListingCreationPayload } from "../listings";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -54,7 +54,9 @@ type OverrideOptions = {
 	listing?: Partial<ListingCreationPayload["listing"]>;
 };
 
-const makePayload = (overrides: OverrideOptions = {}): ListingCreationPayload => {
+const makePayload = (
+	overrides: OverrideOptions = {}
+): ListingCreationPayload => {
 	const borrower = { ...BASE_BORROWER, ...(overrides.borrower ?? {}) };
 	const mortgageOverrides = overrides.mortgage ?? {};
 	const mortgage = {
@@ -110,9 +112,9 @@ describe("listings.createFromPayload", () => {
 
 		expect(secondResult.borrowerId).toEqual(firstResult.borrowerId);
 
-		const borrowers = await admin.run(async (ctx) => {
-			return await ctx.db.query("borrowers").collect();
-		});
+		const borrowers = await admin.run(
+			async (ctx) => await ctx.db.query("borrowers").collect()
+		);
 
 		expect(borrowers).toHaveLength(1);
 	});
@@ -144,9 +146,9 @@ describe("listings.createFromPayload", () => {
 
 		expect(secondResult.mortgageId).toEqual(firstResult.mortgageId);
 
-		const mortgages = await admin.run(async (ctx) => {
-			return await ctx.db.query("mortgages").collect();
-		});
+		const mortgages = await admin.run(
+			async (ctx) => await ctx.db.query("mortgages").collect()
+		);
 
 		expect(mortgages).toHaveLength(1);
 		expect(mortgages[0]?.loanAmount).toBe(525000);
@@ -177,9 +179,9 @@ describe("listings.createFromPayload", () => {
 		expect(secondResult.created).toBe(false);
 		expect(secondResult.listingId).toEqual(firstResult.listingId);
 
-		const listings = await admin.run(async (ctx) => {
-			return await ctx.db.query("listings").collect();
-		});
+		const listings = await admin.run(
+			async (ctx) => await ctx.db.query("listings").collect()
+		);
 
 		expect(listings).toHaveLength(1);
 		expect(listings[0]?.visible).toBe(false);

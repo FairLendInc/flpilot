@@ -1,10 +1,9 @@
 // @vitest-environment node
 import { convexTest } from "convex-test";
-import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import { internal } from "../_generated/api";
-import schema from "../schema";
 import type { Id } from "../_generated/dataModel";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -59,21 +58,22 @@ async function createTestUser(
 	role = "investor"
 ) {
 	const idp_id = `test_${userIdentifier}`;
-	const userId = await t.run(async (ctx) => {
-		return await ctx.db.insert("users", {
-			idp_id,
-			email: `${userIdentifier}@test.example.com`,
-			email_verified: true,
-			first_name: "Test",
-			last_name: userIdentifier,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-			metadata: {
-				testUser: true,
-				role,
-			},
-		});
-	});
+	const userId = await t.run(
+		async (ctx) =>
+			await ctx.db.insert("users", {
+				idp_id,
+				email: `${userIdentifier}@test.example.com`,
+				email_verified: true,
+				first_name: "Test",
+				last_name: userIdentifier,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: {
+					testUser: true,
+					role,
+				},
+			})
+	);
 	return { userId, idp_id };
 }
 
@@ -81,13 +81,14 @@ async function createTestUser(
  * Create a test borrower
  */
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("borrowers", {
-			name: "Test Borrower",
-			email: `test_borrower_${Date.now()}@example.com`,
-			rotessaCustomerId: `rotessa_${Date.now()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("borrowers", {
+				name: "Test Borrower",
+				email: `test_borrower_${Date.now()}@example.com`,
+				rotessaCustomerId: `rotessa_${Date.now()}`,
+			})
+	);
 }
 
 /**
@@ -274,7 +275,10 @@ describe("createDeal - Basic Flow", () => {
 		expect(deal?.currentState).toBe("locked");
 
 		// Parse and verify state machine snapshot
-		const snapshot = JSON.parse(deal!.stateMachineState!);
+		if (!deal?.stateMachineState) {
+			throw new Error("Missing state machine state");
+		}
+		const snapshot = JSON.parse(deal.stateMachineState);
 		expect(snapshot.context.dealId).toBe(result.dealId);
 		expect(snapshot.context.currentState).toBe("locked");
 	});
@@ -343,12 +347,13 @@ describe("createDeal - Document Generation", () => {
 		expect(result.documentResults).toEqual([]);
 
 		// Verify no deal_documents were created
-		const documents = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("deal_documents")
-				.withIndex("by_deal", (q) => q.eq("dealId", result.dealId))
-				.collect();
-		});
+		const documents = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("deal_documents")
+					.withIndex("by_deal", (q) => q.eq("dealId", result.dealId))
+					.collect()
+		);
 
 		expect(documents).toHaveLength(0);
 	});
@@ -388,12 +393,13 @@ describe("createDeal - Document Generation", () => {
 			expect(result.documentResults).toBeDefined();
 
 			if (result.documentResults.some((r: any) => r.success)) {
-				const documents = await t.run(async (ctx) => {
-					return await ctx.db
-						.query("deal_documents")
-						.withIndex("by_deal", (q) => q.eq("dealId", result.dealId))
-						.collect();
-				});
+				const documents = await t.run(
+					async (ctx) =>
+						await ctx.db
+							.query("deal_documents")
+							.withIndex("by_deal", (q) => q.eq("dealId", result.dealId))
+							.collect()
+				);
 
 				expect(documents.length).toBeGreaterThan(0);
 			}
@@ -544,7 +550,7 @@ describe("createDeal - Validation", () => {
 describe("createDeal - Alerts", () => {
 	test("should create alerts for deal creation", async () => {
 		const t = createTest();
-		const { lockRequestId, investorId } = await createDealCreationSetup(t);
+		const { lockRequestId } = await createDealCreationSetup(t);
 
 		const adminT = await getAdminTest(t);
 		const result = await adminT.action(api.deals.createDeal, {
@@ -561,12 +567,13 @@ describe("createDeal - Alerts", () => {
 		});
 
 		// Check for alerts (if implemented)
-		const alerts = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("alerts")
-				.filter((q) => q.eq(q.field("relatedDealId"), result.dealId))
-				.collect();
-		});
+		const alerts = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("alerts")
+					.filter((q) => q.eq(q.field("relatedDealId"), result.dealId))
+					.collect()
+		);
 
 		// Alerts may or may not be created depending on implementation
 		// If they exist, verify they're correct
@@ -633,14 +640,15 @@ describe("createDeal - Full Integration", () => {
 		expect(deal?.currentState).toBe("locked");
 
 		// 6. Verify FairLend still owns 100%
-		const fairlendOwnership = await t.run(async (ctx) => {
-			return await ctx.db
-				.query("mortgage_ownership")
-				.withIndex("by_mortgage_owner", (q) =>
-					q.eq("mortgageId", mortgageId).eq("ownerId", "fairlend")
-				)
-				.first();
-		});
+		const fairlendOwnership = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("mortgage_ownership")
+					.withIndex("by_mortgage_owner", (q) =>
+						q.eq("mortgageId", mortgageId).eq("ownerId", "fairlend")
+					)
+					.first()
+		);
 
 		expect(fairlendOwnership?.ownershipPercentage).toBe(100);
 	});

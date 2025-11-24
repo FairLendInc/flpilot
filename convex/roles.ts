@@ -1,9 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 import schema from "./schema";
 
-const roleFields = schema.tables.roles.validator.fields;
+const _roleFields = schema.tables.roles.validator.fields;
 // Note: user_roles table removed - roles are now managed via organization_memberships.roles[]
 
 // Create or update a role based on WorkOS webhook data
@@ -123,7 +122,5 @@ export const getPermissionsForCurrentUser = query({
 			return [];
 		}
 		// Get the user's active organization
-
-
 	},
 });

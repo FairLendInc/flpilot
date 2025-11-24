@@ -4,7 +4,7 @@
  */
 
 import { v } from "convex/values";
-import { authQuery, authMutation } from "./lib/server";
+import { authMutation, authQuery } from "./lib/server";
 
 /**
  * Get payment history for a mortgage (ordered by most recent first)
@@ -12,13 +12,12 @@ import { authQuery, authMutation } from "./lib/server";
 export const getPaymentsForMortgage = authQuery({
 	args: { mortgageId: v.id("mortgages") },
 	returns: v.array(v.any()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
 			.order("desc")
-			.collect();
-	},
+			.collect(),
 });
 
 /**
@@ -33,12 +32,11 @@ export const getPaymentsByStatus = authQuery({
 		),
 	},
 	returns: v.array(v.any()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_status", (q) => q.eq("status", args.status))
-			.collect();
-	},
+			.collect(),
 });
 
 /**
@@ -50,8 +48,8 @@ export const getPaymentsByDateRange = authQuery({
 		endDate: v.string(),
 	},
 	returns: v.array(v.any()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_process_date")
 			.filter((q) =>
@@ -60,8 +58,7 @@ export const getPaymentsByDateRange = authQuery({
 					q.lte(q.field("processDate"), args.endDate)
 				)
 			)
-			.collect();
-	},
+			.collect(),
 });
 
 /**
@@ -70,12 +67,11 @@ export const getPaymentsByDateRange = authQuery({
 export const getPaymentByRotessaId = authQuery({
 	args: { paymentId: v.string() },
 	returns: v.union(v.any(), v.null()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_payment_id", (q) => q.eq("paymentId", args.paymentId))
-			.first();
-	},
+			.first(),
 });
 
 /**
@@ -184,7 +180,7 @@ export const bulkCreatePayments = authMutation({
 
 		// Check if any mortgage is missing
 		const missingMortgageIds = uniqueMortgageIds.filter(
-			(id, index) => !mortgages[index]
+			(_id, index) => !mortgages[index]
 		);
 
 		if (missingMortgageIds.length > 0) {
