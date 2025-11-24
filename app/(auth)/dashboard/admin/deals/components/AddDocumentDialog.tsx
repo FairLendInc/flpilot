@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import type { DocumensoRecipientRole } from "@/lib/types/documenso";
 
 type AddDocumentDialogProps = {
 	dealId: Id<"deals">;
@@ -26,7 +27,7 @@ type AddDocumentDialogProps = {
 
 type SignatoryConfig = {
 	id: number; // Template recipient ID
-	role: string;
+	role: DocumensoRecipientRole;
 	name: string;
 	email: string;
 	signingOrder: number | null;
@@ -46,6 +47,22 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 		api.documenso.createDocumentFromTemplateAction
 	);
 
+	const DOCUMENSO_ROLES: DocumensoRecipientRole[] = [
+		"SIGNER",
+		"APPROVER",
+		"CC",
+		"ASSISTANT",
+		"VIEWER",
+	];
+
+	const requireDocumensoRole = (role: string | undefined | null) => {
+		const candidate = role as DocumensoRecipientRole | undefined;
+		if (candidate && DOCUMENSO_ROLES.includes(candidate)) {
+			return candidate;
+		}
+		throw new Error(`Unexpected Documenso role: ${String(role)}`);
+	};
+
 	const handleTemplateSelect = async (template: {
 		id: string;
 		name: string;
@@ -61,7 +78,7 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 			setSignatories(
 				templateRecipients.map((r) => ({
 					id: r.id,
-					role: r.role,
+					role: requireDocumensoRole(r.role),
 					name: "", // User must fill this
 					email: "", // User must fill this
 					signingOrder: r.signingOrder,

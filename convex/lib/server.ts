@@ -472,7 +472,6 @@ function roleCheck({
   const userRole = identity.role
   if (!userRole) return false;
 
-  console.log(userRole)
   if (userRole === 'admin') return true;
   if (roleSet.has(userRole as string)) return true;
   return false
@@ -489,10 +488,12 @@ async function permissionsCheck({
 
   if (permissionSet.size === 0 || permissionSet.has("any")) return true
 
-  const userPermissions = identity.permissions
-  console.log(userPermissions)
+  const userPermissionsValue = identity.permissions;
+  const userPermissions = Array.isArray(userPermissionsValue)
+    ? new Set(userPermissionsValue as string[])
+    : new Set<string>();
 
-  if (permissionSet.difference(userPermissions).size === 0) return true;
+  if ([...permissionSet].every((permission) => userPermissions.has(permission))) return true;
 
   return false
 }

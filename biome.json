@@ -57,6 +57,8 @@
       "!stories",
       "!stories/*",
       "!.storybook",
+      "!.zed",
+      "!.zed/*",
       "!convex/_generated/*"
     ]
   },
