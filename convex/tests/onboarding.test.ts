@@ -205,7 +205,7 @@ describe("Onboarding journeys", () => {
 		expect(pending).toHaveLength(1);
 
 		const approved = await admin.mutation(api.onboarding.approveJourney, {
-			journeyId: pending?.[0]?.journey._id,
+			journeyId: pending?.[0]?.journey._id!,
 			notes: "looks good",
 		});
 		expect(approved?.status).toBe("approved");
@@ -216,7 +216,7 @@ describe("Onboarding journeys", () => {
 		const admin2 = withIdentity(t, adminSubject2, "admin");
 		await expect(
 			admin2.mutation(api.onboarding.rejectJourney, {
-				journeyId: pending?.[0]?.journey._id,
+				journeyId: pending?.[0]?.journey._id!,
 				reason: "needs more info",
 			})
 		).rejects.toThrow("Only pending journeys can be rejected");
@@ -267,7 +267,7 @@ describe("Onboarding journeys", () => {
 		const rejectionResult = await admin2.mutation(
 			api.onboarding.rejectJourney,
 			{
-				journeyId: rejectionJourney?.journey._id,
+				journeyId: rejectionJourney?.journey._id!,
 				reason: "Need additional docs",
 			}
 		);
@@ -310,7 +310,7 @@ describe("Onboarding journeys", () => {
 		await member.mutation(api.onboarding.submitInvestorJourney, {});
 
 		const pending = await member.query(api.onboarding.getJourney, {});
-		const journeyId = pending?._id;
+		const journeyId = pending?._id!;
 
 		const adminSubjectA = "admin-a";
 		const adminSubjectB = "admin-b";

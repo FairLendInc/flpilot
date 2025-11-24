@@ -40,6 +40,7 @@ type Membership = {
 	organizationId: string;
 	organizationName: string;
 	organizationCreatedAt: string;
+	primaryRoleSlug?: string;
 	membershipRole?: {
 		slug: string;
 	};
@@ -56,7 +57,7 @@ type User = {
 
 type ProfileData = {
 	user: User | null;
-	roles: { slug: string; name?: string }[];
+	roles: { slug: string; name?: string; organizationId: string }[];
 	organizations: Organization[];
 	memberships: Membership[];
 	activeOrganizationId: string | null;
@@ -111,8 +112,9 @@ export default function ProfilePage() {
 			})) ?? [];
 		const memberships = data.memberships ?? [];
 		const roles = memberships.map((m) => ({
-			slug: m.membershipRole?.slug ?? "",
-			name: m.membershipRole?.slug ?? "",
+			slug: m.primaryRoleSlug || m.membershipRole?.slug || "",
+			name: m.primaryRoleSlug || m.membershipRole?.slug || "",
+			organizationId: m.organizationId,
 		}));
 		return {
 			...data,
@@ -272,6 +274,7 @@ export default function ProfilePage() {
 	const roles = (composed?.roles ?? []) as Array<{
 		slug: string;
 		name?: string;
+		organizationId: string;
 	}>;
 
 	return (
@@ -357,11 +360,19 @@ export default function ProfilePage() {
 							{roles.length === 0 ? (
 								<span className="text-muted-foreground text-sm">No roles</span>
 							) : null}
-							{roles.map((r) => (
-								<Badge className="capitalize" key={r.slug} variant="secondary">
-									{r.name || r.slug}
-								</Badge>
-							))}
+							{roles.map((r) => {
+								const isActive = r.organizationId === activeOrg;
+								return (
+									<Badge
+										className="capitalize"
+										key={`${r.organizationId}-${r.slug}`}
+										variant={isActive ? "default" : "secondary"}
+									>
+										{r.name || r.slug}
+										{isActive && " (Active)"}
+									</Badge>
+								);
+							})}
 						</div>
 					</Card>
 

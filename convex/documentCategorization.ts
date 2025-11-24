@@ -501,7 +501,7 @@ export const validateDocumentCategorization = authenticatedQuery({
 
 		if (!documentType) {
 			// Check if it's a legacy type
-			if (!Object.hasOwn(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
+			if (!Object.prototype.hasOwnProperty.call(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
 				issues.push(
 					`Document type "${args.document.type}" does not exist and is not a legacy type`
 				);
