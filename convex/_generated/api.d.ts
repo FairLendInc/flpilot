@@ -9,6 +9,7 @@
  */
 
 import type * as alerts from "../alerts.js";
+import type * as authTests from "../authTests.js";
 import type * as borrowers from "../borrowers.js";
 import type * as comparables from "../comparables.js";
 import type * as crons from "../crons.js";
@@ -61,6 +62,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   alerts: typeof alerts;
+  authTests: typeof authTests;
   borrowers: typeof borrowers;
   comparables: typeof comparables;
   crons: typeof crons;

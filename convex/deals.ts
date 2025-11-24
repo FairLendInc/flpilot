@@ -779,7 +779,7 @@ export const updateDealStatusInternal = internalMutation({
  * Initializes the XState machine and creates the deal in "locked" state.
  * Also generates documents from mortgage templates.
  */
-export const createDeal = action({
+export const createDeal = authAction({
 	args: {
 		lockRequestId: v.id("lock_requests"),
 	},
@@ -798,10 +798,6 @@ export const createDeal = action({
 		// So we fetch identity and check roles via helper or assume caller is authorized
 		// For actions, we typically rely on the internal mutations to enforce data integrity
 		// But we should check auth here too.
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		
 		// Check RBAC via a query helper if needed, or trust the internal mutation checks later
 		// For now, we'll proceed and let the internal mutation fail if user is invalid,

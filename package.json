@@ -22,7 +22,7 @@
     "test": "vitest run",
     "test:run": "vitest run",
     "test:once": "vitest run",
-    "test:debug": "vitest --inspect-brk --no-file-parallelism",
+    "test:debug": "node --inspect-brk --enable-source-maps node_modules/vitest/vitest.mjs --run --no-file-parallelism",
     "test:coverage": "vitest run --coverage",
     "test:coverage:html": "vitest run --coverage --coverage.reporter=html",
     "e2e": "exec playwright test",
