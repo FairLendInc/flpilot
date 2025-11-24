@@ -571,7 +571,7 @@ describe("updateOwnershipPercentage", () => {
 		// Update FairLend to 80%
 		const authT = getAuthenticatedTest(t);
 		await authT.mutation(api.ownership.updateOwnershipPercentage, {
-			id: fairlendOwnership?._id!,
+			id: fairlendOwnership?._id ?? ("" as Id<"mortgage_ownership">),
 			ownershipPercentage: 80,
 		});
 
@@ -912,7 +912,7 @@ describe("deleteOwnership", () => {
 		const authT = getAuthenticatedTest(t);
 		await expect(
 			authT.mutation(api.ownership.deleteOwnership, {
-				id: fairlendOwnership?._id!,
+				id: fairlendOwnership?._id ?? ("" as Id<"mortgage_ownership">),
 			})
 		).rejects.toThrow("Cannot delete FairLend ownership record");
 	});
