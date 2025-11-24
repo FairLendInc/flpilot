@@ -1,6 +1,14 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { authMutation, authQuery } from "./lib/server";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
+
+const authenticatedMutation = createAuthorizedMutation(["any"]);
+const authenticatedQuery = createAuthorizedQuery(["any"]);
+
+type AuthContextFields = {
+	role?: string;
+	subject?: string;
+};
 
 // Validation rules schema
 const validationRulesSchema = v.object({
@@ -21,7 +29,7 @@ type DocumentTypeUpdate = Partial<
 };
 
 // Create a new document type
-export const createDocumentType = authMutation({
+export const createDocumentType = authenticatedMutation({
 	args: {
 		name: v.string(),
 		displayName: v.string(),
@@ -32,7 +40,8 @@ export const createDocumentType = authMutation({
 	},
 	handler: async (ctx, args) => {
 		// Validate permissions - only admins and brokers can create types
-		if (!["admin", "broker"].includes(ctx.role as string)) {
+		const { role, subject } = ctx as typeof ctx & AuthContextFields;
+		if (!["admin", "broker"].includes(role as string)) {
 			throw new Error(
 				"Permission denied: Only admins and brokers can create document types"
 			);
@@ -80,7 +89,7 @@ export const createDocumentType = authMutation({
 		}
 
 		// Brokers cannot create types in system-only groups
-		if ((ctx.role as string) === "broker" && group.isDefault) {
+		if ((role as string) === "broker" && group.isDefault) {
 			// Allow brokers to create types in default groups except for system-restricted ones
 			const restrictedGroups = ["other"];
 			if (restrictedGroups.includes(groupName)) {
@@ -99,7 +108,7 @@ export const createDocumentType = authMutation({
 			icon: args.icon?.trim(),
 			validationRules: args.validationRules,
 			isActive: true,
-			createdBy: ctx.subject as Id<"users">,
+			createdBy: subject as Id<"users">,
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -111,7 +120,7 @@ export const createDocumentType = authMutation({
 });
 
 // Update an existing document type
-export const updateDocumentType = authMutation({
+export const updateDocumentType = authenticatedMutation({
 	args: {
 		typeId: v.id("document_types"),
 		displayName: v.optional(v.string()),
@@ -122,7 +131,8 @@ export const updateDocumentType = authMutation({
 	},
 	handler: async (ctx, args) => {
 		// Validate permissions
-		if (!["admin", "broker"].includes(ctx.role as string)) {
+		const { role } = ctx as typeof ctx & AuthContextFields;
+		if (!["admin", "broker"].includes(role as string)) {
 			throw new Error(
 				"Permission denied: Only admins and brokers can update document types"
 			);
@@ -141,7 +151,7 @@ export const updateDocumentType = authMutation({
 			"loan_agreement",
 			"insurance",
 		];
-		if (legacyTypes.includes(type.name) && (ctx.role as string) !== "admin") {
+		if (legacyTypes.includes(type.name) && (role as string) !== "admin") {
 			throw new Error(
 				"Permission denied: Only admins can update legacy document types"
 			);
@@ -206,14 +216,15 @@ export const updateDocumentType = authMutation({
 });
 
 // Deactivate a document type (soft delete)
-export const deactivateDocumentType = authMutation({
+export const deactivateDocumentType = authenticatedMutation({
 	args: {
 		typeId: v.id("document_types"),
 		migrateToTypeId: v.optional(v.id("document_types")),
 	},
 	handler: async (ctx, args) => {
 		// Only admins can deactivate types
-		if ((ctx.role as string) !== "admin") {
+		const { role } = ctx as typeof ctx & AuthContextFields;
+		if ((role as string) !== "admin") {
 			throw new Error(
 				"Permission denied: Only admins can deactivate document types"
 			);
@@ -251,7 +262,7 @@ export const deactivateDocumentType = authMutation({
 });
 
 // Get document types with optional group filtering
-export const getDocumentTypes = authQuery({
+export const getDocumentTypes = authenticatedQuery({
 	args: {
 		groupName: v.optional(v.string()),
 		includeInactive: v.optional(v.boolean()),
@@ -295,10 +306,12 @@ export const getDocumentTypes = authQuery({
 					group,
 					isUserEditable:
 						!legacyTypes.includes(type.name) ||
-						(ctx.role as string) === "admin",
+						((ctx as typeof ctx & AuthContextFields).role as string) ===
+							"admin",
 					isUserDeletable:
 						!legacyTypes.includes(type.name) &&
-						(ctx.role as string) === "admin",
+						((ctx as typeof ctx & AuthContextFields).role as string) ===
+							"admin",
 				};
 			})
 		);
@@ -306,7 +319,7 @@ export const getDocumentTypes = authQuery({
 });
 
 // Get document type by name
-export const getDocumentTypeByName = authQuery({
+export const getDocumentTypeByName = authenticatedQuery({
 	args: {
 		name: v.string(),
 		groupName: v.optional(v.string()),
@@ -335,7 +348,7 @@ export const getDocumentTypeByName = authQuery({
 });
 
 // Get document types grouped by category
-export const getDocumentTypesByGroup = authQuery({
+export const getDocumentTypesByGroup = authenticatedQuery({
 	args: {
 		includeInactive: v.optional(v.boolean()),
 	},

@@ -13,7 +13,7 @@ import { generateDocumentsFromTemplates } from "../lib/documenso";
 import { logger } from "../lib/logger";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import {
 	internalMutation,
 	internalQuery,
@@ -26,8 +26,14 @@ import {
 	dealMachine,
 } from "./dealStateMachine";
 import { getBrokerOfRecord } from "./lib/broker";
-import { authAction, authMutation } from "./lib/server";
+import { createAuthorizedAction, createAuthorizedMutation } from "./lib/server";
 import { createOwnershipInternal } from "./ownership";
+
+type AuthContextFields = {
+	role?: string;
+	subject?: string;
+	email?: string;
+};
 
 /**
  * Get user document from identity
@@ -38,7 +44,7 @@ type UserIdentityOptions = {
 	createIfMissing?: boolean;
 };
 
-type IdentityCtx = QueryCtx | MutationCtx | ActionCtx;
+type IdentityCtx = QueryCtx | MutationCtx;
 
 async function getUserFromIdentity(
 	ctx: IdentityCtx,
@@ -71,14 +77,24 @@ async function getUserFromIdentity(
 			return null;
 		}
 
-		const userId = await ctx.db.insert("users", {
+		//TODO: Create extended UserIdentity type with all the custom clais so we don't need to do this bs
+		const mutationCtx = ctx as MutationCtx;
+		const userId = await mutationCtx.db.insert("users", {
 			idp_id: idpId,
 			email,
-			email_verified: identity.email_verified ?? false,
-			first_name: identity.first_name ?? undefined,
-			last_name: identity.last_name ?? undefined,
+			email_verified: Boolean(identity.email_verified),
+			first_name:
+				typeof identity.first_name === "string"
+					? identity.first_name
+					: undefined,
+			last_name:
+				typeof identity.last_name === "string" ? identity.last_name : undefined,
 			profile_picture_url:
-				identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+				typeof identity.profile_picture_url === "string"
+					? identity.profile_picture_url
+					: typeof identity.profile_picture === "string"
+						? identity.profile_picture
+						: undefined,
 			created_at: new Date().toISOString(),
 		});
 
@@ -153,6 +169,10 @@ async function requireAdmin<T extends boolean = false>(
 
 	return userId as RequireAdminReturn<T>;
 }
+
+const authenticatedMutation = createAuthorizedMutation(["any"]);
+const authenticatedAction = createAuthorizedAction(["any"]);
+const adminAction = createAuthorizedAction(["admin"]);
 
 // ============================================================================
 // QUERIES
@@ -837,7 +857,7 @@ export const updateDealStatusInternal = internalMutation({
  * Initializes the XState machine and creates the deal in "locked" state.
  * Also generates documents from mortgage templates.
  */
-export const createDeal = authAction({
+export const createDeal = adminAction({
 	args: {
 		lockRequestId: v.id("lock_requests"),
 	},
@@ -1628,10 +1648,13 @@ export const getDealInternal = internalQuery({
  * Generate upload URL for fund transfer proof
  * Only accessible by investor or their lawyer
  */
-export const generateFundTransferUploadUrl = authAction({
+export const generateFundTransferUploadUrl = authenticatedAction({
 	args: { dealId: v.id("deals") },
 	handler: async (ctx, args) => {
-		const { role, subject, email } = ctx;
+		const { role, subject, email } = ctx as typeof ctx & AuthContextFields;
+		if (!(subject && email)) {
+			throw new Error("Not authenticated!");
+		}
 
 		// Check if user is authorized for this deal
 		const deal = await ctx.runQuery(internal.deals.getDealInternal, {
@@ -1663,7 +1686,7 @@ export const generateFundTransferUploadUrl = authAction({
  * Record fund transfer upload metadata
  * Validates file type and updates deal history
  */
-export const recordFundTransferUpload = authMutation({
+export const recordFundTransferUpload = authenticatedMutation({
 	args: {
 		dealId: v.id("deals"),
 		storageId: v.id("_storage"),
@@ -1671,7 +1694,11 @@ export const recordFundTransferUpload = authMutation({
 		fileType: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const { role, subject, email } = ctx;
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Not authenticated");
+		}
+		const { role, email, subject } = identity;
 		const deal = await ctx.db.get(args.dealId);
 		if (!deal) throw new Error("Deal not found");
 
@@ -1736,10 +1763,10 @@ export const recordFundTransferUpload = authMutation({
  * Confirm lawyer representation
  * Called by the lawyer to confirm they represent the investor
  */
-export const confirmLawyerRepresentation = authMutation({
+export const confirmLawyerRepresentation = authenticatedMutation({
 	args: { dealId: v.id("deals") },
 	handler: async (ctx, args) => {
-		const { email } = ctx;
+		const { email } = ctx as typeof ctx & AuthContextFields;
 		const deal = await ctx.db.get(args.dealId);
 		if (!deal) throw new Error("Deal not found");
 
@@ -1804,10 +1831,10 @@ export const confirmLawyerRepresentation = authMutation({
  * Resend lawyer invite
  * Called by admin or investor to resend the invitation email
  */
-export const resendLawyerInvite = authMutation({
+export const resendLawyerInvite = authenticatedMutation({
 	args: { dealId: v.id("deals") },
 	handler: async (ctx, args) => {
-		const { role, subject } = ctx;
+		const { role, subject } = ctx as typeof ctx & AuthContextFields;
 		const deal = await ctx.db.get(args.dealId);
 		if (!deal) throw new Error("Deal not found");
 
@@ -1835,13 +1862,13 @@ export const resendLawyerInvite = authMutation({
  * Update lawyer email
  * Called by admin or investor to correct the lawyer's email address
  */
-export const updateLawyerEmail = authMutation({
+export const updateLawyerEmail = authenticatedMutation({
 	args: {
 		dealId: v.id("deals"),
 		newEmail: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const { role, subject } = ctx;
+		const { role, subject } = ctx as typeof ctx & AuthContextFields;
 		const deal = await ctx.db.get(args.dealId);
 		if (!deal) throw new Error("Deal not found");
 
@@ -1890,7 +1917,7 @@ export const updateLawyerEmail = authMutation({
  * Select new lawyer
  * Called by admin or investor to replace the lawyer entirely
  */
-export const selectNewLawyer = authMutation({
+export const selectNewLawyer = authenticatedMutation({
 	args: {
 		dealId: v.id("deals"),
 		name: v.string(),
@@ -1898,7 +1925,7 @@ export const selectNewLawyer = authMutation({
 		lsoNumber: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const { role, subject } = ctx;
+		const { role, subject } = ctx as typeof ctx & AuthContextFields;
 		const deal = await ctx.db.get(args.dealId);
 		if (!deal) throw new Error("Deal not found");
 

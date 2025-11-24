@@ -86,14 +86,23 @@ async function getUserFromIdentity(
 			return null;
 		}
 
-		const userId = await ctx.db.insert("users", {
+		const mutationCtx = ctx as MutationCtx;
+		const userId = await mutationCtx.db.insert("users", {
 			idp_id: idpId,
 			email,
-			email_verified: identity.email_verified ?? false,
-			first_name: identity.first_name ?? undefined,
-			last_name: identity.last_name ?? undefined,
+			email_verified: Boolean(identity.email_verified),
+			first_name:
+				typeof identity.first_name === "string"
+					? identity.first_name
+					: undefined,
+			last_name:
+				typeof identity.last_name === "string" ? identity.last_name : undefined,
 			profile_picture_url:
-				identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+				typeof identity.profile_picture_url === "string"
+					? identity.profile_picture_url
+					: typeof identity.profile_picture === "string"
+						? identity.profile_picture
+						: undefined,
 			created_at: new Date().toISOString(),
 		});
 

@@ -255,8 +255,10 @@ const runOperation = (matrixEntry: MatrixEntry, testContext: TestContext) => {
 			return testContext.mutation(matrixEntry.fn, DEFAULT_ARGS);
 		case "action":
 			return testContext.action(matrixEntry.fn, DEFAULT_ARGS);
-		default:
-			throw new Error(`Unsupported operation kind: ${matrixEntry.kind}`);
+		default: {
+			const _exhaustive: never = matrixEntry;
+			throw new Error(`Unsupported operation kind: ${String(_exhaustive)}`);
+		}
 	}
 };
 

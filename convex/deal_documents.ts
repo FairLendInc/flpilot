@@ -1,11 +1,18 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { authMutation, authQuery } from "./lib/server";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
+
+const authenticatedQuery = createAuthorizedQuery(["any"]);
+const authenticatedMutation = createAuthorizedMutation(["any"]);
+
+type AuthContextFields = {
+	role?: string;
+};
 
 /**
  * Get all documents for a specific deal
  */
-export const getDealDocuments = authQuery({
+export const getDealDocuments = authenticatedQuery({
 	args: { dealId: v.id("deals") },
 	handler: async (ctx, args) => {
 		// RBAC context automatically available
@@ -21,7 +28,7 @@ export const getDealDocuments = authQuery({
 /**
  * Get a single document by ID
  */
-export const getDocument = authQuery({
+export const getDocument = authenticatedQuery({
 	args: { documentId: v.id("deal_documents") },
 	handler: async (ctx, args) => await ctx.db.get(args.documentId),
 });
@@ -66,7 +73,7 @@ export const createDealDocumentInternal = internalMutation({
 /**
  * Update document status (e.g., from webhook or manual check)
  */
-export const updateDocumentStatus = authMutation({
+export const updateDocumentStatus = authenticatedMutation({
 	args: {
 		documentId: v.id("deal_documents"),
 		status: v.union(
@@ -77,7 +84,7 @@ export const updateDocumentStatus = authMutation({
 		),
 	},
 	handler: async (ctx, args) => {
-		const { role } = ctx;
+		const { role } = ctx as typeof ctx & AuthContextFields;
 
 		// Only admins should update status manually via this mutation
 		if (role !== "admin") {

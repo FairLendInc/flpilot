@@ -4,7 +4,10 @@
  */
 
 import { v } from "convex/values";
-import { authMutation, authQuery } from "./lib/server";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
+
+const authenticatedQuery = createAuthorizedQuery(["any"]);
+const authenticatedMutation = createAuthorizedMutation(["any"]);
 
 /**
  * Schema for borrower document (includes Convex system fields)
@@ -20,7 +23,7 @@ const borrowerSchema = v.object({
 /**
  * Get a borrower by ID
  */
-export const getBorrower = authQuery({
+export const getBorrower = authenticatedQuery({
 	args: { id: v.id("borrowers") },
 	returns: v.union(borrowerSchema, v.null()),
 	handler: async (ctx, args) => await ctx.db.get(args.id),
@@ -29,7 +32,7 @@ export const getBorrower = authQuery({
 /**
  * Get borrower by Rotessa customer ID (for payment reconciliation)
  */
-export const getBorrowerByRotessaId = authQuery({
+export const getBorrowerByRotessaId = authenticatedQuery({
 	args: { rotessaCustomerId: v.string() },
 	returns: v.union(borrowerSchema, v.null()),
 	handler: async (ctx, args) =>
@@ -44,7 +47,7 @@ export const getBorrowerByRotessaId = authQuery({
 /**
  * List all borrowers (paginated for admin)
  */
-export const listBorrowers = authQuery({
+export const listBorrowers = authenticatedQuery({
 	args: {},
 	returns: v.array(borrowerSchema),
 	handler: async (ctx) => await ctx.db.query("borrowers").collect(),
@@ -53,7 +56,7 @@ export const listBorrowers = authQuery({
 /**
  * Search borrowers by email
  */
-export const searchBorrowersByEmail = authQuery({
+export const searchBorrowersByEmail = authenticatedQuery({
 	args: { email: v.string() },
 	returns: v.array(borrowerSchema),
 	handler: async (ctx, args) =>
@@ -66,7 +69,7 @@ export const searchBorrowersByEmail = authQuery({
 /**
  * Create a new borrower
  */
-export const createBorrower = authMutation({
+export const createBorrower = authenticatedMutation({
 	args: {
 		name: v.string(),
 		email: v.string(),
@@ -105,7 +108,7 @@ export const createBorrower = authMutation({
 /**
  * Update borrower profile (name and email only, rotessaCustomerId is immutable)
  */
-export const updateBorrower = authMutation({
+export const updateBorrower = authenticatedMutation({
 	args: {
 		id: v.id("borrowers"),
 		name: v.optional(v.string()),

@@ -1,6 +1,14 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { authMutation, authQuery } from "./lib/server";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
+
+const authenticatedQuery = createAuthorizedQuery(["any"]);
+const authenticatedMutation = createAuthorizedMutation(["any"]);
+
+type AuthContextFields = {
+	role?: string;
+	subject?: string;
+};
 
 const DOCUMENT_GROUP_NAME_REGEX = /^[a-zA-Z0-9\s_-]+$/;
 
@@ -13,7 +21,7 @@ type DocumentGroupUpdate = {
 };
 
 // Create a new document group
-export const createDocumentGroup = authMutation({
+export const createDocumentGroup = authenticatedMutation({
 	args: {
 		name: v.string(),
 		displayName: v.string(),
@@ -23,7 +31,8 @@ export const createDocumentGroup = authMutation({
 	},
 	handler: async (ctx, args) => {
 		// Validate permissions - only admins and brokers can create groups
-		if (!["admin", "broker"].includes(ctx.role as string)) {
+		const { role, subject } = ctx as typeof ctx & AuthContextFields;
+		if (!["admin", "broker"].includes(role as string)) {
 			throw new Error(
 				"Permission denied: Only admins and brokers can create document groups"
 			);
@@ -60,7 +69,7 @@ export const createDocumentGroup = authMutation({
 			color: args.color?.trim(),
 			isDefault: false, // Only system groups are marked as default
 			isActive: true,
-			createdBy: ctx.subject as Id<"users">, // Use subject (user ID) from auth context
+			createdBy: subject as Id<"users">, // Use subject (user ID) from auth context
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -72,7 +81,7 @@ export const createDocumentGroup = authMutation({
 });
 
 // Update an existing document group
-export const updateDocumentGroup = authMutation({
+export const updateDocumentGroup = authenticatedMutation({
 	args: {
 		groupId: v.id("document_groups"),
 		displayName: v.optional(v.string()),
@@ -82,7 +91,8 @@ export const updateDocumentGroup = authMutation({
 	},
 	handler: async (ctx, args) => {
 		// Validate permissions
-		if (!["admin", "broker"].includes(ctx.role as string)) {
+		const { role } = ctx as typeof ctx & AuthContextFields;
+		if (!["admin", "broker"].includes(role as string)) {
 			throw new Error(
 				"Permission denied: Only admins and brokers can update document groups"
 			);
@@ -94,7 +104,7 @@ export const updateDocumentGroup = authMutation({
 		}
 
 		// Brokers cannot update system default groups
-		if ((ctx.role as string) === "broker" && group.isDefault) {
+		if ((role as string) === "broker" && group.isDefault) {
 			throw new Error(
 				"Permission denied: Brokers cannot update system default groups"
 			);
@@ -124,13 +134,14 @@ export const updateDocumentGroup = authMutation({
 });
 
 // Deactivate a document group (soft delete)
-export const deactivateDocumentGroup = authMutation({
+export const deactivateDocumentGroup = authenticatedMutation({
 	args: {
 		groupId: v.id("document_groups"),
 	},
 	handler: async (ctx, args) => {
 		// Only admins can deactivate groups
-		if ((ctx.role as string) !== "admin") {
+		const { role } = ctx as typeof ctx & AuthContextFields;
+		if ((role as string) !== "admin") {
 			throw new Error(
 				"Permission denied: Only admins can deactivate document groups"
 			);
@@ -156,7 +167,7 @@ export const deactivateDocumentGroup = authMutation({
 });
 
 // Get all active document groups
-export const getDocumentGroups = authQuery({
+export const getDocumentGroups = authenticatedQuery({
 	args: {
 		includeInactive: v.optional(v.boolean()),
 	},
@@ -171,14 +182,18 @@ export const getDocumentGroups = authQuery({
 
 		return groups.map((group) => ({
 			...group,
-			isUserEditable: !group.isDefault || (ctx.role as string) === "admin",
-			isUserDeletable: !group.isDefault && (ctx.role as string) === "admin",
+			isUserEditable:
+				!group.isDefault ||
+				((ctx as typeof ctx & AuthContextFields).role as string) === "admin",
+			isUserDeletable:
+				!group.isDefault &&
+				((ctx as typeof ctx & AuthContextFields).role as string) === "admin",
 		}));
 	},
 });
 
 // Get document group by name
-export const getDocumentGroupByName = authQuery({
+export const getDocumentGroupByName = authenticatedQuery({
 	args: {
 		name: v.string(),
 	},
@@ -194,13 +209,14 @@ export const getDocumentGroupByName = authQuery({
 });
 
 // Reactivate a document group
-export const reactivateDocumentGroup = authMutation({
+export const reactivateDocumentGroup = authenticatedMutation({
 	args: {
 		groupId: v.id("document_groups"),
 	},
 	handler: async (ctx, args) => {
 		// Only admins can reactivate groups
-		if ((ctx.role as string) !== "admin") {
+		const { role } = ctx as typeof ctx & AuthContextFields;
+		if ((role as string) !== "admin") {
 			throw new Error(
 				"Permission denied: Only admins can reactivate document groups"
 			);

@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { authMutation } from "./lib/server";
+import { createAuthorizedMutation } from "./lib/server";
+
+const authenticatedMutation = createAuthorizedMutation(["any"]);
 
 // Document analysis result interfaces
 export type DocumentContentAnalysis = {
@@ -408,6 +410,15 @@ export const generateTypeSuggestions = internalQuery({
 		contentAnalysis: v.object({
 			extractedText: v.optional(v.string()),
 			keywordDensity: v.record(v.string(), v.number()),
+			documentMetadata: v.object({
+				title: v.optional(v.string()),
+				author: v.optional(v.string()),
+				subject: v.optional(v.string()),
+				createdDate: v.optional(v.string()),
+				modifiedDate: v.optional(v.string()),
+				pageCount: v.optional(v.number()),
+				wordCount: v.optional(v.number()),
+			}),
 			contentFeatures: v.object({
 				hasTables: v.boolean(),
 				hasImages: v.boolean(),
@@ -741,7 +752,7 @@ function calculateTypeScore(
 }
 
 // Automatic type assignment with confidence threshold validation
-export const autoAssignDocumentType = authMutation({
+export const autoAssignDocumentType = authenticatedMutation({
 	args: {
 		filename: v.string(),
 		content: v.optional(v.string()),
@@ -765,7 +776,8 @@ export const autoAssignDocumentType = authMutation({
 		const settings = await ctx.runQuery(
 			internal.documentAnalysis.getUserAutoAssignmentSettings,
 			{
-				userId: ctx.subject as Id<"users">,
+				userId: (ctx as typeof ctx & { subject?: string })
+					.subject as Id<"users">,
 			}
 		);
 
@@ -785,7 +797,8 @@ export const autoAssignDocumentType = authMutation({
 				content: args.content,
 				filename: args.filename,
 				metadata: args.metadata,
-				userId: ctx.subject as Id<"users">,
+				userId: (ctx as typeof ctx & { subject?: string })
+					.subject as Id<"users">,
 			}
 		);
 
@@ -847,7 +860,7 @@ export const autoAssignDocumentType = authMutation({
 });
 
 // Public-facing query for document type suggestions (used by the UI)
-export const getDocumentTypeSuggestions = authMutation({
+export const getDocumentTypeSuggestions = authenticatedMutation({
 	args: {
 		filename: v.string(),
 		content: v.optional(v.string()),
@@ -872,7 +885,8 @@ export const getDocumentTypeSuggestions = authMutation({
 				content: args.content,
 				filename: args.filename,
 				metadata: args.metadata,
-				userId: ctx.subject as Id<"users">,
+				userId: (ctx as typeof ctx & { subject?: string })
+					.subject as Id<"users">,
 			}
 		);
 
@@ -905,7 +919,7 @@ export const getDocumentTypeSuggestions = authMutation({
 });
 
 // Validate document against type-specific rules
-export const validateDocumentForType = authMutation({
+export const validateDocumentForType = authenticatedMutation({
 	args: {
 		documentType: v.string(),
 		filename: v.string(),

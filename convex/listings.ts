@@ -10,8 +10,10 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { comparablePayloadValidator } from "./comparables";
-import { authQuery } from "./lib/server";
+import { createAuthorizedQuery } from "./lib/server";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
+
+const authenticatedQuery = createAuthorizedQuery(["any"]);
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
@@ -223,7 +225,7 @@ export const getAvailableListings = query({
  * Get available listings with full mortgage details
  * Returns listings joined with their mortgage data for display with signed image URLs
  */
-export const getAvailableListingsWithMortgages = authQuery({
+export const getAvailableListingsWithMortgages = authenticatedQuery({
 	args: {},
 	handler: async (ctx) => {
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
@@ -283,7 +285,7 @@ export const getListingByMortgage = query({
 /**
  * Get listing by listing ID
  */
-export const getListingById = authQuery({
+export const getListingById = authenticatedQuery({
 	args: { listingId: v.id("listings") },
 	returns: v.union(
 		v.object({

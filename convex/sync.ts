@@ -221,11 +221,14 @@ export const syncUsers = internalAction({
 		try {
 			// Step 1: Fetch ALL users from WorkOS (with pagination)
 			console.log("📥 Fetching all users from WorkOS...");
-			const workosUsers = await fetchAllPaginated<WorkOSUser>((cursor) =>
-				workos.userManagement.listUsers({
-					limit: 100,
-					after: cursor,
-				})
+			const workosUsers = await fetchAllPaginated<WorkOSUser>(
+				async (cursor) => {
+					const response = await workos.userManagement.listUsers({
+						limit: 100,
+						after: cursor,
+					});
+					return response as unknown as PaginatedResponse<WorkOSUser>;
+				}
 			);
 			console.log(`✅ Fetched ${workosUsers.length} users from WorkOS`);
 
@@ -371,11 +374,14 @@ export const syncOrganizations = internalAction({
 		try {
 			// Step 1: Fetch ALL organizations from WorkOS (includes domains)
 			console.log("📥 Fetching all organizations from WorkOS...");
-			const workosOrgs = await fetchAllPaginated<WorkOSOrganization>((cursor) =>
-				workos.organizations.listOrganizations({
-					limit: 100,
-					after: cursor,
-				})
+			const workosOrgs = await fetchAllPaginated<WorkOSOrganization>(
+				async (cursor) => {
+					const response = await workos.organizations.listOrganizations({
+						limit: 100,
+						after: cursor,
+					});
+					return response as unknown as PaginatedResponse<WorkOSOrganization>;
+				}
 			);
 			console.log(`✅ Fetched ${workosOrgs.length} organizations from WorkOS`);
 

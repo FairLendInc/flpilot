@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalQuery } from "./_generated/server";
-import { authQuery } from "./lib/server";
+import { createAuthorizedQuery } from "./lib/server";
+
+const authenticatedQuery = createAuthorizedQuery(["any"]);
 
 type DocumentGroupResolution = {
 	group: string;
@@ -226,7 +228,7 @@ const LEGACY_TYPE_TO_GROUP_MAPPING: Record<string, string> = {
 };
 
 // Resolve document group using priority fallback system
-export const resolveDocumentGroup = authQuery({
+export const resolveDocumentGroup = authenticatedQuery({
 	args: {
 		// Document data from various sources
 		document: v.optional(
@@ -357,7 +359,7 @@ export const resolveDocumentGroup = authQuery({
 });
 
 // Get document type with group information
-export const getDocumentTypeWithGroup = authQuery({
+export const getDocumentTypeWithGroup = authenticatedQuery({
 	args: {
 		typeName: v.string(),
 		includeInactive: v.optional(v.boolean()),
@@ -423,7 +425,7 @@ interface BatchResolutionResult extends DocumentGroupResolution {
 }
 
 // Batch resolve document groups for multiple documents
-export const batchResolveDocumentGroups = authQuery({
+export const batchResolveDocumentGroups = authenticatedQuery({
 	args: {
 		documents: v.array(
 			v.object({
@@ -464,7 +466,7 @@ type ValidationResult = {
 };
 
 // Validate document categorization consistency
-export const validateDocumentCategorization = authQuery({
+export const validateDocumentCategorization = authenticatedQuery({
 	args: {
 		document: v.object({
 			group: v.optional(v.string()),
@@ -477,11 +479,10 @@ export const validateDocumentCategorization = authQuery({
 
 		// Check if group exists and is active
 		if (args.document.group) {
+			const normalizedGroup = args.document.group.trim().toLowerCase();
 			const group = await ctx.db
 				.query("document_groups")
-				.withIndex("by_name", (q) =>
-					q.eq("name", args.document.group?.trim().toLowerCase())
-				)
+				.withIndex("by_name", (q) => q.eq("name", normalizedGroup))
 				.first();
 
 			if (!group) {
@@ -551,7 +552,7 @@ type GroupSuggestion = {
 };
 
 // Get available groups for document type suggestions
-export const getDocumentGroupsForSuggestions = authQuery({
+export const getDocumentGroupsForSuggestions = authenticatedQuery({
 	args: {
 		documentType: v.optional(v.string()),
 		maxSuggestions: v.optional(v.number()),

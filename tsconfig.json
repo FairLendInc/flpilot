@@ -30,5 +30,12 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "convex/_generated", "node_modules/*"]
+  "exclude": [
+    "node_modules",
+    ".next",
+    "convex/_generated",
+    "convex/tests/",
+    "node_modules/*",
+    "node_modules/**"
+  ]
 }
