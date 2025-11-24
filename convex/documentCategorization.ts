@@ -181,13 +181,13 @@ export const getDocumentTypeWithGroupInternal = internalQuery({
 			return {
 				type: documentType,
 				group,
-				isLegacy: Object.prototype.hasOwnProperty.call(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType),
+				isLegacy: Object.hasOwn(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType),
 				resolutionMethod: "found",
 			};
 		}
 
 		// Check if it's a legacy type
-		if (Object.prototype.hasOwnProperty.call(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
+		if (Object.hasOwn(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
 			const legacyGroupName = LEGACY_TYPE_TO_GROUP_MAPPING[normalizedType];
 			const group = await ctx.db
 				.query("document_groups")
@@ -383,13 +383,13 @@ export const getDocumentTypeWithGroup = authenticatedQuery({
 			return {
 				type: documentType,
 				group,
-				isLegacy: Object.prototype.hasOwnProperty.call(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType),
+				isLegacy: Object.hasOwn(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType),
 				resolutionMethod: "found",
 			};
 		}
 
 		// Check if it's a legacy type
-		if (Object.prototype.hasOwnProperty.call(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
+		if (Object.hasOwn(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
 			const legacyGroupName = LEGACY_TYPE_TO_GROUP_MAPPING[normalizedType];
 			const group = await ctx.db
 				.query("document_groups")
@@ -501,7 +501,7 @@ export const validateDocumentCategorization = authenticatedQuery({
 
 		if (!documentType) {
 			// Check if it's a legacy type
-			if (!Object.prototype.hasOwnProperty.call(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
+			if (!Object.hasOwn(LEGACY_TYPE_TO_GROUP_MAPPING, normalizedType)) {
 				issues.push(
 					`Document type "${args.document.type}" does not exist and is not a legacy type`
 				);

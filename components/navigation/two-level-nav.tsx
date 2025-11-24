@@ -57,19 +57,6 @@ export function TwoLevelNav({
 								</div>
 								<span className="font-semibold text-foreground">FairLend</span>
 							</div>
-
-							{/* Project Selector - Hidden on mobile */}
-							{/* <div className="hidden cursor-pointer items-center gap-2 rounded-md bg-secondary/50 px-3 py-1.5 transition-colors hover:bg-secondary md:flex">
-								<div className="size-2 rounded-full bg-primary" />
-								<span className="text-foreground text-sm">Main Project</span>
-								<Badge
-									className="border-0 bg-primary/20 text-primary text-xs"
-									variant="secondary"
-								>
-									Pro
-								</Badge>
-								<ChevronDown className="size-3 text-muted-foreground" />
-							</div> */}
 						</div>
 
 						{/* Center - Tubelight Tabs (Desktop only) */}
@@ -167,17 +154,6 @@ export function TwoLevelNav({
 							)}
 							{!isListingsPage(pathname) && (
 								<div className="flex items-center gap-2 md:gap-3">
-									{/* Search */}
-									{/* <Button
-									className="flex items-center gap-2 rounded-lg bg-secondary/50 px-2 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-secondary md:px-3"
-									onClick={() => setCommandOpen(true)}
-									variant="ghost"
-								>
-									<Search className="size-4" />
-									<span className="hidden text-xs sm:inline">Search...</span>
-								</Button> */}
-
-									{/* Feedback - Hidden on small mobile */}
 									<Button
 										className="hidden h-8 text-sm sm:flex"
 										size="sm"
@@ -197,7 +173,7 @@ export function TwoLevelNav({
 							{/* Backdrop */}
 							<motion.div
 								animate={{ opacity: 1 }}
-								className="fixed inset-0 top-28 z-40 bg-background/50 backdrop-blur-md lg:hidden"
+								className="fixed inset-0 top-16 z-40 bg-background/50 backdrop-blur-md lg:hidden"
 								exit={{ opacity: 0 }}
 								initial={{ opacity: 0 }}
 								onClick={() => setMobileMenuOpen(false)}
@@ -207,7 +183,7 @@ export function TwoLevelNav({
 							{/* Menu Content */}
 							<motion.div
 								animate={{ opacity: 0.7, y: 0 }}
-								className="fixed top-28 right-0 left-0 z-50 rounded-lg border-border border-b bg-background/50 shadow-2xl backdrop-blur-xl lg:hidden"
+								className="fixed top-16 right-0 left-0 z-50 rounded-lg border-border border-b bg-background/50 shadow-2xl backdrop-blur-xl lg:hidden"
 								exit={{ opacity: 0, y: -20 }}
 								initial={{ opacity: 0, y: -20 }}
 								transition={{ duration: 0.3, ease: "easeOut" }}

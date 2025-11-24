@@ -101,16 +101,16 @@ export default async function ListingDetailPage({
 
 	return (
 		<ViewTransition name={`listing-${id}`}>
-			<div className="container mx-auto max-w-7xl px-4 py-8">
+			<div className="container mx-auto flex max-w-7xl flex-col gap-y-8 px-4 py-8 lg:gap-y-12">
 				{/* Property Info - High Priority */}
-				<div className="mb-8">
+				<div>
 					<Suspense fallback={<PropertyInfoSkeleton />}>
 						<PropertyInfoAsync mortgageId={id as Id<"mortgages">} />
 					</Suspense>
 				</div>
 
 				{/* Image Carousel and Map Grid - High Priority */}
-				<div className="mb-12 grid gap-6 lg:grid-cols-2">
+				<div className="grid gap-6 lg:grid-cols-2">
 					<Suspense fallback={<ImageCarouselSkeleton />}>
 						<ImageCarouselAsync mortgageId={id as Id<"mortgages">} />
 					</Suspense>

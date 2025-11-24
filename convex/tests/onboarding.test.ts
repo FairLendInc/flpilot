@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import schema from "../schema";
 
 // Lazy import for all modules so convexTest can load handlers
@@ -216,7 +216,8 @@ describe("Onboarding journeys", () => {
 		const admin2 = withIdentity(t, adminSubject2, "admin");
 		await expect(
 			admin2.mutation(api.onboarding.rejectJourney, {
-				journeyId: pending?.[0]?.journey._id ?? ("" as Id<"onboarding_journeys">),
+				journeyId:
+					pending?.[0]?.journey._id ?? ("" as Id<"onboarding_journeys">),
 				reason: "needs more info",
 			})
 		).rejects.toThrow("Only pending journeys can be rejected");

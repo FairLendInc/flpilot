@@ -7,5 +7,6 @@ export default async function DashboardPage() {
 		redirect("/profile");
 	}
 
-	redirect(`/dashboard/${user.role}`);
+	const reditect = user?.role === "org-admin" ? "admin" : user?.role;
+	redirect(`/dashboard/${reditect}`);
 }

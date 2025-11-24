@@ -7,6 +7,7 @@ import {
 } from "@/components/ListingGridShell";
 import { Horizontal } from "@/components/listing-card-horizontal";
 import { ListingMapPopup } from "@/components/listing-map-popup";
+import type { MobileListingSection } from "@/components/mobile-listing-scroller";
 import { ListingsGridSkeleton } from "@/components/skeletons";
 import { api } from "@/convex/_generated/api";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
@@ -119,8 +120,47 @@ export function ListingsClient() {
 		return <ListingsGridSkeleton />;
 	}
 
+	// Group listings for mobile view
+	const groupItemsForMobile = (items: readonly ListingItem[]) => {
+		const firstMortgages = items.filter(
+			(item) => item.mortgageType === "First"
+		);
+		const secondMortgages = items.filter(
+			(item) => item.mortgageType === "Second"
+		);
+		const otherMortgages = items.filter(
+			(item) => item.mortgageType !== "First" && item.mortgageType !== "Second"
+		);
+
+		const sections: MobileListingSection<ListingItem>[] = [];
+
+		if (firstMortgages.length > 0) {
+			sections.push({
+				title: "1st Mortgages",
+				items: firstMortgages,
+			});
+		}
+
+		if (secondMortgages.length > 0) {
+			sections.push({
+				title: "2nd Mortgages",
+				items: secondMortgages,
+			});
+		}
+
+		if (otherMortgages.length > 0) {
+			sections.push({
+				title: "Other Opportunities",
+				items: otherMortgages,
+			});
+		}
+
+		return sections;
+	};
+
 	return (
 		<ListingGridShell
+			groupItemsForMobile={groupItemsForMobile}
 			items={listings}
 			mapProps={{
 				initialCenter: { lat: 43.6532, lng: -79.3832 }, // Toronto

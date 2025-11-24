@@ -40,6 +40,7 @@ type Membership = {
 	organizationId: string;
 	organizationName: string;
 	organizationCreatedAt: string;
+	membershipOrgId: string; // WorkOS organization ID from the membership
 	primaryRoleSlug?: string;
 	membershipRole?: {
 		slug: string;
@@ -82,10 +83,12 @@ function getInitials(
 }
 
 export default function ProfilePage() {
-	const { user: authUser } = useAuth();
+	const { user: authUser, switchToOrganization } = useAuth();
 	const data = useAuthenticatedQuery(api.profile.getCurrentUserProfile, {});
 	useProvisionCurrentUser(data);
-	console.log("PROFILE DATA", { data });
+	console.log("PROFILE DATA", { data, user: authUser });
+	const user = useAuthenticatedQuery(api.profile.getUserIdentity, {});
+	console.log("USER: ", user);
 
 	const updateProfile = useMutation(api.profile.updateProfile);
 	const setActiveOrg = useMutation(api.profile.setActiveOrganization);
@@ -185,12 +188,31 @@ export default function ProfilePage() {
 	async function onChangeOrg(value: string) {
 		setActiveOrgLocal(value);
 		try {
-			await setActiveOrg({ organization_id: value });
-			toast.success("Organization updated");
+			// Find the membership to get the WorkOS organization ID
+			const membership = data?.memberships?.find(
+				(m) => m.organizationId === value
+			);
+			if (!membership) {
+				throw new Error("Organization not found");
+			}
+
+			// First, update Convex DB while we still have valid auth
+			await setActiveOrg({ organization_id: membership.membershipOrgId });
+
+			// Then switch the WorkOS organization session
+			// This may trigger re-authentication and will refresh tokens
+			await switchToOrganization(membership.membershipOrgId);
+
+			// After successful WorkOS switch, reload to sync all auth state
+			// This ensures Convex client gets the new tokens
+			toast.success("Organization updated. Refreshing...");
+			window.location.reload();
 		} catch (e: unknown) {
 			const errorMessage =
 				e instanceof Error ? e.message : "Unable to change organization";
 			toast.error(errorMessage);
+			// Revert local state on error
+			setActiveOrgLocal(data?.activeOrganizationId || "");
 		}
 	}
 
