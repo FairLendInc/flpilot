@@ -48,12 +48,12 @@ export default async function proxy(req: NextRequest) {
 		// Rewrite root to the tenant directory: app/tenant/page.tsx
 		// We map the root subdomain traffic to this placeholder for now
 		// For other paths, we keep the path but inject the subdomain header
-		const url = req.nextUrl.clone();
-		if (url.pathname === "/") {
-			url.pathname = "/tenant";
+		const suburl = req.nextUrl.clone();
+		if (suburl.pathname === "/") {
+			suburl.pathname = "/tenant";
 		}
 
-		const rewriteRes = NextResponse.rewrite(url, {
+		const rewriteRes = NextResponse.rewrite(suburl, {
 			request: {
 				headers: new Headers({
 					...Object.fromEntries(req.headers),
@@ -70,7 +70,7 @@ export default async function proxy(req: NextRequest) {
 		finalRes = rewriteRes;
 
 		// If we rewrote to /tenant (root path), return immediately
-		if (url.pathname === "/tenant") {
+		if (suburl.pathname === "/tenant") {
 			return finalRes;
 		}
 	}
@@ -138,4 +138,3 @@ export const config = {
 		"/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
 	],
 };
-
