@@ -4,10 +4,10 @@
  */
 
 import { v } from "convex/values";
-import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
-
-const authenticatedQuery = createAuthorizedQuery(["any"]);
-const authenticatedMutation = createAuthorizedMutation(["any"]);
+import {
+	authenticatedMutation,
+	authenticatedQuery,
+} from "./lib/authorizedFunctions";
 
 /**
  * Schema for borrower document (includes Convex system fields)

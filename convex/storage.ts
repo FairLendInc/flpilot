@@ -1,12 +1,12 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { query } from "./_generated/server";
+import { authenticatedQuery } from "./lib/authorizedFunctions";
 
 /**
  * Get a signed URL for a file in Convex storage
  * This is a temporary helper for testing the document viewer with a known file ID
  */
-export const getTestDocumentUrl = query({
+export const getTestDocumentUrl = authenticatedQuery({
 	args: {},
 	returns: v.union(v.string(), v.null()),
 	handler: async (ctx) => {
@@ -23,7 +23,7 @@ export const getTestDocumentUrl = query({
 /**
  * Get a signed URL for any file in Convex storage
  */
-export const getFileUrl = query({
+export const getFileUrl = authenticatedQuery({
 	args: { storageId: v.id("_storage") },
 	returns: v.union(v.string(), v.null()),
 	handler: async (ctx, args) => {
@@ -38,7 +38,7 @@ export const getFileUrl = query({
  * Get file metadata and data for proxying
  * Used by Next.js API routes to avoid signed URL expiration
  */
-export const getFile = query({
+export const getFile = authenticatedQuery({
 	args: { storageId: v.id("_storage") },
 	returns: v.union(
 		v.object({

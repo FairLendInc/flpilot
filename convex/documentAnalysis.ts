@@ -2,9 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { createAuthorizedMutation } from "./lib/server";
-
-const authenticatedMutation = createAuthorizedMutation(["any"]);
+import { authenticatedMutation } from "./lib/authorizedFunctions";
 
 // Document analysis result interfaces
 export type DocumentContentAnalysis = {

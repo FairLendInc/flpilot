@@ -1,23 +1,26 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { LockRequestsTable } from "./components/LockRequestsTable";
 
 export default function AdminLockRequestsPage() {
 	// Fetch counts for badges
-	const pendingRequests = useQuery(
-		api.lockRequests.getPendingLockRequestsWithDetails
+	const pendingRequests = useAuthenticatedQuery(
+		api.lockRequests.getPendingLockRequestsWithDetails,
+		{}
 	);
-	const approvedRequests = useQuery(
-		api.lockRequests.getApprovedLockRequestsWithDetails
+	const approvedRequests = useAuthenticatedQuery(
+		api.lockRequests.getApprovedLockRequestsWithDetails,
+		{}
 	);
-	const rejectedRequests = useQuery(
-		api.lockRequests.getRejectedLockRequestsWithDetails
+	const rejectedRequests = useAuthenticatedQuery(
+		api.lockRequests.getRejectedLockRequestsWithDetails,
+		{}
 	);
 
 	const pendingCount = pendingRequests?.length ?? 0;

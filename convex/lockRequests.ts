@@ -8,7 +8,10 @@ import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
+import {
+	authenticatedMutation,
+	authenticatedQuery,
+} from "./lib/authorizedFunctions";
 
 const MAX_NOTES_LENGTH = 1000;
 const LAWYER_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -169,7 +172,7 @@ function validateLawyerEmail(email: string): void {
  * });
  * ```
  */
-export const createLockRequest = mutation({
+export const createLockRequest = authenticatedMutation({
 	args: {
 		listingId: v.id("listings"),
 		requestNotes: v.optional(v.string()),
@@ -297,7 +300,7 @@ export const createLockRequest = mutation({
  * }
  * ```
  */
-export const approveLockRequest = mutation({
+export const approveLockRequest = authenticatedMutation({
 	args: {
 		requestId: v.id("lock_requests"),
 	},
@@ -426,7 +429,7 @@ export const approveLockRequest = mutation({
  * });
  * ```
  */
-export const rejectLockRequest = mutation({
+export const rejectLockRequest = authenticatedMutation({
 	args: {
 		requestId: v.id("lock_requests"),
 		rejectionReason: v.optional(v.string()),
@@ -509,7 +512,7 @@ export const rejectLockRequest = mutation({
  * await cancelLockRequest({ requestId: "kg25zy58..." });
  * ```
  */
-export const cancelLockRequest = mutation({
+export const cancelLockRequest = authenticatedMutation({
 	args: {
 		requestId: v.id("lock_requests"),
 	},
@@ -556,7 +559,7 @@ export const cancelLockRequest = mutation({
 /**
  * Get a single lock request by ID
  */
-export const getLockRequest = query({
+export const getLockRequest = authenticatedQuery({
 	args: {
 		requestId: v.id("lock_requests"),
 	},
@@ -615,7 +618,7 @@ export const getLockRequest = query({
 /**
  * Get all pending lock requests (admin dashboard)
  */
-export const getPendingLockRequests = query({
+export const getPendingLockRequests = authenticatedQuery({
 	args: {},
 	returns: v.array(
 		v.object({
@@ -676,7 +679,7 @@ export const getPendingLockRequests = query({
 /**
  * Get pending lock requests with full details (joined data)
  */
-export const getPendingLockRequestsWithDetails = query({
+export const getPendingLockRequestsWithDetails = authenticatedQuery({
 	args: {},
 	returns: v.array(
 		v.object({
@@ -851,7 +854,7 @@ export const getPendingLockRequestsWithDetails = query({
 /**
  * Get all approved lock requests (admin history)
  */
-export const getApprovedLockRequests = query({
+export const getApprovedLockRequests = authenticatedQuery({
 	args: {},
 	returns: v.array(
 		v.object({
@@ -910,7 +913,7 @@ export const getApprovedLockRequests = query({
 /**
  * Get approved lock requests with full details
  */
-export const getApprovedLockRequestsWithDetails = query({
+export const getApprovedLockRequestsWithDetails = authenticatedQuery({
 	args: {},
 	returns: v.array(
 		v.object({
@@ -1089,7 +1092,7 @@ export const getApprovedLockRequestsWithDetails = query({
 /**
  * Get all rejected lock requests (admin history)
  */
-export const getRejectedLockRequests = query({
+export const getRejectedLockRequests = authenticatedQuery({
 	args: {},
 	returns: v.array(
 		v.object({
@@ -1150,7 +1153,7 @@ export const getRejectedLockRequests = query({
 /**
  * Get rejected lock requests with full details
  */
-export const getRejectedLockRequestsWithDetails = query({
+export const getRejectedLockRequestsWithDetails = authenticatedQuery({
 	args: {},
 	returns: v.array(
 		v.object({
@@ -1331,7 +1334,7 @@ export const getRejectedLockRequestsWithDetails = query({
 /**
  * Get all lock requests for a specific listing
  */
-export const getLockRequestsByListing = query({
+export const getLockRequestsByListing = authenticatedQuery({
 	args: {
 		listingId: v.id("listings"),
 	},
@@ -1382,7 +1385,7 @@ export const getLockRequestsByListing = query({
 /**
  * Get pending lock requests for a specific listing
  */
-export const getPendingLockRequestsByListing = query({
+export const getPendingLockRequestsByListing = authenticatedQuery({
 	args: {
 		listingId: v.id("listings"),
 	},
@@ -1440,7 +1443,7 @@ export const getPendingLockRequestsByListing = query({
 /**
  * Get all lock requests by a specific user (investor's own requests)
  */
-export const getUserLockRequests = query({
+export const getUserLockRequests = authenticatedQuery({
 	args: {},
 	returns: v.array(
 		v.object({
@@ -1489,7 +1492,7 @@ export const getUserLockRequests = query({
 /**
  * Get a single lock request with full details
  */
-export const getLockRequestWithDetails = query({
+export const getLockRequestWithDetails = authenticatedQuery({
 	args: {
 		requestId: v.id("lock_requests"),
 	},

@@ -7,9 +7,9 @@ import {
 	searchTemplates,
 } from "../lib/documenso";
 import { internal } from "./_generated/api";
-import { action } from "./_generated/server";
+import { authenticatedAction } from "./lib/authorizedFunctions";
 
-export const searchTemplatesAction = action({
+export const searchTemplatesAction = authenticatedAction({
 	args: { query: v.optional(v.string()) },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -27,7 +27,7 @@ export const searchTemplatesAction = action({
 	},
 });
 
-export const getSigningTokenAction = action({
+export const getSigningTokenAction = authenticatedAction({
 	args: {
 		documentId: v.string(),
 		email: v.string(),
@@ -76,7 +76,7 @@ export const getSigningTokenAction = action({
 	},
 });
 
-export const getTemplateDetailsAction = action({
+export const getTemplateDetailsAction = authenticatedAction({
 	args: { templateId: v.string() },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -93,7 +93,7 @@ export const getTemplateDetailsAction = action({
 	},
 });
 
-export const getDocumentAction = action({
+export const getDocumentAction = authenticatedAction({
 	args: { documentId: v.string() },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -105,7 +105,7 @@ export const getDocumentAction = action({
 	},
 });
 
-export const createDocumentFromTemplateAction = action({
+export const createDocumentFromTemplateAction = authenticatedAction({
 	args: {
 		dealId: v.id("deals"),
 		templateId: v.string(),

@@ -2,9 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalQuery } from "./_generated/server";
-import { createAuthorizedQuery } from "./lib/server";
-
-const authenticatedQuery = createAuthorizedQuery(["any"]);
+import { authenticatedQuery } from "./lib/authorizedFunctions";
 
 type DocumentGroupResolution = {
 	group: string;

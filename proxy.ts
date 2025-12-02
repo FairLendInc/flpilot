@@ -1,5 +1,7 @@
 import { authkit, authkitMiddleware } from "@workos-inc/authkit-nextjs";
 import { type NextRequest, NextResponse } from "next/server";
+import { ROOT_DOMAIN } from "./lib/siteurl";
+import { getSubdomain } from "./lib/subdomains";
 
 const ROLES = new Set(["admin", "broker", "lawyer", "member", "investor"]);
 /**
@@ -54,6 +56,16 @@ const base = authkitMiddleware({
 // }
 
 export default async function proxy(req: NextRequest) {
+	const url = req.nextUrl;
+	const hostname = req.headers.get("host");
+	const subdomain = getSubdomain(hostname, ROOT_DOMAIN);
+
+	if (subdomain) {
+		// Rewrite to the tenant directory: app/[domain]/...
+		url.pathname = `/${subdomain}${url.pathname}`;
+		return NextResponse.rewrite(url);
+	}
+
 	const res = (await base(
 		req as Parameters<typeof base>[0],
 		{} as Parameters<typeof base>[1]

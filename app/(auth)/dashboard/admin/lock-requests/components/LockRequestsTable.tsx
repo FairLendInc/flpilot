@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import {
 	AlertCircle,
@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
 	type LockRequestSortColumn,
 	type LockStatusFilter,
@@ -137,14 +138,17 @@ export function LockRequestsTable({
 	listingId,
 }: LockRequestsTableProps) {
 	const router = useRouter();
-	const pendingRequests = useQuery(
-		api.lockRequests.getPendingLockRequestsWithDetails
+	const pendingRequests = useAuthenticatedQuery(
+		api.lockRequests.getPendingLockRequestsWithDetails,
+		{}
 	);
-	const approvedRequests = useQuery(
-		api.lockRequests.getApprovedLockRequestsWithDetails
+	const approvedRequests = useAuthenticatedQuery(
+		api.lockRequests.getApprovedLockRequestsWithDetails,
+		{}
 	);
-	const rejectedRequests = useQuery(
-		api.lockRequests.getRejectedLockRequestsWithDetails
+	const rejectedRequests = useAuthenticatedQuery(
+		api.lockRequests.getRejectedLockRequestsWithDetails,
+		{}
 	);
 
 	// Derive pendingRequestsData from existing pendingRequests query

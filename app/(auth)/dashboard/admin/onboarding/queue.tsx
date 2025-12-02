@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -31,8 +32,8 @@ export function PreloadedOnboardingQueue() {
 }
 
 function OnboardingQueueClient() {
-	const pending = useQuery(api.onboarding.listPending);
-	const organizations = useQuery(api.organizations.listOrganizations);
+	const pending = useAuthenticatedQuery(api.onboarding.listPending, {});
+	const organizations = useAuthenticatedQuery(api.organizations.listOrganizations, {});
 	const approveJourney = useMutation(api.onboarding.approveJourney);
 	const rejectJourney = useMutation(api.onboarding.rejectJourney);
 	const [selectedId, setSelectedId] = useState<string | null>(null);

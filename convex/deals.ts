@@ -25,8 +25,12 @@ import {
 	type DealEventWithAdmin,
 	dealMachine,
 } from "./dealStateMachine";
+import {
+	adminAction,
+	authenticatedAction,
+	authenticatedMutation,
+} from "./lib/authorizedFunctions";
 import { getBrokerOfRecord } from "./lib/broker";
-import { createAuthorizedAction, createAuthorizedMutation } from "./lib/server";
 import { createOwnershipInternal } from "./ownership";
 
 type AuthContextFields = {
@@ -169,10 +173,6 @@ async function requireAdmin<T extends boolean = false>(
 
 	return userId as RequireAdminReturn<T>;
 }
-
-const authenticatedMutation = createAuthorizedMutation(["any"]);
-const authenticatedAction = createAuthorizedAction(["any"]);
-const adminAction = createAuthorizedAction(["admin"]);
 
 // ============================================================================
 // QUERIES

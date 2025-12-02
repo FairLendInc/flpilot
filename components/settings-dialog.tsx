@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	AlertCircle,
 	ArrowRightCircle,
@@ -60,6 +60,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	DEAL_STATE_COLORS,
@@ -241,8 +242,10 @@ const messageSubTabs = [
 
 function NotificationsContent() {
 	const router = useRouter();
-	const alerts = useQuery(api.alerts.getAllUserAlerts, { limit: 50 });
-	const unreadCount = useQuery(api.alerts.getUnreadAlertCount);
+	const alerts = useAuthenticatedQuery(api.alerts.getAllUserAlerts, {
+		limit: 50,
+	});
+	const unreadCount = useAuthenticatedQuery(api.alerts.getUnreadAlertCount, {});
 	const markAlertAsRead = useMutation(api.alerts.markAlertAsRead);
 	const markAllAsRead = useMutation(api.alerts.markAllAlertsAsRead);
 
@@ -464,7 +467,7 @@ function FilesContent() {
 
 function DealsContent() {
 	const router = useRouter();
-	const deals = useQuery(api.deals.getAllActiveDeals);
+	const deals = useAuthenticatedQuery(api.deals.getAllActiveDeals, {});
 
 	function getDaysInState(_createdAt: number, updatedAt: number): number {
 		return Math.floor((Date.now() - updatedAt) / (1000 * 60 * 60 * 24));
@@ -566,14 +569,17 @@ function DealsContent() {
 
 function DealRequestsContent() {
 	const router = useRouter();
-	const pendingRequests = useQuery(
-		api.lockRequests.getPendingLockRequestsWithDetails
+	const pendingRequests = useAuthenticatedQuery(
+		api.lockRequests.getPendingLockRequestsWithDetails,
+		{}
 	);
-	const approvedRequests = useQuery(
-		api.lockRequests.getApprovedLockRequestsWithDetails
+	const approvedRequests = useAuthenticatedQuery(
+		api.lockRequests.getApprovedLockRequestsWithDetails,
+		{}
 	);
-	const rejectedRequests = useQuery(
-		api.lockRequests.getRejectedLockRequestsWithDetails
+	const rejectedRequests = useAuthenticatedQuery(
+		api.lockRequests.getRejectedLockRequestsWithDetails,
+		{}
 	);
 
 	// Combine all requests
@@ -711,7 +717,7 @@ export function SettingsDialog() {
 	const [activeSubTab, setActiveSubTab] = React.useState("messages-list");
 	const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
 	const isMobile = useIsMobile();
-	const unreadCount = useQuery(api.alerts.getUnreadAlertCount);
+	const unreadCount = useAuthenticatedQuery(api.alerts.getUnreadAlertCount, {});
 
 	// Update notification count dynamically
 	const sectionsWithCounts = React.useMemo(

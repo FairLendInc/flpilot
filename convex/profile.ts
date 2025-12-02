@@ -2,15 +2,22 @@ import type { FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
 import type { WorkOSIdentity } from "../types/workos";
 import { type api, internal } from "./_generated/api";
-import { action, mutation, query } from "./_generated/server";
+import {
+	authenticatedAction,
+	authenticatedMutation,
+	authenticatedQuery,
+} from "./lib/authorizedFunctions";
+import {query} from "./_generated/server";
 
 export const getUserIdentity = query(async (ctx) => {
 	const identity = await ctx.auth.getUserIdentity();
-	console.log("Identity FROM SERVER", identity);
-	return identity;
-});
+		console.log("Identity FROM SERVER", identity);
+		return identity;
+	},
+)
 
-export const getCurrentUserProfile = query({
+export const getCurrentUserProfile = authenticatedQuery({
+	args: {},
 	handler: async (ctx) => {
 		const identity: WorkOSIdentity | null = await ctx.auth.getUserIdentity();
 
@@ -121,7 +128,7 @@ export type UserProfileReturnType = FunctionReturnType<
 	typeof api.profile.getCurrentUserProfile
 >;
 
-export const updateProfile = mutation({
+export const updateProfile = authenticatedMutation({
 	args: v.object({
 		first_name: v.optional(v.string()),
 		last_name: v.optional(v.string()),
@@ -162,7 +169,7 @@ export const updateProfile = mutation({
 	},
 });
 
-export const setActiveOrganization = mutation({
+export const setActiveOrganization = authenticatedMutation({
 	args: v.object({ organization_id: v.string() }),
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -196,7 +203,7 @@ export const setActiveOrganization = mutation({
 	},
 });
 
-export const generateUploadUrl = action({
+export const generateUploadUrl = authenticatedAction({
 	args: {},
 	returns: v.string(),
 	handler: async (ctx) => {
@@ -207,7 +214,7 @@ export const generateUploadUrl = action({
 	},
 });
 
-export const saveProfilePicture = mutation({
+export const saveProfilePicture = authenticatedMutation({
 	args: v.object({ storageId: v.id("_storage") }),
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -238,7 +245,7 @@ export const saveProfilePicture = mutation({
 	},
 });
 
-export const syncOrganizationsFromWorkOS = action({
+export const syncOrganizationsFromWorkOS = authenticatedAction({
 	args: {},
 	returns: v.object({
 		success: v.boolean(),
