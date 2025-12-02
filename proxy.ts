@@ -4,76 +4,75 @@ import { ROOT_DOMAIN } from "./lib/siteurl";
 import { getSubdomain } from "./lib/subdomains";
 
 const ROLES = new Set(["admin", "broker", "lawyer", "member", "investor"]);
-/**
- * Get the redirect URI for WorkOS authentication.
- * Priority:
- * 1. VERCEL_URL (automatically set by Vercel)
- * 2. NEXT_PUBLIC_SITE_URL (for custom domains)
- * 3. NEXT_PUBLIC_WORKOS_REDIRECT_URI (for local development)
- * 4. Fallback to localhost:3000
- */
-function getRedirectUri(): string {
-	// Production: Use VERCEL_URL or construct from environment
-	if (process.env.VERCEL_URL) {
-		return `https://${process.env.VERCEL_URL}/callback`;
-	}
-
-	// Custom production URL
-	if (process.env.NEXT_PUBLIC_SITE_URL) {
-		return `${process.env.NEXT_PUBLIC_SITE_URL}/callback`;
-	}
-
-	// Development fallback
-	return (
-		process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ||
-		"http://localhost:3000/callback"
-	);
-}
-
-const base = authkitMiddleware({
-	redirectUri: getRedirectUri(),
-	eagerAuth: true,
-	middlewareAuth: {
-		enabled: true,
-		unauthenticatedPaths: ["/", "/sign-in", "/sign-up"],
-	},
-});
-
-// function generateRequestId() {
-// 	try {
-// 		// Prefer Web Crypto API when available (Edge-safe)
-// 		// @ts-ignore
-// 		if (
-// 			typeof crypto !== "undefined" &&
-// 			typeof crypto.randomUUID === "function"
-// 		)
-// 			return crypto.randomUUID();
-// 	} catch (e) {
-// 		// ignore
-// 	}
-// 	// fallback small random id
-// 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-// }
 
 export default async function proxy(req: NextRequest) {
 	const url = req.nextUrl;
-	const hostname = req.headers.get("host");
+	const hostname = req.headers.get("host") || "";
 	const subdomain = getSubdomain(hostname, ROOT_DOMAIN);
 
-	if (subdomain) {
-		// Rewrite to the tenant directory: app/[domain]/...
-		url.pathname = `/${subdomain}${url.pathname}`;
-		return NextResponse.rewrite(url);
-	}
+	// Dynamic redirect URI based on the current request's host to support subdomains
+	// This ensures the auth callback returns to the correct subdomain (e.g. app.localhost:3000)
+	const protocol = url.protocol;
+	const redirectUri = `${protocol}//${hostname}/callback`;
 
-	const res = (await base(
-		req as Parameters<typeof base>[0],
-		{} as Parameters<typeof base>[1]
+	const mw = authkitMiddleware({
+		redirectUri,
+		eagerAuth: true,
+		middlewareAuth: {
+			enabled: true,
+			unauthenticatedPaths: [
+				"/",
+				"/sign-in",
+				"/sign-up",
+				"/tenant",
+				"/blog",
+				"/contact",
+				"/about",
+			],
+		},
+	});
+
+	const res = (await mw(
+		req as Parameters<typeof mw>[0],
+		{} as Parameters<typeof mw>[1]
 	)) as NextResponse;
 
 	// If WorkOS already issued a redirect (e.g., login flow), honor it immediately.
 	if (res.headers.get("location")) {
 		return res;
+	}
+
+	let finalRes = res;
+
+	if (subdomain) {
+		// Rewrite root to the tenant directory: app/tenant/page.tsx
+		// We map the root subdomain traffic to this placeholder for now
+		// For other paths, we keep the path but inject the subdomain header
+		const url = req.nextUrl.clone();
+		if (url.pathname === "/") {
+			url.pathname = "/tenant";
+		}
+
+		const rewriteRes = NextResponse.rewrite(url, {
+			request: {
+				headers: new Headers({
+					...Object.fromEntries(req.headers),
+					"x-subdomain": subdomain,
+				}),
+			},
+		});
+
+		// Preserve headers from AuthKit response (e.g. Set-Cookie)
+		res.headers.forEach((val, key) => {
+			rewriteRes.headers.set(key, val);
+		});
+
+		finalRes = rewriteRes;
+
+		// If we rewrote to /tenant (root path), return immediately
+		if (url.pathname === "/tenant") {
+			return finalRes;
+		}
 	}
 
 	//Details in session isn't changin between reloads.
@@ -84,7 +83,7 @@ export default async function proxy(req: NextRequest) {
 		return dashboardRedirect;
 	}
 
-	return res;
+	return finalRes;
 }
 
 type Session = Awaited<ReturnType<typeof authkit>>["session"];
@@ -139,3 +138,4 @@ export const config = {
 		"/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
 	],
 };
+
