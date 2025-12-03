@@ -2,19 +2,18 @@ import type { FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
 import type { WorkOSIdentity } from "../types/workos";
 import { type api, internal } from "./_generated/api";
+import { query } from "./_generated/server";
 import {
 	authenticatedAction,
 	authenticatedMutation,
 	authenticatedQuery,
 } from "./lib/authorizedFunctions";
-import {query} from "./_generated/server";
 
 export const getUserIdentity = query(async (ctx) => {
 	const identity = await ctx.auth.getUserIdentity();
-		console.log("Identity FROM SERVER", identity);
-		return identity;
-	},
-)
+	console.log("Identity FROM SERVER", identity);
+	return identity;
+});
 
 export const getCurrentUserProfile = authenticatedQuery({
 	args: {},

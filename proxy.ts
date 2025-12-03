@@ -107,7 +107,10 @@ const maybeRedirectDashboard = (req: NextRequest, session: Session) => {
 
 	const pathSet = new Set(pathname.split("/"));
 	console.log("ROLES", ROLES.isDisjointFrom(pathSet));
-	if (ROLES.isDisjointFrom(pathSet)) {
+
+	// If the user is at the root /dashboard, we want to redirect them to their role-specific dashboard
+	// If they are already at a specific dashboard (e.g. /dashboard/investor), we check if it matches their role
+	if (pathname !== "/dashboard" && ROLES.isDisjointFrom(pathSet)) {
 		return null;
 	}
 	//TODO: figure out how to handle padmin. Temp hardcode to handle padmin
