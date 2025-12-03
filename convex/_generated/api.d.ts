@@ -21,6 +21,7 @@ import type * as documentAnalysis from "../documentAnalysis.js";
 import type * as documentCategorization from "../documentCategorization.js";
 import type * as documentGroups from "../documentGroups.js";
 import type * as documentTypes from "../documentTypes.js";
+import type * as flags from "../flags.js";
 import type * as http from "../http.js";
 import type * as lib_authorizedFunctions from "../lib/authorizedFunctions.js";
 import type * as lib_broker from "../lib/broker.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   documentCategorization: typeof documentCategorization;
   documentGroups: typeof documentGroups;
   documentTypes: typeof documentTypes;
+  flags: typeof flags;
   http: typeof http;
   "lib/authorizedFunctions": typeof lib_authorizedFunctions;
   "lib/broker": typeof lib_broker;

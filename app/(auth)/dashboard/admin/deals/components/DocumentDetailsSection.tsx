@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { FileText, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { AddDocumentDialog } from "./AddDocumentDialog";
 
 type DocumentDetailsSectionProps = {
@@ -30,7 +30,9 @@ type DocumentDetailsSectionProps = {
 export function DocumentDetailsSection({
 	dealId,
 }: DocumentDetailsSectionProps) {
-	const documents = useQuery(api.deal_documents.getDealDocuments, { dealId });
+	const documents = useAuthenticatedQuery(api.deal_documents.getDealDocuments, {
+		dealId,
+	});
 
 	return (
 		<Card>

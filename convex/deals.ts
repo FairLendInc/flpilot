@@ -815,7 +815,7 @@ export const createDealInternal = internalMutation({
 			createdAt: Date.now(),
 			updatedAt: Date.now(),
 			stateHistory: args.stateHistory,
-			status: "pending", // Initial status
+			// status: "pending", // Initial status
 			// New fields
 			brokerId: args.brokerId,
 			brokerName: args.brokerName,
@@ -831,24 +831,24 @@ export const createDealInternal = internalMutation({
 /**
  * Internal mutation to update deal status
  */
-export const updateDealStatusInternal = internalMutation({
-	args: {
-		dealId: v.id("deals"),
-		status: v.union(
-			v.literal("pending"),
-			v.literal("active"),
-			v.literal("completed"),
-			v.literal("cancelled"),
-			v.literal("archived")
-		),
-	},
-	handler: async (ctx, args) => {
-		await ctx.db.patch(args.dealId, {
-			status: args.status,
-			updatedAt: Date.now(),
-		});
-	},
-});
+// export const updateDealStatusInternal = internalMutation({
+// 	args: {
+// 		dealId: v.id("deals"),
+// 		status: v.union(
+// 			v.literal("pending"),
+// 			v.literal("active"),
+// 			v.literal("completed"),
+// 			v.literal("cancelled"),
+// 			v.literal("archived")
+// 		),
+// 	},
+// 	handler: async (ctx, args) => {
+// 		await ctx.db.patch(args.dealId, {
+// 			// status: args.status,
+// 			updatedAt: Date.now(),
+// 		});
+// 	},
+// });
 
 /**
  * Create a new deal from an approved lock request
