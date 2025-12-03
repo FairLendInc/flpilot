@@ -2,8 +2,7 @@ import { authkit, authkitMiddleware } from "@workos-inc/authkit-nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 import { ROOT_DOMAIN } from "./lib/siteurl";
 import { getSubdomain } from "./lib/subdomains";
-
-const ROLES = new Set(["admin", "broker", "lawyer", "member", "investor"]);
+import { dashboardRedirectForPath } from "./lib/auth/dashboardRoutes";
 
 export default async function proxy(req: NextRequest) {
 	const url = req.nextUrl;
@@ -78,7 +77,7 @@ export default async function proxy(req: NextRequest) {
 	//Details in session isn't changin between reloads.
 	const { session } = await authkit(req);
 
-	const dashboardRedirect = maybeRedirectDashboard(req, session);
+	const dashboardRedirect = maybeRedirectDashboard(req, session, finalRes);
 	if (dashboardRedirect) {
 		return dashboardRedirect;
 	}
@@ -88,49 +87,25 @@ export default async function proxy(req: NextRequest) {
 
 type Session = Awaited<ReturnType<typeof authkit>>["session"];
 
-const maybeRedirectDashboard = (req: NextRequest, session: Session) => {
-	// console.log("session", session);
-
-	const pathname = req.nextUrl.pathname;
-	if (!pathname.startsWith("/dashboard")) {
-		return null;
-	}
-
-	if (!session?.role) {
-		return NextResponse.redirect(new URL("/sign-in", req.url));
-	}
-
-	if (session.role === "member") {
-		console.log("ROLE IS MEMBER");
-		return NextResponse.redirect(new URL("/profile", req.url));
-	}
-
-	const pathSet = new Set(pathname.split("/"));
-	console.log("ROLES", ROLES.isDisjointFrom(pathSet));
-
-	// If the user is at the root /dashboard, we want to redirect them to their role-specific dashboard
-	// If they are already at a specific dashboard (e.g. /dashboard/investor), we check if it matches their role
-	if (pathname !== "/dashboard" && ROLES.isDisjointFrom(pathSet)) {
-		return null;
-	}
-	//TODO: figure out how to handle padmin. Temp hardcode to handle padmin
-	const segment = session.role === "org-admin" ? "admin" : session.role;
-	const updatedPath = replaceUrlSegment(pathname, 2, segment);
-	if (updatedPath !== pathname) {
-		return NextResponse.redirect(new URL(updatedPath, req.url));
-	}
-
-	return null;
-};
-
-const replaceUrlSegment = (
-	url: string,
-	segmentIndex: number,
-	newSegment: string
+const maybeRedirectDashboard = (
+	req: NextRequest,
+	session: Session,
+	baseResponse: NextResponse
 ) => {
-	const urlParts = url.split("/");
-	urlParts[segmentIndex] = newSegment;
-	return urlParts.join("/");
+	const pathname = req.nextUrl.pathname;
+	const destination = dashboardRedirectForPath(pathname, session?.role);
+
+	if (!destination) {
+		return null;
+	}
+
+	const redirectResponse = NextResponse.redirect(new URL(destination, req.url));
+
+	baseResponse.headers.forEach((value, key) => {
+		redirectResponse.headers.set(key, value);
+	});
+
+	return redirectResponse;
 };
 
 export const config = {
