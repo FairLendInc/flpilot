@@ -12,6 +12,7 @@ import {
 } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
+import { VercelToolbar } from "@vercel/toolbar/next";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import NavigationProvider from "@/components/navigation/navigation-provider";
 import { PageSkeleton } from "@/components/skeletons";
@@ -93,6 +94,7 @@ export default function RootLayout({
 					<ConvexClientProvider>
 						<ThemeProvider>
 							<NavigationProvider>
+								{process.env.NODE_ENV !== 'production' && <VercelToolbar />}
 								<main
 									className="h-[calc(100vh-6rem)] bg-background pt-24"
 									id="main-content"
@@ -100,6 +102,7 @@ export default function RootLayout({
 									{children}
 								</main>
 								<Toaster />
+								{/* {enableToolbar ? <VercelToolbar /> : null} */}
 							</NavigationProvider>
 						</ThemeProvider>
 					</ConvexClientProvider>

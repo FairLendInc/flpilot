@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const createWithVercelToolbar = require("@vercel/toolbar/plugins/next");
+
 const nextConfig: NextConfig = {
 	reactCompiler: true,
 	turbopack: {
@@ -38,5 +40,5 @@ const nextConfig: NextConfig = {
 		],
 	},
 };
-
-export default nextConfig;
+const withVercelToolbar = createWithVercelToolbar();
+module.exports = withVercelToolbar(nextConfig);

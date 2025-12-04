@@ -1,8 +1,11 @@
 import { authkit, authkitMiddleware } from "@workos-inc/authkit-nextjs";
+import { precompute } from "flags/next";
 import { type NextRequest, NextResponse } from "next/server";
+import { precomputeFlags } from "@/lib/flags";
+import logger from "@/lib/logger";
+import { dashboardRedirectForPath } from "./lib/auth/dashboardRoutes";
 import { ROOT_DOMAIN } from "./lib/siteurl";
 import { getSubdomain } from "./lib/subdomains";
-import { dashboardRedirectForPath } from "./lib/auth/dashboardRoutes";
 
 export default async function proxy(req: NextRequest) {
 	const url = req.nextUrl;
@@ -41,6 +44,23 @@ export default async function proxy(req: NextRequest) {
 		return res;
 	}
 
+	// Precompute flags for the demo page and attach to headers
+	let flagsCode: string | null = null;
+	if (
+		process.env.FLAGS_SECRET &&
+		req.nextUrl.pathname.startsWith("/flags-demo")
+	) {
+		try {
+			// biome-ignore lint/suspicious/noExplicitAny: flags library type mismatch
+			flagsCode = await (precompute as any)(precomputeFlags, req);
+		} catch (e) {
+			logger.error("precomputeFlags failed", {
+				error: e instanceof Error ? e.message : String(e),
+			});
+			flagsCode = null;
+		}
+	}
+
 	let finalRes = res;
 
 	if (subdomain) {
@@ -57,6 +77,7 @@ export default async function proxy(req: NextRequest) {
 				headers: new Headers({
 					...Object.fromEntries(req.headers),
 					"x-subdomain": subdomain,
+					...(flagsCode ? { "x-precomputed-flags": flagsCode } : {}),
 				}),
 			},
 		});
@@ -80,6 +101,11 @@ export default async function proxy(req: NextRequest) {
 	const dashboardRedirect = maybeRedirectDashboard(req, session, finalRes);
 	if (dashboardRedirect) {
 		return dashboardRedirect;
+	}
+
+	// Attach precomputed flags to the final response headers (for non-rewrite paths)
+	if (flagsCode) {
+		finalRes.headers.set("x-precomputed-flags", flagsCode);
 	}
 
 	return finalRes;

@@ -9,6 +9,25 @@ export default defineSchema({
 	numbers: defineTable({
 		value: v.number(),
 	}),
+	feature_flags: defineTable({
+		key: v.string(),
+		description: v.optional(v.string()),
+		defaultValue: v.boolean(),
+		rules: v.array(
+			v.object({
+				type: v.union(
+					v.literal("global"),
+					v.literal("user"),
+					v.literal("role"),
+					v.literal("percentage")
+				),
+				value: v.optional(v.union(v.string(), v.number())),
+				enabled: v.boolean(),
+			})
+		),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	}).index("by_key", ["key"]),
 	users: defineTable({
 		// WorkOS user ID - primary identifier for webhooks
 		idp_id: v.string(),
@@ -443,15 +462,15 @@ export default defineSchema({
 		investorId: v.id("users"),
 
 		// Status tracking
-		status: v.optional(
-			v.union(
-				v.literal("pending"),
-				v.literal("active"),
-				v.literal("completed"),
-				v.literal("cancelled"),
-				v.literal("archived")
-			)
-		),
+		// status: v.optional(
+		// 	v.union(
+		// 		v.literal("pending"),
+		// 		v.literal("active"),
+		// 		v.literal("completed"),
+		// 		v.literal("cancelled"),
+		// 		v.literal("archived")
+		// 	)
+		// ),
 
 		// XState machine state (serialized JSON)
 		stateMachineState: v.optional(v.string()),
@@ -536,7 +555,7 @@ export default defineSchema({
 		.index("by_listing", ["listingId"])
 		.index("by_mortgage", ["mortgageId"])
 		.index("by_investor", ["investorId"])
-		.index("by_status", ["status"])
+		// .index("by_status", ["status"])
 		.index("by_current_state", ["currentState"])
 		.index("by_created_at", ["createdAt"]),
 
