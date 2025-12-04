@@ -64,6 +64,7 @@ export default async function proxy(req: NextRequest) {
 		return res;
 	}
 
+	//Details in session isn't changin between reloads.
 	const { session } = await authkit(req);
 
 	const dashboardRedirect = maybeRedirectDashboard(req, session);
@@ -77,7 +78,8 @@ export default async function proxy(req: NextRequest) {
 type Session = Awaited<ReturnType<typeof authkit>>["session"];
 
 const maybeRedirectDashboard = (req: NextRequest, session: Session) => {
-	console.log("session", session);
+	// console.log("session", session);
+
 	const pathname = req.nextUrl.pathname;
 	if (!pathname.startsWith("/dashboard")) {
 		return null;
@@ -97,7 +99,9 @@ const maybeRedirectDashboard = (req: NextRequest, session: Session) => {
 	if (ROLES.isDisjointFrom(pathSet)) {
 		return null;
 	}
-	const updatedPath = replaceUrlSegment(pathname, 2, session.role);
+	//TODO: figure out how to handle padmin. Temp hardcode to handle padmin
+	const segment = session.role === "org-admin" ? "admin" : session.role;
+	const updatedPath = replaceUrlSegment(pathname, 2, segment);
 	if (updatedPath !== pathname) {
 		return NextResponse.redirect(new URL(updatedPath, req.url));
 	}

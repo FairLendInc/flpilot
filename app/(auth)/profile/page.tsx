@@ -40,6 +40,8 @@ type Membership = {
 	organizationId: string;
 	organizationName: string;
 	organizationCreatedAt: string;
+	membershipOrgId: string; // WorkOS organization ID from the membership
+	primaryRoleSlug?: string;
 	membershipRole?: {
 		slug: string;
 	};
@@ -56,7 +58,7 @@ type User = {
 
 type ProfileData = {
 	user: User | null;
-	roles: { slug: string; name?: string }[];
+	roles: { slug: string; name?: string; organizationId: string }[];
 	organizations: Organization[];
 	memberships: Membership[];
 	activeOrganizationId: string | null;
@@ -81,10 +83,12 @@ function getInitials(
 }
 
 export default function ProfilePage() {
-	const { user: authUser } = useAuth();
+	const { user: authUser, switchToOrganization } = useAuth();
 	const data = useAuthenticatedQuery(api.profile.getCurrentUserProfile, {});
 	useProvisionCurrentUser(data);
-	console.log("PROFILE DATA", { data });
+	console.log("PROFILE DATA", { data, user: authUser });
+	const user = useAuthenticatedQuery(api.profile.getUserIdentity, {});
+	console.log("USER: ", user);
 
 	const updateProfile = useMutation(api.profile.updateProfile);
 	const setActiveOrg = useMutation(api.profile.setActiveOrganization);
@@ -111,8 +115,9 @@ export default function ProfilePage() {
 			})) ?? [];
 		const memberships = data.memberships ?? [];
 		const roles = memberships.map((m) => ({
-			slug: m.membershipRole?.slug ?? "",
-			name: m.membershipRole?.slug ?? "",
+			slug: m.primaryRoleSlug || m.membershipRole?.slug || "",
+			name: m.primaryRoleSlug || m.membershipRole?.slug || "",
+			organizationId: m.organizationId,
 		}));
 		return {
 			...data,
@@ -183,12 +188,31 @@ export default function ProfilePage() {
 	async function onChangeOrg(value: string) {
 		setActiveOrgLocal(value);
 		try {
-			await setActiveOrg({ organization_id: value });
-			toast.success("Organization updated");
+			// Find the membership to get the WorkOS organization ID
+			const membership = data?.memberships?.find(
+				(m) => m.organizationId === value
+			);
+			if (!membership) {
+				throw new Error("Organization not found");
+			}
+
+			// First, update Convex DB while we still have valid auth
+			await setActiveOrg({ organization_id: membership.membershipOrgId });
+
+			// Then switch the WorkOS organization session
+			// This may trigger re-authentication and will refresh tokens
+			await switchToOrganization(membership.membershipOrgId);
+
+			// After successful WorkOS switch, reload to sync all auth state
+			// This ensures Convex client gets the new tokens
+			toast.success("Organization updated. Refreshing...");
+			window.location.reload();
 		} catch (e: unknown) {
 			const errorMessage =
 				e instanceof Error ? e.message : "Unable to change organization";
 			toast.error(errorMessage);
+			// Revert local state on error
+			setActiveOrgLocal(data?.activeOrganizationId || "");
 		}
 	}
 
@@ -272,6 +296,7 @@ export default function ProfilePage() {
 	const roles = (composed?.roles ?? []) as Array<{
 		slug: string;
 		name?: string;
+		organizationId: string;
 	}>;
 
 	return (
@@ -357,11 +382,19 @@ export default function ProfilePage() {
 							{roles.length === 0 ? (
 								<span className="text-muted-foreground text-sm">No roles</span>
 							) : null}
-							{roles.map((r) => (
-								<Badge className="capitalize" key={r.slug} variant="secondary">
-									{r.name || r.slug}
-								</Badge>
-							))}
+							{roles.map((r) => {
+								const isActive = r.organizationId === activeOrg;
+								return (
+									<Badge
+										className="capitalize"
+										key={`${r.organizationId}-${r.slug}`}
+										variant={isActive ? "default" : "secondary"}
+									>
+										{r.name || r.slug}
+										{isActive && " (Active)"}
+									</Badge>
+								);
+							})}
 						</div>
 					</Card>
 
