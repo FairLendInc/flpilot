@@ -5,7 +5,10 @@
 
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
-import { authQuery, authMutation } from "./lib/server";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
+
+const authenticatedQuery = createAuthorizedQuery(["any"]);
+const authenticatedMutation = createAuthorizedMutation(["any"]);
 
 /**
  * Schema for comparable property address
@@ -74,7 +77,7 @@ export const comparablePayloadValidator = v.object({
 /**
  * Get all comparables for a mortgage (ordered by distance) with signed URLs for images
  */
-export const getComparablesForMortgage = authQuery({
+export const getComparablesForMortgage = authenticatedQuery({
 	args: { mortgageId: v.id("mortgages") },
 	returns: v.array(comparableWithUrlSchema),
 	handler: async (ctx, args) => {
@@ -86,7 +89,7 @@ export const getComparablesForMortgage = authQuery({
 		// Fetch signed URLs for comparable images
 		const comparablesWithUrls = await Promise.all(
 			comparables.map(async (comp) => {
-				let imageUrl = null;
+				let imageUrl: string | null = null;
 				if (comp.imageStorageId) {
 					imageUrl = await ctx.storage.getUrl(comp.imageStorageId);
 				}
@@ -105,7 +108,7 @@ export const getComparablesForMortgage = authQuery({
 /**
  * Get comparables within a specific distance radius
  */
-export const getComparablesWithinDistance = authQuery({
+export const getComparablesWithinDistance = authenticatedQuery({
 	args: {
 		mortgageId: v.id("mortgages"),
 		maxMiles: v.number(),
@@ -126,7 +129,7 @@ export const getComparablesWithinDistance = authQuery({
 /**
  * Create a comparable record
  */
-export const createComparable = authMutation({
+export const createComparable = authenticatedMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		address: v.object({
@@ -227,7 +230,7 @@ export const bulkCreateComparables = internalMutation({
 /**
  * Update a comparable
  */
-export const updateComparable = authMutation({
+export const updateComparable = authenticatedMutation({
 	args: {
 		id: v.id("appraisal_comparables"),
 		address: v.optional(
@@ -267,7 +270,7 @@ export const updateComparable = authMutation({
 /**
  * Delete a comparable
  */
-export const deleteComparable = authMutation({
+export const deleteComparable = authenticatedMutation({
 	args: { id: v.id("appraisal_comparables") },
 	returns: v.id("appraisal_comparables"),
 	handler: async (ctx, args) => {
@@ -279,7 +282,7 @@ export const deleteComparable = authMutation({
 /**
  * Get comparables count for a listing (via its mortgage)
  */
-export const getComparablesCountForListing = authQuery({
+export const getComparablesCountForListing = authenticatedQuery({
 	args: { listingId: v.id("listings") },
 	returns: v.number(),
 	handler: async (ctx, args) => {
@@ -302,7 +305,7 @@ export const getComparablesCountForListing = authQuery({
 /**
  * Delete all comparables for a mortgage (for clean replacement)
  */
-export const deleteAllComparablesForMortgage = authMutation({
+export const deleteAllComparablesForMortgage = authenticatedMutation({
 	args: { mortgageId: v.id("mortgages") },
 	returns: v.number(),
 	handler: async (ctx, args) => {

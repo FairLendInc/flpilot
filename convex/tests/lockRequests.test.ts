@@ -2,8 +2,8 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import schema from "../schema";
 import type { Doc, Id } from "../_generated/dataModel";
+import schema from "../schema";
 
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
@@ -27,13 +27,14 @@ function getAuthenticatedTest(t: ReturnType<typeof createTest>) {
  * Create a test borrower
  */
 async function createTestBorrower(t: ReturnType<typeof createTest>) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("borrowers", {
-			name: "Test Borrower",
-			email: `test_${Date.now()}@example.com`,
-			rotessaCustomerId: `rotessa_${Date.now()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("borrowers", {
+				name: "Test Borrower",
+				email: `test_${Date.now()}@example.com`,
+				rotessaCustomerId: `rotessa_${Date.now()}`,
+			})
+	);
 }
 
 /**
@@ -43,37 +44,38 @@ async function createTestMortgage(
 	t: ReturnType<typeof createTest>,
 	borrowerId: Id<"borrowers">
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("mortgages", {
-			borrowerId,
-			loanAmount: 500000,
-			interestRate: 5.5,
-			originationDate: "2024-01-01",
-			maturityDate: "2025-01-01",
-			status: "active" as const,
-			mortgageType: "1st" as const,
-			address: {
-				street: "123 Test St",
-				city: "Test City",
-				state: "CA",
-				zip: "12345",
-				country: "USA",
-			},
-			location: {
-				lat: 37.7749,
-				lng: -122.4194,
-			},
-			propertyType: "Single Family",
-			appraisalMarketValue: 600000,
-			appraisalMethod: "Comparative Market Analysis",
-			appraisalCompany: "Test Appraisal Co",
-			appraisalDate: "2023-12-01",
-			ltv: 83.33,
-			images: [],
-			documents: [],
-			externalMortgageId: `test-mortgage-${Date.now()}-${Math.random()}`,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("mortgages", {
+				borrowerId,
+				loanAmount: 500000,
+				interestRate: 5.5,
+				originationDate: "2024-01-01",
+				maturityDate: "2025-01-01",
+				status: "active" as const,
+				mortgageType: "1st" as const,
+				address: {
+					street: "123 Test St",
+					city: "Test City",
+					state: "CA",
+					zip: "12345",
+					country: "USA",
+				},
+				location: {
+					lat: 37.7749,
+					lng: -122.4194,
+				},
+				propertyType: "Single Family",
+				appraisalMarketValue: 600000,
+				appraisalMethod: "Comparative Market Analysis",
+				appraisalCompany: "Test Appraisal Co",
+				appraisalDate: "2023-12-01",
+				ltv: 83.33,
+				images: [],
+				documents: [],
+				externalMortgageId: `test-mortgage-${Date.now()}-${Math.random()}`,
+			})
+	);
 }
 
 /**
@@ -84,15 +86,16 @@ async function createTestListing(
 	mortgageId: Id<"mortgages">,
 	options?: { visible?: boolean; locked?: boolean; lockedBy?: Id<"users"> }
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("listings", {
-			mortgageId,
-			visible: options?.visible ?? true,
-			locked: options?.locked ?? false,
-			lockedBy: options?.lockedBy,
-			lockedAt: options?.locked ? Date.now() : undefined,
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("listings", {
+				mortgageId,
+				visible: options?.visible ?? true,
+				locked: options?.locked ?? false,
+				lockedBy: options?.lockedBy,
+				lockedAt: options?.locked ? Date.now() : undefined,
+			})
+	);
 }
 
 /**
@@ -102,18 +105,19 @@ async function createTestUser(
 	t: ReturnType<typeof createTest>,
 	userIdentifier: string
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("users", {
-			idp_id: `test_${userIdentifier}`,
-			email: `${userIdentifier}@test.example.com`,
-			email_verified: true,
-			first_name: "Test",
-			last_name: userIdentifier,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-			metadata: {},
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("users", {
+				idp_id: `test_${userIdentifier}`,
+				email: `${userIdentifier}@test.example.com`,
+				email_verified: true,
+				first_name: "Test",
+				last_name: userIdentifier,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				metadata: {},
+			})
+	);
 }
 
 /**
@@ -141,18 +145,19 @@ async function createTestLockRequest(
 		lawyerEmail?: string;
 	}
 ) {
-	return await t.run(async (ctx) => {
-		return await ctx.db.insert("lock_requests", {
-			listingId,
-			requestedBy,
-			status: options?.status ?? "pending",
-			requestedAt: Date.now(),
-			requestNotes: options?.requestNotes,
-			lawyerName: options?.lawyerName ?? "John Doe",
-			lawyerLSONumber: options?.lawyerLSONumber ?? "12345",
-			lawyerEmail: options?.lawyerEmail ?? "john@example.com",
-		});
-	});
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("lock_requests", {
+				listingId,
+				requestedBy,
+				status: options?.status ?? "pending",
+				requestedAt: Date.now(),
+				requestNotes: options?.requestNotes,
+				lawyerName: options?.lawyerName ?? "John Doe",
+				lawyerLSONumber: options?.lawyerLSONumber ?? "12345",
+				lawyerEmail: options?.lawyerEmail ?? "john@example.com",
+			})
+	);
 }
 
 // ============================================================================
@@ -172,10 +177,13 @@ describe("createLockRequest - Unit Tests", () => {
 		// Get the user's idp_id for identity matching
 		const investor = await t.run(async (ctx) => ctx.db.get(investorId));
 		const investorIdpId = investor?.idp_id;
+		if (!investorIdpId) {
+			throw new Error("Investor idp_id missing");
+		}
 
 		// Mock investor identity
 		const investorT = t.withIdentity({
-			subject: investorIdpId!,
+			subject: investorIdpId,
 			role: "investor",
 		});
 
@@ -194,7 +202,9 @@ describe("createLockRequest - Unit Tests", () => {
 		expect(requestId).toBeDefined();
 
 		// Verify request was created
-		const request = await t.run(async (ctx) => ctx.db.get(requestId)) as Doc<"lock_requests"> | null;
+		const request = (await t.run(async (ctx) =>
+			ctx.db.get(requestId)
+		)) as Doc<"lock_requests"> | null;
 		expect(request).toBeTruthy();
 		expect(request?.status).toBe("pending");
 		expect(request?.listingId).toBe(listingId);
@@ -414,11 +424,7 @@ describe("approveLockRequest - Unit Tests", () => {
 		const adminId = await createTestUser(t, "admin_1");
 
 		// Create pending request
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId);
 
 		// Mock admin identity
 		const adminIdpId = await getUserIdpId(t, adminId);
@@ -459,17 +465,9 @@ describe("approveLockRequest - Unit Tests", () => {
 		const investorId = await createTestUser(t, "investor_1");
 
 		// Create two pending requests for same listing
-		const requestId1 = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId1 = await createTestLockRequest(t, listingId, investorId);
 		const investorId2 = await createTestUser(t, "investor_2");
-		const requestId2 = await createTestLockRequest(
-			t,
-			listingId,
-			investorId2
-		);
+		const requestId2 = await createTestLockRequest(t, listingId, investorId2);
 
 		// Mock two admin identities
 		const adminId1 = await createTestUser(t, "admin_1");
@@ -497,18 +495,18 @@ describe("approveLockRequest - Unit Tests", () => {
 			})
 		).rejects.toThrow("Listing is no longer available");
 
-	// Verify only first request was approved
-	const request1 = await t.run(async (ctx) => ctx.db.get(requestId1));
-	const request2 = await t.run(async (ctx) => ctx.db.get(requestId2));
-	expect(request1?.status).toBe("approved");
-	// Request 2 was auto-rejected when request 1 was approved (listing was locked)
-	expect(request2?.status).toBe("rejected");
-	expect(request2?.rejectionReason).toBe("Listing was locked");
+		// Verify only first request was approved
+		const request1 = await t.run(async (ctx) => ctx.db.get(requestId1));
+		const request2 = await t.run(async (ctx) => ctx.db.get(requestId2));
+		expect(request1?.status).toBe("approved");
+		// Request 2 was auto-rejected when request 1 was approved (listing was locked)
+		expect(request2?.status).toBe("rejected");
+		expect(request2?.rejectionReason).toBe("Listing was locked");
 
-	// Verify listing is locked
-	const listing = await t.run(async (ctx) => ctx.db.get(listingId));
-	expect(listing?.locked).toBe(true);
-	expect(listing?.lockedBy).toBe(investorId);
+		// Verify listing is locked
+		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		expect(listing?.locked).toBe(true);
+		expect(listing?.lockedBy).toBe(investorId);
 	});
 
 	test("2.1.6: should reject approveLockRequest for already locked listing", async () => {
@@ -522,11 +520,7 @@ describe("approveLockRequest - Unit Tests", () => {
 			lockedBy: userId,
 		});
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId);
 
 		const adminId = await createTestUser(t, "admin_1");
 		const adminIdpId = await getUserIdpId(t, adminId);
@@ -549,12 +543,9 @@ describe("approveLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId,
-			{ status: "rejected" }
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId, {
+			status: "rejected",
+		});
 
 		const adminId = await createTestUser(t, "admin_1");
 		const adminIdpId = await getUserIdpId(t, adminId);
@@ -577,11 +568,7 @@ describe("approveLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId);
 
 		const investorIdpId = await getUserIdpId(t, investorId);
 		const investorT = t.withIdentity({
@@ -605,11 +592,7 @@ describe("rejectLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId);
 
 		const adminId = await createTestUser(t, "admin_1");
 		const adminIdpId = await getUserIdpId(t, adminId);
@@ -647,11 +630,7 @@ describe("rejectLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId);
 
 		const adminId = await createTestUser(t, "admin_1");
 		const adminIdpId = await getUserIdpId(t, adminId);
@@ -676,11 +655,7 @@ describe("rejectLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId);
 
 		const investorIdpId = await getUserIdpId(t, investorId);
 		const investorT = t.withIdentity({
@@ -702,12 +677,9 @@ describe("rejectLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId,
-			{ status: "approved" }
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId, {
+			status: "approved",
+		});
 
 		const adminId = await createTestUser(t, "admin_1");
 		const adminIdpId = await getUserIdpId(t, adminId);
@@ -732,11 +704,7 @@ describe("cancelLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId);
 
 		const investorIdpId = await getUserIdpId(t, investorId);
 		const investorT = t.withIdentity({
@@ -766,11 +734,7 @@ describe("cancelLockRequest - Unit Tests", () => {
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId1 = await createTestUser(t, "investor_1");
 		const investorId2 = await createTestUser(t, "investor_2");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId1
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId1);
 
 		const investorIdpId2 = await getUserIdpId(t, investorId2);
 		const investorT2 = t.withIdentity({
@@ -792,12 +756,9 @@ describe("cancelLockRequest - Unit Tests", () => {
 		const mortgageId = await createTestMortgage(t, borrowerId);
 		const listingId = await createTestListing(t, mortgageId);
 		const investorId = await createTestUser(t, "investor_1");
-		const requestId = await createTestLockRequest(
-			t,
-			listingId,
-			investorId,
-			{ status: "approved" }
-		);
+		const requestId = await createTestLockRequest(t, listingId, investorId, {
+			status: "approved",
+		});
 
 		const investorIdpId = await getUserIdpId(t, investorId);
 		const investorT = t.withIdentity({
@@ -847,7 +808,9 @@ describe("getPendingLockRequests - Query Tests", () => {
 		);
 
 		expect(pendingRequests).toHaveLength(2);
-		expect(pendingRequests?.every((r) => r.status === "pending")).toBe(true);
+		expect(
+			pendingRequests?.every((r: { status: string }) => r.status === "pending")
+		).toBe(true);
 	});
 });
 
@@ -969,7 +932,9 @@ describe("getLockRequestsByListing - Query Tests", () => {
 		);
 
 		expect(requests).toHaveLength(2);
-		expect(requests?.every((r: Doc<"lock_requests">) => r.listingId === listingId1)).toBe(true);
+		expect(
+			requests?.every((r: Doc<"lock_requests">) => r.listingId === listingId1)
+		).toBe(true);
 	});
 });
 
@@ -1171,24 +1136,15 @@ describe("Listing-Request Relationship - Integration Tests", () => {
 		const investorId3 = await createTestUser(t, "investor_3");
 
 		// Create multiple pending requests
-		const requestId1 = await createTestLockRequest(
-			t,
-			listingId,
-			investorId1,
-			{ status: "pending" }
-		);
-		const requestId2 = await createTestLockRequest(
-			t,
-			listingId,
-			investorId2,
-			{ status: "pending" }
-		);
-		const requestId3 = await createTestLockRequest(
-			t,
-			listingId,
-			investorId3,
-			{ status: "pending" }
-		);
+		const requestId1 = await createTestLockRequest(t, listingId, investorId1, {
+			status: "pending",
+		});
+		const requestId2 = await createTestLockRequest(t, listingId, investorId2, {
+			status: "pending",
+		});
+		const requestId3 = await createTestLockRequest(t, listingId, investorId3, {
+			status: "pending",
+		});
 
 		// Verify all requests exist
 		const request1 = await t.run(async (ctx) => ctx.db.get(requestId1));
@@ -1213,4 +1169,3 @@ describe("Listing-Request Relationship - Integration Tests", () => {
 		expect(requests).toHaveLength(3);
 	});
 });
-

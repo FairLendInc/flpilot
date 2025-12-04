@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
+import { DocumentTypeSelector } from "@/components/ui/document-type-selector";
 import {
 	Select,
 	SelectContent,
@@ -37,14 +38,6 @@ import {
 	validateListingForm,
 } from "./useListingCreationStore";
 
-const DOCUMENT_OPTIONS: { key: ListingDocumentType; label: string }[] = [
-	{ key: "appraisal", label: "Appraisal" },
-	{ key: "title", label: "Title" },
-	{ key: "inspection", label: "Inspection" },
-	{ key: "loan_agreement", label: "Loan Agreement" },
-	{ key: "insurance", label: "Insurance" },
-];
-
 const MORTGAGE_STATUS_OPTIONS: Array<{
 	key: ListingCreationPayload["mortgage"]["status"];
 	label: string;
@@ -61,6 +54,17 @@ const MORTGAGE_TYPE_OPTIONS: Array<{
 }> = [
 	{ key: "1st", label: "First Position" },
 	{ key: "2nd", label: "Second Position" },
+	{ key: "other", label: "Other" },
+];
+
+const DOCUMENT_OPTIONS: Array<{
+	key: ListingDocumentType;
+	label: string;
+}> = [
+	{ key: "appraisal", label: "Appraisal" },
+	{ key: "title_search", label: "Title Search" },
+	{ key: "credit_report", label: "Credit Report" },
+	{ key: "income_verification", label: "Income Verification" },
 	{ key: "other", label: "Other" },
 ];
 
@@ -263,7 +267,8 @@ export default function ListingCreationForm() {
 				})),
 				documents: state.documents.map((document) => ({
 					name: document.name.trim(),
-					type: document.type,
+					// biome-ignore lint/suspicious/noExplicitAny: Type mismatch between local and Convex types
+					type: document.type as any,
 					storageId: document.storageId as Id<"_storage">,
 					uploadDate: document.uploadDate,
 					fileSize: document.fileSize,
@@ -1010,6 +1015,7 @@ export default function ListingCreationForm() {
 							</div>
 						))}
 						<Button
+							className={"text-foreground"}
 							onPress={() =>
 								addComparable({
 									address: {
@@ -1063,6 +1069,7 @@ export default function ListingCreationForm() {
 						<div className="flex items-center justify-between">
 							<h3 className="font-medium text-foreground">Property Images</h3>
 							<Button
+								className={"text-foreground"}
 								isDisabled={isUploadingMedia}
 								onPress={() => imageInputRef.current?.click()}
 								size="sm"
@@ -1131,25 +1138,20 @@ export default function ListingCreationForm() {
 					<div className="space-y-3">
 						<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 							<div className="flex gap-3">
-								<Select
+								<DocumentTypeSelector
+									allowClear={true}
+									className="md:w-60"
 									onValueChange={(value) => {
 										setDocumentType(value as ListingDocumentType);
 									}}
+									placeholder="Select document type..."
+									showDescriptions={true}
+									showRecentlyUsed={true}
 									value={documentType}
-								>
-									<SelectTrigger className="md:w-60">
-										<SelectValue placeholder="Select document type" />
-									</SelectTrigger>
-									<SelectContent>
-										{DOCUMENT_OPTIONS.map((option) => (
-											<SelectItem key={option.key} value={String(option.key)}>
-												{option.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+								/>
 							</div>
 							<Button
+								className={"text-foreground"}
 								isDisabled={isUploadingMedia}
 								onPress={() => documentInputRef.current?.click()}
 								size="sm"

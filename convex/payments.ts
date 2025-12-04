@@ -4,27 +4,29 @@
  */
 
 import { v } from "convex/values";
-import { authQuery, authMutation } from "./lib/server";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
+
+const authenticatedQuery = createAuthorizedQuery(["any"]);
+const authenticatedMutation = createAuthorizedMutation(["any"]);
 
 /**
  * Get payment history for a mortgage (ordered by most recent first)
  */
-export const getPaymentsForMortgage = authQuery({
+export const getPaymentsForMortgage = authenticatedQuery({
 	args: { mortgageId: v.id("mortgages") },
 	returns: v.array(v.any()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
 			.order("desc")
-			.collect();
-	},
+			.collect(),
 });
 
 /**
  * Get payments by status
  */
-export const getPaymentsByStatus = authQuery({
+export const getPaymentsByStatus = authenticatedQuery({
 	args: {
 		status: v.union(
 			v.literal("pending"),
@@ -33,25 +35,24 @@ export const getPaymentsByStatus = authQuery({
 		),
 	},
 	returns: v.array(v.any()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_status", (q) => q.eq("status", args.status))
-			.collect();
-	},
+			.collect(),
 });
 
 /**
  * Get payments within a date range
  */
-export const getPaymentsByDateRange = authQuery({
+export const getPaymentsByDateRange = authenticatedQuery({
 	args: {
 		startDate: v.string(),
 		endDate: v.string(),
 	},
 	returns: v.array(v.any()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_process_date")
 			.filter((q) =>
@@ -60,28 +61,26 @@ export const getPaymentsByDateRange = authQuery({
 					q.lte(q.field("processDate"), args.endDate)
 				)
 			)
-			.collect();
-	},
+			.collect(),
 });
 
 /**
  * Get payment by Rotessa payment ID (for idempotency/webhook reconciliation)
  */
-export const getPaymentByRotessaId = authQuery({
+export const getPaymentByRotessaId = authenticatedQuery({
 	args: { paymentId: v.string() },
 	returns: v.union(v.any(), v.null()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("payments")
 			.withIndex("by_payment_id", (q) => q.eq("paymentId", args.paymentId))
-			.first();
-	},
+			.first(),
 });
 
 /**
  * Create a payment record
  */
-export const createPayment = authMutation({
+export const createPayment = authenticatedMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		amount: v.number(),
@@ -123,7 +122,7 @@ export const createPayment = authMutation({
 /**
  * Update payment status (for Rotessa sync)
  */
-export const updatePaymentStatus = authMutation({
+export const updatePaymentStatus = authenticatedMutation({
 	args: {
 		id: v.id("payments"),
 		status: v.union(
@@ -145,7 +144,7 @@ export const updatePaymentStatus = authMutation({
 /**
  * Bulk create payments (for payment schedule creation)
  */
-export const bulkCreatePayments = authMutation({
+export const bulkCreatePayments = authenticatedMutation({
 	args: {
 		payments: v.array(
 			v.object({
@@ -184,7 +183,7 @@ export const bulkCreatePayments = authMutation({
 
 		// Check if any mortgage is missing
 		const missingMortgageIds = uniqueMortgageIds.filter(
-			(id, index) => !mortgages[index]
+			(_id, index) => !mortgages[index]
 		);
 
 		if (missingMortgageIds.length > 0) {
@@ -203,7 +202,7 @@ export const bulkCreatePayments = authMutation({
 /**
  * Sync payment from Rotessa webhook (idempotent)
  */
-export const syncPaymentFromRotessa = authMutation({
+export const syncPaymentFromRotessa = authenticatedMutation({
 	args: {
 		paymentId: v.string(),
 		mortgageId: v.id("mortgages"),

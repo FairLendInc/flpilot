@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
 	return (
 		<>
 			<header className="mt-4 flex h-16 shrink-0 items-center gap-2 border-b px-4">

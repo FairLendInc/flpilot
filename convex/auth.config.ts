@@ -1,9 +1,4 @@
 const clientId = process.env.WORKOS_CLIENT_ID;
-import type { UserIdentity } from "convex/server";
-import type { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
-import { extractRole, extractPermissions, extractOrgId, type WorkOSIdentity } from "../types/workos";
-
-
 
 const authConfig = {
 	providers: [

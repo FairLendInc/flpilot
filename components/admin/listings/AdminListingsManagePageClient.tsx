@@ -1,7 +1,7 @@
 "use client";
 
-import type { Preloaded } from "convex/react";
-import { useMutation, usePreloadedQuery, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ListingDeleteDialog } from "@/components/admin/listings/ListingDeleteDialog";
@@ -13,11 +13,13 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 type Props = {
-	preloaded: Preloaded<typeof api.listings.getAvailableListingsWithMortgages>;
+	preloaded: FunctionReturnType<
+		typeof api.listings.getAvailableListingsWithMortgages
+	>;
 };
 
 export function AdminListingsManagePageClient({ preloaded }: Props) {
-	const listings = usePreloadedQuery(preloaded);
+	const listings = preloaded;
 
 	const [editingListing, setEditingListing] = useState<{
 		id: Id<"listings">;

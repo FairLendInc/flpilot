@@ -1,12 +1,17 @@
 import { v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
-import { action, mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { checkRbac } from "../lib/authhelper";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
 
 const PERSONA_OPTIONS = ["broker", "investor", "lawyer"] as const;
-const INVESTOR_ENTITY_TYPES = ["individual", "corporation", "trust", "fund"] as const;
+const INVESTOR_ENTITY_TYPES = [
+	"individual",
+	"corporation",
+	"trust",
+	"fund",
+] as const;
 const INVESTOR_RISK_PROFILES = ["conservative", "balanced", "growth"] as const;
 const INVESTOR_STATE_VALUES = new Set([
 	"investor.intro",
@@ -33,7 +38,9 @@ const investorProfileValidator = v.object({
 const investorPreferencesValidator = v.object({
 	minTicket: v.number(),
 	maxTicket: v.number(),
-	riskProfile: v.union(...INVESTOR_RISK_PROFILES.map((value) => v.literal(value))),
+	riskProfile: v.union(
+		...INVESTOR_RISK_PROFILES.map((value) => v.literal(value))
+	),
 	liquidityHorizonMonths: v.number(),
 	focusRegions: v.optional(v.array(v.string())),
 });
@@ -172,9 +179,13 @@ export const ensureJourney = mutation({
 				email,
 				email_verified: Boolean(identity.email_verified ?? false),
 				first_name:
-					typeof identity.first_name === "string" ? identity.first_name : undefined,
+					typeof identity.first_name === "string"
+						? identity.first_name
+						: undefined,
 				last_name:
-					typeof identity.last_name === "string" ? identity.last_name : undefined,
+					typeof identity.last_name === "string"
+						? identity.last_name
+						: undefined,
 				profile_picture_url:
 					typeof identity.profile_picture_url === "string"
 						? identity.profile_picture_url
@@ -237,8 +248,8 @@ export const startJourney = mutation({
 		const nextContext =
 			args.persona === "investor"
 				? {
-					investor: journey.context?.investor ?? {},
-				 }
+						investor: journey.context?.investor ?? {},
+					}
 				: {};
 		await ctx.db.patch(journey._id, {
 			persona: args.persona,
@@ -305,7 +316,7 @@ export const submitInvestorJourney = mutation({
 			throw new Error("Investor profile information missing");
 		}
 		// Validate required profile fields for new submissions
-		if (!investor.profile.firstName || !investor.profile.lastName) {
+		if (!(investor.profile.firstName && investor.profile.lastName)) {
 			throw new Error("First name and last name are required");
 		}
 		if (!investor?.preferences) {
@@ -327,8 +338,7 @@ export const submitInvestorJourney = mutation({
 					...investor,
 					kycPlaceholder: {
 						...investor.kycPlaceholder,
-						notes:
-							args.finalNotes ?? investor.kycPlaceholder?.notes,
+						notes: args.finalNotes ?? investor.kycPlaceholder?.notes,
 					},
 				},
 			},
@@ -340,7 +350,7 @@ export const submitInvestorJourney = mutation({
 export const listPending = query({
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
-		
+
 		// Return null if identity is not available yet (race condition handling)
 		// The client will retry once authentication is ready
 		if (!identity) {
@@ -421,7 +431,10 @@ export const approveJourney = mutation({
 		}
 
 		// Update user's active_organization_id if organizationId was provided
-		if (args.organizationId && args.organizationId !== applicant.active_organization_id) {
+		if (
+			args.organizationId &&
+			args.organizationId !== applicant.active_organization_id
+		) {
 			await ctx.db.patch(applicant._id, {
 				active_organization_id: args.organizationId,
 			});

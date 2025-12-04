@@ -33,6 +33,14 @@ export default defineSchema({
 		external_id: v.optional(v.string()),
 		// Flexible metadata storage
 		metadata: v.optional(v.any()),
+		// User preferences for document management
+		preferences: v.optional(
+			v.object({
+				autoDocumentTypeAssignment: v.boolean(),
+				autoAssignmentThreshold: v.number(),
+				requireConfirmationForAutoAssignment: v.boolean(),
+			})
+		),
 	})
 		.index("by_idp_id", ["idp_id"])
 		.index("by_email", ["email"]),
@@ -112,7 +120,6 @@ export default defineSchema({
 		.index("byUserId", ["user_id"])
 		.index("byOrganizationId", ["organization_id"])
 		.index("byUserOrganization", ["user_id", "organization_id"]),
-
 
 	onboarding_journeys: defineTable({
 		userId: v.id("users"),
@@ -232,10 +239,12 @@ export default defineSchema({
 			v.literal("2nd"),
 			v.literal("other")
 		),
-		priorEncumbrance: v.optional(v.object({
-			amount: v.number(),
-			lender: v.string(),
-		})),
+		priorEncumbrance: v.optional(
+			v.object({
+				amount: v.number(),
+				lender: v.string(),
+			})
+		),
 		// Renewal tracking - links to previous mortgage if this is a renewal
 		previousMortgageId: v.optional(v.id("mortgages")),
 		// Embedded property information
@@ -250,12 +259,14 @@ export default defineSchema({
 			lat: v.number(),
 			lng: v.number(),
 		}),
-		asIfAppraisal: v.optional(v.object({
-			marketValue: v.number(),
-			method: v.string(),
-			company: v.string(),
-			date: v.string(),
-		})),
+		asIfAppraisal: v.optional(
+			v.object({
+				marketValue: v.number(),
+				method: v.string(),
+				company: v.string(),
+				date: v.string(),
+			})
+		),
 		propertyType: v.string(),
 		// Appraisal data - flattened structure for querying
 		appraisalMarketValue: v.number(), // Current market value of property
@@ -276,17 +287,35 @@ export default defineSchema({
 		documents: v.array(
 			v.object({
 				name: v.string(),
-				type: v.union(
-					v.literal("appraisal"),
-					v.literal("title"),
-					v.literal("inspection"),
-					v.literal("loan_agreement"),
-					v.literal("insurance")
-				),
+				// Flexible type field (supports backward compatibility)
+				type: v.string(),
+				// Optional explicit group assignment
+				group: v.optional(v.string()),
 				storageId: v.id("_storage"), // Convex storage ID
 				uploadDate: v.string(), // ISO date string
 				fileSize: v.optional(v.number()), // bytes
+				// Metadata for custom properties and migration tracking
+				metadata: v.optional(
+					v.object({
+						// User-defined custom properties
+						customProperties: v.optional(v.record(v.string(), v.string())),
+						// User-defined type for custom categorization
+						userDefinedType: v.optional(v.string()),
+						// Original hardcoded type for migration tracking
+						originalHardcodedType: v.optional(v.string()),
+					})
+				),
 			})
+		),
+		// Documenso template configurations
+		documentTemplates: v.optional(
+			v.array(
+				v.object({
+					documensoTemplateId: v.string(), // e.g.,
+					name: v.string(), // Display name (e.g., "Purchase Agreement")
+					signatoryRoles: v.array(v.string()), // e.g., ["Broker", "Investor"]
+				})
+			)
 		),
 	})
 		.index("by_borrower", ["borrowerId"])
@@ -295,14 +324,14 @@ export default defineSchema({
 		.index("by_external_mortgage_id", ["externalMortgageId"]),
 
 	mortgage_ownership: defineTable({
-	// Reference to mortgage
-	mortgageId: v.id("mortgages"),
-	// Owner reference - union type: userId from users table OR "fairlend" literal
-	// Convex validates: either valid userId or "fairlend" string
-	ownerId: v.union(v.literal("fairlend"), v.id("users")),
-	// Ownership percentage (0-100, typically 100 for single owner)
-	// Application validates sum of percentages per mortgage = 100
-	ownershipPercentage: v.number(),
+		// Reference to mortgage
+		mortgageId: v.id("mortgages"),
+		// Owner reference - union type: userId from users table OR "fairlend" literal
+		// Convex validates: either valid userId or "fairlend" string
+		ownerId: v.union(v.literal("fairlend"), v.id("users")),
+		// Ownership percentage (0-100, typically 100 for single owner)
+		// Application validates sum of percentages per mortgage = 100
+		ownershipPercentage: v.number(),
 	})
 		.index("by_mortgage", ["mortgageId"])
 		.index("by_owner", ["ownerId"])
@@ -408,27 +437,40 @@ export default defineSchema({
 
 	deals: defineTable({
 		// References to related entities
-		lockRequestId: v.id("lock_requests"),
+		lockRequestId: v.optional(v.id("lock_requests")), // Made optional as we transition
 		listingId: v.id("listings"),
 		mortgageId: v.id("mortgages"),
 		investorId: v.id("users"),
 
+		// Status tracking
+		status: v.optional(
+			v.union(
+				v.literal("pending"),
+				v.literal("active"),
+				v.literal("completed"),
+				v.literal("cancelled"),
+				v.literal("archived")
+			)
+		),
+
 		// XState machine state (serialized JSON)
-		stateMachineState: v.string(),
-		currentState: v.union(
-			v.literal("locked"),
-			v.literal("pending_lawyer"),
-			v.literal("pending_docs"),
-			v.literal("pending_transfer"),
-			v.literal("pending_verification"),
-			v.literal("completed"),
-			v.literal("cancelled"),
-			v.literal("archived")
+		stateMachineState: v.optional(v.string()),
+		currentState: v.optional(
+			v.union(
+				v.literal("locked"),
+				v.literal("pending_lawyer"),
+				v.literal("pending_docs"),
+				v.literal("pending_transfer"),
+				v.literal("pending_verification"),
+				v.literal("completed"),
+				v.literal("cancelled"),
+				v.literal("archived")
+			)
 		),
 
 		// Deal financial details
-		purchasePercentage: v.number(), // 100 for pilot, variable in future
-		dealValue: v.number(), // Calculated at creation
+		purchasePercentage: v.optional(v.number()), // 100 for pilot, variable in future
+		dealValue: v.optional(v.number()), // Calculated at creation
 
 		// Timestamps
 		createdAt: v.number(),
@@ -438,14 +480,16 @@ export default defineSchema({
 		cancelledAt: v.optional(v.number()),
 
 		// Audit trail - tracks all state transitions
-		stateHistory: v.array(
-			v.object({
-				fromState: v.string(),
-				toState: v.string(),
-				timestamp: v.number(),
-				triggeredBy: v.id("users"),
-				notes: v.optional(v.string()),
-			})
+		stateHistory: v.optional(
+			v.array(
+				v.object({
+					fromState: v.string(),
+					toState: v.string(),
+					timestamp: v.number(),
+					triggeredBy: v.id("users"),
+					notes: v.optional(v.string()),
+				})
+			)
 		),
 
 		// Future: validation tracking (stubbed for now)
@@ -457,13 +501,68 @@ export default defineSchema({
 				fundsVerified: v.boolean(),
 			})
 		),
+
+		// Broker and Lawyer details
+		brokerId: v.optional(v.id("users")),
+		brokerName: v.optional(v.string()),
+		brokerEmail: v.optional(v.string()),
+		lawyerName: v.optional(v.string()),
+		lawyerEmail: v.optional(v.string()),
+		lawyerLSONumber: v.optional(v.string()),
+
+		// Fund Transfer Uploads
+		currentUpload: v.optional(
+			v.object({
+				storageId: v.id("_storage"),
+				uploadedBy: v.string(),
+				uploadedAt: v.number(),
+				fileName: v.string(),
+				fileType: v.string(),
+			})
+		),
+		uploadHistory: v.optional(
+			v.array(
+				v.object({
+					storageId: v.id("_storage"),
+					uploadedBy: v.string(),
+					uploadedAt: v.number(),
+					fileName: v.string(),
+					fileType: v.string(),
+				})
+			)
+		),
 	})
 		.index("by_lock_request", ["lockRequestId"])
 		.index("by_listing", ["listingId"])
 		.index("by_mortgage", ["mortgageId"])
 		.index("by_investor", ["investorId"])
+		.index("by_status", ["status"])
 		.index("by_current_state", ["currentState"])
 		.index("by_created_at", ["createdAt"]),
+
+	deal_documents: defineTable({
+		dealId: v.id("deals"),
+		documensoDocumentId: v.string(), // Actual Documenso document ID
+		templateId: v.string(), // Original template ID from mortgage config
+		templateName: v.string(), // Display name for UI
+		status: v.union(
+			v.literal("draft"),
+			v.literal("pending"),
+			v.literal("signed"),
+			v.literal("rejected")
+		),
+		signatories: v.array(
+			v.object({
+				role: v.string(),
+				name: v.string(),
+				email: v.string(),
+			})
+		),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_deal", ["dealId"])
+		.index("by_status", ["status"]),
 
 	alerts: defineTable({
 		// Who should see this alert
@@ -500,4 +599,61 @@ export default defineSchema({
 		.index("by_user_read", ["userId", "read"])
 		.index("by_user_created_at", ["userId", "createdAt"])
 		.index("by_deal", ["relatedDealId"]),
+
+	// Dynamic document groups for categorization
+	document_groups: defineTable({
+		// Machine-readable name (unique)
+		name: v.string(),
+		// Human-readable display name
+		displayName: v.string(),
+		// Optional description
+		description: v.optional(v.string()),
+		// Icon identifier (e.g., "lucide:home")
+		icon: v.optional(v.string()),
+		// Color for UI theming
+		color: v.optional(v.string()),
+		// System default flag
+		isDefault: v.optional(v.boolean()),
+		// Active status for soft delete
+		isActive: v.boolean(),
+		// Creator reference
+		createdBy: v.id("users"),
+		// Timestamps
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_name", ["name"])
+		.index("by_active", ["isActive"]),
+
+	// Dynamic document types within groups
+	document_types: defineTable({
+		// Machine-readable name (unique within group)
+		name: v.string(),
+		// Human-readable display name
+		displayName: v.string(),
+		// Optional description
+		description: v.optional(v.string()),
+		// Reference to document group
+		groupName: v.string(),
+		// Icon identifier
+		icon: v.optional(v.string()),
+		// Validation rules for this type
+		validationRules: v.optional(
+			v.object({
+				maxSize: v.optional(v.number()), // bytes
+				allowedFormats: v.optional(v.array(v.string())),
+				requiredFields: v.optional(v.array(v.string())),
+			})
+		),
+		// Active status for soft delete
+		isActive: v.boolean(),
+		// Creator reference
+		createdBy: v.id("users"),
+		// Timestamps
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_group", ["groupName"])
+		.index("by_name", ["name"])
+		.index("by_group_name", ["groupName", "name"]),
 });

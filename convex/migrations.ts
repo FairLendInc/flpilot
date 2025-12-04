@@ -3,8 +3,10 @@
  * Adds the appraisal document (kg222733sz1pg4gp3qpy9ca5fd7tneqg) to all existing mortgages
  */
 
+import type { Id } from "./_generated/dataModel";
 import { mutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+
+const WHITESPACE_SPLIT_REGEX = /\s+/;
 
 export const addDocumentsToAllMortgages = mutation({
 	args: {},
@@ -42,16 +44,13 @@ export const addDocumentsToAllMortgages = mutation({
 			}
 
 			// Add document to the documents array
-			const updatedDocuments = [
-				...(mortgage.documents || []),
-				documentData,
-			];
+			const updatedDocuments = [...(mortgage.documents || []), documentData];
 
 			await ctx.db.patch(mortgage._id, {
 				documents: updatedDocuments,
 			});
 
-			updatedCount++;
+			updatedCount += 1;
 			console.log(`[MIGRATION] Updated mortgage ${mortgage._id}`);
 		}
 
@@ -91,8 +90,7 @@ export const cleanupOnboardingProfileFields = mutation({
 			}
 
 			// Check if profile has old fields
-			const hasOldFields =
-				"contactEmail" in profile || "legalName" in profile;
+			const hasOldFields = "contactEmail" in profile || "legalName" in profile;
 
 			if (!hasOldFields) {
 				continue;
@@ -130,15 +128,15 @@ export const cleanupOnboardingProfileFields = mutation({
 				!cleanedProfile.firstName &&
 				!cleanedProfile.lastName
 			) {
-				const nameParts = profile.legalName.trim().split(/\s+/);
+				const nameParts = profile.legalName
+					.trim()
+					.split(WHITESPACE_SPLIT_REGEX);
 				if (nameParts.length > 0) {
 					cleanedProfile.firstName = nameParts[0];
 					if (nameParts.length > 1) {
-						cleanedProfile.lastName = nameParts[nameParts.length - 1];
+						cleanedProfile.lastName = nameParts.at(-1);
 						if (nameParts.length > 2) {
-							cleanedProfile.middleName = nameParts
-								.slice(1, -1)
-								.join(" ");
+							cleanedProfile.middleName = nameParts.slice(1, -1).join(" ");
 						}
 					}
 				}
@@ -155,10 +153,8 @@ export const cleanupOnboardingProfileFields = mutation({
 				},
 			});
 
-			updatedCount++;
-			console.log(
-				`[MIGRATION] Cleaned up profile for journey ${journey._id}`
-			);
+			updatedCount += 1;
+			console.log(`[MIGRATION] Cleaned up profile for journey ${journey._id}`);
 		}
 
 		console.log(

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery, query } from "./_generated/server";
 import { checkRbac } from "../lib/authhelper";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 
 // Create or update an organization based on WorkOS webhook data
 export const createOrUpdateOrganization = internalMutation({
@@ -284,7 +284,7 @@ export const getOrganizationById = internalQuery({
 export const listOrganizations = query({
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
-		
+
 		// Return null if identity is not available yet (race condition handling)
 		// The client will retry once authentication is ready
 		if (!identity) {

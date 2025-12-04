@@ -12,30 +12,22 @@ import {
 	SidebarHeader,
 	SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-	MOCK_AVAILABLE_ROLES,
-	type UserRole,
-} from "@/lib/navigation/role-navigation";
+import type { UserRole } from "@/lib/navigation/role-navigation";
 import {
 	getPrimaryRole,
 	getRoleDashboardUrl,
 	getRoleNavigation,
 } from "@/lib/utils/role-helpers";
 
-// This is sample data - in production, user would come from auth
-const userData = {
-	name: "Admin User",
-	email: "admin@fairlend.com",
-	avatar: "/avatars/admin.jpg",
-};
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+	user,
+	...props
+}: React.ComponentProps<typeof Sidebar> & {
+	user: { name: string; email: string; avatar: string; roles: string[] };
+}) {
 	const router = useRouter();
 
-	// For now, mock all roles as available. In production, this would come from:
-	// const profile = useQuery(api.profile.getCurrentUserProfile);
-	// const userRoles = profile?.roles?.map(r => r.slug) || [];
-	const availableRoles = MOCK_AVAILABLE_ROLES;
+	const availableRoles = user.roles;
 
 	// State for current active role - default to admin
 	const [activeRole, setActiveRole] = React.useState<UserRole>(
@@ -60,7 +52,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			<SidebarHeader>
 				<TeamSwitcher
 					activeRole={activeRole}
-					availableRoles={availableRoles}
+					availableRoles={availableRoles as UserRole[]}
 					onRoleChange={handleRoleChange}
 				/>
 			</SidebarHeader>
@@ -68,7 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				<NavMain items={navigation} />
 			</SidebarContent>
 			<SidebarFooter>
-				<NavUser user={userData} />
+				<NavUser user={user} />
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>

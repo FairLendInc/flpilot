@@ -3,17 +3,17 @@
  * Controls visibility and lock state for mortgages available for purchase
  */
 
-import { v, Infer } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import { type Infer, v } from "convex/values";
 import { hasRbacAccess } from "../lib/authhelper";
-import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import { action, internalMutation, mutation, query } from "./_generated/server";
 import { comparablePayloadValidator } from "./comparables";
-import logger from "./logger";
-import { authQuery } from "./lib/server";
+import { createAuthorizedQuery } from "./lib/server";
+import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 
+const authenticatedQuery = createAuthorizedQuery(["any"]);
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
@@ -40,8 +40,12 @@ const listingCreationResultValidator = v.object({
 });
 
 type BorrowerPayload = Infer<typeof borrowerPayloadValidator>;
-export type ListingCreationPayload = Infer<typeof listingCreationPayloadValidator>;
-export type ListingCreationResult = Infer<typeof listingCreationResultValidator>;
+export type ListingCreationPayload = Infer<
+	typeof listingCreationPayloadValidator
+>;
+export type ListingCreationResult = Infer<
+	typeof listingCreationResultValidator
+>;
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -195,9 +199,7 @@ export const createFromPayload = mutation({
 export const createFromPayloadInternal = internalMutation({
 	args: listingCreationPayloadValidator,
 	returns: listingCreationResultValidator,
-	handler: async (ctx, args) => {
-		return await runListingCreation(ctx, args);
-	},
+	handler: async (ctx, args) => await runListingCreation(ctx, args),
 });
 
 /**
@@ -223,7 +225,7 @@ export const getAvailableListings = query({
  * Get available listings with full mortgage details
  * Returns listings joined with their mortgage data for display with signed image URLs
  */
-export const getAvailableListingsWithMortgages = authQuery({
+export const getAvailableListingsWithMortgages = authenticatedQuery({
 	args: {},
 	handler: async (ctx) => {
 		// Get all visible listings (including locked ones - they remain visible per task 4.5.4)
@@ -238,13 +240,13 @@ export const getAvailableListingsWithMortgages = authQuery({
 				const mortgage = await ctx.db.get(listing.mortgageId);
 				if (!mortgage) return null;
 
-			// Fetch signed URLs for all property images
-			const imagesWithUrls = await Promise.all(
-				mortgage.images.map(async (img) => ({
-					...img,
-					url: await ctx.storage.getUrl(img.storageId),
-				}))
-			);
+				// Fetch signed URLs for all property images
+				const imagesWithUrls = await Promise.all(
+					mortgage.images.map(async (img) => ({
+						...img,
+						url: await ctx.storage.getUrl(img.storageId),
+					}))
+				);
 
 				return {
 					listing,
@@ -283,7 +285,7 @@ export const getListingByMortgage = query({
 /**
  * Get listing by listing ID
  */
-export const getListingById = authQuery({
+export const getListingById = authenticatedQuery({
 	args: { listingId: v.id("listings") },
 	returns: v.union(
 		v.object({
@@ -344,7 +346,8 @@ export const isListingAvailable = query({
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
 			throw new Error("Authentication required");
-		}		const listing = await ctx.db.get(args.listingId);
+		}
+		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			return { available: false, reason: "Listing not found" };
 		}
@@ -370,7 +373,7 @@ export const createListing = mutation({
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
 			throw new Error("Authentication required");
-		}		
+		}
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -407,12 +410,12 @@ export const createListing = mutation({
 
 /**
  * Lock a listing for purchase (admin-only, bypasses approval workflow)
- * 
+ *
  * NOTE: This mutation is restricted to admins only. Investors should use
  * the lock request approval workflow via createLockRequest mutation.
  * Admins can use this for urgent cases or testing.
  */
-export const lockListing = mutation({
+export const lockListing = action({
 	args: {
 		listingId: v.id("listings"),
 		userId: v.id("users"),
@@ -423,16 +426,49 @@ export const lockListing = mutation({
 			throw new Error("Authentication required");
 		}
 
-		// Check broker/admin authorization
-		const isAuthorized = hasRbacAccess({
-			required_roles: ["admin", "broker"],
-			user_identity: identity,
-		});
-
-		if (!isAuthorized) {
-			throw new Error("Unauthorized: Broker or admin privileges required");
+		if (
+			!hasRbacAccess({
+				required_roles: ["admin", "broker", "padmin"],
+				user_identity: identity,
+			})
+		) {
+			//TODO: extract errors to re-use a standard set of "FairLend" errors
+			throw new Error("Unauthorized: Admin privileges require");
 		}
 
+		// Check broker/admin authorization
+		// We can't use hasRbacAccess directly in action as it might need db access for roles
+		// But we can check roles from identity if they are in the token
+		// Or call an internal query to check permissions
+		// For now, we'll rely on the internal mutation to check permissions or assume caller is authorized
+		// But we should check auth here too.
+
+		// Call internal mutation to lock the listing
+		await ctx.runMutation(internal.listings.lockListingInternal, {
+			listingId: args.listingId,
+			userId: args.userId,
+		});
+
+		// If this was an admin action, we might want to trigger deal creation immediately
+		// But typically deal creation happens after lock request approval
+		// If this is a direct lock, we might want to create a deal too?
+		// The proposal says "Update listing lock workflow to: 1. Create Deal Record..."
+		// But that refers to the investor workflow.
+		// This `lockListing` seems to be an admin override.
+
+		// Let's keep it simple: this action just locks the listing.
+		// Deal creation is handled by `createDeal` action which is called after approval.
+
+		return args.listingId;
+	},
+});
+
+export const lockListingInternal = internalMutation({
+	args: {
+		listingId: v.id("listings"),
+		userId: v.id("users"),
+	},
+	handler: async (ctx, args) => {
 		const listing = await ctx.db.get(args.listingId);
 		if (!listing) {
 			throw new Error("Listing not found");
@@ -440,9 +476,7 @@ export const lockListing = mutation({
 
 		// Check if already locked
 		if (listing.locked) {
-			throw new Error(
-				`Listing is already locked by user ${listing.lockedBy}`
-			);
+			throw new Error(`Listing is already locked by user ${listing.lockedBy}`);
 		}
 
 		// Lock the listing
@@ -451,8 +485,6 @@ export const lockListing = mutation({
 			lockedBy: args.userId,
 			lockedAt: Date.now(),
 		});
-
-		return args.listingId;
 	},
 });
 
@@ -496,7 +528,7 @@ export const unlockListing = mutation({
 		});
 
 		// Authorization check: must be locker or broker/admin
-		if (!isLocker && !isAuthorized) {
+		if (!(isLocker || isAuthorized)) {
 			throw new Error(
 				"Unauthorized: Only the user who locked this listing, a broker, or an admin can unlock it"
 			);
@@ -526,7 +558,7 @@ export const updateListingVisibility = mutation({
 		if (!identity) {
 			throw new Error("Authentication required");
 		}
-		
+
 		// Check broker/admin authorization
 		const isAuthorized = hasRbacAccess({
 			required_roles: ["admin", "broker"],
@@ -640,9 +672,7 @@ async function deleteListingCore(
 			.map(([status, count]) => `${count} ${status}`);
 
 		const reasonsText =
-			reasons.length > 0
-				? reasons.join(", ")
-				: "no active labels";
+			reasons.length > 0 ? reasons.join(", ") : "no active labels";
 
 		throw new Error(
 			`Cannot delete listing with existing lock requests (${reasonsText}). Delete requests first or use force option.`
@@ -727,9 +757,7 @@ export const updateListingInternal = internalMutation({
 		lockedBy: v.optional(v.id("users")),
 	},
 	returns: v.id("listings"),
-	handler: async (ctx, args) => {
-		return await updateListingCore(ctx, args);
-	},
+	handler: async (ctx, args) => await updateListingCore(ctx, args),
 });
 
 /**
@@ -737,7 +765,7 @@ export const updateListingInternal = internalMutation({
  * Includes cascade deletion of related data and rollback on failure
  */
 export const deleteListing = mutation({
-	args: { 
+	args: {
 		listingId: v.id("listings"),
 		force: v.optional(v.boolean()),
 	},
@@ -777,12 +805,10 @@ export const deleteListing = mutation({
  * Internal mutation: Delete listing (for webhooks, skips auth)
  */
 export const deleteListingInternal = internalMutation({
-	args: { 
+	args: {
 		listingId: v.id("listings"),
 		force: v.optional(v.boolean()),
 	},
 	returns: v.id("listings"),
-	handler: async (ctx, args) => {
-		return await deleteListingCore(ctx, args);
-	},
+	handler: async (ctx, args) => await deleteListingCore(ctx, args),
 });

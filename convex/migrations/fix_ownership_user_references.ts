@@ -3,15 +3,13 @@
  * Creates placeholder users for string owner IDs and updates references to proper user IDs
  */
 
+import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
-import { Id } from "../_generated/dataModel";
 
 export const fixOwnershipUserReferences = mutation({
 	args: {},
 	handler: async (ctx) => {
-		console.log(
-			"[MIGRATION] Starting: Fix mortgage_ownership user references"
-		);
+		console.log("[MIGRATION] Starting: Fix mortgage_ownership user references");
 
 		// Get all mortgage_ownership records
 		const allOwnership = await ctx.db.query("mortgage_ownership").collect();
@@ -42,14 +40,15 @@ export const fixOwnershipUserReferences = mutation({
 					);
 					continue;
 				}
-			} catch (e) {
+			} catch (_e) {
 				// Not a valid ID, need to create user
 			}
 
 			// Check if we already created a user for this string identifier
 			let userId: Id<"users">;
-			if (createdUserIds.has(ownerId)) {
-				userId = createdUserIds.get(ownerId)!;
+			const existingPlaceholder = createdUserIds.get(ownerId);
+			if (existingPlaceholder) {
+				userId = existingPlaceholder;
 				console.log(
 					`[MIGRATION] Reusing created user ${userId} for identifier ${ownerId}`
 				);
@@ -71,7 +70,7 @@ export const fixOwnershipUserReferences = mutation({
 				});
 
 				createdUserIds.set(ownerId, userId);
-				createdUsersCount++;
+				createdUsersCount += 1;
 				console.log(
 					`[MIGRATION] Created placeholder user ${userId} for identifier ${ownerId}`
 				);
@@ -82,7 +81,7 @@ export const fixOwnershipUserReferences = mutation({
 				ownerId: userId,
 			});
 
-			updatedCount++;
+			updatedCount += 1;
 			console.log(
 				`[MIGRATION] Updated ownership ${ownership._id} to reference user ${userId}`
 			);

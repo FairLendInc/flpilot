@@ -1,6 +1,5 @@
 {
-  "typescript.tsserver.watchOptions": "vscode",
-  "typescript.experimental.useTsgo": true,
+  "typescript.experimental.useTsgo": false,
   "biome.requireConfiguration": false,
   "editor.formatOnSave": true,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": true,
@@ -30,7 +29,6 @@
   "[graphql]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
-  "typescript.tsdk": "node_modules/typescript/lib",
   "editor.formatOnPaste": true,
   "emmet.showExpandedAbbreviation": "never",
   "editor.codeActionsOnSave": {

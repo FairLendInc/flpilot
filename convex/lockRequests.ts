@@ -4,12 +4,17 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 const MAX_NOTES_LENGTH = 1000;
+const LAWYER_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type DatabaseCtx = Pick<QueryCtx, "db"> | Pick<MutationCtx, "db">;
+type IdentityCtx = QueryCtx | MutationCtx;
 
 /**
  * Validation helper: Check if request notes are valid
@@ -26,7 +31,7 @@ function validateRequestNotes(notes: string | undefined): void {
  * Validation helper: Check if listing is available for lock requests
  */
 async function validateListingAvailability(
-	ctx: { db: any },
+	ctx: DatabaseCtx,
 	listingId: Id<"listings">
 ): Promise<void> {
 	const listing = await ctx.db.get(listingId);
@@ -51,7 +56,7 @@ type UserIdentityOptions = {
 };
 
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any },
+	ctx: IdentityCtx,
 	options?: UserIdentityOptions
 ): Promise<Id<"users"> | null> {
 	const { createIfMissing = false } = options ?? {};
@@ -60,9 +65,9 @@ async function getUserFromIdentity(
 		throw new Error("Authentication required");
 	}
 
-	let user = await ctx.db
+	const user = await ctx.db
 		.query("users")
-		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
+		.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
 		.unique();
 
 	// If user doesn't exist, optionally create from WorkOS identity data
@@ -81,13 +86,23 @@ async function getUserFromIdentity(
 			return null;
 		}
 
-		const userId = await ctx.db.insert("users", {
+		const mutationCtx = ctx as MutationCtx;
+		const userId = await mutationCtx.db.insert("users", {
 			idp_id: idpId,
-			email: email,
-			email_verified: identity.email_verified ?? false,
-			first_name: identity.first_name ?? undefined,
-			last_name: identity.last_name ?? undefined,
-			profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+			email,
+			email_verified: Boolean(identity.email_verified),
+			first_name:
+				typeof identity.first_name === "string"
+					? identity.first_name
+					: undefined,
+			last_name:
+				typeof identity.last_name === "string" ? identity.last_name : undefined,
+			profile_picture_url:
+				typeof identity.profile_picture_url === "string"
+					? identity.profile_picture_url
+					: typeof identity.profile_picture === "string"
+						? identity.profile_picture
+						: undefined,
 			created_at: new Date().toISOString(),
 		});
 
@@ -107,8 +122,7 @@ async function getUserFromIdentity(
  * Validate lawyer email format
  */
 function validateLawyerEmail(email: string): void {
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-	if (!emailRegex.test(email)) {
+	if (!LAWYER_EMAIL_REGEX.test(email)) {
 		throw new Error("Invalid lawyer email format");
 	}
 }
@@ -180,7 +194,7 @@ export const createLockRequest = mutation({
 			user_identity: identity,
 		});
 
-		if (!isInvestor && !isAdmin) {
+		if (!(isInvestor || isAdmin)) {
 			throw new Error("Unauthorized: Investor role required");
 		}
 
@@ -305,7 +319,9 @@ export const approveLockRequest = mutation({
 		}
 
 		// Get admin user document
-		const adminUserId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		const adminUserId = await getUserFromIdentity(ctx, {
+			createIfMissing: true,
+		});
 		if (!adminUserId) {
 			throw new Error("Unable to resolve admin user identity");
 		}
@@ -340,40 +356,40 @@ export const approveLockRequest = mutation({
 			reviewedBy: adminUserId,
 		});
 
-	await ctx.db.patch(request.listingId, {
-		locked: true,
-		lockedBy: request.requestedBy,
-		lockedAt: Date.now(),
-	});
+		await ctx.db.patch(request.listingId, {
+			locked: true,
+			lockedBy: request.requestedBy,
+			lockedAt: Date.now(),
+		});
 
-	// Auto-reject all other pending requests for the same listing
-	const otherPendingRequests = await ctx.db
-		.query("lock_requests")
-		.withIndex("by_listing_status", (q) =>
-			q.eq("listingId", request.listingId).eq("status", "pending"),
-		)
-		.collect();
+		// Auto-reject all other pending requests for the same listing
+		const otherPendingRequests = await ctx.db
+			.query("lock_requests")
+			.withIndex("by_listing_status", (q) =>
+				q.eq("listingId", request.listingId).eq("status", "pending")
+			)
+			.collect();
 
-	// Reject all pending requests except the approved one
-	const rejectionPromises = otherPendingRequests
-		.filter((req) => req._id !== args.requestId)
-		.map((req) =>
-			ctx.db.patch(req._id, {
-				status: "rejected",
-				reviewedBy: adminUserId,
-				reviewedAt: Date.now(),
-				rejectionReason: "Listing was locked",
-			}),
-		);
+		// Reject all pending requests except the approved one
+		const rejectionPromises = otherPendingRequests
+			.filter((req) => req._id !== args.requestId)
+			.map((req) =>
+				ctx.db.patch(req._id, {
+					status: "rejected",
+					reviewedBy: adminUserId,
+					reviewedAt: Date.now(),
+					rejectionReason: "Listing was locked",
+				})
+			);
 
-	await Promise.all(rejectionPromises);
+		await Promise.all(rejectionPromises);
 
-	logger.info("Lock request approved", {
-		requestId: args.requestId,
-		listingId: request.listingId,
-		approvedBy: adminUserId,
-		autoRejectedCount: rejectionPromises.length,
-	});
+		logger.info("Lock request approved", {
+			requestId: args.requestId,
+			listingId: request.listingId,
+			approvedBy: adminUserId,
+			autoRejectedCount: rejectionPromises.length,
+		});
 
 		return args.requestId;
 	},
@@ -433,7 +449,9 @@ export const rejectLockRequest = mutation({
 		}
 
 		// Get admin user document
-		const adminUserId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		const adminUserId = await getUserFromIdentity(ctx, {
+			createIfMissing: true,
+		});
 		if (!adminUserId) {
 			throw new Error("Unable to resolve admin user identity");
 		}
@@ -633,12 +651,10 @@ export const getPendingLockRequests = query({
 
 		const requests = await ctx.db
 			.query("lock_requests")
-			.withIndex("by_status_requested_at", (q) =>
-				q.eq("status", "pending")
-			)
+			.withIndex("by_status_requested_at", (q) => q.eq("status", "pending"))
 			.order("desc")
 			.collect();
-		
+
 		// Filter to ensure type safety (should already be filtered by index, but TypeScript needs this)
 		return requests.filter((r) => r.status === "pending") as Array<{
 			_id: Id<"lock_requests">;
@@ -756,9 +772,7 @@ export const getPendingLockRequestsWithDetails = query({
 
 		const requests = await ctx.db
 			.query("lock_requests")
-			.withIndex("by_status_requested_at", (q) =>
-				q.eq("status", "pending")
-			)
+			.withIndex("by_status_requested_at", (q) => q.eq("status", "pending"))
 			.order("desc")
 			.collect();
 
@@ -768,9 +782,7 @@ export const getPendingLockRequestsWithDetails = query({
 		return await Promise.all(
 			pendingRequests.map(async (request) => {
 				const listing = await ctx.db.get(request.listingId);
-				const mortgage = listing
-					? await ctx.db.get(listing.mortgageId)
-					: null;
+				const mortgage = listing ? await ctx.db.get(listing.mortgageId) : null;
 				const borrower = mortgage
 					? await ctx.db.get(mortgage.borrowerId)
 					: null;
@@ -874,12 +886,10 @@ export const getApprovedLockRequests = query({
 
 		const requests = await ctx.db
 			.query("lock_requests")
-			.withIndex("by_status_requested_at", (q) =>
-				q.eq("status", "approved")
-			)
+			.withIndex("by_status_requested_at", (q) => q.eq("status", "approved"))
 			.order("desc")
 			.collect();
-		
+
 		// Filter to ensure type safety (should already be filtered by index, but TypeScript needs this)
 		return requests.filter((r) => r.status === "approved") as Array<{
 			_id: Id<"lock_requests">;
@@ -998,9 +1008,7 @@ export const getApprovedLockRequestsWithDetails = query({
 
 		const requests = await ctx.db
 			.query("lock_requests")
-			.withIndex("by_status_requested_at", (q) =>
-				q.eq("status", "approved")
-			)
+			.withIndex("by_status_requested_at", (q) => q.eq("status", "approved"))
 			.order("desc")
 			.collect();
 
@@ -1010,9 +1018,7 @@ export const getApprovedLockRequestsWithDetails = query({
 		return await Promise.all(
 			approvedRequests.map(async (request) => {
 				const listing = await ctx.db.get(request.listingId);
-				const mortgage = listing
-					? await ctx.db.get(listing.mortgageId)
-					: null;
+				const mortgage = listing ? await ctx.db.get(listing.mortgageId) : null;
 				const borrower = mortgage
 					? await ctx.db.get(mortgage.borrowerId)
 					: null;
@@ -1119,12 +1125,10 @@ export const getRejectedLockRequests = query({
 
 		const requests = await ctx.db
 			.query("lock_requests")
-			.withIndex("by_status_requested_at", (q) =>
-				q.eq("status", "rejected")
-			)
+			.withIndex("by_status_requested_at", (q) => q.eq("status", "rejected"))
 			.order("desc")
 			.collect();
-		
+
 		// Filter to ensure type safety (should already be filtered by index, but TypeScript needs this)
 		return requests.filter((r) => r.status === "rejected") as Array<{
 			_id: Id<"lock_requests">;
@@ -1245,9 +1249,7 @@ export const getRejectedLockRequestsWithDetails = query({
 
 		const requests = await ctx.db
 			.query("lock_requests")
-			.withIndex("by_status_requested_at", (q) =>
-				q.eq("status", "rejected")
-			)
+			.withIndex("by_status_requested_at", (q) => q.eq("status", "rejected"))
 			.order("desc")
 			.collect();
 
@@ -1257,9 +1259,7 @@ export const getRejectedLockRequestsWithDetails = query({
 		return await Promise.all(
 			rejectedRequests.map(async (request) => {
 				const listing = await ctx.db.get(request.listingId);
-				const mortgage = listing
-					? await ctx.db.get(listing.mortgageId)
-					: null;
+				const mortgage = listing ? await ctx.db.get(listing.mortgageId) : null;
 				const borrower = mortgage
 					? await ctx.db.get(mortgage.borrowerId)
 					: null;
@@ -1362,20 +1362,20 @@ export const getLockRequestsByListing = query({
 			throw new Error("Authentication required");
 		}
 
-	// Check admin authorization
-	const isAdmin = hasRbacAccess({
-		required_roles: ["admin", "broker"],
-		user_identity: identity,
-	});
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
 
-	if (!isAdmin) {
-		throw new Error("Unauthorized: Admin or broker privileges required");
-	}
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin or broker privileges required");
+		}
 
-	return await ctx.db
-		.query("lock_requests")
-		.withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
-		.collect();
+		return await ctx.db
+			.query("lock_requests")
+			.withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
+			.collect();
 	},
 });
 
@@ -1405,23 +1405,23 @@ export const getPendingLockRequestsByListing = query({
 			throw new Error("Authentication required");
 		}
 
-	// Check admin authorization
-	const isAdmin = hasRbacAccess({
-		required_roles: ["admin", "broker"],
-		user_identity: identity,
-	});
+		// Check admin authorization
+		const isAdmin = hasRbacAccess({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
 
-	if (!isAdmin) {
-		throw new Error("Unauthorized: Admin or broker privileges required");
-	}
+		if (!isAdmin) {
+			throw new Error("Unauthorized: Admin or broker privileges required");
+		}
 
-	const requests = await ctx.db
-		.query("lock_requests")
-		.withIndex("by_listing_status", (q) =>
-			q.eq("listingId", args.listingId).eq("status", "pending")
-		)
-		.collect();
-		
+		const requests = await ctx.db
+			.query("lock_requests")
+			.withIndex("by_listing_status", (q) =>
+				q.eq("listingId", args.listingId).eq("status", "pending")
+			)
+			.collect();
+
 		// Filter to ensure type safety (should already be filtered by index, but TypeScript needs this)
 		return requests.filter((r) => r.status === "pending") as Array<{
 			_id: Id<"lock_requests">;
@@ -1581,7 +1581,7 @@ export const getLockRequestWithDetails = query({
 			user_identity: identity,
 		});
 
-		if (!isRequestOwner && !isAdminOrBroker) {
+		if (!(isRequestOwner || isAdminOrBroker)) {
 			return null;
 		}
 

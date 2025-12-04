@@ -127,8 +127,8 @@ export const createUser = internalMutation({
 		external_id: v.optional(v.string()),
 		metadata: v.optional(v.any()),
 	}),
-	handler: async (ctx, args) => {
-		return await ctx.db.insert("users", {
+	handler: async (ctx, args) =>
+		await ctx.db.insert("users", {
 			idp_id: args.idp_id,
 			email: args.email,
 			email_verified: args.email_verified,
@@ -140,8 +140,7 @@ export const createUser = internalMutation({
 			last_sign_in_at: args.last_sign_in_at,
 			external_id: args.external_id,
 			metadata: args.metadata,
-		});
-	},
+		}),
 });
 
 /** Update an existing user in Convex */

@@ -5,6 +5,13 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
+type WorkOsDomain = {
+	id?: string;
+	domain: string;
+	createdAt?: string;
+	updatedAt?: string;
+};
+
 export const verifyWebhook = internalAction({
 	args: v.object({
 		payload: v.string(),
@@ -87,16 +94,16 @@ export const updateUserRole = internalAction({
 	}),
 	returns: v.null(),
 	handler: async (_ctx, { userId, role }) => {
-	const apiKey = process.env.WORKOS_API_KEY;
-	const isTestEnv =
-		process.env.NODE_ENV === "test" ||
-		typeof process.env.VITEST_WORKER_ID === "string";
-	if (!apiKey || isTestEnv) {
-		console.warn(
-			"Skipping WorkOS role update (missing API key or test environment)"
-		);
-		return null;
-	}
+		const apiKey = process.env.WORKOS_API_KEY;
+		const isTestEnv =
+			process.env.NODE_ENV === "test" ||
+			typeof process.env.VITEST_WORKER_ID === "string";
+		if (!apiKey || isTestEnv) {
+			console.warn(
+				"Skipping WorkOS role update (missing API key or test environment)"
+			);
+			return null;
+		}
 		const workos = new WorkOS(apiKey);
 		try {
 			const user = await workos.userManagement.getUser(userId);
@@ -136,18 +143,13 @@ export const updateUserProfile = internalAction({
 			// WorkOS accepts phoneNumbers as an array of objects
 			update.phoneNumbers = [{ phoneNumber: args.phone }];
 		}
-		try {
-			if (Object.keys(update).length > 0) {
-				await workos.userManagement.updateUser({
-					userId: args.userId,
-					...(update as Record<string, unknown>),
-				});
-			}
-			return null;
-		} catch (err) {
-			// Propagate error to the caller to decide UX behavior
-			throw err;
+		if (Object.keys(update).length > 0) {
+			await workos.userManagement.updateUser({
+				userId: args.userId,
+				...(update as Record<string, unknown>),
+			});
 		}
+		return null;
 	},
 });
 
@@ -190,13 +192,12 @@ export const assignOrganizationRole = internalAction({
 					roleSlug: args.roleSlug,
 				});
 
-				const membership = await workos.userManagement.createOrganizationMembership(
-					{
+				const membership =
+					await workos.userManagement.createOrganizationMembership({
 						userId: args.userId,
 						organizationId: args.organizationId,
 						roleSlug: args.roleSlug,
-					}
-				);
+					});
 
 				console.log("Successfully created organization membership with role", {
 					userId: args.userId,
@@ -218,12 +219,9 @@ export const assignOrganizationRole = internalAction({
 				membershipId: membership.id,
 			});
 
-			await workos.userManagement.updateOrganizationMembership(
-				membership.id,
-				{
-					roleSlug: args.roleSlug,
-				}
-			);
+			await workos.userManagement.updateOrganizationMembership(membership.id, {
+				roleSlug: args.roleSlug,
+			});
 
 			console.log("Successfully updated organization membership role", {
 				userId: args.userId,
@@ -280,6 +278,9 @@ export const syncUserOrganizations = internalAction({
 						);
 
 						// Sync organization to local database
+						const organizationDomains =
+							(organization as { domains?: WorkOsDomain[] }).domains ?? [];
+
 						await ctx.runMutation(
 							internal.organizations.createOrUpdateOrganization,
 							{
@@ -289,19 +290,18 @@ export const syncUserOrganizations = internalAction({
 								metadata: organization.metadata,
 								created_at: organization.createdAt,
 								updated_at: organization.updatedAt,
-								domains:
-									(organization as any).domains?.map((domain: any) => ({
-										id: domain.id || `${organization.id}-${domain.domain}`,
-										domain: domain.domain,
-										organization_id: organization.id,
-										object: "organization_domain",
-										created_at: domain.createdAt,
-										updated_at: domain.updatedAt,
-									})) || [],
+								domains: organizationDomains.map((domain) => ({
+									id: domain.id || `${organization.id}-${domain.domain}`,
+									domain: domain.domain,
+									organization_id: organization.id,
+									object: "organization_domain",
+									created_at: domain.createdAt,
+									updated_at: domain.updatedAt,
+								})),
 							}
 						);
 
-						organizationsSynced++;
+						organizationsSynced += 1;
 					} catch (orgError) {
 						console.warn(
 							"Failed to sync organization:",

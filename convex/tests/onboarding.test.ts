@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
-import type { Doc } from "../_generated/dataModel";
 import { api } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import schema from "../schema";
 
 // Lazy import for all modules so convexTest can load handlers
@@ -205,7 +205,7 @@ describe("Onboarding journeys", () => {
 		expect(pending).toHaveLength(1);
 
 		const approved = await admin.mutation(api.onboarding.approveJourney, {
-			journeyId: pending![0]!.journey._id,
+			journeyId: pending?.[0]?.journey._id,
 			notes: "looks good",
 		});
 		expect(approved?.status).toBe("approved");
@@ -216,7 +216,7 @@ describe("Onboarding journeys", () => {
 		const admin2 = withIdentity(t, adminSubject2, "admin");
 		await expect(
 			admin2.mutation(api.onboarding.rejectJourney, {
-				journeyId: pending![0]!.journey._id,
+				journeyId: pending?.[0]?.journey._id,
 				reason: "needs more info",
 			})
 		).rejects.toThrow("Only pending journeys can be rejected");
@@ -258,15 +258,16 @@ describe("Onboarding journeys", () => {
 
 		const pendingReject = await admin.query(api.onboarding.listPending, {});
 		expect(pendingReject).not.toBeNull();
-		const rejectionJourney = pendingReject!.find(
-			(entry) => entry.journey.userId !== pending![0]!.journey.userId
+		const rejectionJourney = pendingReject?.find(
+			(entry: { journey: { userId: string } }) =>
+				entry.journey.userId !== pending?.[0]?.journey.userId
 		);
 		expect(rejectionJourney).toBeDefined();
 
 		const rejectionResult = await admin2.mutation(
 			api.onboarding.rejectJourney,
 			{
-				journeyId: rejectionJourney!.journey._id,
+				journeyId: rejectionJourney?.journey._id,
 				reason: "Need additional docs",
 			}
 		);
@@ -309,7 +310,7 @@ describe("Onboarding journeys", () => {
 		await member.mutation(api.onboarding.submitInvestorJourney, {});
 
 		const pending = await member.query(api.onboarding.getJourney, {});
-		const journeyId = pending!._id;
+		const journeyId = pending?._id;
 
 		const adminSubjectA = "admin-a";
 		const adminSubjectB = "admin-b";
@@ -328,7 +329,9 @@ describe("Onboarding journeys", () => {
 		]);
 
 		const fulfilled = [first, second].filter(
-			(result): result is PromiseFulfilledResult<Doc<"onboarding_journeys"> | null> =>
+			(
+				result
+			): result is PromiseFulfilledResult<Doc<"onboarding_journeys"> | null> =>
 				result.status === "fulfilled"
 		);
 		const rejected = [first, second].filter(

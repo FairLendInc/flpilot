@@ -318,7 +318,7 @@ export function ListingGridShell<T extends WithLatLng>({
 			<div className={classNames?.gridColumn ?? "col-span-8"}>
 				<ScrollArea className="relative h-[calc(100vh-7rem)]">
 					<ProgressiveBlur height="15%" position="bottom" />
-					<div className="grid 84rem:grid-cols-2 grid-cols-1 pr-4">
+					<div className="grid 84rem:grid-cols-2 grid-cols-1 pr-4 pb-32">
 						<AnimatePresence mode="popLayout">
 							{filteredItems.map((item) => (
 								<motion.div

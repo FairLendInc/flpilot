@@ -1,3 +1,22 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -90,7 +109,7 @@ pnpm run build-storybook
 ### Core Stack
 
 - **Backend**: Convex (database + serverless functions)
-- **Frontend**: Next.js 15 with App Router
+- **Frontend**: Next.js 16 with App Router
 - **Authentication**: WorkOS AuthKit with redirect-based flow
 - **Styling**: Tailwind CSS v4
 - **UI Components**: HeroUI (custom NextUI fork) + Radix UI primitives
@@ -348,27 +367,31 @@ function AuthenticatedComponent() {
 
 #### Convex Best Practices
 - **Always consult `.cursor/rules/convex_rules.mdc`** for Convex development patterns and guidelines
-- **Use `authQuery`, `authMutation`, `authAction` from `convex/lib/server.ts`** for all authenticated functions - These automatically enforce authentication and provide RBAC context
+- **Use the explicit authorization helpers `createAuthorizedQuery`, `createAuthorizedMutation`, and `createAuthorizedAction` from `convex/lib/server.ts`**. Declare allowed roles and whether authentication is required. Default is authenticated; pass `false` as the third argument to opt into unauthenticated access.
 - **Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `convex/lib/client.ts`** for all authenticated client-side queries
 - **Never use `preloadQuery` with authentication tokens** - Use reactive client-side queries instead
-- **RBAC context is automatically available** - When using `authQuery`/`authMutation`/`authAction`, access `ctx.role`, `ctx.roles`, `ctx.permissions`, `ctx.org_id` directly without calling `ctx.auth.getUserIdentity()`
+- **RBAC context is automatically available** - When using `createAuthorized*`, access `ctx.role`, `ctx.roles`, `ctx.permissions`, `ctx.org_id` directly without calling `ctx.auth.getUserIdentity()`
 - Follow the new Convex function syntax with `args` and `returns` validators
 - Use the OpenSpec spec-driven development workflow for all new features
 - Leverage the 100% ownership invariant when working with mortgage ownership operations
 
 **Backend Authentication Pattern:**
 ```typescript
-import { authQuery } from "./lib/server";
 import { v } from "convex/values";
+import { createAuthorizedQuery } from "./lib/server";
 
-export const getProfile = authQuery({
+// Authenticated (default)
+const authenticatedQuery = createAuthorizedQuery(["any"]);
+
+// Explicitly unauthenticated (must pass false to opt out)
+const unauthenticatedQuery = createAuthorizedQuery(["any"], [], false);
+
+export const getProfile = authenticatedQuery({
   args: {},
   returns: v.object({ name: v.string(), role: v.string() }),
   handler: async (ctx) => {
-    // RBAC context automatically available:
     const { role, roles, permissions, org_id } = ctx;
     
-    // Check permission before proceeding
     if (!permissions?.includes("read:profile")) {
       throw new Error("Permission denied");
     }

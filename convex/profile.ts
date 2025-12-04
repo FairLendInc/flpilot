@@ -1,13 +1,8 @@
-import { v, Infer } from "convex/values";
-import { internal, api } from "./_generated/api";
-import { action, mutation, query } from "./_generated/server";
-import { FunctionReturnType } from "convex/server";
-import schema from "./schema";
-type User = Infer<typeof schema.tables.users.validator>;
-type Organization = Infer<typeof schema.tables.organizations.validator>;
-type Membership = Infer<typeof schema.tables.organization_memberships.validator>;
-import logger from "../lib/logger";
+import type { FunctionReturnType } from "convex/server";
+import { v } from "convex/values";
 import type { WorkOSIdentity } from "../types/workos";
+import { type api, internal } from "./_generated/api";
+import { action, mutation, query } from "./_generated/server";
 
 export const getUserIdentity = query(async (ctx) => {
 	const identity = await ctx.auth.getUserIdentity();
@@ -48,79 +43,83 @@ export const getCurrentUserProfile = query({
 			.withIndex("byUserId", (q) => q.eq("user_id", workosUserId))
 			.collect();
 
+		const orgMemberships = await Promise.all(
+			memberships.map(async (membership) => {
+				const org = await ctx.db
+					.query("organizations")
+					.withIndex("byWorkosId", (q) =>
+						q.eq("id", membership.organization_id)
+					)
+					.unique();
 
-	const orgMemberships = (await Promise.all(
-		memberships.map(async (membership) => {
-			const org = await ctx.db
-				.query("organizations")
-				.withIndex("byWorkosId", (q) => q.eq("id", membership.organization_id))
-				.unique();
+				// Fetch role details with permissions
+				const roleDetails = await Promise.all(
+					(membership.roles || []).map(async (roleRef) => {
+						const role = await ctx.db
+							.query("roles")
+							.withIndex("by_slug", (q) => q.eq("slug", roleRef.slug))
+							.unique();
+						return {
+							slug: roleRef.slug,
+							name: role?.name ?? roleRef.slug,
+							permissions: role?.permissions ?? [],
+						};
+					})
+				);
 
+				// Determine the active/primary role
+				const primaryRoleSlug =
+					membership.role?.slug ?? roleDetails[0]?.slug ?? "";
 
+				return {
+					organizationId: org?.id ?? "",
+					organizationName: org?.name ?? "",
+					organizationExternalId: org?.external_id ?? "",
+					organizationMetadata: org?.metadata ?? {},
+					organizationCreatedAt: org?.created_at ?? "",
+					memberShipId: membership.id,
+					membershipOrgId: membership.organization_id,
+					membershipRole: membership.role,
+					membershipRoles: membership.roles,
+					roleDetails,
+					primaryRoleSlug,
+					membershipCreatedAt: membership.created_at ?? "",
+				};
+			})
+		);
+		// rganizationId: string; organizationName: string; organizationExternalId: string; organizationMetadata: any; organizationCreatedAt: string; memberShipId: string; membershipOrgId: string;
+		// Extract WorkOS permissions from identity for the active organization
+		const workosPermissions =
+			(identity as { permissions?: string[] })?.permissions ?? [];
+		const workosOrgId =
+			(identity as { org_id?: string | null })?.org_id ?? null;
+		const workosRole = (identity as { role?: string | null })?.role ?? null;
 
-			// Fetch role details with permissions
-			const roleDetails = await Promise.all(
-				(membership.roles || []).map(async (roleRef) => {
-					const role = await ctx.db
-						.query("roles")
-						.withIndex("by_slug", (q) => q.eq("slug", roleRef.slug))
-						.unique();
-					return {
-						slug: roleRef.slug,
-						name: role?.name ?? roleRef.slug,
-						permissions: role?.permissions ?? [],
-					};
-				})
-			);
+		// console.debug("PROFILE RETURN PAYLOAD", {
+		// 	user: user,
+		// 	workOsIdentity: identity,
+		// 	memberships: orgMemberships,
+		// 	activeOrganizationId: user.active_organization_id ?? null,
+		// 	workosPermissions,
+		// 	workosOrgId,
+		// });
 
-			// Determine the active/primary role
-			const primaryRoleSlug = membership.role?.slug ?? roleDetails[0]?.slug ?? "";
-
-			return {
-				organizationId: org?.id ?? "",
-				organizationName: org?.name ?? "",
-				organizationExternalId: org?.external_id ?? "",
-				organizationMetadata: org?.metadata ?? {},
-				organizationCreatedAt: org?.created_at ?? "",
-				memberShipId: membership.id,
-				membershipOrgId: membership.organization_id,
-				membershipRole: membership.role,
-				membershipRoles: membership.roles,
-				roleDetails: roleDetails,
-				primaryRoleSlug: primaryRoleSlug,
-				membershipCreatedAt: membership.created_at ?? "",
-			}
-		})
-	))
-// rganizationId: string; organizationName: string; organizationExternalId: string; organizationMetadata: any; organizationCreatedAt: string; memberShipId: string; membershipOrgId: string;
-	// Extract WorkOS permissions from identity for the active organization
-	const workosPermissions = (identity as { permissions?: string[] })?.permissions ?? [];
-	const workosOrgId = (identity as { org_id?: string | null })?.org_id ?? null;
-	const workosRole = (identity as { role?: string | null })?.role ?? null;
-
-	// console.debug("PROFILE RETURN PAYLOAD", {
-	// 	user: user,
-	// 	workOsIdentity: identity,
-	// 	memberships: orgMemberships,
-	// 	activeOrganizationId: user.active_organization_id ?? null,
-	// 	workosPermissions,
-	// 	workosOrgId,
-	// });
-
-	return {
-		user: user,
-		workOsIdentity: identity,
-		memberships: orgMemberships,
-		activeOrganizationId: user.active_organization_id ?? null,
-		workosPermissions,
-		workosOrgId,
-		workosRole,
-	};
+		return {
+			user,
+			workOsIdentity: identity,
+			memberships: orgMemberships,
+			activeOrganizationId: user.active_organization_id ?? null,
+			workosPermissions,
+			workosOrgId,
+			workosRole,
+		};
 	},
 });
 
 // Export the inferred return type
-export type UserProfileReturnType = FunctionReturnType<typeof api.profile.getCurrentUserProfile>;
+export type UserProfileReturnType = FunctionReturnType<
+	typeof api.profile.getCurrentUserProfile
+>;
 
 export const updateProfile = mutation({
 	args: v.object({

@@ -1,8 +1,15 @@
 // import { type UserJSON } from '@workos-inc/authkit-node';
 import { v } from "convex/values";
 import { crud } from "convex-helpers/server/crud";
-import { internalMutation, query, mutation, type QueryCtx, action } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
+import {
+	action,
+	internalMutation,
+	internalQuery,
+	mutation,
+	type QueryCtx,
+	query,
+} from "./_generated/server";
 import schema from "./schema";
 
 const userFields = schema.tables.users.validator.fields;
@@ -81,7 +88,7 @@ export const getUserTheme = query({
 		}
 
 		const user = await userByExternalId(ctx, identity.subject);
-		if (!user || !user.theme) {
+		if (!user?.theme) {
 			return { theme: "default" };
 		}
 
@@ -157,7 +164,9 @@ export const provisionCurrentUser = action({
 			result: v.any(),
 		}),
 	}),
-	handler: async (ctx): Promise<{
+	handler: async (
+		ctx
+	): Promise<{
 		status: "success";
 		data: {
 			message: string;
@@ -178,16 +187,41 @@ export const provisionCurrentUser = action({
 			idp_id: identity.subject,
 			email,
 			email_verified: Boolean(identity.email_verified ?? false),
-			first_name: typeof identity.first_name === "string" ? identity.first_name : undefined,
-			last_name: typeof identity.last_name === "string" ? identity.last_name : undefined,
-			profile_picture_url: typeof identity.profile_picture_url === "string" 
-				? identity.profile_picture_url 
-				: typeof identity.profile_picture === "string" 
-					? identity.profile_picture 
+			first_name:
+				typeof identity.first_name === "string"
+					? identity.first_name
 					: undefined,
+			last_name:
+				typeof identity.last_name === "string" ? identity.last_name : undefined,
+			profile_picture_url:
+				typeof identity.profile_picture_url === "string"
+					? identity.profile_picture_url
+					: typeof identity.profile_picture === "string"
+						? identity.profile_picture
+						: undefined,
 			created_at: new Date().toISOString(),
 		};
 
 		return await ctx.runMutation(internal.users.createFromWorkOS, payload);
 	},
+});
+
+export const viewer = query({
+	args: {},
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			return null;
+		}
+		const _user = await userByExternalId(ctx, identity.subject);
+	},
+});
+
+/**
+ * Internal query to get user by IDP ID
+ * For use by actions that need to resolve user IDs
+ */
+export const getUserByIdpId = internalQuery({
+	args: { idpId: v.string() },
+	handler: async (ctx, { idpId }) => await userByExternalId(ctx, idpId),
 });

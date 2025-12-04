@@ -16,17 +16,19 @@
  * All mutations and queries are in syncHelpers.ts (cannot use "use node")
  */
 
-import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { WorkOS } from "@workos-inc/node";
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { internalAction } from "./_generated/server";
+
+type WorkOSMetadata = Record<string, unknown>;
 
 // ============================================================================
 // WorkOS SDK Response Interfaces
 // ============================================================================
 
 /** WorkOS User from User Management API */
-interface WorkOSUser {
+type WorkOSUser = {
 	id: string; // WorkOS user ID (maps to users.idp_id)
 	email: string;
 	email_verified: boolean;
@@ -38,32 +40,32 @@ interface WorkOSUser {
 	updated_at: string; // ISO 8601 timestamp
 	last_sign_in_at?: string; // ISO 8601 timestamp
 	external_id?: string; // Custom external identifier
-	metadata?: Record<string, any>; // Custom metadata object
-}
+	metadata?: WorkOSMetadata; // Custom metadata object
+};
 
 /** WorkOS Organization from Organizations API */
-interface WorkOSOrganization {
+type WorkOSOrganization = {
 	id: string; // WorkOS org ID (maps to organizations.id)
 	name: string;
 	external_id?: string; // Custom external identifier
-	metadata?: Record<string, any>; // Custom metadata object
+	metadata?: WorkOSMetadata; // Custom metadata object
 	created_at: string; // ISO 8601 timestamp
 	updated_at: string; // ISO 8601 timestamp
 	domains?: WorkOSOrganizationDomain[]; // Included in org response
-}
+};
 
 /** WorkOS Organization Domain (nested in Organization) */
-interface WorkOSOrganizationDomain {
+type WorkOSOrganizationDomain = {
 	id: string; // WorkOS domain ID
 	domain: string; // e.g., "example.com"
 	organization_id: string; // Parent organization ID
 	object: "organization_domain"; // Type identifier
 	created_at: string; // ISO 8601 timestamp
 	updated_at: string; // ISO 8601 timestamp
-}
+};
 
 /** WorkOS Organization Membership from User Management API */
-interface WorkOSOrganizationMembership {
+type WorkOSOrganizationMembership = {
 	id: string; // WorkOS membership ID
 	userId: string; // WorkOS user ID (camelCase in SDK!)
 	organizationId: string; // WorkOS org ID (camelCase in SDK!)
@@ -79,14 +81,14 @@ interface WorkOSOrganizationMembership {
 	object: "organization_membership"; // Type identifier
 	createdAt: string; // ISO 8601 timestamp (camelCase in SDK!)
 	updatedAt: string; // ISO 8601 timestamp (camelCase in SDK!)
-}
+};
 
 // ============================================================================
 // Convex Query Response Types (from syncHelpers.ts)
 // ============================================================================
 
 /** Convex User from getAllConvexUsers query */
-interface ConvexUser {
+type ConvexUser = {
 	_id: string;
 	idp_id: string;
 	email: string;
@@ -97,21 +99,21 @@ interface ConvexUser {
 	updated_at?: string;
 	last_sign_in_at?: string;
 	external_id?: string;
-	metadata?: any;
-}
+	metadata?: WorkOSMetadata;
+};
 
 /** Convex Organization from getAllConvexOrganizations query */
-interface ConvexOrganization {
+type ConvexOrganization = {
 	_id: string;
 	id: string;
 	name: string;
 	external_id?: string;
 	updated_at?: string;
-	metadata?: any;
-}
+	metadata?: WorkOSMetadata;
+};
 
 /** Convex Membership from getAllConvexMemberships query */
-interface ConvexMembership {
+type ConvexMembership = {
 	_id: string;
 	id: string;
 	user_id: string;
@@ -120,20 +122,20 @@ interface ConvexMembership {
 	role?: { slug: string };
 	roles?: Array<{ slug: string }>;
 	updated_at?: string;
-}
+};
 
 /** Sync result from syncUsers action */
-interface SyncUsersResult {
+type SyncUsersResult = {
 	added: number;
 	updated: number;
 	deleted: number;
 	total_workos: number;
 	total_convex_after: number;
 	errors: string[];
-}
+};
 
 /** Sync result from syncOrganizations action */
-interface SyncOrganizationsResult {
+type SyncOrganizationsResult = {
 	added: number;
 	updated: number;
 	deleted: number;
@@ -141,17 +143,17 @@ interface SyncOrganizationsResult {
 	total_workos: number;
 	total_convex_after: number;
 	errors: string[];
-}
+};
 
 /** Sync result from syncOrganizationMemberships action */
-interface SyncMembershipsResult {
+type SyncMembershipsResult = {
 	added: number;
 	updated: number;
 	deleted: number;
 	total_workos: number;
 	total_convex_after: number;
 	errors: string[];
-}
+};
 
 // ============================================================================
 // Pagination Helper
@@ -161,11 +163,18 @@ interface SyncMembershipsResult {
  * Generic pagination helper for WorkOS SDK calls
  * Note: WorkOS SDK returns { data: T[], listMetadata: {...} }
  */
+type PaginatedResponse<T> = {
+	data: T[];
+	listMetadata?: {
+		after?: string | null;
+	};
+};
+
 async function fetchAllPaginated<T>(
-	fetchPage: (cursor?: string) => Promise<any>
+	fetchPage: (cursor?: string) => Promise<PaginatedResponse<T>>
 ): Promise<T[]> {
 	const allItems: T[] = [];
-	let cursor: string | undefined = undefined;
+	let cursor: string | undefined;
 
 	do {
 		const response = await fetchPage(cursor);
@@ -212,11 +221,14 @@ export const syncUsers = internalAction({
 		try {
 			// Step 1: Fetch ALL users from WorkOS (with pagination)
 			console.log("📥 Fetching all users from WorkOS...");
-			const workosUsers = await fetchAllPaginated<WorkOSUser>((cursor) =>
-				workos.userManagement.listUsers({
-					limit: 100,
-					after: cursor,
-				})
+			const workosUsers = await fetchAllPaginated<WorkOSUser>(
+				async (cursor) => {
+					const response = await workos.userManagement.listUsers({
+						limit: 100,
+						after: cursor,
+					});
+					return response as unknown as PaginatedResponse<WorkOSUser>;
+				}
 			);
 			console.log(`✅ Fetched ${workosUsers.length} users from WorkOS`);
 
@@ -227,45 +239,29 @@ export const syncUsers = internalAction({
 			console.log(`📊 Found ${convexUsers.length} users in Convex`);
 
 			// Step 3: Build lookup maps
-			const workosUserMap = new Map(workosUsers.map((u: WorkOSUser) => [u.id, u]));
-			const convexUserMap = new Map(convexUsers.map((u: ConvexUser) => [u.idp_id, u]));
+			const workosUserMap = new Map(
+				workosUsers.map((u: WorkOSUser) => [u.id, u])
+			);
+			const convexUserMap = new Map(
+				convexUsers.map((u: ConvexUser) => [u.idp_id, u])
+			);
 
 			// Step 4: Add/Update users (WorkOS → Convex)
 			for (const workosUser of workosUsers) {
-				const convexUser: ConvexUser | undefined = convexUserMap.get(workosUser.id);
+				const convexUser: ConvexUser | undefined = convexUserMap.get(
+					workosUser.id
+				);
 
-				if (!convexUser) {
-					// User exists in WorkOS but not Convex → ADD
-					try {
-						await ctx.runMutation(internal.syncHelpers.createUser, {
-							idp_id: workosUser.id,
-							email: workosUser.email,
-							email_verified: workosUser.email_verified,
-							first_name: workosUser.first_name,
-							last_name: workosUser.last_name,
-							profile_picture:
-								workosUser.profile_picture_url || workosUser.profile_picture,
-							created_at: workosUser.created_at,
-							updated_at: workosUser.updated_at,
-							last_sign_in_at: workosUser.last_sign_in_at,
-							external_id: workosUser.external_id,
-							metadata: workosUser.metadata,
-						});
-						added++;
-						console.log(`➕ Added user: ${workosUser.email}`);
-					} catch (error) {
-						errors.push(`Failed to add user ${workosUser.id}: ${error}`);
-					}
-				} else {
+				if (convexUser) {
 					// User exists in both → CHECK FOR DRIFT
 					const needsUpdate =
-						convexUser!.email !== workosUser.email ||
-						convexUser!.email_verified !== workosUser.email_verified ||
-						convexUser!.first_name !== workosUser.first_name ||
-						convexUser!.last_name !== workosUser.last_name ||
+						convexUser?.email !== workosUser.email ||
+						convexUser?.email_verified !== workosUser.email_verified ||
+						convexUser?.first_name !== workosUser.first_name ||
+						convexUser?.last_name !== workosUser.last_name ||
 						convexUser.profile_picture !==
 							(workosUser.profile_picture_url || workosUser.profile_picture) ||
-						convexUser!.updated_at !== workosUser.updated_at;
+						convexUser?.updated_at !== workosUser.updated_at;
 
 					if (needsUpdate) {
 						try {
@@ -282,11 +278,33 @@ export const syncUsers = internalAction({
 								external_id: workosUser.external_id,
 								metadata: workosUser.metadata,
 							});
-							updated++;
+							updated += 1;
 							console.log(`🔄 Updated user: ${workosUser.email}`);
 						} catch (error) {
 							errors.push(`Failed to update user ${workosUser.id}: ${error}`);
 						}
+					}
+				} else {
+					// User exists in WorkOS but not Convex → ADD
+					try {
+						await ctx.runMutation(internal.syncHelpers.createUser, {
+							idp_id: workosUser.id,
+							email: workosUser.email,
+							email_verified: workosUser.email_verified,
+							first_name: workosUser.first_name,
+							last_name: workosUser.last_name,
+							profile_picture:
+								workosUser.profile_picture_url || workosUser.profile_picture,
+							created_at: workosUser.created_at,
+							updated_at: workosUser.updated_at,
+							last_sign_in_at: workosUser.last_sign_in_at,
+							external_id: workosUser.external_id,
+							metadata: workosUser.metadata,
+						});
+						added += 1;
+						console.log(`➕ Added user: ${workosUser.email}`);
+					} catch (error) {
+						errors.push(`Failed to add user ${workosUser.id}: ${error}`);
 					}
 				}
 			}
@@ -298,7 +316,7 @@ export const syncUsers = internalAction({
 						await ctx.runMutation(internal.syncHelpers.deleteUser, {
 							idp_id: convexUser.idp_id,
 						});
-						deleted++;
+						deleted += 1;
 						console.log(`🗑️ Deleted orphaned user: ${convexUser.email}`);
 					} catch (error) {
 						errors.push(
@@ -356,11 +374,14 @@ export const syncOrganizations = internalAction({
 		try {
 			// Step 1: Fetch ALL organizations from WorkOS (includes domains)
 			console.log("📥 Fetching all organizations from WorkOS...");
-			const workosOrgs = await fetchAllPaginated<WorkOSOrganization>((cursor) =>
-				workos.organizations.listOrganizations({
-					limit: 100,
-					after: cursor,
-				})
+			const workosOrgs = await fetchAllPaginated<WorkOSOrganization>(
+				async (cursor) => {
+					const response = await workos.organizations.listOrganizations({
+						limit: 100,
+						after: cursor,
+					});
+					return response as unknown as PaginatedResponse<WorkOSOrganization>;
+				}
 			);
 			console.log(`✅ Fetched ${workosOrgs.length} organizations from WorkOS`);
 
@@ -371,12 +392,18 @@ export const syncOrganizations = internalAction({
 			console.log(`📊 Found ${convexOrgs.length} organizations in Convex`);
 
 			// Step 3: Build lookup maps
-			const workosOrgMap = new Map(workosOrgs.map((o: WorkOSOrganization) => [o.id, o]));
-			const convexOrgMap = new Map(convexOrgs.map((o: ConvexOrganization) => [o.id, o]));
+			const workosOrgMap = new Map(
+				workosOrgs.map((o: WorkOSOrganization) => [o.id, o])
+			);
+			const convexOrgMap = new Map(
+				convexOrgs.map((o: ConvexOrganization) => [o.id, o])
+			);
 
 			// Step 4: Add/Update organizations
 			for (const workosOrg of workosOrgs) {
-				const convexOrg: ConvexOrganization | undefined = convexOrgMap.get(workosOrg.id);
+				const convexOrg: ConvexOrganization | undefined = convexOrgMap.get(
+					workosOrg.id
+				);
 
 				const domainData = (workosOrg.domains || []).map((domain) => ({
 					id: domain.id,
@@ -387,36 +414,13 @@ export const syncOrganizations = internalAction({
 					updated_at: domain.updated_at,
 				}));
 
-				if (!convexOrg) {
-					// ADD organization
-					try {
-						await ctx.runMutation(
-							internal.syncHelpers.createOrUpdateOrganization,
-							{
-								id: workosOrg.id,
-								name: workosOrg.name,
-								external_id: workosOrg.external_id,
-								metadata: workosOrg.metadata,
-								created_at: workosOrg.created_at,
-								updated_at: workosOrg.updated_at,
-								domains: domainData,
-							}
-						);
-						added++;
-						domains_synced += domainData.length;
-						console.log(
-							`➕ Added organization: ${workosOrg.name} (${domainData.length} domains)`
-						);
-					} catch (error) {
-						errors.push(`Failed to add org ${workosOrg.id}: ${error}`);
-					}
-				} else {
+				if (convexOrg) {
 					// UPDATE if drifted
 					const needsUpdate =
-						convexOrg!.name !== workosOrg.name ||
-						convexOrg!.external_id !== workosOrg.external_id ||
-						convexOrg!.updated_at !== workosOrg.updated_at ||
-						JSON.stringify(convexOrg!.metadata) !==
+						convexOrg?.name !== workosOrg.name ||
+						convexOrg?.external_id !== workosOrg.external_id ||
+						convexOrg?.updated_at !== workosOrg.updated_at ||
+						JSON.stringify(convexOrg?.metadata) !==
 							JSON.stringify(workosOrg.metadata);
 
 					if (needsUpdate || domainData.length > 0) {
@@ -434,13 +438,36 @@ export const syncOrganizations = internalAction({
 								}
 							);
 							if (needsUpdate) {
-								updated++;
+								updated += 1;
 								console.log(`🔄 Updated organization: ${workosOrg.name}`);
 							}
 							domains_synced += domainData.length;
 						} catch (error) {
 							errors.push(`Failed to update org ${workosOrg.id}: ${error}`);
 						}
+					}
+				} else {
+					// ADD organization
+					try {
+						await ctx.runMutation(
+							internal.syncHelpers.createOrUpdateOrganization,
+							{
+								id: workosOrg.id,
+								name: workosOrg.name,
+								external_id: workosOrg.external_id,
+								metadata: workosOrg.metadata,
+								created_at: workosOrg.created_at,
+								updated_at: workosOrg.updated_at,
+								domains: domainData,
+							}
+						);
+						added += 1;
+						domains_synced += domainData.length;
+						console.log(
+							`➕ Added organization: ${workosOrg.name} (${domainData.length} domains)`
+						);
+					} catch (error) {
+						errors.push(`Failed to add org ${workosOrg.id}: ${error}`);
 					}
 				}
 			}
@@ -452,7 +479,7 @@ export const syncOrganizations = internalAction({
 						await ctx.runMutation(internal.syncHelpers.deleteOrganization, {
 							id: convexOrg.id,
 						});
-						deleted++;
+						deleted += 1;
 						console.log(`🗑️ Deleted orphaned organization: ${convexOrg.name}`);
 					} catch (error) {
 						errors.push(
@@ -537,7 +564,8 @@ export const syncOrganizationMemberships = internalAction({
 
 			// Step 4: Add/Update memberships
 			for (const workosMembership of workosMemberships) {
-				const convexMembership: ConvexMembership | undefined = convexMembershipMap.get(workosMembership.id);
+				const convexMembership: ConvexMembership | undefined =
+					convexMembershipMap.get(workosMembership.id);
 
 				// Normalize SDK camelCase to snake_case for Convex
 				const normalized = {
@@ -552,28 +580,12 @@ export const syncOrganizationMemberships = internalAction({
 					updated_at: workosMembership.updatedAt,
 				};
 
-				if (!convexMembership) {
-					// ADD membership
-					try {
-						await ctx.runMutation(
-							internal.syncHelpers.createOrUpdateMembership,
-							normalized
-						);
-						added++;
-						console.log(
-							`➕ Added membership: ${normalized.user_id} → ${normalized.organization_id}`
-						);
-					} catch (error) {
-						errors.push(
-							`Failed to add membership ${workosMembership.id}: ${error}`
-						);
-					}
-				} else {
+				if (convexMembership) {
 					// UPDATE if drifted
 					const needsUpdate =
-						convexMembership!.status !== normalized.status ||
-						convexMembership!.updated_at !== normalized.updated_at ||
-						JSON.stringify(convexMembership!.roles) !==
+						convexMembership?.status !== normalized.status ||
+						convexMembership?.updated_at !== normalized.updated_at ||
+						JSON.stringify(convexMembership?.roles) !==
 							JSON.stringify(normalized.roles);
 
 					if (needsUpdate) {
@@ -582,7 +594,7 @@ export const syncOrganizationMemberships = internalAction({
 								internal.syncHelpers.createOrUpdateMembership,
 								normalized
 							);
-							updated++;
+							updated += 1;
 							console.log(
 								`🔄 Updated membership: ${normalized.user_id} → ${normalized.organization_id}`
 							);
@@ -591,6 +603,22 @@ export const syncOrganizationMemberships = internalAction({
 								`Failed to update membership ${workosMembership.id}: ${error}`
 							);
 						}
+					}
+				} else {
+					// ADD membership
+					try {
+						await ctx.runMutation(
+							internal.syncHelpers.createOrUpdateMembership,
+							normalized
+						);
+						added += 1;
+						console.log(
+							`➕ Added membership: ${normalized.user_id} → ${normalized.organization_id}`
+						);
+					} catch (error) {
+						errors.push(
+							`Failed to add membership ${workosMembership.id}: ${error}`
+						);
 					}
 				}
 			}
@@ -602,7 +630,7 @@ export const syncOrganizationMemberships = internalAction({
 						await ctx.runMutation(internal.syncHelpers.deleteMembership, {
 							id: convexMembership.id,
 						});
-						deleted++;
+						deleted += 1;
 						console.log(
 							`🗑️ Deleted orphaned membership: ${convexMembership.user_id} → ${convexMembership.organization_id}`
 						);
@@ -688,7 +716,10 @@ export const performDailySync = internalAction({
 
 		// Sync Users
 		console.log("\n👤 ========== Syncing Users ==========");
-		const usersResult: SyncUsersResult = await ctx.runAction(internal.sync.syncUsers, {});
+		const usersResult: SyncUsersResult = await ctx.runAction(
+			internal.sync.syncUsers,
+			{}
+		);
 		console.log("✅ User sync complete:", {
 			added: usersResult.added,
 			updated: usersResult.updated,
@@ -757,7 +788,7 @@ export const performDailySync = internalAction({
 			},
 		};
 
-		console.log("\n" + "=".repeat(60));
+		console.log(`\n${"=".repeat(60)}`);
 		console.log(
 			success
 				? "✅ Daily sync completed successfully!"
@@ -768,14 +799,17 @@ export const performDailySync = internalAction({
 
 		if (!success) {
 			console.log("\n❌ Errors encountered:");
-			[
+			const aggregatedErrors = [
 				...usersResult.errors,
 				...orgsResult.errors,
 				...membershipsResult.errors,
-			].forEach((error) => console.log(`  - ${error}`));
+			];
+			for (const error of aggregatedErrors) {
+				console.log(`  - ${error}`);
+			}
 		}
 
-		console.log("=".repeat(60) + "\n");
+		console.log(`${"=".repeat(60)}\n`);
 
 		return {
 			success,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronUp, Plus, Trash2, Upload, X } from "lucide-react";
 import Image from "next/image";
@@ -31,6 +31,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { MortgageDocumentTemplatesEditor } from "../MortgageDocumentTemplatesEditor";
 
 type MortgageUpdateSheetProps = {
 	open: boolean;
@@ -60,9 +62,9 @@ export function MortgageUpdateSheet({
 }: MortgageUpdateSheetProps) {
 	const updateMortgage = useMutation(api.mortgages.updateMortgage);
 	const generateUploadUrl = useAction(api.profile.generateUploadUrl);
-	const borrowers = useQuery(api.borrowers.listBorrowers);
+	const borrowers = useAuthenticatedQuery(api.borrowers.listBorrowers, {});
 
-	const fullMortgageData = useQuery(
+	const fullMortgageData = useAuthenticatedQuery(
 		api.mortgages.getMortgage,
 		mortgageId ? { id: mortgageId } : "skip"
 	);
@@ -121,7 +123,8 @@ export function MortgageUpdateSheet({
 	// Load mortgage data when it becomes available
 	useEffect(() => {
 		if (open && fullMortgageData && mortgageId) {
-			loadFromMortgage(fullMortgageData);
+			// biome-ignore lint/suspicious/noExplicitAny: Type mismatch between local and Convex types
+			loadFromMortgage(fullMortgageData as any);
 		}
 	}, [open, fullMortgageData, mortgageId, loadFromMortgage]);
 
@@ -334,10 +337,11 @@ export function MortgageUpdateSheet({
 				<ScrollArea className="min-h-0 flex-1">
 					<div className="px-4">
 						<Tabs className="mt-4" defaultValue="loan">
-							<TabsList className="grid w-full grid-cols-3">
+							<TabsList className="grid w-full grid-cols-4">
 								<TabsTrigger value="loan">Loan Details</TabsTrigger>
 								<TabsTrigger value="property">Property Info</TabsTrigger>
 								<TabsTrigger value="media">Media</TabsTrigger>
+								<TabsTrigger value="templates">Templates</TabsTrigger>
 							</TabsList>
 
 							<TabsContent className="mt-4 space-y-4" value="loan">
@@ -1222,6 +1226,21 @@ export function MortgageUpdateSheet({
 										)}
 									</div>
 								</div>
+							</TabsContent>
+
+							<TabsContent className="mt-4 space-y-6" value="templates">
+								{mortgageId ? (
+									<MortgageDocumentTemplatesEditor
+										mortgageId={mortgageId}
+										templates={fullMortgageData?.documentTemplates || []}
+									/>
+								) : (
+									<div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+										<p className="text-muted-foreground">
+											Please save the mortgage first to add document templates.
+										</p>
+									</div>
+								)}
 							</TabsContent>
 						</Tabs>
 					</div>

@@ -1,15 +1,16 @@
 /**
  * Alert Management Functions
- * 
+ *
  * Handles in-app notifications for deal events and other important system
  * notifications. Alerts are stored in Convex and displayed in the UI.
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 /**
  * Get user document from identity
@@ -20,8 +21,10 @@ type UserIdentityOptions = {
 	createIfMissing?: boolean;
 };
 
+type IdentityCtx = QueryCtx | MutationCtx;
+
 async function getUserFromIdentity(
-	ctx: { db: any; auth: any },
+	ctx: IdentityCtx,
 	options?: UserIdentityOptions
 ): Promise<Id<"users"> | null> {
 	const { createIfMissing = false } = options ?? {};
@@ -30,9 +33,9 @@ async function getUserFromIdentity(
 		throw new Error("Authentication required");
 	}
 
-	let user = await ctx.db
+	const user = await ctx.db
 		.query("users")
-		.withIndex("by_idp_id", (q: any) => q.eq("idp_id", identity.subject))
+		.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
 		.unique();
 
 	// If user doesn't exist, optionally create from WorkOS identity data
@@ -51,13 +54,23 @@ async function getUserFromIdentity(
 			return null;
 		}
 
-		const userId = await ctx.db.insert("users", {
+		const mutationCtx = ctx as MutationCtx;
+		const userId = await mutationCtx.db.insert("users", {
 			idp_id: idpId,
-			email: email,
-			email_verified: identity.email_verified ?? false,
-			first_name: identity.first_name ?? undefined,
-			last_name: identity.last_name ?? undefined,
-			profile_picture_url: identity.profile_picture_url ?? identity.profile_picture ?? undefined,
+			email,
+			email_verified: Boolean(identity.email_verified),
+			first_name:
+				typeof identity.first_name === "string"
+					? identity.first_name
+					: undefined,
+			last_name:
+				typeof identity.last_name === "string" ? identity.last_name : undefined,
+			profile_picture_url:
+				typeof identity.profile_picture_url === "string"
+					? identity.profile_picture_url
+					: typeof identity.profile_picture === "string"
+						? identity.profile_picture
+						: undefined,
 			created_at: new Date().toISOString(),
 		});
 
@@ -116,7 +129,9 @@ export const getUnreadAlerts = query({
 
 			const alerts = await ctx.db
 				.query("alerts")
-				.withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
+				.withIndex("by_user_read", (q) =>
+					q.eq("userId", userId).eq("read", false)
+				)
 				.order("desc")
 				.collect();
 
@@ -241,7 +256,9 @@ export const getUnreadAlertCount = query({
 
 			const alerts = await ctx.db
 				.query("alerts")
-				.withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
+				.withIndex("by_user_read", (q) =>
+					q.eq("userId", userId).eq("read", false)
+				)
 				.collect();
 
 			return alerts.length;
@@ -313,10 +330,10 @@ export const markAlertAsRead = mutation({
 	},
 	returns: v.id("alerts"),
 	handler: async (ctx, args) => {
-	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
-	if (!userId) {
-		throw new Error("Unable to resolve user identity");
-	}
+		const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!userId) {
+			throw new Error("Unable to resolve user identity");
+		}
 
 		const alert = await ctx.db.get(args.alertId);
 		if (!alert) {
@@ -354,14 +371,16 @@ export const markAllAlertsAsRead = mutation({
 	args: {},
 	returns: v.number(),
 	handler: async (ctx) => {
-	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
-	if (!userId) {
-		throw new Error("Unable to resolve user identity");
-	}
+		const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!userId) {
+			throw new Error("Unable to resolve user identity");
+		}
 
 		const unreadAlerts = await ctx.db
 			.query("alerts")
-			.withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
+			.withIndex("by_user_read", (q) =>
+				q.eq("userId", userId).eq("read", false)
+			)
 			.collect();
 
 		const now = Date.now();
@@ -383,7 +402,7 @@ export const markAllAlertsAsRead = mutation({
 
 /**
  * Delete a single alert
- * 
+ *
  * Allows users to dismiss alerts they don't want to see anymore.
  */
 export const deleteAlert = mutation({
@@ -392,10 +411,10 @@ export const deleteAlert = mutation({
 	},
 	returns: v.id("alerts"),
 	handler: async (ctx, args) => {
-	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
-	if (!userId) {
-		throw new Error("Unable to resolve user identity");
-	}
+		const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!userId) {
+			throw new Error("Unable to resolve user identity");
+		}
 
 		const alert = await ctx.db.get(args.alertId);
 		if (!alert) {
@@ -420,17 +439,17 @@ export const deleteAlert = mutation({
 
 /**
  * Delete all read alerts for current user
- * 
+ *
  * Cleanup function to remove old read alerts.
  */
 export const deleteReadAlerts = mutation({
 	args: {},
 	returns: v.number(),
 	handler: async (ctx) => {
-	const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
-	if (!userId) {
-		throw new Error("Unable to resolve user identity");
-	}
+		const userId = await getUserFromIdentity(ctx, { createIfMissing: true });
+		if (!userId) {
+			throw new Error("Unable to resolve user identity");
+		}
 
 		const readAlerts = await ctx.db
 			.query("alerts")
@@ -452,7 +471,7 @@ export const deleteReadAlerts = mutation({
 
 /**
  * Create a manual alert (admin utility)
- * 
+ *
  * Allows admins to create custom alerts for users.
  */
 export const createAlert = mutation({
