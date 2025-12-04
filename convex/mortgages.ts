@@ -7,7 +7,11 @@ import { type Infer, v } from "convex/values";
 import { checkRbac } from "../lib/authhelper";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import {
+	authenticatedMutation,
+	authenticatedQuery,
+} from "./lib/authorizedFunctions";
 
 const mortgageStatusValidator = v.union(
 	v.literal("active"),
@@ -242,7 +246,7 @@ export const ensureMortgage = async (
 /**
  * Get a mortgage by ID with all details including signed URLs for images and documents
  */
-export const getMortgage = query({
+export const getMortgage = authenticatedQuery({
 	args: { id: v.id("mortgages") },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -279,7 +283,7 @@ export const getMortgage = query({
 /**
  * List mortgages by borrower
  */
-export const listMortgagesByBorrower = query({
+export const listMortgagesByBorrower = authenticatedQuery({
 	args: { borrowerId: v.id("borrowers") },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -297,7 +301,7 @@ export const listMortgagesByBorrower = query({
 /**
  * List mortgages by status
  */
-export const listMortgagesByStatus = query({
+export const listMortgagesByStatus = authenticatedQuery({
 	args: {
 		status: v.union(
 			v.literal("active"),
@@ -321,7 +325,7 @@ export const listMortgagesByStatus = query({
 /**
  * List all mortgages with borrower information (admin only)
  */
-export const listAllMortgagesWithBorrowers = query({
+export const listAllMortgagesWithBorrowers = authenticatedQuery({
 	args: {},
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -353,7 +357,7 @@ export const listAllMortgagesWithBorrowers = query({
 /**
  * Get mortgages nearing maturity (within specified days)
  */
-export const getMortgagesNearingMaturity = query({
+export const getMortgagesNearingMaturity = authenticatedQuery({
 	args: { daysFromNow: v.number() },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -377,7 +381,7 @@ export const getMortgagesNearingMaturity = query({
 /**
  * Create a new mortgage
  */
-export const createMortgage = mutation({
+export const createMortgage = authenticatedMutation({
 	args: {
 		borrowerId: v.id("borrowers"),
 		...mortgageDetailsFields,
@@ -395,7 +399,7 @@ export const createMortgage = mutation({
 /**
  * Update mortgage status
  */
-export const updateMortgageStatus = mutation({
+export const updateMortgageStatus = authenticatedMutation({
 	args: {
 		id: v.id("mortgages"),
 		status: v.union(
@@ -430,7 +434,7 @@ export const updateMortgageStatus = mutation({
 /**
  * Add a document to a mortgage
  */
-export const addDocumentToMortgage = mutation({
+export const addDocumentToMortgage = authenticatedMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		document: v.object({
@@ -469,7 +473,7 @@ export const addDocumentToMortgage = mutation({
 /**
  * Update mortgage document templates
  */
-export const updateMortgageTemplates = mutation({
+export const updateMortgageTemplates = authenticatedMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		templates: v.array(mortgageTemplateValidator),
@@ -898,7 +902,7 @@ async function deleteMortgageCore(
  * Admin-only: Update mortgage properties
  * Can update loan details, property info, borrower link, and documents
  */
-export const updateMortgage = mutation({
+export const updateMortgage = authenticatedMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		loanAmount: v.optional(v.number()),
@@ -998,7 +1002,7 @@ export const updateMortgageInternal = internalMutation({
  * Admin-only: Delete a mortgage and all associated data
  * Includes comprehensive cascade deletion with rollback on failure
  */
-export const deleteMortgage = mutation({
+export const deleteMortgage = authenticatedMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		force: v.optional(v.boolean()),

@@ -1,62 +1,39 @@
 import { authkit, authkitMiddleware } from "@workos-inc/authkit-nextjs";
 import { type NextRequest, NextResponse } from "next/server";
-
-const ROLES = new Set(["admin", "broker", "lawyer", "member", "investor"]);
-/**
- * Get the redirect URI for WorkOS authentication.
- * Priority:
- * 1. VERCEL_URL (automatically set by Vercel)
- * 2. NEXT_PUBLIC_SITE_URL (for custom domains)
- * 3. NEXT_PUBLIC_WORKOS_REDIRECT_URI (for local development)
- * 4. Fallback to localhost:3000
- */
-function getRedirectUri(): string {
-	// Production: Use VERCEL_URL or construct from environment
-	if (process.env.VERCEL_URL) {
-		return `https://${process.env.VERCEL_URL}/callback`;
-	}
-
-	// Custom production URL
-	if (process.env.NEXT_PUBLIC_SITE_URL) {
-		return `${process.env.NEXT_PUBLIC_SITE_URL}/callback`;
-	}
-
-	// Development fallback
-	return (
-		process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ||
-		"http://localhost:3000/callback"
-	);
-}
-
-const base = authkitMiddleware({
-	redirectUri: getRedirectUri(),
-	eagerAuth: true,
-	middlewareAuth: {
-		enabled: true,
-		unauthenticatedPaths: ["/", "/sign-in", "/sign-up"],
-	},
-});
-
-// function generateRequestId() {
-// 	try {
-// 		// Prefer Web Crypto API when available (Edge-safe)
-// 		// @ts-ignore
-// 		if (
-// 			typeof crypto !== "undefined" &&
-// 			typeof crypto.randomUUID === "function"
-// 		)
-// 			return crypto.randomUUID();
-// 	} catch (e) {
-// 		// ignore
-// 	}
-// 	// fallback small random id
-// 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-// }
+import { ROOT_DOMAIN } from "./lib/siteurl";
+import { getSubdomain } from "./lib/subdomains";
+import { dashboardRedirectForPath } from "./lib/auth/dashboardRoutes";
 
 export default async function proxy(req: NextRequest) {
-	const res = (await base(
-		req as Parameters<typeof base>[0],
-		{} as Parameters<typeof base>[1]
+	const url = req.nextUrl;
+	const hostname = req.headers.get("host") || "";
+	const subdomain = getSubdomain(hostname, ROOT_DOMAIN);
+
+	// Dynamic redirect URI based on the current request's host to support subdomains
+	// This ensures the auth callback returns to the correct subdomain (e.g. app.localhost:3000)
+	const protocol = url.protocol;
+	const redirectUri = `${protocol}//${hostname}/callback`;
+
+	const mw = authkitMiddleware({
+		redirectUri,
+		eagerAuth: true,
+		middlewareAuth: {
+			enabled: true,
+			unauthenticatedPaths: [
+				"/",
+				"/sign-in",
+				"/sign-up",
+				"/tenant",
+				"/blog",
+				"/contact",
+				"/about",
+			],
+		},
+	});
+
+	const res = (await mw(
+		req as Parameters<typeof mw>[0],
+		{} as Parameters<typeof mw>[1]
 	)) as NextResponse;
 
 	// If WorkOS already issued a redirect (e.g., login flow), honor it immediately.
@@ -64,59 +41,71 @@ export default async function proxy(req: NextRequest) {
 		return res;
 	}
 
+	let finalRes = res;
+
+	if (subdomain) {
+		// Rewrite root to the tenant directory: app/tenant/page.tsx
+		// We map the root subdomain traffic to this placeholder for now
+		// For other paths, we keep the path but inject the subdomain header
+		const suburl = req.nextUrl.clone();
+		if (suburl.pathname === "/") {
+			suburl.pathname = "/tenant";
+		}
+
+		const rewriteRes = NextResponse.rewrite(suburl, {
+			request: {
+				headers: new Headers({
+					...Object.fromEntries(req.headers),
+					"x-subdomain": subdomain,
+				}),
+			},
+		});
+
+		// Preserve headers from AuthKit response (e.g. Set-Cookie)
+		res.headers.forEach((val, key) => {
+			rewriteRes.headers.set(key, val);
+		});
+
+		finalRes = rewriteRes;
+
+		// If we rewrote to /tenant (root path), return immediately
+		if (suburl.pathname === "/tenant") {
+			return finalRes;
+		}
+	}
+
 	//Details in session isn't changin between reloads.
 	const { session } = await authkit(req);
 
-	const dashboardRedirect = maybeRedirectDashboard(req, session);
+	const dashboardRedirect = maybeRedirectDashboard(req, session, finalRes);
 	if (dashboardRedirect) {
 		return dashboardRedirect;
 	}
 
-	return res;
+	return finalRes;
 }
 
 type Session = Awaited<ReturnType<typeof authkit>>["session"];
 
-const maybeRedirectDashboard = (req: NextRequest, session: Session) => {
-	// console.log("session", session);
-
-	const pathname = req.nextUrl.pathname;
-	if (!pathname.startsWith("/dashboard")) {
-		return null;
-	}
-
-	if (!session?.role) {
-		return NextResponse.redirect(new URL("/sign-in", req.url));
-	}
-
-	if (session.role === "member") {
-		console.log("ROLE IS MEMBER");
-		return NextResponse.redirect(new URL("/profile", req.url));
-	}
-
-	const pathSet = new Set(pathname.split("/"));
-	console.log("ROLES", ROLES.isDisjointFrom(pathSet));
-	if (ROLES.isDisjointFrom(pathSet)) {
-		return null;
-	}
-	//TODO: figure out how to handle padmin. Temp hardcode to handle padmin
-	const segment = session.role === "org-admin" ? "admin" : session.role;
-	const updatedPath = replaceUrlSegment(pathname, 2, segment);
-	if (updatedPath !== pathname) {
-		return NextResponse.redirect(new URL(updatedPath, req.url));
-	}
-
-	return null;
-};
-
-const replaceUrlSegment = (
-	url: string,
-	segmentIndex: number,
-	newSegment: string
+const maybeRedirectDashboard = (
+	req: NextRequest,
+	session: Session,
+	baseResponse: NextResponse
 ) => {
-	const urlParts = url.split("/");
-	urlParts[segmentIndex] = newSegment;
-	return urlParts.join("/");
+	const pathname = req.nextUrl.pathname;
+	const destination = dashboardRedirectForPath(pathname, session?.role);
+
+	if (!destination) {
+		return null;
+	}
+
+	const redirectResponse = NextResponse.redirect(new URL(destination, req.url));
+
+	baseResponse.headers.forEach((value, key) => {
+		redirectResponse.headers.set(key, value);
+	});
+
+	return redirectResponse;
 };
 
 export const config = {

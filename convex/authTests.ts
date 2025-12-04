@@ -1,54 +1,23 @@
 import { v } from "convex/values";
 import {
-	createAuthorizedAction,
-	createAuthorizedMutation,
-	createAuthorizedQuery,
-} from "./lib/server";
-
-const authenticatedQuery = createAuthorizedQuery(["any"], [], true);
-
-const unauthenticatedQuery = createAuthorizedQuery(["any"], [], false);
-
-const adminQuery = createAuthorizedQuery(["admin"]);
-
-const brokerQuery = createAuthorizedQuery(["broker"]);
-
-const withFairLendRoleQuery = createAuthorizedQuery(
-	["investor", "lawyer", "broker"],
-	[],
-	true
-);
-
-const authenticatedMutation = createAuthorizedMutation(["any"], [], true);
-
-const unauthenticatedMutation = createAuthorizedMutation(["any"], [], false);
-
-const adminMutation = createAuthorizedMutation(["admin"]);
-
-const brokerMutation = createAuthorizedMutation(["broker"]);
-
-const investorMutation = createAuthorizedMutation(["investor"]);
-
-const withFairLendRoleMutation = createAuthorizedMutation([
-	"investor",
-	"lawyer",
-	"broker",
-]);
-
-const authenticatedAction = createAuthorizedAction(["any"], [], true);
-
-const unauthenticatedAction = createAuthorizedAction(["any"], [], false);
-
-const withFairLendRoleAction = createAuthorizedAction([
-	"investor",
-	"lawyer",
-	"broker",
-]);
-
-const adminAction = createAuthorizedAction(["admin"]);
-const brokerAction = createAuthorizedAction(["broker"]);
-
-const investorAction = createAuthorizedAction(["investor"]);
+	adminAction,
+	adminMutation,
+	adminQuery,
+	authenticatedAction,
+	authenticatedMutation,
+	authenticatedQuery,
+	brokerAction,
+	brokerMutation,
+	brokerQuery,
+	investorAction,
+	investorMutation,
+	unauthenticatedAction,
+	unauthenticatedMutation,
+	unauthenticatedQuery,
+	withFairLendRoleAction,
+	withFairLendRoleMutation,
+	withFairLendRoleQuery,
+} from "./lib/authorizedFunctions";
 
 const ensureIdProvided = (id: string) => {
 	if (!id) {

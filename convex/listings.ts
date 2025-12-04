@@ -10,10 +10,8 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { comparablePayloadValidator } from "./comparables";
-import { createAuthorizedQuery } from "./lib/server";
+import { authenticatedQuery } from "./lib/authorizedFunctions";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
-
-const authenticatedQuery = createAuthorizedQuery(["any"]);
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),

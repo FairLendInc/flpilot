@@ -8,13 +8,16 @@ import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
+import {
+	authenticatedMutation,
+	authenticatedQuery,
+} from "./lib/authorizedFunctions";
 
 /**
  * Get cap table for a specific mortgage (all ownership records)
  * Sorted by ownership percentage descending (largest owners first)
  */
-export const getMortgageOwnership = query({
+export const getMortgageOwnership = authenticatedQuery({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -36,7 +39,7 @@ export const getMortgageOwnership = query({
 /**
  * Get all mortgages owned by a specific investor
  */
-export const getUserPortfolio = query({
+export const getUserPortfolio = authenticatedQuery({
 	args: { userId: v.union(v.literal("fairlend"), v.id("users")) },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -53,7 +56,7 @@ export const getUserPortfolio = query({
 /**
  * Check if a user owns a specific mortgage
  */
-export const checkOwnership = query({
+export const checkOwnership = authenticatedQuery({
 	args: {
 		mortgageId: v.id("mortgages"),
 		ownerId: v.union(v.literal("fairlend"), v.id("users")),
@@ -75,7 +78,7 @@ export const checkOwnership = query({
 /**
  * Get all mortgages owned by FairLend (institutional portfolio)
  */
-export const getInstitutionalPortfolio = query({
+export const getInstitutionalPortfolio = authenticatedQuery({
 	args: {},
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -93,7 +96,7 @@ export const getInstitutionalPortfolio = query({
  * Get total ownership percentage for a mortgage (should always equal 100%)
  * Useful for validation and auditing
  */
-export const getTotalOwnership = query({
+export const getTotalOwnership = authenticatedQuery({
 	args: { mortgageId: v.id("mortgages") },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -244,7 +247,7 @@ export async function createOwnershipInternal(
  * Automatically reduces FairLend's ownership to maintain 100% total
  * Auto-creates FairLend ownership if missing (for backward compatibility)
  */
-export const createOwnership = mutation({
+export const createOwnership = authenticatedMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		ownerId: v.union(v.literal("fairlend"), v.id("users")),
@@ -275,7 +278,7 @@ export const createOwnership = mutation({
  * Update ownership percentage
  * Automatically adjusts FairLend's ownership to maintain 100% total
  */
-export const updateOwnershipPercentage = mutation({
+export const updateOwnershipPercentage = authenticatedMutation({
 	args: {
 		id: v.id("mortgage_ownership"),
 		ownershipPercentage: v.number(),
@@ -379,7 +382,7 @@ export const updateOwnershipPercentage = mutation({
 /**
  * Transfer ownership to a new owner
  */
-export const transferOwnership = mutation({
+export const transferOwnership = authenticatedMutation({
 	args: {
 		id: v.id("mortgage_ownership"),
 		newOwnerId: v.union(v.literal("fairlend"), v.id("users")),
@@ -419,7 +422,7 @@ export const transferOwnership = mutation({
  * Delete ownership record
  * Automatically transfers ownership back to FairLend to maintain 100% total
  */
-export const deleteOwnership = mutation({
+export const deleteOwnership = authenticatedMutation({
 	args: { id: v.id("mortgage_ownership") },
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();

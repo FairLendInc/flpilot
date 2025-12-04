@@ -9,7 +9,7 @@
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	ArrowLeft,
 	ArrowRight,
@@ -41,6 +41,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
 	canGoBackward,
 	canProgressForward,
@@ -89,7 +90,10 @@ type KanbanColumn = {
 export function DealKanbanBoard() {
 	const router = useRouter();
 	const { user, loading: authLoading } = useAuth();
-	const userProfile = useQuery(api.profile.getCurrentUserProfile);
+	const userProfile = useAuthenticatedQuery(
+		api.profile.getCurrentUserProfile,
+		{}
+	);
 	const [draggedDeal, setDraggedDeal] = useState<{
 		deal: DealCardData;
 		sourceColumn: DealStateValue;
@@ -105,7 +109,7 @@ export function DealKanbanBoard() {
 	// Fetch all active deals - skip until auth is ready
 	// Only execute query when auth is fully loaded AND user exists
 	const isAuthReady = !authLoading && !!user;
-	const dealsData = useQuery(
+	const dealsData = useAuthenticatedQuery(
 		api.deals.getAllActiveDeals,
 		isAuthReady ? {} : "skip"
 	);

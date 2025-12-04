@@ -10,7 +10,6 @@ import {
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useMemo, useState } from "react";
@@ -23,6 +22,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 
 // Regex for splitting on whitespace (defined at module level for performance)
@@ -53,7 +53,10 @@ export function UserAvatarMenu() {
 	const router = useRouter();
 
 	// Query user profile from Convex to get custom profile picture
-	const userProfile = useQuery(api.profile.getCurrentUserProfile);
+	const userProfile = useAuthenticatedQuery(
+		api.profile.getCurrentUserProfile,
+		{}
+	);
 	useProvisionCurrentUser(userProfile);
 
 	const displayName = useMemo(() => {

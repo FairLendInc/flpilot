@@ -31,7 +31,7 @@ export function TwoLevelNav({
 }: TwoLevelNavProps) {
 	const [commandOpen, setCommandOpen] = useState(false);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+	// const { user, loading } = useAuth();
 	useEffect(() => {
 		const down = (e: KeyboardEvent) => {
 			if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -193,11 +193,14 @@ export function TwoLevelNav({
 									{navigationItems.map((navItem) => {
 										const Icon = navItem.icon;
 										const isActive = isNavItemActive(navItem, pathname);
-
+										const link =
+											navItem.href === "/dashboard"
+												? "/dashboard/investor"
+												: navItem.href;
 										return (
 											<Link
 												className=""
-												href={navItem.href}
+												href={link}
 												key={navItem.id}
 												prefetch={true}
 											>

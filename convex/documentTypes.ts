@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
-
-const authenticatedMutation = createAuthorizedMutation(["any"]);
-const authenticatedQuery = createAuthorizedQuery(["any"]);
+import {
+	authenticatedMutation,
+	authenticatedQuery,
+} from "./lib/authorizedFunctions";
 
 type AuthContextFields = {
 	role?: string;

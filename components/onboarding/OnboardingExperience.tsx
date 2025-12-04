@@ -36,6 +36,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { useProvisionCurrentUser } from "@/hooks/useProvisionCurrentUser";
 import { cn } from "@/lib/utils";
 import type { JourneyDoc, OnboardingStateValue } from "./machine";
@@ -153,7 +154,10 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 	// Use liveJourney if it's loaded (even if null), otherwise fall back to preloadedData
 	// This ensures we use realtime updates once the query has loaded
 	const journey = liveJourney !== undefined ? liveJourney : preloadedData;
-	const userProfile = useQuery(api.profile.getCurrentUserProfile);
+	const userProfile = useAuthenticatedQuery(
+		api.profile.getCurrentUserProfile,
+		{}
+	);
 	useProvisionCurrentUser(userProfile);
 	const ensureJourney = useMutation(api.onboarding.ensureJourney);
 	const startJourney = useMutation(api.onboarding.startJourney);

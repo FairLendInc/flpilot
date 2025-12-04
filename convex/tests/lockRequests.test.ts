@@ -804,7 +804,8 @@ describe("getPendingLockRequests - Query Tests", () => {
 
 		const authT = getAuthenticatedTest(t);
 		const pendingRequests = await authT.query(
-			api.lockRequests.getPendingLockRequests
+			api.lockRequests.getPendingLockRequests,
+			{}
 		);
 
 		expect(pendingRequests).toHaveLength(2);
@@ -828,7 +829,8 @@ describe("getPendingLockRequestsWithDetails - Query Tests", () => {
 
 		const authT = getAuthenticatedTest(t);
 		const requests = await authT.query(
-			api.lockRequests.getPendingLockRequestsWithDetails
+			api.lockRequests.getPendingLockRequestsWithDetails,
+			{}
 		);
 
 		expect(requests).toHaveLength(1);
@@ -862,7 +864,8 @@ describe("getApprovedLockRequests - Query Tests", () => {
 
 		const authT = getAuthenticatedTest(t);
 		const approvedRequests = await authT.query(
-			api.lockRequests.getApprovedLockRequests
+			api.lockRequests.getApprovedLockRequests,
+			{}
 		);
 
 		expect(approvedRequests).toHaveLength(1);
@@ -891,7 +894,8 @@ describe("getRejectedLockRequests - Query Tests", () => {
 
 		const authT = getAuthenticatedTest(t);
 		const rejectedRequests = await authT.query(
-			api.lockRequests.getRejectedLockRequests
+			api.lockRequests.getRejectedLockRequests,
+			{}
 		);
 
 		expect(rejectedRequests).toHaveLength(1);

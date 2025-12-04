@@ -1,12 +1,10 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { redirect } from "next/navigation";
+import { dashboardHome } from "@/lib/auth/dashboardRoutes";
+
 export default async function DashboardPage() {
 	const user = await withAuth();
-	console.log("USER FROM DASHBOARD PAGE", user);
-	if (user?.role === "member") {
-		redirect("/profile");
-	}
+	const destination = dashboardHome(user?.role);
 
-	const reditect = user?.role === "org-admin" ? "admin" : user?.role;
-	redirect(`/dashboard/${reditect}`);
+	redirect(destination);
 }

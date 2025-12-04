@@ -249,7 +249,7 @@ export default function ProfilePage() {
 	async function onSyncOrganizations() {
 		setIsSyncing(true);
 		try {
-			const result = await syncOrganizations();
+			const result = await syncOrganizations({});
 			if (result.success) {
 				toast.success(result.message);
 				// Invalidate the current query to refetch data
