@@ -37,6 +37,12 @@ vi.mock("convex/react", () => ({
 	api: {},
 }));
 
+// Mock authenticated query helpers used in unit tests
+vi.mock("@/convex/lib/client", () => ({
+	useAuthenticatedQuery: vi.fn(),
+	useAuthenticatedQueryWithStatus: vi.fn(),
+}));
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_CONVEX_URL = "http://localhost:3000";
 process.env.WORKOS_API_KEY = "test-api-key";

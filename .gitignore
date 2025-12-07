@@ -59,6 +59,9 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+.playwright/
+.playwright/*.json
 
 *storybook.log
 storybook-static
+.env*.local

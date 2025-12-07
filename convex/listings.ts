@@ -431,7 +431,7 @@ export const lockListing = action({
 			})
 		) {
 			//TODO: extract errors to re-use a standard set of "FairLend" errors
-			throw new Error("Unauthorized: Admin privileges require");
+			throw new Error("Unauthorized: Admin privileges required");
 		}
 
 		// Check broker/admin authorization

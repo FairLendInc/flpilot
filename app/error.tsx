@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { getDebugInfo, getUserMessage, wrapError } from "@/lib/errors";
 
 /**
  * Root error boundary
@@ -15,8 +16,9 @@ export default function ErrorPage({
 	reset: () => void;
 }) {
 	useEffect(() => {
-		// Log error to error reporting service
-		console.error("Root error:", error);
+		const wrapped = wrapError(error);
+		// Log rich debug info to monitoring
+		console.error("Root error:", getDebugInfo(wrapped));
 	}, [error]);
 
 	return (
@@ -26,9 +28,7 @@ export default function ErrorPage({
 					<h1 className="font-bold text-4xl text-red-600">
 						Something went wrong!
 					</h1>
-					<p className="text-muted-foreground">
-						An unexpected error occurred while loading this page.
-					</p>
+					<p className="text-muted-foreground">{getUserMessage(error)}</p>
 				</div>
 
 				{error.message && (

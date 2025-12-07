@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { getDebugInfo, getUserMessage, wrapError } from "@/lib/errors";
 
 /**
  * Server page error boundary
@@ -16,8 +17,8 @@ export default function ServerError({
 	reset: () => void;
 }) {
 	useEffect(() => {
-		// Log error to error reporting service
-		console.error("Server page error:", error);
+		const wrapped = wrapError(error);
+		console.error("Server page error:", getDebugInfo(wrapped));
 	}, [error]);
 
 	return (
@@ -25,9 +26,7 @@ export default function ServerError({
 			<div className="w-full max-w-md space-y-6 text-center">
 				<div className="space-y-2">
 					<h1 className="font-bold text-3xl text-red-600">Server Page Error</h1>
-					<p className="text-muted-foreground">
-						Failed to load server-side data.
-					</p>
+					<p className="text-muted-foreground">{getUserMessage(error)}</p>
 				</div>
 
 				{error.message && (

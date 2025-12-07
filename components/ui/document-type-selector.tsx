@@ -308,12 +308,12 @@ export function DocumentTypeSelector({
       });
 
       if (!validation.isValid) {
-        setValidationErrors(validation.errors);
+        setValidationErrors(validation.errors ?? []);
         toast.error("Document validation failed", {
           description: validation.errors[0]
         });
       } else if (validation.warnings.length > 0) {
-        setValidationErrors(validation.warnings);
+        setValidationErrors(validation.warnings ?? []);
       }
     } catch (error) {
       console.error("Validation failed:", error);

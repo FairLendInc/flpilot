@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { getUserMessage, wrapError } from "@/lib/errors";
 
 type UploadMeta = {
 	storageId: Id<"_storage">;
@@ -72,7 +73,10 @@ export function FundTransferUploadCard({
 			});
 
 			if (!response.ok) {
-				throw new Error("Upload failed");
+				throw wrapError(new Error("Upload failed"), {
+					code: "unknown",
+					context: { status: response.status },
+				});
 			}
 
 			const { storageId } = (await response.json()) as {
@@ -90,9 +94,8 @@ export function FundTransferUploadCard({
 				description: "Fund transfer proof has been recorded.",
 			});
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Unable to upload file.";
-			toast.error("Upload failed", { description: message });
+			const wrapped = wrapError(error, { code: "unknown" });
+			toast.error("Upload failed", { description: getUserMessage(wrapped) });
 		} finally {
 			setIsUploading(false);
 			event.target.value = "";

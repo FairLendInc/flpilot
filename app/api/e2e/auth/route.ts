@@ -19,7 +19,7 @@ const authSecret = process.env.E2E_AUTH_SECRET;
 const workosClientId = process.env.WORKOS_CLIENT_ID;
 const missingWorkosConfig = !(
 	workosClientId &&
-	process.env.WORKOS_API_KEY &&
+		process.env.WORKOS_API_KEY &&
 	cookiePassword &&
 	cookiePassword.length >= 32
 );
