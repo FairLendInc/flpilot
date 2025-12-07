@@ -592,7 +592,19 @@ export const createAuthorizedMutation = (
 					);
 				}
 
-				return { ctx, args };
+				// Extend context with identity properties
+				return {
+					ctx: {
+						...ctx,
+						role: identity.role,
+						subject: identity.subject,
+						email: identity.email,
+						org_id: identity.org_id,
+						permissions: identity.permissions,
+						roles: identity.roles,
+					},
+					args,
+				};
 			},
 		})
 	);
@@ -630,7 +642,19 @@ export const createAuthorizedAction = (
 					);
 				}
 
-				return { ctx, args };
+				// Extend context with identity properties
+				return {
+					ctx: {
+						...ctx,
+						role: identity.role,
+						subject: identity.subject,
+						email: identity.email,
+						org_id: identity.org_id,
+						permissions: identity.permissions,
+						roles: identity.roles,
+					},
+					args,
+				};
 			},
 		})
 	);

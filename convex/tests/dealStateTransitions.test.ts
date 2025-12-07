@@ -271,6 +271,31 @@ describe("transitionDealState - Forward Transitions", () => {
 		expect(deal?.currentState).toBe("pending_transfer");
 	});
 
+	test("should transition from pending_docs to pending_transfer via DOCUMENTS_COMPLETE", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+		const adminT = await getAdminTest(t);
+
+		// Move through states
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "CONFIRM_LAWYER" },
+		});
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "COMPLETE_DOCS" },
+		});
+
+		// Transition to pending_transfer through document completion
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "DOCUMENTS_COMPLETE", notes: "All docs signed" },
+		});
+
+		const deal = await adminT.query(api.deals.getDeal, { dealId });
+		expect(deal?.currentState).toBe("pending_transfer");
+	});
+
 	test("should transition from pending_transfer to pending_verification via VERIFY_FUNDS", async () => {
 		const t = createTest();
 		const { dealId } = await createDeal(t);

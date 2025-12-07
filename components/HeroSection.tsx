@@ -32,6 +32,7 @@ export function HeroSection({ children }: HeroSectionProps) {
 	return (
 		<section
 			className="sticky top-0 z-0 h-screen snap-start scroll-mt-0"
+			data-testid="home-hero-section"
 			ref={heroRef}
 		>
 			<main
@@ -55,6 +56,7 @@ export function HeroSection({ children }: HeroSectionProps) {
 									style={{
 										fontSize: "clamp(2.5rem, 8vw, 7rem)",
 									}}
+									data-testid="home-hero-heading"
 								>
 									Canada&apos;s Private
 									<br />

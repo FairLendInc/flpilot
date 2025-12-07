@@ -62,6 +62,7 @@ export type DealContext = {
 export type DealEvent =
 	| { type: "CONFIRM_LAWYER"; notes?: string }
 	| { type: "COMPLETE_DOCS"; notes?: string }
+	| { type: "DOCUMENTS_COMPLETE"; notes?: string }
 	| { type: "RECEIVE_FUNDS"; notes?: string }
 	| { type: "VERIFY_FUNDS"; notes?: string }
 	| { type: "COMPLETE_DEAL"; notes?: string }
@@ -124,7 +125,11 @@ export const dealMachine = setup({
 
 			if (event.type === "CONFIRM_LAWYER") toState = "pending_lawyer";
 			else if (event.type === "COMPLETE_DOCS") toState = "pending_docs";
-			else if (event.type === "RECEIVE_FUNDS") toState = "pending_transfer";
+			else if (
+				event.type === "RECEIVE_FUNDS" ||
+				event.type === "DOCUMENTS_COMPLETE"
+			)
+				toState = "pending_transfer";
 			else if (event.type === "VERIFY_FUNDS") toState = "pending_verification";
 			else if (event.type === "COMPLETE_DEAL") toState = "completed";
 			else if (event.type === "CANCEL") toState = "cancelled";
@@ -204,6 +209,11 @@ export const dealMachine = setup({
 		 */
 		pending_docs: {
 			on: {
+				DOCUMENTS_COMPLETE: {
+					target: "pending_transfer",
+					guard: "canTransitionForward",
+					actions: "logTransition",
+				},
 				RECEIVE_FUNDS: {
 					target: "pending_transfer",
 					guard: "canTransitionForward",

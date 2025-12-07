@@ -108,7 +108,10 @@ export default function ProfileForm(_props: ProfileFormProps) {
 	// Handle loading and authentication states with conditional rendering
 	if (authLoading) {
 		return (
-			<div className="flex min-h-[400px] items-center justify-center">
+			<div
+				className="flex min-h-[400px] items-center justify-center"
+				data-testid="profile-auth-loading"
+			>
 				<div className="flex flex-col items-center gap-4">
 					<Spinner className="size-8" />
 					<p className="text-muted-foreground text-sm">
@@ -120,7 +123,10 @@ export default function ProfileForm(_props: ProfileFormProps) {
 	}
 	if (!isAuthenticated) {
 		return (
-			<div className="flex min-h-[400px] items-center justify-center">
+			<div
+				className="flex min-h-[400px] items-center justify-center"
+				data-testid="profile-auth-required"
+			>
 				<div className="flex flex-col items-center gap-4">
 					<p className="font-medium text-lg">Authentication required</p>
 					<p className="text-muted-foreground text-sm">
@@ -131,7 +137,11 @@ export default function ProfileForm(_props: ProfileFormProps) {
 		);
 	}
 	if (!(userProfileData && typedUserProfileData)) {
-		return <ProfileFormSkeleton />;
+		return (
+			<div data-testid="profile-loading-skeleton">
+				<ProfileFormSkeleton />
+			</div>
+		);
 	}
 
 	const derivedData = getDerivedData(typedUserProfileData);
@@ -150,7 +160,7 @@ export default function ProfileForm(_props: ProfileFormProps) {
 	}
 
 	return (
-		<div className="space-y-8">
+		<div className="space-y-8" data-testid="profile-form">
 			{/* HERO BANNER - Full width with dramatic gradient */}
 			<ProfileHeader
 				activeRoleName={derivedData.activeRoleName}

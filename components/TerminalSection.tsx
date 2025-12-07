@@ -76,6 +76,7 @@ export default function TerminalSection() {
 	return (
 		<div
 			className="relative"
+			data-testid="terminal-section"
 			ref={terminalSectionRef}
 			style={{
 				width: "100%",

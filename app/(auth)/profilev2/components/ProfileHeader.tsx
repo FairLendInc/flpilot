@@ -19,7 +19,10 @@ export function ProfileHeader({
 	getInitials,
 }: ProfileHeaderProps) {
 	return (
-		<div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-blue-600 via-purple-600 to-pink-600 p-1 shadow-2xl">
+		<div
+			className="relative overflow-hidden rounded-3xl bg-linear-to-br from-blue-600 via-purple-600 to-pink-600 p-1 shadow-2xl"
+			data-testid="profile-header"
+		>
 			<div className="relative rounded-[22px] bg-background p-8 sm:p-12">
 				<div className="flex flex-col items-center gap-8 sm:flex-row sm:items-center">
 					{/* Avatar - Large and prominent */}

@@ -78,6 +78,7 @@ import {
 	getDaysInState,
 } from "@/lib/types/dealTypes";
 import { DocumentDetailsSection } from "../components/DocumentDetailsSection";
+import { FundTransferUploadCard } from "@/components/deals/FundTransferUploadCard";
 
 const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	locked: Lock,
@@ -457,6 +458,13 @@ export default function DealDetailPage({
 
 					{/* Sidebar - Right Column */}
 					<div className="space-y-6">
+						<FundTransferUploadCard
+							currentState={deal.currentState}
+							currentUpload={deal.currentUpload}
+							dealId={deal._id}
+							uploadHistory={deal.uploadHistory}
+						/>
+
 						{/* Deal Summary */}
 						<Card>
 							<CardHeader>

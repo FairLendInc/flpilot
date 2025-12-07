@@ -93,6 +93,7 @@
     "convex-helpers": "^0.1.104",
     "crud": "link:convex-helpers/server/crud",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
     "flags": "^4.0.2",
     "framer-motion": "^12.23.24",

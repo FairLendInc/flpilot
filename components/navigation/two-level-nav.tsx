@@ -34,6 +34,7 @@ export function TwoLevelNav({
 	// const { user, loading } = useAuth();
 	useEffect(() => {
 		const down = (e: KeyboardEvent) => {
+			
 			if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
 				e.preventDefault();
 				setCommandOpen((open) => !open);
@@ -44,10 +45,13 @@ export function TwoLevelNav({
 	}, []);
 
 	return (
-		<>
-			<div className="fixed top-0 right-0 left-0 z-50">
-				<div className="border-border border-b bg-background/80 backdrop-blur-xl">
-					<div className="flex h-16 items-center justify-between px-4 md:px-6">
+		<nav
+			aria-label="Primary navigation"
+			className="fixed top-0 right-0 left-0 z-50"
+			data-testid="primary-nav"
+		>
+			<div className="border-border border-b bg-background/80 backdrop-blur-xl">
+				<div className="flex h-16 items-center justify-between px-4 md:px-6">
 						{/* Left Side - Logo and Project Selector */}
 						<div className="flex items-center gap-2 md:gap-4">
 							{/* Logo */}
@@ -126,137 +130,136 @@ export function TwoLevelNav({
 								)}
 							</Button>
 						</div>
-					</div>
 				</div>
-
-				<div
-					className={cn(
-						"border-border border-b bg-background/95 backdrop-blur-xl",
-						mobileMenuOpen && "hidden lg:block"
-					)}
-				>
-					{((pathname !== "/" && pathname.length > 1) ||
-						breadcrumbs.length > 0) && (
-						<div className="relative flex h-12 items-center px-4 md:px-6">
-							{/* Breadcrumbs - Left */}
-							<BreadcrumbNav items={breadcrumbs} />
-
-							{/* Filters - Absolutely Centered */}
-							<div className="md:-translate-x-1/2 flex items-center gap-2 md:absolute md:left-1/2">
-								{isListingsPage(pathname) && <FilterBar />}
-							</div>
-
-							{/* Search/Feedback - Right */}
-							{!isListingsPage(pathname) && (
-								<div className="ml-auto flex items-center gap-2 md:gap-3">
-									{/* ... search content ... */}
-								</div>
-							)}
-							{!isListingsPage(pathname) && (
-								<div className="flex items-center gap-2 md:gap-3">
-									<Button
-										className="hidden h-8 text-sm sm:flex"
-										size="sm"
-										variant="ghost"
-									>
-										Feedback
-									</Button>
-								</div>
-							)}
-						</div>
-					)}
-				</div>
-
-				<AnimatePresence>
-					{mobileMenuOpen && (
-						<>
-							{/* Backdrop */}
-							<motion.div
-								animate={{ opacity: 1 }}
-								className="fixed inset-0 top-16 z-40 bg-background/50 backdrop-blur-md lg:hidden"
-								exit={{ opacity: 0 }}
-								initial={{ opacity: 0 }}
-								onClick={() => setMobileMenuOpen(false)}
-								transition={{ duration: 0.2 }}
-							/>
-
-							{/* Menu Content */}
-							<motion.div
-								animate={{ opacity: 0.7, y: 0 }}
-								className="fixed top-16 right-0 left-0 z-50 rounded-lg border-border border-b bg-background/50 shadow-2xl backdrop-blur-xl lg:hidden"
-								exit={{ opacity: 0, y: -20 }}
-								initial={{ opacity: 0, y: -20 }}
-								transition={{ duration: 0.3, ease: "easeOut" }}
-							>
-								<div className="h-[calc(100vh-4rem)] space-y-1 overflow-y-auto rounded-lg bg-background/50 px-4 py-6">
-									{/* Navigation Items */}
-									{navigationItems.map((navItem) => {
-										const Icon = navItem.icon;
-										const isActive = isNavItemActive(navItem, pathname);
-										const link =
-											navItem.href === "/dashboard"
-												? "/dashboard/investor"
-												: navItem.href;
-										return (
-											<Link
-												className=""
-												href={link}
-												key={navItem.id}
-												prefetch={true}
-											>
-												<Button
-													className={cn(
-														"flex w-full items-center justify-start gap-3 rounded-lg px-4 py-3 text-left transition-colors",
-														isActive
-															? "bg-primary/10 font-semibold text-primary"
-															: "text-foreground/80 hover:bg-secondary hover:text-foreground"
-													)}
-													key={navItem.id}
-													onClick={() => setMobileMenuOpen(false)}
-													variant="ghost"
-												>
-													<Icon className="size-5" />
-													<span className="text-base">{navItem.label}</span>
-													{isActive && (
-														<motion.div
-															className="ml-auto size-2 rounded-full bg-primary"
-															layoutId="mobile-active"
-															transition={{
-																type: "spring",
-																stiffness: 300,
-																damping: 30,
-															}}
-														/>
-													)}
-												</Button>
-											</Link>
-										);
-									})}
-
-									{/* Divider */}
-									<div className="my-4 h-px bg-border" />
-
-									{/* Mobile-only actions */}
-									<Button
-										className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
-										onClick={() => {
-											setCommandOpen(true);
-											setMobileMenuOpen(false);
-										}}
-										variant="ghost"
-									>
-										<Search className="size-5" />
-										<span className="text-base">Search</span>
-									</Button>
-								</div>
-							</motion.div>
-						</>
-					)}
-				</AnimatePresence>
 			</div>
+
+			<div
+				className={cn(
+					"border-border border-b bg-background/95 backdrop-blur-xl",
+					mobileMenuOpen && "hidden lg:block"
+				)}
+			>
+				{((pathname !== "/" && pathname.length > 1) ||
+					breadcrumbs.length > 0) && (
+					<div className="relative flex h-12 items-center px-4 md:px-6">
+						{/* Breadcrumbs - Left */}
+						<BreadcrumbNav items={breadcrumbs} />
+
+						{/* Filters - Absolutely Centered */}
+						<div className="md:-translate-x-1/2 flex items-center gap-2 md:absolute md:left-1/2">
+							{isListingsPage(pathname) && <FilterBar />}
+						</div>
+
+						{/* Search/Feedback - Right */}
+						{!isListingsPage(pathname) && (
+							<div className="ml-auto flex items-center gap-2 md:gap-3">
+								{/* ... search content ... */}
+							</div>
+						)}
+						{!isListingsPage(pathname) && (
+							<div className="flex items-center gap-2 md:gap-3">
+								<Button
+									className="hidden h-8 text-sm sm:flex"
+									size="sm"
+									variant="ghost"
+								>
+									Feedback
+								</Button>
+							</div>
+						)}
+					</div>
+				)}
+			</div>
+
+			<AnimatePresence>
+				{mobileMenuOpen && (
+					<>
+						{/* Backdrop */}
+						<motion.div
+							animate={{ opacity: 1 }}
+							className="fixed inset-0 top-16 z-40 bg-background/50 backdrop-blur-md lg:hidden"
+							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
+							onClick={() => setMobileMenuOpen(false)}
+							transition={{ duration: 0.2 }}
+						/>
+
+						{/* Menu Content */}
+						<motion.div
+							animate={{ opacity: 0.7, y: 0 }}
+							className="fixed top-16 right-0 left-0 z-50 rounded-lg border-border border-b bg-background/50 shadow-2xl backdrop-blur-xl lg:hidden"
+							exit={{ opacity: 0, y: -20 }}
+							initial={{ opacity: 0, y: -20 }}
+							transition={{ duration: 0.3, ease: "easeOut" }}
+						>
+							<div className="h-[calc(100vh-4rem)] space-y-1 overflow-y-auto rounded-lg bg-background/50 px-4 py-6">
+								{/* Navigation Items */}
+								{navigationItems.map((navItem) => {
+									const Icon = navItem.icon;
+									const isActive = isNavItemActive(navItem, pathname);
+									const link =
+										navItem.href === "/dashboard"
+											? "/dashboard/investor"
+											: navItem.href;
+									return (
+										<Link
+											className=""
+											href={link}
+											key={navItem.id}
+											prefetch={true}
+										>
+											<Button
+												className={cn(
+													"flex w-full items-center justify-start gap-3 rounded-lg px-4 py-3 text-left transition-colors",
+													isActive
+														? "bg-primary/10 font-semibold text-primary"
+														: "text-foreground/80 hover:bg-secondary hover:text-foreground"
+												)}
+												key={navItem.id}
+												onClick={() => setMobileMenuOpen(false)}
+												variant="ghost"
+											>
+												<Icon className="size-5" />
+												<span className="text-base">{navItem.label}</span>
+												{isActive && (
+													<motion.div
+														className="ml-auto size-2 rounded-full bg-primary"
+														layoutId="mobile-active"
+														transition={{
+															type: "spring",
+															stiffness: 300,
+															damping: 30,
+														}}
+													/>
+												)}
+											</Button>
+										</Link>
+									);
+								})}
+
+								{/* Divider */}
+								<div className="my-4 h-px bg-border" />
+
+								{/* Mobile-only actions */}
+								<Button
+									className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+									onClick={() => {
+										setCommandOpen(true);
+										setMobileMenuOpen(false);
+									}}
+									variant="ghost"
+								>
+									<Search className="size-5" />
+									<span className="text-base">Search</span>
+								</Button>
+							</div>
+						</motion.div>
+					</>
+				)}
+			</AnimatePresence>
 
 			{/* Command Palette */}
 			<CommandPalette onOpenChange={setCommandOpen} open={commandOpen} />
-		</>
+		</nav>
 	);
 }

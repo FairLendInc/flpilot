@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const baseURL =
+	process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const storageDir = ".playwright";
+const sharedStorageState =
+	process.env.E2E_SHARED_STORAGE ?? `${storageDir}/broker.json`;
+const shouldStartWebServer =
+	process.env.PLAYWRIGHT_START_SERVER !== "false";
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -26,27 +34,22 @@ export default defineConfig({
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL to use in actions like `await page.goto('')`. */
-		// baseURL: 'http://localhost:3000',
+		baseURL,
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: "on-first-retry",
 	},
 
+	globalSetup: "./e2e/global-setup.ts",
+
 	/* Configure projects for major browsers */
 	projects: [
 		{
-			name: "chromium",
-			use: { ...devices["Desktop Chrome"] },
-		},
-
-		{
-			name: "firefox",
-			use: { ...devices["Desktop Firefox"] },
-		},
-
-		{
-			name: "webkit",
-			use: { ...devices["Desktop Safari"] },
+			name: "broker",
+			use: {
+				...devices["Desktop Chrome"],
+				storageState: sharedStorageState,
+			},
 		},
 
 		/* Test against mobile viewports. */
@@ -71,9 +74,15 @@ export default defineConfig({
 	],
 
 	/* Run your local dev server before starting the tests */
-	// webServer: {
-	//   command: 'npm run start',
-	//   url: 'http://localhost:3000',
-	//   reuseExistingServer: !process.env.CI,
-	// },
+	/* Note: Convex backend must be running separately (pnpm run dev:backend) */
+	webServer: shouldStartWebServer
+		? {
+				command: "pnpm run dev:frontend",
+				url: baseURL,
+				reuseExistingServer: !process.env.CI,
+				stdout: "pipe",
+				stderr: "pipe",
+				timeout: 120000,
+			}
+		: undefined,
 });
