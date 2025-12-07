@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { useMutation as useConvexMutation } from "convex/react";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { DocumentTypeCreationDialog } from "@/components/ui/document-type-creation-dialog";
 import { DocumentTypeSelector } from "@/components/ui/document-type-selector";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 // Regex constants for performance optimization
 const REGEX = {
@@ -56,8 +56,8 @@ vi.mock("sonner", () => ({
 	},
 }));
 
-const mockedUseAuthenticatedQuery = useAuthenticatedQuery as unknown as vi.Mock;
-const mockedUseMutation = useConvexMutation as unknown as vi.Mock;
+const mockedUseAuthenticatedQuery = useAuthenticatedQuery as unknown as Mock;
+const mockedUseMutation = useConvexMutation as unknown as Mock;
 
 // Mock localStorage
 const localStorageMock = {
@@ -507,7 +507,9 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 			};
 
 			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
-			mockedUseMutation.mockReturnValue(vi.fn().mockResolvedValue(mockAutoAssign));
+			mockedUseMutation.mockReturnValue(
+				vi.fn().mockResolvedValue(mockAutoAssign)
+			);
 
 			const onValueChange = vi.fn();
 			const fileInfo = {

@@ -347,9 +347,9 @@ describe("UploadFundTransferButton - File Selection", () => {
 
 		await user.upload(fileInput, invalidFile);
 
-	expect(
-		await screen.findByText(REGEX_INVALID_FILE_TYPE, { exact: false })
-	).toBeInTheDocument();
+		expect(
+			await screen.findByText(REGEX_INVALID_FILE_TYPE, { exact: false })
+		).toBeInTheDocument();
 	});
 
 	test("should reject files larger than 10MB", async () => {
@@ -408,7 +408,7 @@ describe("UploadFundTransferButton - File Selection", () => {
 		const invalidFile = createMockFile("doc.txt", "text/plain");
 		await user.upload(fileInput, invalidFile);
 		expect(
-		await screen.findByText(REGEX_INVALID_FILE_TYPE, { exact: false })
+			await screen.findByText(REGEX_INVALID_FILE_TYPE, { exact: false })
 		).toBeInTheDocument();
 
 		// Then, upload valid file
