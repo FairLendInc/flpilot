@@ -27,10 +27,7 @@ import {
 } from "./dealStateMachine";
 import {
 	adminAction,
-	authenticatedAction,
 	authenticatedMutation,
-} from "./lib/authorizedFunctions";
-import {
 	investorLawyerAdminAction,
 	investorLawyerAdminMutation,
 } from "./lib/authorizedFunctions";
@@ -1732,7 +1729,13 @@ export const recordFundTransferUpload = investorLawyerAdminMutation({
 			deal.lawyerEmail.toLowerCase() === email.toLowerCase();
 		const isAdmin = role === "admin";
 
-		if (!((role === "investor" && isInvestor) || (role === "lawyer" && isLawyer) || isAdmin)) {
+		if (
+			!(
+				(role === "investor" && isInvestor) ||
+				(role === "lawyer" && isLawyer) ||
+				isAdmin
+			)
+		) {
 			throw new Error("Unauthorized");
 		}
 

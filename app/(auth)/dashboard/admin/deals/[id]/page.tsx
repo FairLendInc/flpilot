@@ -32,6 +32,7 @@ import {
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
+import { FundTransferUploadCard } from "@/components/deals/FundTransferUploadCard";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -78,7 +79,6 @@ import {
 	getDaysInState,
 } from "@/lib/types/dealTypes";
 import { DocumentDetailsSection } from "../components/DocumentDetailsSection";
-import { FundTransferUploadCard } from "@/components/deals/FundTransferUploadCard";
 
 const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	locked: Lock,

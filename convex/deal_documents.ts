@@ -1,9 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import {
-	createAuthorizedMutation,
-	createAuthorizedQuery,
-} from "./lib/server";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
 
 const authorizedQuery = createAuthorizedQuery(["any"]);
 const adminAuthorizedMutation = createAuthorizedMutation(["admin"]);

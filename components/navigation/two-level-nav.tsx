@@ -34,7 +34,6 @@ export function TwoLevelNav({
 	// const { user, loading } = useAuth();
 	useEffect(() => {
 		const down = (e: KeyboardEvent) => {
-			
 			if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
 				e.preventDefault();
 				setCommandOpen((open) => !open);
@@ -52,84 +51,84 @@ export function TwoLevelNav({
 		>
 			<div className="border-border border-b bg-background/80 backdrop-blur-xl">
 				<div className="flex h-16 items-center justify-between px-4 md:px-6">
-						{/* Left Side - Logo and Project Selector */}
-						<div className="flex items-center gap-2 md:gap-4">
-							{/* Logo */}
-							<div className="flex items-center gap-2 md:gap-3">
-								<div className="flex size-6 items-center justify-center rounded-sm bg-primary">
-									<div className="size-3 rounded-sm bg-background" />
-								</div>
-								<span className="font-semibold text-foreground">FairLend</span>
-							</div>
-						</div>
-
-						{/* Center - Tubelight Tabs (Desktop only) */}
-						<div className="hidden items-center gap-3 rounded-full border border-border bg-background/5 px-1 py-1 shadow-lg backdrop-blur-lg lg:flex">
-							{navigationItems.map((navItem) => {
-								// const Icon = navItem.icon;
-								const isActive = isNavItemActive(navItem, pathname);
-
-								return (
-									<Link
-										href={navItem.href}
-										key={`nav-link-${navItem.id}`}
-										prefetch={true}
-									>
-										<button
-											className={cn(
-												"relative cursor-pointer rounded-full px-6 py-2 font-semibold text-sm transition-colors",
-												"text-foreground/80 hover:text-primary",
-												isActive && "bg-muted text-primary"
-											)}
-											key={navItem.id}
-											// onClick={() => handleNavClick(navItem)}
-											type="button"
-										>
-											<span>{navItem.label}</span>
-											{isActive && (
-												<motion.div
-													className="-z-10 absolute inset-0 w-full rounded-full bg-primary/5"
-													initial={false}
-													layoutId="lamp"
-													transition={{
-														type: "spring",
-														stiffness: 300,
-														damping: 30,
-													}}
-												>
-													<div className="-top-2 -translate-x-1/2 absolute left-1/2 h-1 w-8 rounded-t-full bg-primary">
-														<div className="-top-2 -left-2 absolute h-6 w-12 rounded-full bg-primary/20 blur-md" />
-														<div className="-top-1 absolute h-6 w-8 rounded-full bg-primary/20 blur-md" />
-														<div className="absolute top-0 left-2 h-4 w-4 rounded-full bg-primary/20 blur-sm" />
-													</div>
-												</motion.div>
-											)}
-										</button>
-									</Link>
-								);
-							})}
-						</div>
-						{/* Right Side - User Controls */}
+					{/* Left Side - Logo and Project Selector */}
+					<div className="flex items-center gap-2 md:gap-4">
+						{/* Logo */}
 						<div className="flex items-center gap-2 md:gap-3">
-							{/* Notifications - Visible on all screen sizes */}
-							<AlertBell />
-
-							{/* User Avatar - Visible on all screen sizes */}
-							<UserAvatarMenu />
-
-							<Button
-								className="lg:hidden"
-								onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-								size="icon"
-								variant="ghost"
-							>
-								{mobileMenuOpen ? (
-									<X className="size-5" />
-								) : (
-									<Menu className="size-5" />
-								)}
-							</Button>
+							<div className="flex size-6 items-center justify-center rounded-sm bg-primary">
+								<div className="size-3 rounded-sm bg-background" />
+							</div>
+							<span className="font-semibold text-foreground">FairLend</span>
 						</div>
+					</div>
+
+					{/* Center - Tubelight Tabs (Desktop only) */}
+					<div className="hidden items-center gap-3 rounded-full border border-border bg-background/5 px-1 py-1 shadow-lg backdrop-blur-lg lg:flex">
+						{navigationItems.map((navItem) => {
+							// const Icon = navItem.icon;
+							const isActive = isNavItemActive(navItem, pathname);
+
+							return (
+								<Link
+									href={navItem.href}
+									key={`nav-link-${navItem.id}`}
+									prefetch={true}
+								>
+									<button
+										className={cn(
+											"relative cursor-pointer rounded-full px-6 py-2 font-semibold text-sm transition-colors",
+											"text-foreground/80 hover:text-primary",
+											isActive && "bg-muted text-primary"
+										)}
+										key={navItem.id}
+										// onClick={() => handleNavClick(navItem)}
+										type="button"
+									>
+										<span>{navItem.label}</span>
+										{isActive && (
+											<motion.div
+												className="-z-10 absolute inset-0 w-full rounded-full bg-primary/5"
+												initial={false}
+												layoutId="lamp"
+												transition={{
+													type: "spring",
+													stiffness: 300,
+													damping: 30,
+												}}
+											>
+												<div className="-top-2 -translate-x-1/2 absolute left-1/2 h-1 w-8 rounded-t-full bg-primary">
+													<div className="-top-2 -left-2 absolute h-6 w-12 rounded-full bg-primary/20 blur-md" />
+													<div className="-top-1 absolute h-6 w-8 rounded-full bg-primary/20 blur-md" />
+													<div className="absolute top-0 left-2 h-4 w-4 rounded-full bg-primary/20 blur-sm" />
+												</div>
+											</motion.div>
+										)}
+									</button>
+								</Link>
+							);
+						})}
+					</div>
+					{/* Right Side - User Controls */}
+					<div className="flex items-center gap-2 md:gap-3">
+						{/* Notifications - Visible on all screen sizes */}
+						<AlertBell />
+
+						{/* User Avatar - Visible on all screen sizes */}
+						<UserAvatarMenu />
+
+						<Button
+							className="lg:hidden"
+							onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+							size="icon"
+							variant="ghost"
+						>
+							{mobileMenuOpen ? (
+								<X className="size-5" />
+							) : (
+								<Menu className="size-5" />
+							)}
+						</Button>
+					</div>
 				</div>
 			</div>
 

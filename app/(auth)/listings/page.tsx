@@ -10,7 +10,10 @@ export const metadata: Metadata = {
  */
 export default async function ListingsPage() {
 	return (
-		<section className="container flex w-screen flex-col" data-testid="listings-page">
+		<section
+			className="container flex w-screen flex-col"
+			data-testid="listings-page"
+		>
 			<ListingsClient />
 		</section>
 	);

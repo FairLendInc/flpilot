@@ -47,8 +47,8 @@ export function ProfileFormFields({
 							</label>
 							<input
 								className="w-full rounded-md border border-gray-300 px-3 py-2"
-								id="first-name"
 								data-testid="profile-first-name"
+								id="first-name"
 								onChange={(e) => onFirstNameChange(e.target.value)}
 								placeholder="First Name"
 								value={firstName}
@@ -63,8 +63,8 @@ export function ProfileFormFields({
 							</label>
 							<input
 								className="w-full rounded-md border border-gray-300 px-3 py-2"
-								id="last-name"
 								data-testid="profile-last-name"
+								id="last-name"
 								onChange={(e) => onLastNameChange(e.target.value)}
 								placeholder="Last Name"
 								value={lastName}
@@ -76,9 +76,9 @@ export function ProfileFormFields({
 							</label>
 							<input
 								className="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2"
+								data-testid="profile-email"
 								disabled
 								id="email"
-								data-testid="profile-email"
 								placeholder="john@example.com"
 								value={email}
 							/>
@@ -89,8 +89,8 @@ export function ProfileFormFields({
 							</label>
 							<input
 								className="w-full rounded-md border border-gray-300 px-3 py-2"
-								id="phone"
 								data-testid="profile-phone"
+								id="phone"
 								onChange={(e) => onPhoneChange(e.target.value)}
 								placeholder="+1 (555) 123-4567"
 								value={phone}

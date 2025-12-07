@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
 import { useAction, useMutation } from "convex/react";
-import { UploadCloud, Clock, FileText, History } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Clock, FileText, History, UploadCloud } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,9 @@ export function FundTransferUploadCard({
 		const file = event.target.files?.[0];
 		if (!file) return;
 
-		if (!ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])) {
+		if (
+			!ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])
+		) {
 			toast.error("Invalid file type", {
 				description: "Only PDF, PNG, and JPEG files are allowed.",
 			});
@@ -73,7 +75,9 @@ export function FundTransferUploadCard({
 				throw new Error("Upload failed");
 			}
 
-			const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
+			const { storageId } = (await response.json()) as {
+				storageId: Id<"_storage">;
+			};
 
 			await recordUpload({
 				dealId,
@@ -100,12 +104,12 @@ export function FundTransferUploadCard({
 
 		return (
 			<div className="rounded-lg border p-3">
-				<div className="flex items-center gap-2 text-sm font-medium">
+				<div className="flex items-center gap-2 font-medium text-sm">
 					<FileText className="h-4 w-4 text-muted-foreground" />
 					<span>{label}</span>
 				</div>
 				<p className="mt-2 text-sm">{upload.fileName}</p>
-				<div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+				<div className="mt-2 flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
 					<span className="flex items-center gap-1">
 						<Clock className="h-3 w-3" />
 						{formatDistanceToNow(upload.uploadedAt, { addSuffix: true })}
@@ -134,9 +138,9 @@ export function FundTransferUploadCard({
 						onChange={handleFileChange}
 						type="file"
 					/>
-					<p className="text-xs text-muted-foreground">
-						Accepted types: PDF, PNG, JPEG. One active upload at a time; previous
-						uploads are kept in history.
+					<p className="text-muted-foreground text-xs">
+						Accepted types: PDF, PNG, JPEG. One active upload at a time;
+						previous uploads are kept in history.
 					</p>
 				</div>
 
@@ -144,7 +148,7 @@ export function FundTransferUploadCard({
 
 				{uploadHistory && uploadHistory.length > 0 && (
 					<div className="space-y-2">
-						<div className="flex items-center gap-2 text-sm font-medium">
+						<div className="flex items-center gap-2 font-medium text-sm">
 							<History className="h-4 w-4 text-muted-foreground" />
 							<span>Upload history</span>
 						</div>
@@ -155,11 +159,11 @@ export function FundTransferUploadCard({
 									className="rounded-lg border p-3"
 									key={`${upload.storageId}-${upload.uploadedAt}`}
 								>
-									<div className="flex items-center gap-2 text-sm font-medium">
+									<div className="flex items-center gap-2 font-medium text-sm">
 										<FileText className="h-4 w-4 text-muted-foreground" />
 										<span>{upload.fileName}</span>
 									</div>
-									<div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+									<div className="mt-1 flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
 										<span className="flex items-center gap-1">
 											<Clock className="h-3 w-3" />
 											{formatDistanceToNow(upload.uploadedAt, {
@@ -177,4 +181,3 @@ export function FundTransferUploadCard({
 		</Card>
 	);
 }
-

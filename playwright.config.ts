@@ -1,12 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL =
-	process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const storageDir = ".playwright";
 const sharedStorageState =
 	process.env.E2E_SHARED_STORAGE ?? `${storageDir}/broker.json`;
-const shouldStartWebServer =
-	process.env.PLAYWRIGHT_START_SERVER !== "false";
+const shouldStartWebServer = process.env.PLAYWRIGHT_START_SERVER !== "false";
 
 /**
  * Read environment variables from file.

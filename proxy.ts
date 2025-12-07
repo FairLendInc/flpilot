@@ -30,7 +30,7 @@ export default async function proxy(req: NextRequest) {
 				"/blog",
 				"/contact",
 				"/about",
-				"/api/e2e/auth"
+				"/api/e2e/auth",
 			],
 		},
 	});

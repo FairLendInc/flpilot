@@ -117,7 +117,10 @@ async function createLockRequest(
 	listingId: Id<"listings">,
 	investorIdpId: string
 ) {
-	const investorT = t.withIdentity({ subject: investorIdpId, role: "investor" });
+	const investorT = t.withIdentity({
+		subject: investorIdpId,
+		role: "investor",
+	});
 	return await investorT.mutation(api.lockRequests.createLockRequest, {
 		listingId,
 		lawyerName: "Test Lawyer",
@@ -185,9 +188,12 @@ describe("document completion checks", () => {
 			});
 		});
 
-		const pending = await t.query(internal.deal_documents.areAllDocumentsSigned, {
-			dealId,
-		});
+		const pending = await t.query(
+			internal.deal_documents.areAllDocumentsSigned,
+			{
+				dealId,
+			}
+		);
 		expect(pending).toBe(false);
 	});
 
@@ -222,9 +228,12 @@ describe("document completion checks", () => {
 			});
 		});
 
-		const result = await t.query(internal.deal_documents.areAllDocumentsSigned, {
-			dealId,
-		});
+		const result = await t.query(
+			internal.deal_documents.areAllDocumentsSigned,
+			{
+				dealId,
+			}
+		);
 		expect(result).toBe(true);
 	});
 });
@@ -268,4 +277,3 @@ describe("checkPendingDocsDeals integration", () => {
 		expect(updatedDeal?.currentState).toBe("pending_transfer");
 	});
 });
-

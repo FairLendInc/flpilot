@@ -1,19 +1,19 @@
-import { test as base } from "@playwright/test";
+import { test as base, Browser, Page } from "@playwright/test";
 import path from "node:path";
 
 type AuthFixtures = {
-	lawyerPage: Awaited<ReturnType<typeof base["newPage"]>>;
-	investorPage: Awaited<ReturnType<typeof base["newPage"]>>;
-	brokerPage: Awaited<ReturnType<typeof base["newPage"]>>;
-	memberPage: Awaited<ReturnType<typeof base["newPage"]>>;
+	lawyerPage: Page;
+	investorPage: Page;
+	brokerPage: Page;
+	memberPage: Page;
 };
 
 const storageDir = path.join(process.cwd(), ".playwright");
 
 async function useRolePage(
 	role: "lawyer" | "investor" | "broker" | "member",
-	browser: Parameters<typeof base.extend>[0]["browser"],
-	use: (page: Awaited<ReturnType<typeof base["newPage"]>>) => Promise<void>,
+	browser: Browser,
+	use: (page: Page) => Promise<void>,
 ) {
 	const context = await browser.newContext({
 		storageState: path.join(storageDir, `${role}.json`),
@@ -24,12 +24,12 @@ async function useRolePage(
 }
 
 export const test = base.extend<AuthFixtures>({
-	lawyerPage: async ({ browser }, use) =>
+	lawyerPage: async ({ browser }: { browser: Browser }, use: (page: Page) => Promise<void>) =>
 		useRolePage("lawyer", browser, use),
-	investorPage: async ({ browser }, use) =>
+	investorPage: async ({ browser }: { browser: Browser }, use: (page: Page) => Promise<void>) =>
 		useRolePage("investor", browser, use),
-	brokerPage: async ({ browser }, use) => useRolePage("broker", browser, use),
-	memberPage: async ({ browser }, use) => useRolePage("member", browser, use),
+	brokerPage: async ({ browser }: { browser: Browser }, use: (page: Page) => Promise<void>) => useRolePage("broker", browser, use),
+	memberPage: async ({ browser }: { browser: Browser }, use: (page: Page) => Promise<void>) => useRolePage("member", browser, use),
 });
 
 export const expect = test.expect;
