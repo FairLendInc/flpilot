@@ -195,11 +195,14 @@ export function TwoLevelNav({
 								{/* Navigation Items */}
 								{navigationItems.map((navItem) => {
 									const Icon = navItem.icon;
-									const isActive = isNavItemActive(navItem, pathname);
 									const link =
 										navItem.href === "/dashboard"
 											? "/dashboard/investor"
 											: navItem.href;
+									const isActive = isNavItemActive(
+										{ ...navItem, href: link },
+										pathname
+									);
 									return (
 										<Link
 											className=""
@@ -214,7 +217,6 @@ export function TwoLevelNav({
 														? "bg-primary/10 font-semibold text-primary"
 														: "text-foreground/80 hover:bg-secondary hover:text-foreground"
 												)}
-												key={navItem.id}
 												onClick={() => setMobileMenuOpen(false)}
 												variant="ghost"
 											>

@@ -46,7 +46,9 @@ type CreateErrorInput = {
 
 export function createError(input: CreateErrorInput): AppError {
 	const userMessage =
-		input.userMessage ?? DEFAULT_USER_MESSAGES[input.code] ?? DEFAULT_USER_MESSAGES.unknown;
+		input.userMessage ??
+		DEFAULT_USER_MESSAGES[input.code] ??
+		DEFAULT_USER_MESSAGES.unknown;
 	const devMessage = input.devMessage ?? userMessage;
 	const err = new Error(devMessage) as AppError;
 	err.name = "AppError";
@@ -144,11 +146,13 @@ export function getDebugInfo(err: unknown): Record<string, unknown> {
  */
 export function serializeError(err: unknown): Record<string, unknown> {
 	const info = getDebugInfo(err);
-	return JSON.parse(JSON.stringify(info, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
+	return JSON.parse(
+		JSON.stringify(info, (_k, v) => (typeof v === "bigint" ? v.toString() : v))
+	);
 }
 
 function normalizeCause(cause: unknown): unknown {
-	if (!cause) return undefined;
+	if (!cause) return;
 	if (isAppError(cause)) {
 		return {
 			code: cause.code,
@@ -171,4 +175,3 @@ function normalizeCause(cause: unknown): unknown {
  * const appErr = wrapError(err, { code: "unknown" });
  * showToast(getUserMessage(appErr));
  */
-

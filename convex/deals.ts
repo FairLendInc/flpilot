@@ -1729,23 +1729,16 @@ export const recordFundTransferUpload = investorLawyerAdminMutation({
 			deal.lawyerEmail.toLowerCase() === email.toLowerCase();
 		const isAdmin = role === "admin";
 
-		if (
-			!(
-				(role === "investor" && isInvestor) ||
-				(role === "lawyer" && isLawyer) ||
-				isAdmin
-			)
-		) {
+		// Allow any authenticated investor, lawyer, or admin regardless of which role
+		// the user logged in with. Previously this checked both the role and the
+		// participant match, which prevented admins from uploading unless they were
+		// also the investor.
+		if (!(isInvestor || isLawyer || isAdmin)) {
 			throw new Error("Unauthorized");
 		}
 
 		// 2. Validate file type
-		const allowedTypes = [
-			"application/pdf",
-			"image/png",
-			"image/jpeg",
-			"image/jpg",
-		];
+		const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
 		if (!allowedTypes.includes(args.fileType)) {
 			throw new Error(
 				"Invalid file type. Only PDF, PNG, and JPEG are allowed."

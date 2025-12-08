@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useMutation as useConvexMutation } from "convex/react";
-import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { DocumentTypeCreationDialog } from "@/components/ui/document-type-creation-dialog";
 import { DocumentTypeSelector } from "@/components/ui/document-type-selector";
 import { useAuthenticatedQuery } from "@/convex/lib/client";

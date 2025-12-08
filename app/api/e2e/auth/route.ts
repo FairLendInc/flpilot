@@ -10,7 +10,7 @@ const workos = new WorkOS(process.env.WORKOS_API_KEY ?? "");
 const RATE_LIMIT_WINDOW_MS = 5_000;
 let lastAuthTimestamp = 0;
 
-const INVALID_REGEX = /invalid/i;
+const INVALID_ERROR_PATTERN = /invalid/i;
 const isProd = process.env.NODE_ENV === "production";
 const isEnabled = process.env.E2E_AUTH_ENABLED === "true";
 const cookiePassword = process.env.WORKOS_COOKIE_PASSWORD;
@@ -19,7 +19,7 @@ const authSecret = process.env.E2E_AUTH_SECRET;
 const workosClientId = process.env.WORKOS_CLIENT_ID;
 const missingWorkosConfig = !(
 	workosClientId &&
-		process.env.WORKOS_API_KEY &&
+	process.env.WORKOS_API_KEY &&
 	cookiePassword &&
 	cookiePassword.length >= 32
 );
@@ -165,22 +165,28 @@ export async function POST(req: NextRequest) {
 			},
 			{ status: 200 }
 		);
-	} catch (error) {
-		const status =
-			error instanceof Error && INVALID_REGEX.test(error.message) ? 401 : 500;
-		// Capture more details from WorkOS error (if present)
-		const err = error as {
-			message?: string;
-			rawData?: { message?: string; error?: string; code?: string };
-		};
-		const message =
-			err?.message ??
-			err?.rawData?.message ??
-			err?.rawData?.error ??
-			"Authentication failed";
-		const code = err?.rawData?.code;
-		console.error("[e2e/auth] error", { message, code, status });
-		return NextResponse.json({ error: err }, { status });
+	} catch (error: unknown) {
+		let message = "Authentication failed";
+		let code: string | undefined;
+
+		if (error instanceof Error && error.message) {
+			message = error.message;
+		} else if (typeof error === "object" && error !== null) {
+			const errObj = error as {
+				rawData?: { message?: string; error?: string; code?: string };
+			};
+			if (errObj.rawData?.message) {
+				message = errObj.rawData.message;
+			} else if (errObj.rawData?.error) {
+				message = errObj.rawData.error;
+			}
+			code = errObj.rawData?.code;
+		}
+
+		const status = INVALID_ERROR_PATTERN.test(message) ? 401 : 500;
+
+		console.error("[e2e/auth] error", { error, message, code, status });
+		return NextResponse.json({ error: "Authentication failed" }, { status });
 	}
 }
 

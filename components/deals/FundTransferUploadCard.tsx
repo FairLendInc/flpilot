@@ -26,12 +26,7 @@ type FundTransferUploadCardProps = {
 	uploadHistory?: UploadMeta[] | null;
 };
 
-const ACCEPTED_TYPES = [
-	"application/pdf",
-	"image/png",
-	"image/jpeg",
-	"image/jpg",
-] as const;
+const ACCEPTED_TYPES = ["application/pdf", "image/png", "image/jpeg"] as const;
 
 export function FundTransferUploadCard({
 	dealId,

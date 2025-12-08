@@ -35,7 +35,8 @@ export function UploadFundTransferButton({
 	currentUpload,
 	disabled = false,
 }: UploadFundTransferButtonProps) {
-	const INVALID_FILE_MESSAGE = "Invalid file type. Please upload a PDF, PNG, or JPEG.";
+	const INVALID_FILE_MESSAGE =
+		"Invalid file type. Please upload a PDF, PNG, or JPEG.";
 	const FILE_TOO_LARGE_MESSAGE = "File is too large. Maximum size is 10MB.";
 
 	const [isOpen, setIsOpen] = useState(false);
@@ -50,12 +51,7 @@ export function UploadFundTransferButton({
 		const selectedFile = e.target.files?.[0];
 		if (selectedFile) {
 			// Client-side validation
-			const allowedTypes = [
-				"application/pdf",
-				"image/png",
-				"image/jpeg",
-				"image/jpg",
-			];
+			const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
 			if (!allowedTypes.includes(selectedFile.type)) {
 				setError(INVALID_FILE_MESSAGE);
 				setFile(null);

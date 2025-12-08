@@ -7,9 +7,9 @@ import {
 	customMutation,
 	customQuery,
 } from "convex-helpers/server/customFunctions";
+import { createError } from "../../lib/errors";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
 import { action, mutation, query } from "../_generated/server";
-import { createError } from "../../lib/errors";
 
 // ============================================================================
 // AUTHENTICATION HELPERS - PREVENTING RACE CONDITIONS

@@ -8,7 +8,7 @@ import schema from "../schema";
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules) as any;
 
-const NOT_AUTHENTICATED_ERROR_MESSAGE = "Authentication required";
+// const NOT_AUTHENTICATED_ERROR_MESSAGE = "Authentication required";
 const NOT_AUTHENTICATED_ERROR = /Authentication required/;
 const FAIR_LEND_UNAUTHORIZED_MESSAGE =
 	"Not authorized! Required Role(s): investor, lawyer, broker, admin, padmin, orgadmin";

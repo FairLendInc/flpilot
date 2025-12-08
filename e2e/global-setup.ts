@@ -51,6 +51,15 @@ const E2E_SECRET = process.env.E2E_AUTH_SECRET ?? process.env.E2E_SECRET;
 const E2E_ORG_ID = null;
 const RATE_LIMIT_PADDING_MS = 200;
 const PLAYWRIGHT_FORCE_LOGIN = process.env.PLAYWRIGHT_FORCE_LOGIN === "true";
+const DEBUG_CREDENTIALS =
+	process.env.PLAYWRIGHT_DEBUG_CREDENTIALS === "true";
+
+function redactEmail(email: string) {
+	const [local, domain] = email.split("@");
+	if (!domain) return "[invalid email]";
+	const visibleLocal = local.slice(0, 2);
+	return `${visibleLocal}***@${domain}`;
+}
 
 function delay(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -59,6 +68,7 @@ function delay(ms: number) {
 async function authenticateRole(config: RoleConfig) {
 	const email = SHARED_E2E_EMAIL ?? process.env[config.emailEnv];
 	const password = SHARED_E2E_PASSWORD ?? process.env[config.passwordEnv];
+	const maskedEmail = email ? redactEmail(email) : "[missing]";
 
 	if (!email || !password) {
 		throw new Error(
@@ -68,15 +78,22 @@ async function authenticateRole(config: RoleConfig) {
 
 	const context = await request.newContext({ baseURL: BASE_URL });
 	const headers = { "x-e2e-auth-secret": E2E_SECRET ?? "" };
-	console.log("email and pw: ", email, password);
-	console.log("CONFIG: ", config);
+
+	if (DEBUG_CREDENTIALS) {
+		console.log("[global-setup] credentials loaded", {
+			role: config.role,
+			email: maskedEmail,
+			sharedAccount: Boolean(SHARED_E2E_EMAIL),
+			hasSecret: Boolean(E2E_SECRET),
+		});
+	}
 
 	console.log(
 		"[global-setup] authenticate",
 		JSON.stringify(
 			{
 				role: config.role,
-				email,
+				email: maskedEmail,
 				// orgId: E2E_ORG_ID || "[none]",
 				baseURL: BASE_URL,
 				hasSecret: Boolean(E2E_SECRET),
