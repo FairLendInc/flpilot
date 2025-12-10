@@ -44,9 +44,6 @@ export function LandingNavbar() {
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-lg transition-transform group-hover:scale-105">
-            <div className="size-4 rounded-sm bg-white" />
-          </div>
           <span className={cn(
             "font-bold text-xl tracking-tight transition-colors",
             scrolled ? "text-foreground" : "text-white"
