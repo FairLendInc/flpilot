@@ -160,8 +160,7 @@ export default function Home() {
 									<CheckCircle2 className="size-6 shrink-0 text-emerald-500" />
 									<span>
 										The mortgage is then{" "}
-										<strong>offloaded to 3rd-party investors</strong> on the
-										FairLend marketplace.
+										<strong>offloaded to 3rd-party investors</strong>
 									</span>
 								</li>
 								<li className="flex gap-3">
