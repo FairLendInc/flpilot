@@ -69,9 +69,9 @@ export default async function proxy(req: NextRequest) {
 		// We map the root subdomain traffic to this placeholder for now
 		// For other paths, we keep the path but inject the subdomain header
 		const suburl = req.nextUrl.clone();
-		if (suburl.pathname === "/") {
-			suburl.pathname = "/tenant";
-		}
+		// if (suburl.pathname === "/") {
+		// 	suburl.pathname = "/tenant";
+		// }
 
 		const rewriteRes = NextResponse.rewrite(suburl, {
 			request: {
