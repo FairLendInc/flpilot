@@ -5,15 +5,20 @@ import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useConvexAuth } from "convex/react";
+import {
+	Sheet,
+	SheetContent,
+	SheetTrigger,
+} from "@/components/ui/sheet";
 
 import { WaitlistModal } from "@/components/landingpage/components/waitlist-modal";
 
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { scrollY } = useScroll();
   const { isAuthenticated } = useConvexAuth();
 
@@ -97,57 +102,73 @@ export function LandingNavbar() {
         </div>
 
         {/* Mobile Menu Toggle */}
-        <button
-          className="md:hidden p-2"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? (
-            <X className={cn("size-6", scrolled ? "text-foreground" : "text-white")} />
-          ) : (
-            <Menu className={cn("size-6", scrolled ? "text-foreground" : "text-white")} />
-          )}
-        </button>
-      </div>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <button
+              className="md:hidden p-2"
+              aria-label="Toggle navigation"
+            >
+              <Menu className={cn("size-6", scrolled ? "text-foreground" : "text-white")} />
+            </button>
+          </SheetTrigger>
+          <SheetContent
+            side="right"
+            className="bg-background/60 backdrop-blur-2xl border-border/50 shadow-2xl sm:max-w-sm w-full px-6 py-6"
+          >
+            <div className="flex flex-col gap-6 h-full">
+              <div className="flex items-center justify-between">
+                <Link
+                  href="/"
+                  className="text-lg font-bold tracking-tight"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  FairLend
+                </Link>
+              </div>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border p-6 md:hidden shadow-2xl"
-        >
-          <div className="flex flex-col gap-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="text-lg font-medium text-foreground/80 hover:text-emerald-600 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <hr className="border-border my-2" />
-            <div className="flex flex-col gap-3">
-              {!isAuthenticated && (
-                <a href="/sign-in" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-lg">Login</Button>
-                </a>
-              )}
-              <Button 
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setShowWaitlistModal(true);
-                }}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-lg py-6"
-              >
-                Get Started
-              </Button>
+              <div className="flex flex-col gap-2">
+                {navItems.map((item, idx) => (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.05 * idx, duration: 0.25 }}
+                  >
+                    <Link
+                      href={item.href}
+                      className="block rounded-lg px-3 py-2 text-lg font-medium text-foreground/90 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="mt-auto space-y-3 pt-2">
+                {!isAuthenticated && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-lg hover:bg-white/10"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Login
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setShowWaitlistModal(true);
+                  }}
+                  className="w-full rounded-full bg-emerald-600 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:-translate-y-px hover:bg-emerald-700 hover:shadow-xl"
+                >
+                  Get Started
+                </Button>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </SheetContent>
+        </Sheet>
+      </div>
 
       <WaitlistModal open={showWaitlistModal} onOpenChange={setShowWaitlistModal} />
     </motion.header>
