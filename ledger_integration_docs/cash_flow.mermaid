@@ -1,0 +1,56 @@
+sequenceDiagram
+  autonumber
+
+  participant B     as Borrower
+  participant R     as Rotessa/Bank Rails
+  participant L     as Formance Ledger
+  participant EXT_B as external:borrower:M123
+  participant COL   as cash:M123:collect
+  participant IRec  as loan:M123:interest_receivable
+  participant IAccA as inv_accrued:M123:INV_A
+  participant IAccB as inv_accrued:M123:INV_B
+  participant WAL_A as wallet:investor:INV_A
+  participant WAL_B as wallet:investor:INV_B
+  participant EXT_P as cash:external:payouts
+
+  %% 1) Borrower monthly PAD (off-ledger)
+  B->>R: Monthly PAD debit M123 interest amount
+  R-->>B: Bank confirmation (off-platform)
+
+  %% 2) Platform receives payment and records it into ledger
+  R->>L: webhook: payment_received(mortgage=M123, amount=X)
+  activate L
+  L->>EXT_B: debit CAD X                Note right of EXT_B: Borrower's obligation reduced
+  L->>COL:   credit CAD X               Note right of COL: M123 collect pool +X
+  deactivate L
+
+  %% 3) Reduce interest receivable against cash
+  L->>COL:   debit CAD X
+  L->>IRec:  credit CAD X
+
+  Note over COL,IRec: Interest receivable is now matched by collected cash.\n(If accrual was correct, IRec ≈ sum(IAccA + IAccB).)
+
+  %% 4) Payout run: settle accrued interest to investors
+  Note over L: Run settle_investor_accrual_for_mortgage(M123)
+
+  alt Investor A has positive IAccA
+    L->>COL:   debit CAD I_A
+    L->>WAL_A: credit CAD I_A
+    L->>IAccA: debit CAD I_A
+    L->>EXT_P: credit CAD I_A   Note right of EXT_P: optional explicit payout mirror
+  end
+
+  alt Investor B has positive IAccB
+    L->>COL:   debit CAD I_B
+    L->>WAL_B: credit CAD I_B
+    L->>IAccB: debit CAD I_B
+    L->>EXT_P: credit CAD I_B
+  end
+
+  Note over WAL_A,WAL_B: From ledger’s perspective, investors\nhave been allocated their cash entitlements.
+
+  %% 5) Off-platform bank transfers to investors
+  R->>WAL_A: (conceptually) payout to Investor A bank acct
+  R->>WAL_B: payout to Investor B bank acct
+
+  Note over EXT_P: In the strong-accounting variant, EXT_P\nrepresents money that has left the platform,\nbacked by real bank movements.
