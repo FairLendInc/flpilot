@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useMutation as useConvexMutation } from "convex/react";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { DocumentTypeCreationDialog } from "@/components/ui/document-type-creation-dialog";
 import { DocumentTypeSelector } from "@/components/ui/document-type-selector";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 // Regex constants for performance optimization
 const REGEX = {
@@ -53,6 +55,9 @@ vi.mock("sonner", () => ({
 		error: vi.fn(),
 	},
 }));
+
+const mockedUseAuthenticatedQuery = useAuthenticatedQuery as unknown as Mock;
+const mockedUseMutation = useConvexMutation as unknown as Mock;
 
 // Mock localStorage
 const localStorageMock = {
@@ -175,11 +180,9 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 
 		it("analyzes document when file info is provided", async () => {
 			const mockGetSuggestions = vi.fn().mockResolvedValue(mockSuggestions);
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			const { useMutation } = require("convex/react");
 
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
-			useMutation.mockReturnValue(mockGetSuggestions);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseMutation.mockReturnValue(mockGetSuggestions);
 
 			const fileInfo = {
 				filename: "property_appraisal.pdf",
@@ -207,11 +210,9 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 
 		it("displays AI suggestion banner when confidence is high", async () => {
 			const mockGetSuggestions = vi.fn().mockResolvedValue(mockSuggestions);
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			const { useMutation } = require("convex/react");
 
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
-			useMutation.mockReturnValue(mockGetSuggestions);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseMutation.mockReturnValue(mockGetSuggestions);
 
 			const fileInfo = {
 				filename: "property_appraisal.pdf",
@@ -236,11 +237,9 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 		it("auto-assigns type when enabled and confidence is above threshold", async () => {
 			const mockGetSuggestions = vi.fn().mockResolvedValue(mockSuggestions);
 			const mockAutoAssign = vi.fn().mockResolvedValue(mockAutoAssignResult);
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			const { useMutation } = require("convex/react");
 
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
-			useMutation
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseMutation
 				.mockReturnValueOnce(mockGetSuggestions)
 				.mockReturnValueOnce(mockAutoAssign);
 
@@ -272,11 +271,9 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 				warnings: ["Filename could be more descriptive"],
 				errors: [],
 			});
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			const { useMutation } = require("convex/react");
 
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
-			useMutation.mockReturnValue(mockValidate);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseMutation.mockReturnValue(mockValidate);
 
 			const onValueChange = vi.fn();
 			const fileInfo = {
@@ -313,8 +310,7 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 
 	describe("Custom Type Creation", () => {
 		it("shows create new type option when enabled", () => {
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
 
 			render(<DocumentTypeSelector enableCustomTypeCreation={true} />);
 
@@ -325,8 +321,7 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 		});
 
 		it("opens creation dialog when create option is selected", () => {
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
 
 			render(<DocumentTypeSelector enableCustomTypeCreation={true} />);
 
@@ -356,8 +351,7 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 				},
 			];
 
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			useAuthenticatedQuery.mockReturnValue(mockGroups);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockGroups);
 
 			render(
 				<DocumentTypeCreationDialog
@@ -382,8 +376,7 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 				},
 			];
 
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			useAuthenticatedQuery.mockReturnValue(mockGroups);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockGroups);
 
 			render(<DocumentTypeCreationDialog onOpenChange={vi.fn()} open={true} />);
 
@@ -408,8 +401,7 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 				},
 			];
 
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			useAuthenticatedQuery.mockReturnValue(mockGroups);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockGroups);
 
 			render(<DocumentTypeCreationDialog onOpenChange={vi.fn()} open={true} />);
 
@@ -437,8 +429,7 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 				},
 			];
 
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			useAuthenticatedQuery.mockReturnValue(mockGroups);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockGroups);
 
 			render(<DocumentTypeCreationDialog onOpenChange={vi.fn()} open={true} />);
 
@@ -460,11 +451,9 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 			const mockGetSuggestions = vi.fn(
 				() => new Promise((resolve) => setTimeout(resolve, 100))
 			);
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			const { useMutation } = require("convex/react");
 
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
-			useMutation.mockReturnValue(mockGetSuggestions);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseMutation.mockReturnValue(mockGetSuggestions);
 
 			const fileInfo = {
 				filename: "large_document.pdf",
@@ -496,8 +485,7 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 
 			localStorageMock.getItem.mockReturnValue(JSON.stringify(["title"]));
 
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
 
 			render(<DocumentTypeSelector showRecentlyUsed={true} />);
 
@@ -518,11 +506,10 @@ describe("DocumentTypeSelector Dynamic Features", () => {
 				confidenceScore: 0.92,
 			};
 
-			const { useAuthenticatedQuery } = require("@/convex/lib/client");
-			const { useMutation } = require("convex/react");
-
-			useAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
-			useMutation.mockReturnValue(vi.fn().mockResolvedValue(mockAutoAssign));
+			mockedUseAuthenticatedQuery.mockReturnValue(mockDocumentTypes);
+			mockedUseMutation.mockReturnValue(
+				vi.fn().mockResolvedValue(mockAutoAssign)
+			);
 
 			const onValueChange = vi.fn();
 			const fileInfo = {

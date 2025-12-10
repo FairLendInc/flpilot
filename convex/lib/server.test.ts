@@ -8,10 +8,10 @@ import schema from "../schema";
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules) as any;
 
-const NOT_AUTHENTICATED_ERROR_MESSAGE = "Not authenticated!";
-const NOT_AUTHENTICATED_ERROR = new Error(NOT_AUTHENTICATED_ERROR_MESSAGE);
+// const NOT_AUTHENTICATED_ERROR_MESSAGE = "Authentication required";
+const NOT_AUTHENTICATED_ERROR = /Authentication required/;
 const FAIR_LEND_UNAUTHORIZED_MESSAGE =
-	"Not authorized! Required Role(s): investor, lawyer, broker \n Your roles: undefined";
+	"Not authorized! Required Role(s): investor, lawyer, broker, admin, padmin, orgadmin";
 const DEFAULT_ARGS = { id: "test" as const };
 const DEFAULT_UNAUTHORIZED_REGEX = /Not authorized/;
 

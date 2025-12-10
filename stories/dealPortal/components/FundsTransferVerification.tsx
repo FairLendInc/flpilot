@@ -150,7 +150,7 @@ export function FundsTransferVerification() {
   // Handler functions
   const processFile = async (file: File) => {
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
+    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"]
     if (!allowedTypes.includes(file.type)) {
       toast.error("Please upload a valid file type (JPEG, PNG, PDF)")
       return

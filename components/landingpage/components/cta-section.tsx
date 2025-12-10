@@ -34,6 +34,7 @@ export const CTASection = () => {
 	return (
 		<div
 			className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-black"
+			data-testid="cta-section"
 			ref={sectionRef}
 		>
 			{/* Light Rays Background */}
@@ -74,7 +75,10 @@ export const CTASection = () => {
 				}}
 			>
 				<div className="relative">
-					<h2 className="relative z-10 px-8 py-6 font-bold text-5xl text-white leading-tight md:text-6xl lg:text-7xl">
+					<h2
+						className="relative z-10 px-8 py-6 font-bold text-5xl text-white leading-tight md:text-6xl lg:text-7xl"
+						data-testid="cta-heading"
+					>
 						Ready to Transform
 						<br />
 						Private Lending?

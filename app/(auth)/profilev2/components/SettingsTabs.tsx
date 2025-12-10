@@ -16,7 +16,10 @@ import type { SettingsTabsProps } from "../types";
 
 export function SettingsTabs({ onNotificationToggle }: SettingsTabsProps) {
 	return (
-		<Card.Root className="overflow-hidden rounded-2xl border-2 shadow-lg">
+		<Card.Root
+			className="overflow-hidden rounded-2xl border-2 shadow-lg"
+			data-testid="settings-tabs"
+		>
 			<Card.Header className={`border-b ${UI.GRADIENTS.cardHeader}`}>
 				<div className="flex items-center gap-3">
 					<div

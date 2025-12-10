@@ -7,6 +7,7 @@ import {
 	customMutation,
 	customQuery,
 } from "convex-helpers/server/customFunctions";
+import { createError } from "../../lib/errors";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
 import { action, mutation, query } from "../_generated/server";
 
@@ -390,7 +391,7 @@ export const authAction = customAction(
  *
  * @param ctx - Convex context from query/mutation/action
  * @returns RBAC context object with user identity, roles, and permissions
- * @throws {Error} "Not authenticated!" if no valid session
+ * @throws {Error} "Authentication required" if no valid session
  *
  * @example
  * ```ts
@@ -413,7 +414,7 @@ export async function AuthenticationRequired({
 	const identity = await ctx.auth.getUserIdentity();
 	if (identity === null) {
 		//TODO: Implement custom error types for Convex, should capture caller
-		throw new Error("Not authenticated!");
+		throw new Error("Authentication required");
 	}
 
 	return {
@@ -491,19 +492,32 @@ const authorizedQueryContextAndArgs = customCtxAndArgs({
 		//ensure authentication
 		const identity = await ctx.auth.getUserIdentity();
 		if (identity === null) {
-			//TODO: Implement custom error types for Convex, should capture caller
-			throw new Error("Not authenticated!");
+			throw createError({
+				code: "auth",
+				status: 401,
+				devMessage: "Authentication required",
+				context: { location: "authorizedQueryContextAndArgs" },
+			});
 		}
 
 		if (!roleCheck({ identity, roles: args.roles })) {
-			throw new Error(
-				`Not authorized! Required Role(s): ${args.roles.join(", ")} \n Your roles: ${identity.roles.join(", ")}`
-			);
+			throw createError({
+				code: "auth",
+				status: 403,
+				devMessage: `Not authorized! Required Role(s): ${args.roles.join(", ")}`,
+				context: { userRoles: identity.roles, requiredRoles: args.roles },
+			});
 		}
 		if (!permissionsCheck({ identity, permissions: args.permissions })) {
-			throw new Error(
-				`Not authorized! Required Permission(s): ${args.permissions.join(", ")} \n Your permissions: ${identity.permissions.join(", ")}`
-			);
+			throw createError({
+				code: "auth",
+				status: 403,
+				devMessage: `Not authorized! Required Permission(s): ${args.permissions.join(", ")}`,
+				context: {
+					userPermissions: identity.permissions,
+					requiredPermissions: args.permissions,
+				},
+			});
 		}
 
 		return {
@@ -539,19 +553,33 @@ export const createAuthorizedQuery = (
 
 				const identity = await ctx.auth.getUserIdentity();
 				if (identity === null) {
-					throw new Error("Not authenticated!");
+					throw createError({
+						code: "auth",
+						status: 401,
+						devMessage: "Authentication required",
+						context: { location: "createAuthorizedQuery" },
+					});
 				}
 
 				if (!roleCheck({ identity, roles: requiredRoles })) {
-					throw new Error(
-						`Not authorized! Required Role(s): ${requiredRoles.join(", ")} \n Your roles: ${identity?.roles}`
-					);
+					throw createError({
+						code: "auth",
+						status: 403,
+						devMessage: `Not authorized! Required Role(s): ${requiredRoles.join(", ")}`,
+						context: { userRoles: identity.roles, requiredRoles },
+					});
 				}
 
 				if (!permissionsCheck({ identity, permissions: requiredPermissions })) {
-					throw new Error(
-						`Not authorized! Required Permission(s): ${requiredPermissions.join(", ")} \n Your permissions: ${identity.permissions}`
-					);
+					throw createError({
+						code: "auth",
+						status: 403,
+						devMessage: `Not authorized! Required Permission(s): ${requiredPermissions.join(", ")}`,
+						context: {
+							userPermissions: identity.permissions,
+							requiredPermissions,
+						},
+					});
 				}
 
 				return { ctx, args };
@@ -577,22 +605,48 @@ export const createAuthorizedMutation = (
 
 				const identity = await ctx.auth.getUserIdentity();
 				if (identity === null) {
-					throw new Error("Not authenticated!");
+					throw createError({
+						code: "auth",
+						status: 401,
+						devMessage: "Authentication required",
+						context: { location: "createAuthorizedMutation" },
+					});
 				}
 
 				if (!roleCheck({ identity, roles: requiredRoles })) {
-					throw new Error(
-						`Not authorized! Required Role(s): ${requiredRoles.join(", ")} \n Your roles: ${identity?.roles}`
-					);
+					throw createError({
+						code: "auth",
+						status: 403,
+						devMessage: `Not authorized! Required Role(s): ${requiredRoles.join(", ")}`,
+						context: { userRoles: identity.roles, requiredRoles },
+					});
 				}
 
 				if (!permissionsCheck({ identity, permissions: requiredPermissions })) {
-					throw new Error(
-						`Not authorized! Required Permission(s): ${requiredPermissions.join(", ")} \n Your permissions: ${identity.permissions}`
-					);
+					throw createError({
+						code: "auth",
+						status: 403,
+						devMessage: `Not authorized! Required Permission(s): ${requiredPermissions.join(", ")}`,
+						context: {
+							userPermissions: identity.permissions,
+							requiredPermissions,
+						},
+					});
 				}
 
-				return { ctx, args };
+				// Extend context with identity properties
+				return {
+					ctx: {
+						...ctx,
+						role: identity.role,
+						subject: identity.subject,
+						email: identity.email,
+						org_id: identity.org_id,
+						permissions: identity.permissions,
+						roles: identity.roles,
+					},
+					args,
+				};
 			},
 		})
 	);
@@ -615,22 +669,48 @@ export const createAuthorizedAction = (
 
 				const identity = await ctx.auth.getUserIdentity();
 				if (identity === null) {
-					throw new Error("Not authenticated!");
+					throw createError({
+						code: "auth",
+						status: 401,
+						devMessage: "Authentication required",
+						context: { location: "createAuthorizedAction" },
+					});
 				}
 
 				if (!roleCheck({ identity, roles: requiredRoles })) {
-					throw new Error(
-						`Not authorized! Required Role(s): ${requiredRoles.join(", ")} \n Your roles: ${identity?.roles}`
-					);
+					throw createError({
+						code: "auth",
+						status: 403,
+						devMessage: `Not authorized! Required Role(s): ${requiredRoles.join(", ")}`,
+						context: { userRoles: identity.roles, requiredRoles },
+					});
 				}
 
 				if (!permissionsCheck({ identity, permissions: requiredPermissions })) {
-					throw new Error(
-						`Not authorized! Required Permission(s): ${requiredPermissions.join(", ")} \n Your permissions: ${identity.permissions}`
-					);
+					throw createError({
+						code: "auth",
+						status: 403,
+						devMessage: `Not authorized! Required Permission(s): ${requiredPermissions.join(", ")}`,
+						context: {
+							userPermissions: identity.permissions,
+							requiredPermissions,
+						},
+					});
 				}
 
-				return { ctx, args };
+				// Extend context with identity properties
+				return {
+					ctx: {
+						...ctx,
+						role: identity.role,
+						subject: identity.subject,
+						email: identity.email,
+						org_id: identity.org_id,
+						permissions: identity.permissions,
+						roles: identity.roles,
+					},
+					args,
+				};
 			},
 		})
 	);

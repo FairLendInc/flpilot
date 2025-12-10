@@ -8,12 +8,7 @@ import { describe, expect, test } from "vitest";
  * File type validation rules
  * These are the actual validation rules from convex/deals.ts:recordFundTransferUpload
  */
-const ALLOWED_FILE_TYPES = [
-	"application/pdf",
-	"image/png",
-	"image/jpeg",
-	"image/jpg",
-];
+const ALLOWED_FILE_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 
 function isValidFileType(fileType: string): boolean {
 	return ALLOWED_FILE_TYPES.includes(fileType);
@@ -74,8 +69,8 @@ describe("File Type Validation", () => {
 		expect(isValidFileType("image/jpeg")).toBe(true);
 	});
 
-	test("should accept JPG images", () => {
-		expect(isValidFileType("image/jpg")).toBe(true);
+	test("should reject non-standard JPG mime type", () => {
+		expect(isValidFileType("image/jpg")).toBe(false);
 	});
 
 	test("should reject Word documents", () => {

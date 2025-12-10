@@ -216,7 +216,7 @@ describe("generateFundTransferUploadUrl - Authorization", () => {
 		const lawyerT = t.withIdentity({
 			subject: "lawyer-subject",
 			email: "lawyer@test.com", // Matches the lawyer email in deal
-			role: "user",
+			role: "lawyer",
 		});
 
 		const uploadUrl = await lawyerT.action(
@@ -272,11 +272,12 @@ describe("generateFundTransferUploadUrl - Authorization", () => {
 	test("should reject for non-existent deal", async () => {
 		const t = createTest();
 		const adminT = await getAdminTest(t);
-		const fakeDealId = "k123456789" as Id<"deals">;
+		const { dealId } = await createDealInPendingTransfer(t);
+		await t.run(async (ctx) => ctx.db.delete(dealId));
 
 		await expect(
 			adminT.action(api.deals.generateFundTransferUploadUrl, {
-				dealId: fakeDealId,
+				dealId,
 			})
 		).rejects.toThrow("Deal not found");
 	});
@@ -525,7 +526,7 @@ describe("recordFundTransferUpload - Authorization", () => {
 		const lawyerT = t.withIdentity({
 			subject: "lawyer-subject",
 			email: "lawyer@test.com",
-			role: "user",
+			role: "lawyer",
 		});
 
 		await lawyerT.mutation(api.deals.recordFundTransferUpload, {

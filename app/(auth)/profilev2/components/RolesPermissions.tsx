@@ -21,7 +21,10 @@ export function RolesPermissions({
 		activeMembershipData.roleDetails.length === 0;
 
 	return (
-		<Card.Root className="overflow-hidden rounded-2xl border-2 shadow-lg">
+		<Card.Root
+			className="overflow-hidden rounded-2xl border-2 shadow-lg"
+			data-testid="roles-permissions"
+		>
 			<Card.Header className="border-b bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
 				<div className="flex items-center gap-3">
 					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-purple-600 to-pink-600">

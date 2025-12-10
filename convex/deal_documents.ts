@@ -1,18 +1,14 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import {
-	authenticatedMutation,
-	authenticatedQuery,
-} from "./lib/authorizedFunctions";
+import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
 
-type AuthContextFields = {
-	role?: string;
-};
+const authorizedQuery = createAuthorizedQuery(["any"]);
+const adminAuthorizedMutation = createAuthorizedMutation(["admin"]);
 
 /**
  * Get all documents for a specific deal
  */
-export const getDealDocuments = authenticatedQuery({
+export const getDealDocuments = authorizedQuery({
 	args: { dealId: v.id("deals") },
 	handler: async (ctx, args) => {
 		// RBAC context automatically available
@@ -28,7 +24,7 @@ export const getDealDocuments = authenticatedQuery({
 /**
  * Get a single document by ID
  */
-export const getDocument = authenticatedQuery({
+export const getDocument = authorizedQuery({
 	args: { documentId: v.id("deal_documents") },
 	handler: async (ctx, args) => await ctx.db.get(args.documentId),
 });
@@ -73,7 +69,7 @@ export const createDealDocumentInternal = internalMutation({
 /**
  * Update document status (e.g., from webhook or manual check)
  */
-export const updateDocumentStatus = authenticatedMutation({
+export const updateDocumentStatus = adminAuthorizedMutation({
 	args: {
 		documentId: v.id("deal_documents"),
 		status: v.union(
@@ -84,15 +80,10 @@ export const updateDocumentStatus = authenticatedMutation({
 		),
 	},
 	handler: async (ctx, args) => {
-		const { role } = ctx as typeof ctx & AuthContextFields;
-
-		// Only admins should update status manually via this mutation
-		if (role !== "admin") {
-			// We might want to allow system updates via internal mutation instead
-			// But for manual updates, restrict to admin
-			// throw new Error("Unauthorized");
-			// Keeping loose for now to match previous behavior but logging would be good
-		}
+		// const { role } = ctx;
+		// if (role !== "admin") {
+		// 	throw new Error("Unauthorized");
+		// }
 
 		await ctx.db.patch(args.documentId, {
 			status: args.status,

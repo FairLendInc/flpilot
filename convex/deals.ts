@@ -27,8 +27,9 @@ import {
 } from "./dealStateMachine";
 import {
 	adminAction,
-	authenticatedAction,
 	authenticatedMutation,
+	investorLawyerAdminAction,
+	investorLawyerAdminMutation,
 } from "./lib/authorizedFunctions";
 import { getBrokerOfRecord } from "./lib/broker";
 import { createOwnershipInternal } from "./ownership";
@@ -1137,6 +1138,10 @@ export const transitionDealState = mutation({
 				notes: v.optional(v.string()),
 			}),
 			v.object({
+				type: v.literal("DOCUMENTS_COMPLETE"),
+				notes: v.optional(v.string()),
+			}),
+			v.object({
 				type: v.literal("RECEIVE_FUNDS"),
 				notes: v.optional(v.string()),
 			}),
@@ -1586,9 +1591,9 @@ export const checkPendingDocsDeals = internalMutation({
 					snapshot: machineState,
 				});
 
-				// Send COMPLETE_DOCS event (system-triggered, use investor as triggeredBy)
+				// Send DOCUMENTS_COMPLETE event (system-triggered, use investor as triggeredBy)
 				const event: DealEventWithAdmin = {
-					type: "COMPLETE_DOCS",
+					type: "DOCUMENTS_COMPLETE",
 					adminId: deal.investorId,
 					notes:
 						"Automatically transitioned by system after all documents signed",
@@ -1648,12 +1653,12 @@ export const getDealInternal = internalQuery({
  * Generate upload URL for fund transfer proof
  * Only accessible by investor or their lawyer
  */
-export const generateFundTransferUploadUrl = authenticatedAction({
+export const generateFundTransferUploadUrl = investorLawyerAdminAction({
 	args: { dealId: v.id("deals") },
 	handler: async (ctx, args) => {
 		const { role, subject, email } = ctx as typeof ctx & AuthContextFields;
-		if (!(subject && email)) {
-			throw new Error("Not authenticated!");
+		if (!subject) {
+			throw new Error("Not authenticated");
 		}
 
 		// Check if user is authorized for this deal
@@ -1669,7 +1674,10 @@ export const generateFundTransferUploadUrl = authenticatedAction({
 		});
 
 		const isInvestor = user && deal.investorId === user._id;
-		const isLawyer = deal.lawyerEmail === email;
+		const isLawyer =
+			typeof email === "string" &&
+			typeof deal.lawyerEmail === "string" &&
+			deal.lawyerEmail.toLowerCase() === email.toLowerCase();
 		const isAdmin = role === "admin";
 
 		if (!(isInvestor || isLawyer || isAdmin)) {
@@ -1686,7 +1694,7 @@ export const generateFundTransferUploadUrl = authenticatedAction({
  * Record fund transfer upload metadata
  * Validates file type and updates deal history
  */
-export const recordFundTransferUpload = authenticatedMutation({
+export const recordFundTransferUpload = investorLawyerAdminMutation({
 	args: {
 		dealId: v.id("deals"),
 		storageId: v.id("_storage"),
@@ -1694,13 +1702,18 @@ export const recordFundTransferUpload = authenticatedMutation({
 		fileType: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
+		const { role, email, subject } = ctx as typeof ctx & AuthContextFields;
+		if (!subject) {
 			throw new Error("Not authenticated");
 		}
-		const { role, email, subject } = identity;
+
 		const deal = await ctx.db.get(args.dealId);
-		if (!deal) throw new Error("Deal not found");
+		if (!deal) {
+			throw new Error("Deal not found");
+		}
+		if (deal.currentState !== "pending_transfer") {
+			throw new Error("Uploads only allowed in pending_transfer state");
+		}
 
 		// 1. Validate permissions
 		// Resolve user ID from subject
@@ -1710,20 +1723,22 @@ export const recordFundTransferUpload = authenticatedMutation({
 			.unique();
 
 		const isInvestor = user && deal.investorId === user._id;
-		const isLawyer = deal.lawyerEmail === email;
+		const isLawyer =
+			typeof email === "string" &&
+			typeof deal.lawyerEmail === "string" &&
+			deal.lawyerEmail.toLowerCase() === email.toLowerCase();
 		const isAdmin = role === "admin";
 
+		// Allow any authenticated investor, lawyer, or admin regardless of which role
+		// the user logged in with. Previously this checked both the role and the
+		// participant match, which prevented admins from uploading unless they were
+		// also the investor.
 		if (!(isInvestor || isLawyer || isAdmin)) {
 			throw new Error("Unauthorized");
 		}
 
 		// 2. Validate file type
-		const allowedTypes = [
-			"application/pdf",
-			"image/png",
-			"image/jpeg",
-			"image/jpg",
-		];
+		const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
 		if (!allowedTypes.includes(args.fileType)) {
 			throw new Error(
 				"Invalid file type. Only PDF, PNG, and JPEG are allowed."

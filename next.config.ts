@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const createWithVercelToolbar = require("@vercel/toolbar/plugins/next");
+const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
 	reactCompiler: true,
@@ -38,6 +39,18 @@ const nextConfig: NextConfig = {
 				hostname: "i.pravatar.cc",
 			},
 		],
+	},
+	async redirects() {
+		if (!isProd) {
+			return [];
+		}
+		return [
+			{
+				source: "/api/e2e/auth",
+				destination: "/404",
+				permanent: false,
+			},
+		];
 	},
 };
 const withVercelToolbar = createWithVercelToolbar();

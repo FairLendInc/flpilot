@@ -32,6 +32,7 @@ import {
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
+import { FundTransferUploadCard } from "@/components/deals/FundTransferUploadCard";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -457,6 +458,13 @@ export default function DealDetailPage({
 
 					{/* Sidebar - Right Column */}
 					<div className="space-y-6">
+						<FundTransferUploadCard
+							currentState={deal.currentState}
+							currentUpload={deal.currentUpload}
+							dealId={deal._id}
+							uploadHistory={deal.uploadHistory}
+						/>
+
 						{/* Deal Summary */}
 						<Card>
 							<CardHeader>

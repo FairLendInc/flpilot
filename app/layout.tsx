@@ -94,7 +94,7 @@ export default function RootLayout({
 					<ConvexClientProvider>
 						<ThemeProvider>
 							<NavigationProvider>
-								{process.env.NODE_ENV !== 'production' && <VercelToolbar />}
+								{process.env.NODE_ENV !== "production" && <VercelToolbar />}
 								<main
 									className="h-[calc(100vh-6rem)] bg-background pt-24"
 									id="main-content"

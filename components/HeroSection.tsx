@@ -32,6 +32,7 @@ export function HeroSection({ children }: HeroSectionProps) {
 	return (
 		<section
 			className="sticky top-0 z-0 h-screen snap-start scroll-mt-0"
+			data-testid="home-hero-section"
 			ref={heroRef}
 		>
 			<main
@@ -52,6 +53,7 @@ export function HeroSection({ children }: HeroSectionProps) {
 							<div className="col-span-12 md:col-span-8">
 								<h1
 									className="pointer-events-none text-balance text-left font-semibold text-white leading-[0.9] drop-shadow-[0_0_30px_rgba(255,255,255,0.15)] md:font-bold"
+									data-testid="home-hero-heading"
 									style={{
 										fontSize: "clamp(2.5rem, 8vw, 7rem)",
 									}}

@@ -34,6 +34,17 @@ export const brokerAction = createAuthorizedAction(["broker"]);
 export const investorMutation = createAuthorizedMutation(["investor"]);
 export const investorAction = createAuthorizedAction(["investor"]);
 
+export const investorLawyerAdminMutation = createAuthorizedMutation([
+	"investor",
+	"lawyer",
+	"admin",
+]);
+export const investorLawyerAdminAction = createAuthorizedAction([
+	"investor",
+	"lawyer",
+	"admin",
+]);
+
 export const withFairLendRoleQuery = createAuthorizedQuery([
 	"investor",
 	"lawyer",

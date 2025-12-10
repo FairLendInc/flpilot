@@ -44,219 +44,223 @@ export function TwoLevelNav({
 	}, []);
 
 	return (
-		<>
-			<div className="fixed top-0 right-0 left-0 z-50">
-				<div className="border-border border-b bg-background/80 backdrop-blur-xl">
-					<div className="flex h-16 items-center justify-between px-4 md:px-6">
-						{/* Left Side - Logo and Project Selector */}
-						<div className="flex items-center gap-2 md:gap-4">
-							{/* Logo */}
-							<div className="flex items-center gap-2 md:gap-3">
-								<div className="flex size-6 items-center justify-center rounded-sm bg-primary">
-									<div className="size-3 rounded-sm bg-background" />
-								</div>
-								<span className="font-semibold text-foreground">FairLend</span>
-							</div>
-						</div>
-
-						{/* Center - Tubelight Tabs (Desktop only) */}
-						<div className="hidden items-center gap-3 rounded-full border border-border bg-background/5 px-1 py-1 shadow-lg backdrop-blur-lg lg:flex">
-							{navigationItems.map((navItem) => {
-								// const Icon = navItem.icon;
-								const isActive = isNavItemActive(navItem, pathname);
-
-								return (
-									<Link
-										href={navItem.href}
-										key={`nav-link-${navItem.id}`}
-										prefetch={true}
-									>
-										<button
-											className={cn(
-												"relative cursor-pointer rounded-full px-6 py-2 font-semibold text-sm transition-colors",
-												"text-foreground/80 hover:text-primary",
-												isActive && "bg-muted text-primary"
-											)}
-											key={navItem.id}
-											// onClick={() => handleNavClick(navItem)}
-											type="button"
-										>
-											<span>{navItem.label}</span>
-											{isActive && (
-												<motion.div
-													className="-z-10 absolute inset-0 w-full rounded-full bg-primary/5"
-													initial={false}
-													layoutId="lamp"
-													transition={{
-														type: "spring",
-														stiffness: 300,
-														damping: 30,
-													}}
-												>
-													<div className="-top-2 -translate-x-1/2 absolute left-1/2 h-1 w-8 rounded-t-full bg-primary">
-														<div className="-top-2 -left-2 absolute h-6 w-12 rounded-full bg-primary/20 blur-md" />
-														<div className="-top-1 absolute h-6 w-8 rounded-full bg-primary/20 blur-md" />
-														<div className="absolute top-0 left-2 h-4 w-4 rounded-full bg-primary/20 blur-sm" />
-													</div>
-												</motion.div>
-											)}
-										</button>
-									</Link>
-								);
-							})}
-						</div>
-						{/* Right Side - User Controls */}
+		<nav
+			aria-label="Primary navigation"
+			className="fixed top-0 right-0 left-0 z-50"
+			data-testid="primary-nav"
+		>
+			<div className="border-border border-b bg-background/80 backdrop-blur-xl">
+				<div className="flex h-16 items-center justify-between px-4 md:px-6">
+					{/* Left Side - Logo and Project Selector */}
+					<div className="flex items-center gap-2 md:gap-4">
+						{/* Logo */}
 						<div className="flex items-center gap-2 md:gap-3">
-							{/* Notifications - Visible on all screen sizes */}
-							<AlertBell />
-
-							{/* User Avatar - Visible on all screen sizes */}
-							<UserAvatarMenu />
-
-							<Button
-								className="lg:hidden"
-								onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-								size="icon"
-								variant="ghost"
-							>
-								{mobileMenuOpen ? (
-									<X className="size-5" />
-								) : (
-									<Menu className="size-5" />
-								)}
-							</Button>
+							<div className="flex size-6 items-center justify-center rounded-sm bg-primary">
+								<div className="size-3 rounded-sm bg-background" />
+							</div>
+							<span className="font-semibold text-foreground">FairLend</span>
 						</div>
 					</div>
-				</div>
 
-				<div
-					className={cn(
-						"border-border border-b bg-background/95 backdrop-blur-xl",
-						mobileMenuOpen && "hidden lg:block"
-					)}
-				>
-					{((pathname !== "/" && pathname.length > 1) ||
-						breadcrumbs.length > 0) && (
-						<div className="relative flex h-12 items-center px-4 md:px-6">
-							{/* Breadcrumbs - Left */}
-							<BreadcrumbNav items={breadcrumbs} />
+					{/* Center - Tubelight Tabs (Desktop only) */}
+					<div className="hidden items-center gap-3 rounded-full border border-border bg-background/5 px-1 py-1 shadow-lg backdrop-blur-lg lg:flex">
+						{navigationItems.map((navItem) => {
+							// const Icon = navItem.icon;
+							const isActive = isNavItemActive(navItem, pathname);
 
-							{/* Filters - Absolutely Centered */}
-							<div className="md:-translate-x-1/2 flex items-center gap-2 md:absolute md:left-1/2">
-								{isListingsPage(pathname) && <FilterBar />}
-							</div>
-
-							{/* Search/Feedback - Right */}
-							{!isListingsPage(pathname) && (
-								<div className="ml-auto flex items-center gap-2 md:gap-3">
-									{/* ... search content ... */}
-								</div>
-							)}
-							{!isListingsPage(pathname) && (
-								<div className="flex items-center gap-2 md:gap-3">
-									<Button
-										className="hidden h-8 text-sm sm:flex"
-										size="sm"
-										variant="ghost"
+							return (
+								<Link
+									href={navItem.href}
+									key={`nav-link-${navItem.id}`}
+									prefetch={true}
+								>
+									<button
+										className={cn(
+											"relative cursor-pointer rounded-full px-6 py-2 font-semibold text-sm transition-colors",
+											"text-foreground/80 hover:text-primary",
+											isActive && "bg-muted text-primary"
+										)}
+										key={navItem.id}
+										// onClick={() => handleNavClick(navItem)}
+										type="button"
 									>
-										Feedback
-									</Button>
-								</div>
-							)}
-						</div>
-					)}
-				</div>
-
-				<AnimatePresence>
-					{mobileMenuOpen && (
-						<>
-							{/* Backdrop */}
-							<motion.div
-								animate={{ opacity: 1 }}
-								className="fixed inset-0 top-16 z-40 bg-background/50 backdrop-blur-md lg:hidden"
-								exit={{ opacity: 0 }}
-								initial={{ opacity: 0 }}
-								onClick={() => setMobileMenuOpen(false)}
-								transition={{ duration: 0.2 }}
-							/>
-
-							{/* Menu Content */}
-							<motion.div
-								animate={{ opacity: 0.7, y: 0 }}
-								className="fixed top-16 right-0 left-0 z-50 rounded-lg border-border border-b bg-background/50 shadow-2xl backdrop-blur-xl lg:hidden"
-								exit={{ opacity: 0, y: -20 }}
-								initial={{ opacity: 0, y: -20 }}
-								transition={{ duration: 0.3, ease: "easeOut" }}
-							>
-								<div className="h-[calc(100vh-4rem)] space-y-1 overflow-y-auto rounded-lg bg-background/50 px-4 py-6">
-									{/* Navigation Items */}
-									{navigationItems.map((navItem) => {
-										const Icon = navItem.icon;
-										const isActive = isNavItemActive(navItem, pathname);
-										const link =
-											navItem.href === "/dashboard"
-												? "/dashboard/investor"
-												: navItem.href;
-										return (
-											<Link
-												className=""
-												href={link}
-												key={navItem.id}
-												prefetch={true}
+										<span>{navItem.label}</span>
+										{isActive && (
+											<motion.div
+												className="-z-10 absolute inset-0 w-full rounded-full bg-primary/5"
+												initial={false}
+												layoutId="lamp"
+												transition={{
+													type: "spring",
+													stiffness: 300,
+													damping: 30,
+												}}
 											>
-												<Button
-													className={cn(
-														"flex w-full items-center justify-start gap-3 rounded-lg px-4 py-3 text-left transition-colors",
-														isActive
-															? "bg-primary/10 font-semibold text-primary"
-															: "text-foreground/80 hover:bg-secondary hover:text-foreground"
-													)}
-													key={navItem.id}
-													onClick={() => setMobileMenuOpen(false)}
-													variant="ghost"
-												>
-													<Icon className="size-5" />
-													<span className="text-base">{navItem.label}</span>
-													{isActive && (
-														<motion.div
-															className="ml-auto size-2 rounded-full bg-primary"
-															layoutId="mobile-active"
-															transition={{
-																type: "spring",
-																stiffness: 300,
-																damping: 30,
-															}}
-														/>
-													)}
-												</Button>
-											</Link>
-										);
-									})}
+												<div className="-top-2 -translate-x-1/2 absolute left-1/2 h-1 w-8 rounded-t-full bg-primary">
+													<div className="-top-2 -left-2 absolute h-6 w-12 rounded-full bg-primary/20 blur-md" />
+													<div className="-top-1 absolute h-6 w-8 rounded-full bg-primary/20 blur-md" />
+													<div className="absolute top-0 left-2 h-4 w-4 rounded-full bg-primary/20 blur-sm" />
+												</div>
+											</motion.div>
+										)}
+									</button>
+								</Link>
+							);
+						})}
+					</div>
+					{/* Right Side - User Controls */}
+					<div className="flex items-center gap-2 md:gap-3">
+						{/* Notifications - Visible on all screen sizes */}
+						<AlertBell />
 
-									{/* Divider */}
-									<div className="my-4 h-px bg-border" />
+						{/* User Avatar - Visible on all screen sizes */}
+						<UserAvatarMenu />
 
-									{/* Mobile-only actions */}
-									<Button
-										className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
-										onClick={() => {
-											setCommandOpen(true);
-											setMobileMenuOpen(false);
-										}}
-										variant="ghost"
-									>
-										<Search className="size-5" />
-										<span className="text-base">Search</span>
-									</Button>
-								</div>
-							</motion.div>
-						</>
-					)}
-				</AnimatePresence>
+						<Button
+							className="lg:hidden"
+							onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+							size="icon"
+							variant="ghost"
+						>
+							{mobileMenuOpen ? (
+								<X className="size-5" />
+							) : (
+								<Menu className="size-5" />
+							)}
+						</Button>
+					</div>
+				</div>
 			</div>
+
+			<div
+				className={cn(
+					"border-border border-b bg-background/95 backdrop-blur-xl",
+					mobileMenuOpen && "hidden lg:block"
+				)}
+			>
+				{((pathname !== "/" && pathname.length > 1) ||
+					breadcrumbs.length > 0) && (
+					<div className="relative flex h-12 items-center px-4 md:px-6">
+						{/* Breadcrumbs - Left */}
+						<BreadcrumbNav items={breadcrumbs} />
+
+						{/* Filters - Absolutely Centered */}
+						<div className="md:-translate-x-1/2 flex items-center gap-2 md:absolute md:left-1/2">
+							{isListingsPage(pathname) && <FilterBar />}
+						</div>
+
+						{/* Search/Feedback - Right */}
+						{!isListingsPage(pathname) && (
+							<div className="ml-auto flex items-center gap-2 md:gap-3">
+								{/* ... search content ... */}
+							</div>
+						)}
+						{!isListingsPage(pathname) && (
+							<div className="flex items-center gap-2 md:gap-3">
+								<Button
+									className="hidden h-8 text-sm sm:flex"
+									size="sm"
+									variant="ghost"
+								>
+									Feedback
+								</Button>
+							</div>
+						)}
+					</div>
+				)}
+			</div>
+
+			<AnimatePresence>
+				{mobileMenuOpen && (
+					<>
+						{/* Backdrop */}
+						<motion.div
+							animate={{ opacity: 1 }}
+							className="fixed inset-0 top-16 z-40 bg-background/50 backdrop-blur-md lg:hidden"
+							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
+							onClick={() => setMobileMenuOpen(false)}
+							transition={{ duration: 0.2 }}
+						/>
+
+						{/* Menu Content */}
+						<motion.div
+							animate={{ opacity: 0.7, y: 0 }}
+							className="fixed top-16 right-0 left-0 z-50 rounded-lg border-border border-b bg-background/50 shadow-2xl backdrop-blur-xl lg:hidden"
+							exit={{ opacity: 0, y: -20 }}
+							initial={{ opacity: 0, y: -20 }}
+							transition={{ duration: 0.3, ease: "easeOut" }}
+						>
+							<div className="h-[calc(100vh-4rem)] space-y-1 overflow-y-auto rounded-lg bg-background/50 px-4 py-6">
+								{/* Navigation Items */}
+								{navigationItems.map((navItem) => {
+									const Icon = navItem.icon;
+									const link =
+										navItem.href === "/dashboard"
+											? "/dashboard/investor"
+											: navItem.href;
+									const isActive = isNavItemActive(
+										{ ...navItem, href: link },
+										pathname
+									);
+									return (
+										<Link
+											className=""
+											href={link}
+											key={navItem.id}
+											prefetch={true}
+										>
+											<Button
+												className={cn(
+													"flex w-full items-center justify-start gap-3 rounded-lg px-4 py-3 text-left transition-colors",
+													isActive
+														? "bg-primary/10 font-semibold text-primary"
+														: "text-foreground/80 hover:bg-secondary hover:text-foreground"
+												)}
+												onClick={() => setMobileMenuOpen(false)}
+												variant="ghost"
+											>
+												<Icon className="size-5" />
+												<span className="text-base">{navItem.label}</span>
+												{isActive && (
+													<motion.div
+														className="ml-auto size-2 rounded-full bg-primary"
+														layoutId="mobile-active"
+														transition={{
+															type: "spring",
+															stiffness: 300,
+															damping: 30,
+														}}
+													/>
+												)}
+											</Button>
+										</Link>
+									);
+								})}
+
+								{/* Divider */}
+								<div className="my-4 h-px bg-border" />
+
+								{/* Mobile-only actions */}
+								<Button
+									className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+									onClick={() => {
+										setCommandOpen(true);
+										setMobileMenuOpen(false);
+									}}
+									variant="ghost"
+								>
+									<Search className="size-5" />
+									<span className="text-base">Search</span>
+								</Button>
+							</div>
+						</motion.div>
+					</>
+				)}
+			</AnimatePresence>
 
 			{/* Command Palette */}
 			<CommandPalette onOpenChange={setCommandOpen} open={commandOpen} />
-		</>
+		</nav>
 	);
 }

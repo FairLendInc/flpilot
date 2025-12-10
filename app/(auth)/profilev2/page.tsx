@@ -4,7 +4,10 @@ import ProfileForm from "./ProfileForm";
 
 export default function ProfileV2Page() {
 	return (
-		<div className="mx-auto w-full max-w-7xl px-4 py-8">
+		<div
+			className="mx-auto w-full max-w-7xl px-4 py-8"
+			data-testid="profilev2-page"
+		>
 			<ProfileForm />
 		</div>
 	);

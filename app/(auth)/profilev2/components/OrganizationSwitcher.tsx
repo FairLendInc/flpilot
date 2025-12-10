@@ -25,7 +25,10 @@ export function OrganizationSwitcher({
 	const activeRole = activeMembership?.roleDetails?.[0]?.name;
 
 	return (
-		<Card.Root className="overflow-hidden rounded-2xl border-2 shadow-lg transition-all hover:shadow-xl">
+		<Card.Root
+			className="overflow-hidden rounded-2xl border-2 shadow-lg transition-all hover:shadow-xl"
+			data-testid="organization-switcher"
+		>
 			<Card.Header className={`border-b ${UI.GRADIENTS.cardHeader}`}>
 				<div className="flex items-center gap-3">
 					<div
