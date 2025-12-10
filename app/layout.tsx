@@ -14,7 +14,6 @@ import { Suspense } from "react";
 import "./globals.css";
 import { VercelToolbar } from "@vercel/toolbar/next";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-import NavigationProvider from "@/components/navigation/navigation-provider";
 import { PageSkeleton } from "@/components/skeletons";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -93,17 +92,14 @@ export default function RootLayout({
 				<Suspense fallback={<PageSkeleton />}>
 					<ConvexClientProvider>
 						<ThemeProvider>
-							<NavigationProvider>
-								{process.env.NODE_ENV !== "production" && <VercelToolbar />}
-								<main
-									className="h-[calc(100vh-6rem)] bg-background pt-24"
-									id="main-content"
-								>
-									{children}
-								</main>
-								<Toaster />
-								{/* {enableToolbar ? <VercelToolbar /> : null} */}
-							</NavigationProvider>
+							{/* <NavigationProvider> */}
+							{process.env.NODE_ENV !== "production" && <VercelToolbar />}
+							<div className="h-full w-full bg-background" id="main-content">
+								{children}
+							</div>
+							<Toaster />
+							{/* {enableToolbar ? <VercelToolbar /> : null} */}
+							{/* </NavigationProvider> */}
 						</ThemeProvider>
 					</ConvexClientProvider>
 				</Suspense>

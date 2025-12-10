@@ -1,127 +1,167 @@
 "use client";
-import {
-	type MotionValue,
-	motion,
-	useScroll,
-	useTransform,
-} from "motion/react";
+
+import { useRef, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React, { useRef } from "react";
-import { HiArrowRight } from "react-icons/hi2";
-import Beam from "./beam";
-import { Button } from "./button";
-import { Container } from "./container";
-import { FeaturedImages } from "./featured-images";
-import { Heading } from "./heading";
-import { Subheading } from "./subheading";
-import { VideoModal } from "./video-modal";
+import { WaitlistModal } from "@/components/landingpage/components/waitlist-modal";
+
 export const Hero = () => {
-	const router = useRouter();
-
-	const containerRef = useRef<any>(null);
+	const ref = useRef<HTMLDivElement>(null);
+	const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+	const [email, setEmail] = useState("");
 	const { scrollYProgress } = useScroll({
-		target: containerRef,
+		target: ref,
+		offset: ["start start", "end start"],
 	});
-	const [isMobile, setIsMobile] = React.useState(false);
 
-	React.useEffect(() => {
-		const checkMobile = () => {
-			setIsMobile(window.innerWidth <= 768);
-		};
-		checkMobile();
-		window.addEventListener("resize", checkMobile);
-		return () => {
-			window.removeEventListener("resize", checkMobile);
-		};
-	}, []);
+	// Background moves the slowest (appears farthest away)
+	const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
 
-	const scaleDimensions = () => (isMobile ? [0.7, 0.9] : [1.05, 1.2]);
+	// Midground moves slightly faster
+	const midgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
 
-	const rotate = useTransform(scrollYProgress, [0, 0.5], [20, 0]);
-	const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions());
-	const translate = useTransform(scrollYProgress, [0, 1], [0, 100]);
+	// Foreground moves with the scroll or slightly slower, creates depth
+	const foregroundY = useTransform(scrollYProgress, [0, 1], ["0%", "10%"]);
+
+	// Text moves up slightly faster to fade out
+	const textY = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+	const textOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
+	const ctaOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0.6]);
+
 	return (
 		<div
-			className="relative flex min-h-[70rem] flex-col overflow-hidden pt-20 md:min-h-[100rem] md:pt-40"
-			ref={containerRef}
+			ref={ref}
+			className="relative h-[120vh] w-screen overflow-hidden flex items-center justify-center bg-gray-900"
 		>
-			<Container className="flex flex-col items-center justify-center">
-				<Heading
-					as="h1"
-					className="relative z-10 mx-auto mt-6 max-w-6xl py-6 text-center font-semibold text-4xl md:text-4xl lg:text-8xl"
-				>
-					Transform Your Marketing with Proactiv
-				</Heading>
-				<Subheading className="relative z-10 mx-auto mt-2 max-w-3xl text-center text-base text-muted md:mt-6 md:text-xl dark:text-muted-dark">
-					Automate Campaigns, Engage Audiences, and Boost Lead Generation with
-					Our All-in-One Marketing Solution
-				</Subheading>
-				<FeaturedImages
-					className="items-center justify-center lg:justify-start"
-					showStars
-					textClassName="lg:text-left text-center"
+			{/* Background Layer - Sky/Distant */}
+			<motion.div 
+				className="absolute inset-0 z-0" 
+				style={{ y: backgroundY }}
+				initial={{ scale: 1.1, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
+				transition={{ duration: 1.5, ease: "easeOut" }}
+			>
+				<Image
+					src="/heroParralax1.png"
+					alt="Background Landscape"
+					fill
+					className="object-cover"
+					priority
+					quality={100}
 				/>
-				<div className="relative z-10 my-10 flex items-center justify-center gap-4">
-					<Button className="group !text-lg flex items-center space-x-2">
-						<span>Book a demo</span>{" "}
-						<HiArrowRight className="mt-0.5 h-3 w-3 stroke-[1px] text-black transition-transform duration-200 group-hover:translate-x-1" />
-					</Button>
-				</div>
-			</Container>
-			<div className="md:-mt-20 relative flex cursor-pointer items-center justify-center p-2 md:p-20">
-				<div
-					className="relative w-full"
-					style={{
-						perspective: "1000px",
-					}}
-				>
-					<Card rotate={rotate} scale={scale} translate={translate}>
-						<Image
-							alt="hero"
-							className="mx-auto h-full rounded-md object-cover object-left-top grayscale transition duration-200 group-hover:grayscale-0 md:object-left-top"
-							draggable={false}
-							height={720}
-							src={"/dashboard.png"}
-							width={1400}
-						/>
-					</Card>
-				</div>
-			</div>
-		</div>
-	);
-};
+			</motion.div>
 
-export const Card = ({
-	rotate,
-	scale,
-	translate,
-	children,
-}: {
-	rotate: MotionValue<number>;
-	scale: MotionValue<number>;
-	translate: MotionValue<number>;
-	children: React.ReactNode;
-}) => {
-	return (
-		<motion.div
-			className="group -mt-12 group relative isolate z-40 mx-auto h-[20rem] w-full max-w-6xl rounded-[30px] border-4 border-neutral-900 bg-charcoal p-2 shadow-2xl md:h-[50rem] md:p-2"
-			style={{
-				rotateX: rotate,
-				translateY: translate,
-				// scale,
-				boxShadow:
-					"0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003",
-			}}
-		>
-			<Beam className="-top-1 block" showBeam />
-			<div className="md:-bottom-10 pointer-events-none absolute inset-x-0 bottom-0 z-20 h-40 w-full scale-[1.2] bg-charcoal [mask-image:linear-gradient(to_top,white_30%,transparent)]" />
-			<div className="absolute inset-0 z-20 flex items-center justify-center bg-transparent transition-all duration-200 group-hover:bg-black/0">
-				<VideoModal />
-			</div>
-			<div className="h-full w-full overflow-hidden rounded-2xl bg-transparent md:rounded-2xl md:p-4">
-				{children}
-			</div>
-		</motion.div>
+			{/* Midground Layer */}
+			<motion.div 
+				className="absolute inset-0 z-10" 
+				style={{ y: midgroundY }}
+				initial={{ scale: 1.1, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
+				transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+			>
+				<Image
+					src="/heroParralax2.png"
+					alt="Midground Landscape"
+					fill
+					className="object-cover"
+					priority
+					quality={100}
+				/>
+			</motion.div>
+
+			{/* Overlay content */}
+			<motion.div
+				className="absolute inset-0 -top-[35vh] z-25 flex flex-col items-center justify-center gap-8 px-6 text-center text-white pointer-events-none"
+				style={{ y: textY }}
+			>
+				<motion.div
+					className="max-w-5xl pointer-events-auto space-y-4"
+					style={{ opacity: textOpacity }}
+				>
+					<motion.h1 
+						className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight drop-shadow-md drop-shadow-black/50"
+						initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+						animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+						transition={{ duration: 1, ease: "easeOut", delay: 0.5 }}
+					>
+						<span className="text-white drop-shadow-md drop-shadow-black/50">
+
+						Fairlend: Smarter Mortgage Investing.
+						</span>
+					</motion.h1>
+					<motion.p 
+						className="text-lg md:text-2xl font-medium text-gray-100 drop-shadow-md drop-shadow-black/70"
+						initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+						animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+						transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
+					>
+						<p className="text-gray-100 drop-shadow-md drop-shadow-black/70">
+						Earn lending fees like private equity. Without the hassle.
+						</p>
+					</motion.p>
+				</motion.div>
+
+				{/* CTA buttons */}
+				<motion.div
+					className="pointer-events-auto flex flex-col items-center gap-4 max-w-2xl w-full"
+					style={{ opacity: ctaOpacity }}
+				>
+					<motion.div 
+						className="flex w-full items-center gap-3 rounded-full border-3 border-green-500/50 bg-black/30 px-4 py-3 shadow-2xl backdrop-blur-lg"
+						initial={{ opacity: 0, scale: 0.9 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ duration: 0.5, ease: "easeOut", delay: 0.9 }}
+					>
+						<input
+							className="w-full bg-transparent shadow-2xl shadow-black/50 text-base md:text-lg text-white placeholder:text-white outline-none"
+							placeholder="Enter your email"
+							type="email"
+							aria-label="Email"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter') setShowWaitlistModal(true);
+							}}
+						/>
+						<button
+							type="button"
+							onClick={() => setShowWaitlistModal(true)}
+							className="flex size-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition hover:bg-emerald-700 cursor-pointer"
+						>
+							<ArrowRight className="size-5" />
+						</button>
+					</motion.div>
+				</motion.div>
+			</motion.div>
+			
+			<WaitlistModal 
+				open={showWaitlistModal} 
+				onOpenChange={setShowWaitlistModal}
+				defaultEmail={email}
+			/>
+
+			{/* Foreground Layer - Immediate view */}
+			<motion.div 
+				className="absolute inset-0 z-30 pointer-events-none" 
+				style={{ y: foregroundY }}
+				initial={{ scale: 1.1, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
+				transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
+			>
+				<Image
+					src="/Heroparralax3.png"
+					alt="Foreground Landscape"
+					fill
+					className="object-cover"
+					priority
+					quality={100}
+				/>
+			</motion.div>
+
+			{/* Gradient Overlays for readability and smooth transition */}
+			<div className="absolute inset-x-0 top-0 h-48 bg-linear-to-b from-black/40 to-transparent z-40 pointer-events-none" />
+			<div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent z-40 pointer-events-none" />
+		</div>
 	);
 };

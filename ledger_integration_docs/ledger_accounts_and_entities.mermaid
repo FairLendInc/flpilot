@@ -1,0 +1,74 @@
+graph TD
+  %% =====================
+  %% Entities
+  %% =====================
+  B[Borrower]
+  MIC[Platform / MIC]
+  I_A[Investor A]
+  I_B[Investor B]
+  BANK[Bank / Rotessa Rails]
+
+  %% =====================
+  %% Ledger Accounts
+  %% Namespaced by role
+  %% =====================
+
+  subgraph "Mortgage M123 – Ownership & Accrual"
+    M_SHARES_T["mortgage:M123:shares_treasury\nAsset: MORT-M123"]
+    M_POS_A["pos:M123:INV_A\nAsset: MORT-M123\n(A's fractional ownership)"]
+    M_POS_B["pos:M123:INV_B\nAsset: MORT-M123\n(B's fractional ownership)"]
+
+    M_INT_REC["loan:M123:interest_receivable\nAsset: CAD\n(Interest owed by borrower)"]
+
+    M_INV_ACCR_A["inv_accrued:M123:INV_A\nAsset: CAD\n(Accrued interest → A)"]
+    M_INV_ACCR_B["inv_accrued:M123:INV_B\nAsset: CAD\n(Accrued interest → B)"]
+  end
+
+  subgraph "Cash / Wallets"
+    M_COLLECT["cash:M123:collect\nAsset: CAD\n(M123 incoming payment pool)"]
+    WAL_A["wallet:investor:INV_A\nAsset: CAD\n(Cash owed to A)"]
+    WAL_B["wallet:investor:INV_B\nAsset: CAD\n(Cash owed to B)"]
+  end
+
+  subgraph "External / Technical"
+    EXT_BORR["external:borrower:M123\nAsset: CAD"]
+    EXT_PAYOUT["cash:external:payouts\nAsset: CAD\n(Paid out to bank)"]
+  end
+
+  %% =====================
+  %% Entity → Account ownership
+  %% =====================
+
+  MIC --> M_SHARES_T
+  I_A  --> M_POS_A
+  I_B  --> M_POS_B
+
+  MIC --> M_COLLECT
+  I_A  --> WAL_A
+  I_B  --> WAL_B
+
+  B    --> EXT_BORR
+  BANK --> EXT_PAYOUT
+
+  %% =====================
+  %% High-level relationships
+  %% =====================
+
+  %% Mortgage shares represent economic ownership of M123
+  M_SHARES_T -- issue/transfer MORT-M123 --> M_POS_A
+  M_SHARES_T -- issue/transfer MORT-M123 --> M_POS_B
+
+  %% Accrual: interest receivable vs investors accrued
+  M_INT_REC -- accrual debit/credit --> M_INV_ACCR_A
+  M_INT_REC -- accrual debit/credit --> M_INV_ACCR_B
+
+  %% Borrower pays interest into collect account
+  EXT_BORR -- payment --> M_COLLECT
+
+  %% Settlement: collect → wallets
+  M_COLLECT -- settlement/payout --> WAL_A
+  M_COLLECT -- settlement/payout --> WAL_B
+
+  %% Off-platform payout from wallets to external payouts
+  WAL_A -- bank wire/e-transfer --> EXT_PAYOUT
+  WAL_B -- bank wire/e-transfer --> EXT_PAYOUT

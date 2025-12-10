@@ -1,0 +1,65 @@
+sequenceDiagram
+  autonumber
+
+  participant MIC  as Platform/MIC
+  participant B    as Borrower
+  participant L    as Formance Ledger
+  participant A    as Investor A
+  participant Apos as pos:M123:INV_A
+  participant Bpos as pos:M123:INV_B
+  participant Mtre as mortgage:M123:shares_treasury
+  participant IRec as loan:M123:interest_receivable
+  participant IAccA as inv_accrued:M123:INV_A
+  participant IAccB as inv_accrued:M123:INV_B
+
+  %% 1) Mortgage funded & shares issued
+  MIC->>L: createMortgage(M123, principal, rate, metadata)
+  activate L
+  L-->>MIC: accounts created (Mtre, Apos, Bpos, IRec, IAcc*)
+  deactivate L
+
+  MIC->>L: Numscript 'mortgage_issue_shares'\nissue 100% MORT-M123 to MIC/A
+  activate L
+  L->>Mtre: debit MORT-M123 10000
+  L->>Apos: credit MORT-M123 10000
+  deactivate L
+
+  Note over Apos: A now owns 100% of M123 (10,000 units)
+
+  %% 2) Daily / periodic interest accrual up to some T1
+  loop Daily or periodic
+    MIC->>L: accrue_interest_until(M123, T1)
+    activate L
+    L->>IRec: debit CAD I_total(T0->T1)
+    L->>IAccA: credit CAD I_A(T0->T1)\n(proportional to Apos units)
+    deactivate L
+    Note over IRec,IAccA: Liability from borrower → platform,\nclaim to A accumulated
+  end
+
+  %% 3) Mid-period sale: A sells 20% to B at time T2
+  Note over MIC: Before transfer, force accrual up to T2
+
+  MIC->>L: accrue_interest_until(M123, T2)
+  activate L
+  L->>IRec: debit CAD I_total(T1->T2)
+  L->>IAccA: credit CAD I_A(T1->T2)\n(based on 100% ownership)
+  deactivate L
+
+  %% Now transfer shares 20% from A to B
+  MIC->>L: transfer_mortgage_shares(M123, A->B, 20%)
+  activate L
+  L->>Apos: debit MORT-M123 2000
+  L->>Bpos: credit MORT-M123 2000
+  deactivate L
+
+  Note over Apos,Bpos: A now holds 80% (8000 units)\nB holds 20% (2000 units).\nAll interest up to T2 is locked to A in IAccA.
+
+  %% 4) Further accrual T2 -> T3 (end of month)
+  MIC->>L: accrue_interest_until(M123, T3_endOfMonth)
+  activate L
+  L->>IRec: debit CAD I_total(T2->T3)
+  L->>IAccA: credit CAD I_A(T2->T3)\n(80% share)
+  L->>IAccB: credit CAD I_B(T2->T3)\n(20% share)
+  deactivate L
+
+  Note over IAccA,IAccB: Interest for full period is now split\nover [T0,T2] (A only) and [T2,T3] (A & B)
