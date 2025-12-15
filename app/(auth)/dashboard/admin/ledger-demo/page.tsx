@@ -108,21 +108,6 @@ export default function LedgerDemoPage() {
 	const listTransactionsAction = useAction(api.ledger.listTransactions);
 	const executeNumscriptAction = useAction(api.ledger.executeNumscript);
 
-	// Load ledgers on mount
-	useEffect(() => {
-		loadLedgers();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
-
-	// Load accounts and transactions when ledger changes
-	useEffect(() => {
-		if (selectedLedger) {
-			loadAccounts();
-			loadTransactions();
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedLedger]);
-
 	// Initialize variable values when template changes
 	useEffect(() => {
 		const initial: Record<string, string> = {};
@@ -206,6 +191,19 @@ export default function LedgerDemoPage() {
 			setIsLoadingTransactions(false);
 		}
 	}, [listTransactionsAction, selectedLedger]);
+
+	// Load ledgers on mount
+	useEffect(() => {
+		loadLedgers();
+	}, [loadLedgers]);
+
+	// Load accounts and transactions when ledger changes
+	useEffect(() => {
+		if (selectedLedger) {
+			loadAccounts();
+			loadTransactions();
+		}
+	}, [selectedLedger, loadAccounts, loadTransactions]);
 
 	const handleCreateLedger = async () => {
 		if (!newLedgerName.trim()) return;
@@ -458,7 +456,10 @@ export default function LedgerDemoPage() {
 													)}
 												</div>
 												{tx.postings?.map((posting, i) => (
-													<div className="font-mono text-sm" key={i}>
+													<div
+														className="font-mono text-sm"
+														key={`${posting.source}-${posting.destination}-${posting.asset}-${i}`}
+													>
 														<span className="text-muted-foreground">
 															{posting.source}
 														</span>

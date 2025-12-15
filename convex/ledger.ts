@@ -409,9 +409,9 @@ export const executeNumscript = action({
 			// Validate env vars exist
 			getFormanceClient();
 
-			const serverURL = process.env.FORMANCE_SERVER_URL!;
-			const clientID = process.env.FORMANCE_CLIENT_ID!;
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET!;
+			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
+			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
 
 			// 1. Get Token
 			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
@@ -447,12 +447,12 @@ export const executeNumscript = action({
 			const text = await apiResponse.text();
 
 			if (apiResponse.ok) {
-				let data;
+				let data: unknown;
 				try {
 					data = JSON.parse(text);
 				} catch {
 					throw new Error(
-						"Invalid JSON response from Ledger API: " + text.substring(0, 100)
+						`Invalid JSON response from Ledger API: ${text.substring(0, 100)}`
 					);
 				}
 
