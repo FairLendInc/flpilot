@@ -17,6 +17,10 @@ dev/**
 .vscode/**
 .vscode/*
 
+qdrant_storage/
+qdrant_storage/**
+qdrant_storage/*
+
 # testing
 /coverage
 
