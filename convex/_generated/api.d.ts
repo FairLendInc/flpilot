@@ -23,6 +23,7 @@ import type * as documentGroups from "../documentGroups.js";
 import type * as documentTypes from "../documentTypes.js";
 import type * as flags from "../flags.js";
 import type * as http from "../http.js";
+import type * as ledger from "../ledger.js";
 import type * as lib_authorizedFunctions from "../lib/authorizedFunctions.js";
 import type * as lib_broker from "../lib/broker.js";
 import type * as lib_client from "../lib/client.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   documentTypes: typeof documentTypes;
   flags: typeof flags;
   http: typeof http;
+  ledger: typeof ledger;
   "lib/authorizedFunctions": typeof lib_authorizedFunctions;
   "lib/broker": typeof lib_broker;
   "lib/client": typeof lib_client;
