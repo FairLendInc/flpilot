@@ -4,6 +4,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { precomputeFlags } from "@/lib/flags";
 import logger from "@/lib/logger";
 import { dashboardRedirectForPath } from "./lib/auth/dashboardRoutes";
+import {
+	buildRedirectContext,
+	evaluateSubdomainRules,
+} from "./lib/routing/subdomainRules";
 import { ROOT_DOMAIN } from "./lib/siteurl";
 import { getSubdomain } from "./lib/subdomains";
 
@@ -30,6 +34,7 @@ export default async function proxy(req: NextRequest) {
 				"/blog",
 				"/contact",
 				"/about",
+				"/underconstruction",
 				"/api/e2e/auth",
 			],
 		},
@@ -69,6 +74,10 @@ export default async function proxy(req: NextRequest) {
 		// We map the root subdomain traffic to this placeholder for now
 		// For other paths, we keep the path but inject the subdomain header
 		const suburl = req.nextUrl.clone();
+		console.log("suburl", {
+			suburl,
+			subdomain,
+		});
 		// if (suburl.pathname === "/") {
 		// 	suburl.pathname = "/tenant";
 		// }
@@ -98,6 +107,31 @@ export default async function proxy(req: NextRequest) {
 
 	//Details in session isn't changin between reloads.
 	const { session } = await authkit(req);
+
+	// Evaluate subdomain-based redirect rules
+	const redirectContext = buildRedirectContext({
+		subdomain,
+		pathname: url.pathname,
+		isAuthenticated: !!session,
+		role: session?.role ?? null,
+		requestUrl: new URL(req.url),
+	});
+
+	const subdomainRedirect = evaluateSubdomainRules(redirectContext);
+	console.log("[proxy] subdomain redirect check:", {
+		pathname: url.pathname,
+		subdomain,
+		isAuthenticated: !!session,
+		role: session?.role,
+		redirect: subdomainRedirect,
+	});
+	if (subdomainRedirect) {
+		const redirectRes = NextResponse.redirect(subdomainRedirect);
+		for (const [k, v] of finalRes.headers.entries()) {
+			redirectRes.headers.set(k, v);
+		}
+		return redirectRes;
+	}
 
 	const dashboardRedirect = maybeRedirectDashboard(req, session, finalRes);
 	if (dashboardRedirect) {

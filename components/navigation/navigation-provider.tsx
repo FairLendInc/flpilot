@@ -1,6 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { usePathNameStore } from "../contexts/pathNameContext";
 import { TwoLevelNav } from "./two-level-nav";
 export type BreadcrumbItem = {
@@ -21,7 +21,9 @@ export default function NavigationProvider({
 
 	return (
 		<>
-			<TwoLevelNav breadcrumbs={breadcrumbs} pathname={pathname} />
+			<Suspense fallback={null}>
+				<TwoLevelNav breadcrumbs={breadcrumbs} pathname={pathname} />
+			</Suspense>
 			{children}
 		</>
 	);
