@@ -1,5 +1,3 @@
-"use client";
-
 import {
 	Activity,
 	ArrowRight,
@@ -14,26 +12,20 @@ import {
 	Wallet,
 	XCircle,
 } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 import { Hero } from "@/components/landingpage/components/hero";
-import { LandingNavbar } from "@/components/landingpage/components/navbar/landing-navbar";
 import Team from "@/components/landingpage/components/team";
-import { WaitlistModal } from "@/components/landingpage/components/waitlist-modal";
-import { Button } from "@/components/ui/button";
+import {
+	WaitlistLinkTrigger,
+	WaitlistTextTrigger,
+	WaitlistTrigger,
+} from "@/components/landingpage/components/waitlist-trigger";
+import { LandingPageWrapper } from "@/components/landingpage/landing-wrapper";
 
 export default function Home() {
-	const [showWaitlistModal, setShowWaitlistModal] = useState(false);
-
 	return (
-		<div className="min-h-screen bg-background font-sans selection:bg-emerald-100 selection:text-emerald-900">
-			<LandingNavbar />
+		<LandingPageWrapper>
+			{/* <LandingNavbar /> - Moved inside wrapper */}
 			<Hero />
-
-			<WaitlistModal
-				onOpenChange={setShowWaitlistModal}
-				open={showWaitlistModal}
-			/>
 
 			{/* 2. How the FairLend MIC Works */}
 			<section className="relative z-40 bg-background px-6 py-24 md:px-12 lg:px-24">
@@ -96,14 +88,10 @@ export default function Home() {
 					</div>
 
 					<div className="pt-8 text-center">
-						<button
-							className="inline-flex cursor-pointer items-center font-semibold text-emerald-600 text-lg transition-colors hover:text-emerald-700 hover:underline"
-							onClick={() => setShowWaitlistModal(true)}
-							type="button"
-						>
+						<WaitlistTextTrigger className="inline-flex cursor-pointer items-center font-semibold text-emerald-600 text-lg transition-colors hover:text-emerald-700 hover:underline">
 							Ready to see your capital spin instead of sit? Join the MIC
 							Waiting List <ArrowRight className="ml-2 size-5" />
-						</button>
+						</WaitlistTextTrigger>
 					</div>
 				</div>
 			</section>
@@ -246,13 +234,12 @@ export default function Home() {
 								previously shipped RBC Capital Markets systems and RBC’s digital
 								banking applications.
 							</p>
-							<Button
+							<WaitlistTrigger
 								className="w-full rounded-xl bg-emerald-600 py-6 font-bold text-lg text-white shadow-md transition-all hover:scale-[1.02] hover:bg-emerald-700"
-								onClick={() => setShowWaitlistModal(true)}
 								size="lg"
 							>
 								Get on the Waiting List <ArrowRight className="ml-2 size-5" />
-							</Button>
+							</WaitlistTrigger>
 							<p className="mt-3 text-center text-muted-foreground text-xs">
 								Want to be in the first cohort of spin-model MIC investors?
 							</p>
@@ -261,96 +248,6 @@ export default function Home() {
 				</div>
 			</section>
 
-			{/* <section className="py-24 px-6 md:px-12 lg:px-24 bg-background">
-        <div className="max-w-5xl mx-auto space-y-16">
-          <div className="text-center space-y-6">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
-              Meet the Team Behind the MIC
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              A spin-driven MIC only works if the people behind it know both mortgages and infrastructure. FairLend brings those two worlds together.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="space-y-6">
-              <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-muted">
-                <div className="absolute inset-0 bg-linear-to-br from-blue-900 to-slate-900 flex items-center justify-center text-white">
-                  <Users className="size-20 opacity-20" />
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black/80 to-transparent">
-                  <h3 className="text-white text-2xl font-bold">Eli Solborano</h3>
-                  <p className="text-emerald-400 font-medium">Head of Mortgage Strategy</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h4 className="text-xl font-bold border-b border-border pb-2">30 Years, $2B+ in Mortgage Deals</h4>
-                <ul className="space-y-3">
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-                    <span>Top <strong>1% of mortgage brokers in Canada</strong> by volume.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-                    <span>Over <strong>$2,000,000,000</strong> in funded mortgage deals across a 30-year career.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-                    <span>Brought in by <strong>Scotiabank</strong> as a consultant at <strong>$2,000/hour</strong> to advise on their mortgage products and strategy.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-                    <span>Deep, hands-on experience across private, alternative, and institutional mortgage channels.</span>
-                  </li>
-                </ul>
-                <p className="text-muted-foreground bg-muted/30 p-4 rounded-lg">
-                  Eli leads the credit, deal selection, and structuring side of the MIC — which mortgages we fund, how we price them, and how we manage risk before they are spun out to long-term investors.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-muted">
-                 <div className="absolute inset-0 bg-linear-to-br from-emerald-900 to-slate-900 flex items-center justify-center text-white">
-                  <Lock className="size-20 opacity-20" />
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black/80 to-transparent">
-                  <h3 className="text-white text-2xl font-bold">Engineering & Infrastructure</h3>
-                  <p className="text-emerald-400 font-medium">Ex–RBC Capital Markets & RBC Digital</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h4 className="text-xl font-bold border-b border-border pb-2">Institutional-Grade Systems</h4>
-                <ul className="space-y-3">
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-                    <span>Engineers who have built trading and infrastructure systems at <strong>RBC Capital Markets</strong>.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-                    <span>Product and engineering talent from <strong>RBC Digital</strong>, working on consumer banking and mobile applications used by millions of Canadians.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-                    <span>Experience with <strong>mission-critical, regulated financial systems</strong>, where correctness and auditability are non-negotiable.</span>
-                  </li>
-                </ul>
-                <p className="text-muted-foreground bg-muted/30 p-4 rounded-lg">
-                  This team is responsible for the ledger, automation, and analytics that power the MIC: every spin, every cash flow, every investor metric is tracked and testable.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center pt-8">
-            <Button size="lg" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-lg px-8 py-6 rounded-full font-bold">
-              Want your capital managed by people who’ve actually done this at scale? Join the MIC Waiting List <ArrowRight className="ml-2 size-5" />
-            </Button>
-          </div>
-        </div>
-      </section> */}
 			<Team />
 
 			<section className="relative overflow-hidden bg-slate-950 px-6 py-24 text-white md:px-12 lg:px-24">
@@ -415,17 +312,10 @@ export default function Home() {
 					</div>
 
 					<div className="pt-8 text-center">
-						<Link
-							className="inline-flex items-center font-semibold text-emerald-400 text-lg transition-colors hover:text-emerald-300 hover:underline"
-							href="#"
-							onClick={(e) => {
-								e.preventDefault();
-								setShowWaitlistModal(true);
-							}}
-						>
+						<WaitlistLinkTrigger className="inline-flex items-center font-semibold text-emerald-400 text-lg transition-colors hover:text-emerald-300 hover:underline">
 							Want this level of visibility on your mortgage exposure? Join the
 							MIC Waiting List <ArrowRight className="ml-2 size-5" />
-						</Link>
+						</WaitlistLinkTrigger>
 					</div>
 				</div>
 			</section>
@@ -491,15 +381,11 @@ export default function Home() {
 					</div>
 
 					<div className="pt-8 text-center">
-						<button
-							className="inline-flex cursor-pointer items-center font-medium text-lg text-muted-foreground transition-colors hover:text-foreground hover:underline"
-							onClick={() => setShowWaitlistModal(true)}
-							type="button"
-						>
+						<WaitlistTextTrigger className="inline-flex cursor-pointer items-center font-medium text-lg text-muted-foreground transition-colors hover:text-foreground hover:underline">
 							If this sounds like the right side of private credit for you,
 							reserve your spot on the MIC Waiting List{" "}
 							<ArrowRight className="ml-2 size-5" />
-						</button>
+						</WaitlistTextTrigger>
 					</div>
 				</div>
 			</section>
@@ -555,13 +441,12 @@ export default function Home() {
 					</div>
 
 					<div className="space-y-4">
-						<Button
+						<WaitlistTrigger
 							className="rounded-full bg-white px-12 py-8 font-bold text-emerald-900 text-xl shadow-2xl transition-transform hover:scale-105 hover:bg-emerald-50"
-							onClick={() => setShowWaitlistModal(true)}
 							size="lg"
 						>
 							Join the MIC Waiting List
-						</Button>
+						</WaitlistTrigger>
 						<p className="text-emerald-200/80 text-sm">
 							No obligation. We’ll contact you with full details before you
 							commit any capital.
@@ -618,14 +503,10 @@ export default function Home() {
 					</div>
 
 					<div className="pt-8 text-center">
-						<button
-							className="inline-flex cursor-pointer items-center font-bold text-lg text-primary hover:underline"
-							onClick={() => setShowWaitlistModal(true)}
-							type="button"
-						>
+						<WaitlistTextTrigger className="inline-flex cursor-pointer items-center font-bold text-lg text-primary hover:underline">
 							Still have questions? The first step is securing your spot. Join
 							the MIC Waiting List <ArrowRight className="ml-2 size-5" />
-						</button>
+						</WaitlistTextTrigger>
 					</div>
 				</div>
 			</section>
@@ -633,8 +514,7 @@ export default function Home() {
 			<footer className="border-border border-t px-6 py-12 text-center text-muted-foreground text-sm">
 				<div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 md:flex-row">
 					<div>
-						<span className="font-bold text-foreground">FairLend</span> ©{" "}
-						{new Date().getFullYear()}
+						<span className="font-bold text-foreground">FairLend</span> © 2025
 					</div>
 					<div className="flex gap-6">
 						<a className="hover:text-foreground" href="/privacy">
@@ -649,6 +529,6 @@ export default function Home() {
 					</div>
 				</div>
 			</footer>
-		</div>
+		</LandingPageWrapper>
 	);
 }

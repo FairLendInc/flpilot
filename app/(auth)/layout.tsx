@@ -1,14 +1,33 @@
-// import { OnboardingGateWrapper } from "@/components/onboarding/OnboardingGateWrapper";
-
 import { withAuth } from "@workos-inc/authkit-nextjs";
+import { Suspense } from "react";
 import { RedirectGuard } from "@/components/auth/redirect-guard";
 import NavigationProvider from "@/components/navigation/navigation-provider";
+import { OnboardingGateWrapper } from "@/components/onboarding/OnboardingGateWrapper";
 
-export default async function AuthLayout({
+export default function AuthLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
+	return (
+		<main
+			className="h-[calc(100vh-6rem)] bg-background pt-24"
+			id="main-content"
+		>
+			<Suspense fallback={null}>
+				<AuthCheck />
+			</Suspense>
+			<Suspense fallback={null}>
+				<OnboardingGateWrapper />
+			</Suspense>
+			<Suspense fallback={null}>
+				<NavigationProvider>{children}</NavigationProvider>
+			</Suspense>
+		</main>
+	);
+}
+
+async function AuthCheck() {
 	const user = await withAuth();
 	//if the user has "member" role, or no role redirect to root.
 	console.log("USER", { user });
@@ -20,13 +39,6 @@ export default async function AuthLayout({
 	const shouldRedirect = user?.role === "member" || !user?.role;
 
 	return (
-		<main
-			className="h-[calc(100vh-6rem)] bg-background pt-24"
-			id="main-content"
-		>
-			<RedirectGuard redirectTo="/profile" shouldRedirect={shouldRedirect} />
-			{/* <OnboardingGateWrapper /> */}
-			<NavigationProvider>{children}</NavigationProvider>
-		</main>
+		<RedirectGuard redirectTo="/profile" shouldRedirect={shouldRedirect} />
 	);
 }
