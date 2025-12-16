@@ -69,19 +69,44 @@ export default async function proxy(req: NextRequest) {
 
 	let finalRes = res;
 
+	// Handle "mic" subdomain - restrict to landing page only
+	// Users on mic.* can ONLY access the landing page, no auth rules apply
+	if (subdomain === "mic") {
+		// If not on landing page, redirect to landing page on same subdomain
+		if (url.pathname !== "/") {
+			const landingUrl = new URL(`${protocol}//${hostname}/`);
+			console.log("[proxy] mic subdomain restricting to landing:", {
+				from: `${protocol}//${hostname}${url.pathname}`,
+				to: landingUrl.toString(),
+			});
+			return NextResponse.redirect(landingUrl.toString());
+		}
+		// Already on landing page - serve with subdomain header (like other subdomains)
+		// but skip auth rules
+		const suburl = req.nextUrl.clone();
+		const rewriteRes = NextResponse.rewrite(suburl, {
+			request: {
+				headers: new Headers({
+					...Object.fromEntries(req.headers),
+					"x-subdomain": subdomain,
+				}),
+			},
+		});
+		// Preserve auth headers from AuthKit response
+		res.headers.forEach((val, key) => {
+			rewriteRes.headers.set(key, val);
+		});
+		console.log(
+			"[proxy] mic subdomain serving landing page with x-subdomain header"
+		);
+		return rewriteRes;
+	}
+
 	if (subdomain) {
 		// Rewrite root to the tenant directory: app/tenant/page.tsx
 		// We map the root subdomain traffic to this placeholder for now
 		// For other paths, we keep the path but inject the subdomain header
 		const suburl = req.nextUrl.clone();
-		console.log("suburl", {
-			suburl,
-			subdomain,
-		});
-		// if (suburl.pathname === "/") {
-		// 	suburl.pathname = "/tenant";
-		// }
-
 		const rewriteRes = NextResponse.rewrite(suburl, {
 			request: {
 				headers: new Headers({
@@ -108,28 +133,44 @@ export default async function proxy(req: NextRequest) {
 	//Details in session isn't changin between reloads.
 	const { session } = await authkit(req);
 
+	// AuthKit returns a session object even for unauthenticated users
+	// Check for session.user to determine actual authentication state
+	const isAuthenticated = !!session?.user;
+
 	// Evaluate subdomain-based redirect rules
+	// Construct full URL from Host header since req.url doesn't include subdomain
+	const fullRequestUrl = new URL(
+		`${protocol}//${hostname}${url.pathname}${url.search}`
+	);
 	const redirectContext = buildRedirectContext({
 		subdomain,
 		pathname: url.pathname,
-		isAuthenticated: !!session,
+		isAuthenticated,
 		role: session?.role ?? null,
-		requestUrl: new URL(req.url),
+		requestUrl: fullRequestUrl,
 	});
 
 	const subdomainRedirect = evaluateSubdomainRules(redirectContext);
 	console.log("[proxy] subdomain redirect check:", {
 		pathname: url.pathname,
 		subdomain,
-		isAuthenticated: !!session,
+		isAuthenticated,
+		hasUser: !!session?.user,
 		role: session?.role,
 		redirect: subdomainRedirect,
 	});
 	if (subdomainRedirect) {
 		const redirectRes = NextResponse.redirect(subdomainRedirect);
-		for (const [k, v] of finalRes.headers.entries()) {
-			redirectRes.headers.set(k, v);
+		// Only preserve essential headers (like auth cookies), not all headers
+		// which may include internal rewrite headers that cause issues
+		const setCookie = finalRes.headers.get("set-cookie");
+		if (setCookie) {
+			redirectRes.headers.set("set-cookie", setCookie);
 		}
+		console.log("[proxy] RETURNING REDIRECT:", {
+			to: subdomainRedirect,
+			status: redirectRes.status,
+		});
 		return redirectRes;
 	}
 
