@@ -10,11 +10,12 @@ import {
 	Roboto_Mono,
 	Source_Serif_4,
 } from "next/font/google";
-import { Suspense } from "react";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import "./globals.css";
 import { VercelToolbar } from "@vercel/toolbar/next";
-import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-import { PageSkeleton } from "@/components/skeletons";
+import { Suspense } from "react";
+import { SplashScreen } from "@/components/splash-screen";
+// import { PageSkeleton } from "@/components/skeletons"; // Removed or keep if used elsewhere (unlikely here)
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -89,7 +90,7 @@ export default function RootLayout({
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} ${poppins.variable} ${robotoMono.variable} ${montserrat.variable} ${firaCode.variable} antialiased`}
 			>
-				<Suspense fallback={<PageSkeleton />}>
+				<Suspense fallback={<SplashScreen />}>
 					<ConvexClientProvider>
 						<ThemeProvider>
 							{/* <NavigationProvider> */}

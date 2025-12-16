@@ -4,11 +4,13 @@ import { useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { WaitlistModal } from "@/components/landingpage/components/waitlist-modal";
+// import { WaitlistModal } from "@/components/landingpage/components/waitlist-modal"; // Removed
+import { useWaitlist } from "@/lib/context/waitlist-context";
 
 export const Hero = () => {
 	const ref = useRef<HTMLDivElement>(null);
-	const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+	// const [showWaitlistModal, setShowWaitlistModal] = useState(false); // Removed local state
+	const { setShowWaitlistModal } = useWaitlist();
 	const [email, setEmail] = useState("");
 	const { scrollYProgress } = useScroll({
 		target: ref,
@@ -91,14 +93,14 @@ export const Hero = () => {
 						</span>
 					</motion.h1>
 					<motion.p 
-						className="text-lg md:text-2xl font-medium text-gray-100 drop-shadow-md drop-shadow-black/70"
+						className="text-lg md:text-2xl font-medium text-gray-100 drop-shadow-md drop-shadow-black/70 opacity-0" // Added opacity-0 to prevent flash
 						initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
 						animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
 						transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
 					>
-						<p className="text-gray-100 drop-shadow-md drop-shadow-black/70">
+						<span className="text-gray-100 drop-shadow-md drop-shadow-black/70">
 						Earn lending fees like private equity. Without the hassle.
-						</p>
+						</span>
 					</motion.p>
 				</motion.div>
 
@@ -135,11 +137,7 @@ export const Hero = () => {
 				</motion.div>
 			</motion.div>
 			
-			<WaitlistModal 
-				open={showWaitlistModal} 
-				onOpenChange={setShowWaitlistModal}
-				defaultEmail={email}
-			/>
+			{/* WaitlistModal moved to wrapper */}
 
 			{/* Foreground Layer - Immediate view */}
 			<motion.div 
