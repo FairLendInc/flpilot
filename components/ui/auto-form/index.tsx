@@ -76,24 +76,24 @@ export function AutoForm<SchemaType extends ZodObjectOrWrapped>({
     getDefaultValues(objectFormSchema, fieldConfig);
 
   const form = useForm<z.infer<typeof objectFormSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: defaultValues ?? undefined,
     values: valuesProp,
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof objectFormSchema>) {
     const parsedValues = formSchema.safeParse(values);
     if (parsedValues.success) {
-      onSubmitProp?.(parsedValues.data, form);
+      onSubmitProp?.(parsedValues.data as z.infer<SchemaType>, form as unknown as UseFormReturn<z.infer<SchemaType>>);
     }
   }
 
   React.useEffect(() => {
     const subscription = form.watch((values) => {
-      onValuesChangeProp?.(values, form);
+      onValuesChangeProp?.(values as Partial<z.infer<SchemaType>>, form as unknown as UseFormReturn<z.infer<SchemaType>>);
       const parsedValues = formSchema.safeParse(values);
       if (parsedValues.success) {
-        onParsedValuesChange?.(parsedValues.data, form);
+        onParsedValuesChange?.(parsedValues.data as Partial<z.infer<SchemaType>>, form as unknown as UseFormReturn<z.infer<SchemaType>>);
       }
     });
 
@@ -110,14 +110,14 @@ export function AutoForm<SchemaType extends ZodObjectOrWrapped>({
       <Form {...form}>
         <form
           onSubmit={(e) => {
-            form.handleSubmit(onSubmit)(e);
+            form.handleSubmit(onSubmit as any)(e);
           }}
           className={cn("space-y-5", className)}
         >
           <AutoFormObject
             schema={objectFormSchema}
             form={form}
-            dependencies={dependencies}
+            dependencies={dependencies as any}
             fieldConfig={fieldConfig}
             layout={layout}
           />

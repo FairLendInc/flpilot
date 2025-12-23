@@ -35,7 +35,7 @@ export default function AutoFormObject<
   dependencies = [],
   layout = FormLayout.VERTICAL,
 }: {
-  schema: SchemaType | z.ZodEffects<SchemaType>;
+  schema: SchemaType | z.ZodPipe<SchemaType, any>;
   form: ReturnType<typeof useForm>;
   fieldConfig?: FieldConfig<z.infer<SchemaType>>;
   path?: string[];
@@ -54,14 +54,14 @@ export default function AutoFormObject<
   }
 
   const handleIfZodNumber = (item: z.ZodAny) => {
-    const isZodNumber = (item as any)._def.typeName === "ZodNumber";
-    const isInnerZodNumber =
-      (item._def as any).innerType?._def?.typeName === "ZodNumber";
+    const zodDef = (item as any)._zod?.def;
+    const isZodNumber = zodDef?.type === "ZodNumber";
+    const isInnerZodNumber = zodDef?.innerType?._zod?.def?.type === "ZodNumber";
 
     if (isZodNumber) {
-      (item as any)._def.coerce = true;
+      zodDef.coerce = true;
     } else if (isInnerZodNumber) {
-      (item._def as any).innerType._def.coerce = true;
+      zodDef.innerType._zod.def.coerce = true;
     }
 
     return item;
@@ -76,7 +76,7 @@ export default function AutoFormObject<
         let item = shape[name] as z.ZodAny;
         item = handleIfZodNumber(item) as z.ZodAny;
         const zodBaseType = getBaseType(item);
-        const itemName = item._def.description ?? beautifyObjectName(name);
+        const itemName = (item as any).description ?? beautifyObjectName(name);
         const key = [...path, name].join(".");
 
         const {
@@ -137,7 +137,7 @@ export default function AutoFormObject<
 
         return (
           <FormField
-            control={form.control}
+            control={form.control as any}
             name={key}
             key={key}
             render={({ field }) => {

@@ -3,10 +3,10 @@ import { DefaultValues } from "react-hook-form";
 import { z } from "zod";
 import { FieldConfig } from "./types";
 
-// TODO: This should support recursive ZodEffects but TypeScript doesn't allow circular type definitions.
+// TODO: This should support recursive ZodPipe but TypeScript doesn't allow circular type definitions.
 export type ZodObjectOrWrapped =
   | z.ZodObject<any, any>
-  | z.ZodEffects<z.ZodObject<any, any>>;
+  | z.ZodPipe<z.ZodObject<any, any>, z.ZodObject<any, any>>;
 
 /**
  * Beautify a camelCase string.
@@ -24,14 +24,22 @@ export function beautifyObjectName(string: string) {
  * This will unpack optionals, refinements, etc.
  */
 export function getBaseSchema<
-  ChildType extends z.ZodAny | z.AnyZodObject = z.ZodAny,
->(schema: ChildType | z.ZodEffects<ChildType>): ChildType | null {
+  ChildType extends z.ZodAny | z.ZodObject<any, any> = z.ZodAny,
+>(schema: ChildType | z.ZodPipe<ChildType, any>): ChildType | null {
   if (!schema) return null;
-  if ("innerType" in schema._def) {
-    return getBaseSchema(schema._def.innerType as ChildType);
+  const zodDef = (schema as any)._zod?.def;
+  if (!zodDef) return schema as ChildType;
+  
+  if ("innerType" in zodDef) {
+    return getBaseSchema(zodDef.innerType as ChildType);
   }
-  if ("schema" in schema._def) {
-    return getBaseSchema(schema._def.schema as ChildType);
+  if ("in" in zodDef) {
+    // ZodPipe - unwrap the input schema
+    return getBaseSchema(zodDef.in as ChildType);
+  }
+  if ("out" in zodDef && !("in" in zodDef)) {
+    // Handle other pipe-like structures
+    return getBaseSchema(zodDef.out as ChildType);
   }
 
   return schema as ChildType;
@@ -43,30 +51,29 @@ export function getBaseSchema<
  */
 export function getBaseType(schema: z.ZodAny): string {
   const baseSchema = getBaseSchema(schema);
-  return baseSchema ? baseSchema._def.typeName : "";
+  if (!baseSchema) return "";
+  const zodDef = (baseSchema as any)._zod?.def;
+  return zodDef?.type ?? "";
 }
 
 /**
- * Search for a "ZodDefult" in the Zod stack and return its value.
+ * Search for a "ZodDefault" in the Zod stack and return its value.
  */
 export function getDefaultValueInZodStack(schema: z.ZodAny): any {
-  const typedSchema = schema as unknown as z.ZodDefault<
-    z.ZodNumber | z.ZodString
-  >;
+  const zodDef = (schema as any)._zod?.def;
+  if (!zodDef) return undefined;
 
-  if (typedSchema._def.typeName === "ZodDefault") {
-    return typedSchema._def.defaultValue();
+  if (zodDef.type === "ZodDefault") {
+    const defaultValue = zodDef.defaultValue;
+    return typeof defaultValue === "function" ? defaultValue() : defaultValue;
   }
 
-  if ("innerType" in typedSchema._def) {
-    return getDefaultValueInZodStack(
-      typedSchema._def.innerType as unknown as z.ZodAny,
-    );
+  if ("innerType" in zodDef) {
+    return getDefaultValueInZodStack(zodDef.innerType as z.ZodAny);
   }
-  if ("schema" in typedSchema._def) {
-    return getDefaultValueInZodStack(
-      (typedSchema._def as any).schema as z.ZodAny,
-    );
+  if ("in" in zodDef) {
+    // ZodPipe - check the input schema
+    return getDefaultValueInZodStack(zodDef.in as z.ZodAny);
   }
 
   return undefined;
@@ -97,7 +104,7 @@ export function getDefaultValues<Schema extends z.ZodObject<any, any>>(
       if (defaultItems !== null) {
         for (const defaultItemKey of Object.keys(defaultItems)) {
           const pathKey = `${key}.${defaultItemKey}` as keyof DefaultValuesType;
-          defaultValues[pathKey] = defaultItems[defaultItemKey];
+          defaultValues[pathKey] = defaultItems[defaultItemKey] as any;
         }
       }
     } else {
@@ -121,9 +128,10 @@ export function getDefaultValues<Schema extends z.ZodObject<any, any>>(
 export function getObjectFormSchema(
   schema: ZodObjectOrWrapped,
 ): z.ZodObject<any, any> {
-  if (schema?._def.typeName === "ZodEffects") {
-    const typedSchema = schema as z.ZodEffects<z.ZodObject<any, any>>;
-    return getObjectFormSchema(typedSchema._def.schema);
+  const zodDef = (schema as any)._zod?.def;
+  if (zodDef?.type === "ZodPipe" && "in" in zodDef) {
+    // ZodPipe - unwrap the input schema
+    return getObjectFormSchema(zodDef.in as z.ZodObject<any, any>);
   }
   return schema as z.ZodObject<any, any>;
 }
@@ -139,39 +147,51 @@ export function zodToHtmlInputProps(
     | z.ZodOptional<z.ZodNumber | z.ZodString>
     | any,
 ): React.InputHTMLAttributes<HTMLInputElement> {
-  if (["ZodOptional", "ZodNullable"].includes(schema._def.typeName)) {
+  const zodDef = (schema as any)._zod?.def;
+  if (!zodDef) {
+    return { required: true };
+  }
+
+  if (zodDef.type === "ZodOptional" || zodDef.type === "ZodNullable") {
     const typedSchema = schema as z.ZodOptional<z.ZodNumber | z.ZodString>;
     return {
-      ...zodToHtmlInputProps(typedSchema._def.innerType),
+      ...zodToHtmlInputProps(zodDef.innerType as z.ZodNumber | z.ZodString),
       required: false,
     };
   }
   const typedSchema = schema as z.ZodNumber | z.ZodString;
 
-  if (!("checks" in typedSchema._def))
+  const checks = zodDef.checks;
+  if (!checks || !Array.isArray(checks)) {
     return {
       required: true,
     };
+  }
 
-  const { checks } = typedSchema._def;
   const inputProps: React.InputHTMLAttributes<HTMLInputElement> = {
     required: true,
   };
   const type = getBaseType(schema);
 
   for (const check of checks) {
-    if (check.kind === "min") {
+    const checkDef = (check as any)._zod?.def;
+    if (!checkDef) continue;
+    
+    const checkType = checkDef.check;
+    if (checkType === "min_length" || checkType === "greater_than") {
+      const value = checkDef.minimum ?? checkDef.value;
       if (type === "ZodString") {
-        inputProps.minLength = check.value;
+        inputProps.minLength = value;
       } else {
-        inputProps.min = check.value;
+        inputProps.min = value;
       }
     }
-    if (check.kind === "max") {
+    if (checkType === "max_length" || checkType === "less_than") {
+      const value = checkDef.maximum ?? checkDef.value;
       if (type === "ZodString") {
-        inputProps.maxLength = check.value;
+        inputProps.maxLength = value;
       } else {
-        inputProps.max = check.value;
+        inputProps.max = value;
       }
     }
   }
