@@ -7,6 +7,7 @@ import {
 import { FormField } from "@/components/ui/form";
 import { useForm, useFormContext } from "react-hook-form";
 import * as z from "zod";
+import { cn } from "@/lib/utils";
 import { DEFAULT_ZOD_HANDLERS, INPUT_COMPONENTS } from "../config";
 import { Dependency, FieldConfig, FieldConfigItem, FormLayout } from "../types";
 import {
@@ -68,7 +69,10 @@ export default function AutoFormObject<
   };
 
   const sortedFieldKeys = sortFieldsByOrder(fieldConfig, Object.keys(shape));
-  const accordionClassName = layout === FormLayout.SIDEBYSIDE ? "space-y-4 border-none" : "space-y-5 border-none";
+  const accordionClassName = cn(
+    "border-none",
+    layout === FormLayout.SIDEBYSIDE ? "space-y-4" : "space-y-5"
+  );
 
   return (
     <Accordion type="multiple" className={accordionClassName}>
@@ -179,6 +183,7 @@ export default function AutoFormObject<
                         <AutoFormLabel
                           label={fieldConfigItem?.label || itemName}
                           isRequired={isRequired}
+                          icon={fieldConfigItem?.icon}
                         />
                       ) : undefined
                     }

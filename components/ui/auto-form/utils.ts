@@ -53,7 +53,10 @@ export function getBaseType(schema: z.ZodAny): string {
   const baseSchema = getBaseSchema(schema);
   if (!baseSchema) return "";
   const zodDef = (baseSchema as any)._zod?.def;
-  return zodDef?.type ?? "";
+  const type = zodDef?.type ?? "";
+  if (!type) return "";
+  // Map lowercase names to Zod* names for consistency
+  return `Zod${type.charAt(0).toUpperCase()}${type.slice(1)}`;
 }
 
 /**
