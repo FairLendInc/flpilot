@@ -1,18 +1,20 @@
 import { FormControl, FormItem, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
+import { InputWithTags } from "@/components/ui/input-with-tags";
 import { cn } from "@/lib/utils";
 import AutoFormLabel from "../common/label";
 import AutoFormTooltip from "../common/tooltip";
 import { AutoFormInputComponentProps } from "../types";
 
-export default function AutoFormTextarea({
+export default function AutoFormTags({
   label,
   isRequired,
+  field,
   fieldConfigItem,
   fieldProps,
 }: AutoFormInputComponentProps) {
   const { showLabel: _showLabel, ...fieldPropsWithoutShowLabel } = fieldProps;
   const showLabel = _showLabel === undefined ? true : _showLabel;
+
   return (
     <FormItem>
       {showLabel && (
@@ -23,11 +25,13 @@ export default function AutoFormTextarea({
         />
       )}
       <FormControl>
-        <Textarea
+        <InputWithTags
+          value={field.value || []}
+          onChange={field.onChange}
           {...fieldPropsWithoutShowLabel}
           className={cn(
             fieldConfigItem.variant === "ghost" &&
-              "border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-ring focus-visible:ring-ring/50 placeholder:text-muted-foreground/50 text-foreground",
+              "border-transparent bg-transparent shadow-none hover:border-input focus-within:border-ring focus-within:ring-ring/50",
             fieldPropsWithoutShowLabel.className,
           )}
         />
@@ -37,3 +41,4 @@ export default function AutoFormTextarea({
     </FormItem>
   );
 }
+

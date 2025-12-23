@@ -231,8 +231,8 @@ importers:
         specifier: canary
         version: 19.3.0-canary-b4455a6e-20251027
       react-day-picker:
-        specifier: ^9.11.1
-        version: 9.11.1(react@19.3.0-canary-b4455a6e-20251027)
+        specifier: ^9.13.0
+        version: 9.13.0(react@19.3.0-canary-b4455a6e-20251027)
       react-dom:
         specifier: canary
         version: 19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027)
@@ -5534,8 +5534,8 @@ packages:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
-  react-day-picker@9.11.1:
-    resolution: {integrity: sha512-l3ub6o8NlchqIjPKrRFUCkTUEq6KwemQlfv3XZzzwpUeGwmDJ+0u0Upmt38hJyd7D/vn2dQoOoLV/qAp0o3uUw==}
+  react-day-picker@9.13.0:
+    resolution: {integrity: sha512-euzj5Hlq+lOHqI53NiuNhCP8HWgsPf/bBAVijR50hNaY1XwjKjShAnIe8jm8RD2W9IJUvihDIZ+KrmqfFzNhFQ==}
     engines: {node: '>=18'}
     peerDependencies:
       react: '>=16.8.0'
@@ -12399,7 +12399,7 @@ snapshots:
       react: 19.3.0-canary-b4455a6e-20251027
       react-dom: 19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027)
 
-  react-day-picker@9.11.1(react@19.3.0-canary-b4455a6e-20251027):
+  react-day-picker@9.13.0(react@19.3.0-canary-b4455a6e-20251027):
     dependencies:
       '@date-fns/tz': 1.4.1
       date-fns: 4.1.0

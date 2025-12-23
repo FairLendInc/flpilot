@@ -7,6 +7,8 @@ import AutoFormNumber from "./fields/number";
 import AutoFormRadioGroup from "./fields/radio-group";
 import AutoFormSwitch from "./fields/switch";
 import AutoFormTextarea from "./fields/textarea";
+import AutoFormTags from "./fields/tags";
+import AutoFormMultiSelect from "./fields/multiselect";
 
 export const INPUT_COMPONENTS = {
   checkbox: AutoFormCheckbox,
@@ -17,6 +19,8 @@ export const INPUT_COMPONENTS = {
   textarea: AutoFormTextarea,
   number: AutoFormNumber,
   file: AutoFormFile,
+  tags: AutoFormTags,
+  multiselect: AutoFormMultiSelect,
   fallback: AutoFormInput,
 };
 

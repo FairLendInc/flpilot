@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import * as z from "zod";
 import AutoFormLabel from "../common/label";
 import AutoFormTooltip from "../common/tooltip";
@@ -43,6 +44,7 @@ export default function AutoFormEnum({
         <AutoFormLabel
           label={fieldConfigItem?.label || label}
           isRequired={isRequired}
+          icon={fieldConfigItem?.icon}
         />
       )}
       <FormControl>
@@ -51,7 +53,13 @@ export default function AutoFormEnum({
           defaultValue={field.value}
           {...fieldPropsWithoutShowLabel}
         >
-          <SelectTrigger className={fieldPropsWithoutShowLabel.className}>
+          <SelectTrigger
+            className={cn(
+              fieldConfigItem.variant === "ghost" &&
+                "border-transparent bg-transparent shadow-none hover:border-input focus:border-ring focus:ring-ring/50 data-[placeholder]:text-muted-foreground/50 text-foreground",
+              fieldPropsWithoutShowLabel.className,
+            )}
+          >
             <SelectValue placeholder={fieldConfigItem.inputProps?.placeholder}>
               {field.value ? findItem(field.value)?.[1] : "Select an option"}
             </SelectValue>
