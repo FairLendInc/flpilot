@@ -10,9 +10,12 @@ import {
 	Play,
 	Plus,
 	RefreshCw,
+	Send,
 	Wallet,
 } from "lucide-react";
+
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +42,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 
 // Numscript templates - mirroring the server-side definitions
-import { NUMSCRIPT_TEMPLATES } from "@/lib/formance/numscripts";
+import {
+	NUMSCRIPT_TEMPLATES,
+	type NumscriptTemplate,
+	type NumscriptVariable,
+} from "@/lib/formance/numscripts";
 
 type LedgerInfo = {
 	name: string;
@@ -100,6 +107,16 @@ export default function LedgerDemoPage() {
 	const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 	const [isCreatingLedger, setIsCreatingLedger] = useState(false);
 	const [isExecuting, setIsExecuting] = useState(false);
+	const [isExecutingSimple, setIsExecutingSimple] = useState(false);
+
+	// Simple Transaction State
+	const [simpleTx, setSimpleTx] = useState({
+		source: "world",
+		destination: "",
+		asset: "CAD",
+		amount: "100",
+		reference: "",
+	});
 
 	// Actions
 	const listLedgersAction = useAction(api.ledger.listLedgers);
@@ -107,6 +124,9 @@ export default function LedgerDemoPage() {
 	const listAccountsAction = useAction(api.ledger.listAccounts);
 	const listTransactionsAction = useAction(api.ledger.listTransactions);
 	const executeNumscriptAction = useAction(api.ledger.executeNumscript);
+	const createSimpleTransactionAction = useAction(
+		api.ledger.createSimpleTransaction
+	);
 
 	// Initialize variable values when template changes
 	useEffect(() => {
@@ -261,6 +281,66 @@ export default function LedgerDemoPage() {
 			});
 		} finally {
 			setIsExecuting(false);
+		}
+	};
+
+	const handleSimpleTransaction = async () => {
+		if (!selectedLedger) {
+			toast.error("No ledger selected");
+			return;
+		}
+		if (!simpleTx.destination) {
+			toast.error("Destination account is required");
+			return;
+		}
+
+		setIsExecutingSimple(true);
+		try {
+			const result = await createSimpleTransactionAction({
+				ledgerName: selectedLedger,
+				...simpleTx,
+				dryRun,
+			});
+
+			if (result.success) {
+				toast.success(
+					dryRun ? "Transaction validated!" : "Transaction created!"
+				);
+				if (!dryRun) {
+					await loadAccounts();
+					await loadTransactions();
+				}
+			} else {
+				const errorMessage = result.error || "Unknown error";
+
+				toast.error("Transaction failed", {
+					description: errorMessage,
+					action: {
+						label: "Copy Error",
+						onClick: () => {
+							navigator.clipboard.writeText(errorMessage);
+							toast.success("Error copied to clipboard");
+						},
+					},
+					duration: 10000,
+				});
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : "Unknown error";
+			toast.error("Action call failed", {
+				description: errorMessage,
+				action: {
+					label: "Copy Error",
+					onClick: () => {
+						navigator.clipboard.writeText(errorMessage);
+						toast.success("Error copied to clipboard");
+					},
+				},
+				duration: 10000,
+			});
+		} finally {
+			setIsExecutingSimple(false);
 		}
 	};
 
@@ -494,13 +574,15 @@ export default function LedgerDemoPage() {
 						{/* Template Selector */}
 						<Tabs
 							onValueChange={(id) => {
-								const template = NUMSCRIPT_TEMPLATES.find((t) => t.id === id);
+								const template = NUMSCRIPT_TEMPLATES.find(
+									(t: NumscriptTemplate) => t.id === id
+								);
 								if (template) setSelectedTemplate(template);
 							}}
 							value={selectedTemplate.id}
 						>
 							<TabsList className="grid grid-cols-2 lg:grid-cols-4">
-								{NUMSCRIPT_TEMPLATES.map((t) => (
+								{NUMSCRIPT_TEMPLATES.map((t: NumscriptTemplate) => (
 									<TabsTrigger className="text-xs" key={t.id} value={t.id}>
 										{t.name}
 									</TabsTrigger>
@@ -525,7 +607,7 @@ export default function LedgerDemoPage() {
 						{/* Variables */}
 						<div className="space-y-3">
 							<Label>Variables</Label>
-							{selectedTemplate.variables.map((v) => (
+							{selectedTemplate.variables.map((v: NumscriptVariable) => (
 								<div key={v.name}>
 									<div className="mb-1 flex items-center gap-2">
 										<Label className="font-mono text-sm" htmlFor={v.name}>
@@ -623,6 +705,131 @@ export default function LedgerDemoPage() {
 								) : null}
 							</div>
 						)}
+					</CardContent>
+				</Card>
+
+				{/* SDK Integration - Simple Transaction */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center justify-between">
+							<CardTitle className="flex items-center gap-2 text-lg">
+								<Send className="h-5 w-5" />
+								SDK Integration: Simple Transaction
+							</CardTitle>
+							<Badge variant="outline">Official SDK</Badge>
+						</div>
+						<CardDescription>
+							Create a standard transaction using the Formance SDK postings API.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="source">Source</Label>
+								<Input
+									className="font-mono text-sm"
+									id="source"
+									onChange={(e) =>
+										setSimpleTx((prev) => ({ ...prev, source: e.target.value }))
+									}
+									placeholder="world"
+									value={simpleTx.source}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="destination">Destination</Label>
+								<Input
+									className="font-mono text-sm"
+									id="destination"
+									onChange={(e) =>
+										setSimpleTx((prev) => ({
+											...prev,
+											destination: e.target.value,
+										}))
+									}
+									placeholder="account:123"
+									value={simpleTx.destination}
+								/>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="asset">Asset</Label>
+								<Input
+									className="font-mono text-sm"
+									id="asset"
+									onChange={(e) =>
+										setSimpleTx((prev) => ({ ...prev, asset: e.target.value }))
+									}
+									placeholder="CAD"
+									value={simpleTx.asset}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="amount">Amount (Base Units)</Label>
+								<Input
+									className="font-mono text-sm"
+									id="amount"
+									onChange={(e) =>
+										setSimpleTx((prev) => ({ ...prev, amount: e.target.value }))
+									}
+									placeholder="100"
+									type="number"
+									value={simpleTx.amount}
+								/>
+							</div>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="reference">Reference (Optional)</Label>
+							<Input
+								id="reference"
+								onChange={(e) =>
+									setSimpleTx((prev) => ({
+										...prev,
+										reference: e.target.value,
+									}))
+								}
+								placeholder="TX-REF-001"
+								value={simpleTx.reference}
+							/>
+						</div>
+
+						<div className="flex items-center space-x-2">
+							<Checkbox
+								checked={dryRun}
+								id="dry-run-sdk"
+								onCheckedChange={(checked) => setDryRun(checked === true)}
+							/>
+							<Label className="text-sm" htmlFor="dry-run-sdk">
+								Dry Run (validate without committing)
+							</Label>
+						</div>
+
+						<Button
+							className="w-full"
+							disabled={isExecutingSimple || !selectedLedger}
+							onClick={handleSimpleTransaction}
+							variant="secondary"
+						>
+							{isExecutingSimple ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Processing...
+								</>
+							) : (
+								<>
+									<Send className="mr-2 h-4 w-4" />
+									{dryRun ? "Validate With SDK" : "Execute With SDK"}
+								</>
+							)}
+						</Button>
+
+						<p className="text-center text-muted-foreground text-xs italic">
+							This uses the Formance SDK direct postings method instead of
+							Numscript.
+						</p>
 					</CardContent>
 				</Card>
 			</div>
