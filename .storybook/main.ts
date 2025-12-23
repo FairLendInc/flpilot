@@ -4,6 +4,11 @@ const config: StorybookConfig = {
 	stories: [
 		"../stories/**/*.mdx",
 		"../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+		"../app/components/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+		"../app/components/admin/mic/stories/*.stories.@(js|jsx|mjs|ts|tsx)",
+		"../components/admin/mic/stories/*.stories.@(js|jsx|mjs|ts|tsx)",
+		"../components/admin/mic/widgets/stories/*.stories.@(js|jsx|mjs|ts|tsx)",
+		"../components/admin/mic/**/stories/*.stories.@(js|jsx|mjs|ts|tsx)",
 	],
 	addons: [
 		"@chromatic-com/storybook",
