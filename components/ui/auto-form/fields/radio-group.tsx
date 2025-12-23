@@ -22,12 +22,12 @@ export default function AutoFormRadioGroup({
   const { showLabel: _showLabel, ...fieldPropsWithoutShowLabel } = fieldProps;
   const showLabel = _showLabel === undefined ? true : _showLabel;
 
-  const baseValues = (getBaseSchema(zodItem) as unknown as z.ZodEnum<any>)._def
-    .values;
+  const baseSchema = getBaseSchema(zodItem) as unknown as z.ZodEnum<any>;
+  const baseValues = baseSchema?.options ?? baseSchema?.enum;
 
   let values: string[] = [];
   if (!Array.isArray(baseValues)) {
-    values = Object.entries(baseValues).map((item) => item[0]);
+    values = Object.entries(baseValues || {}).map((item) => item[0]);
   } else {
     values = baseValues;
   }

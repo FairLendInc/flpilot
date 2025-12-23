@@ -28,7 +28,7 @@ export type MICAUM = {
 	state: AUMState;
 	accruedInterest: number; // In cents
 	nextPaymentDate: string;
-	originationDate: string	
+	originationDate: string;
 };
 
 export type MICDistribution = {

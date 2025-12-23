@@ -23,12 +23,12 @@ export default function AutoFormEnum({
   const { showLabel: _showLabel, ...fieldPropsWithoutShowLabel } = fieldProps;
   const showLabel = _showLabel === undefined ? true : _showLabel;
 
-  const baseValues = (getBaseSchema(zodItem) as unknown as z.ZodEnum<any>)._def
-    .values;
+  const baseSchema = getBaseSchema(zodItem) as unknown as z.ZodEnum<any>;
+  const baseValues = baseSchema?.options ?? baseSchema?.enum;
 
   let values: [string, string][] = [];
   if (!Array.isArray(baseValues)) {
-    values = Object.entries(baseValues);
+    values = Object.entries(baseValues || {});
   } else {
     values = baseValues.map((value) => [value, value]);
   }
