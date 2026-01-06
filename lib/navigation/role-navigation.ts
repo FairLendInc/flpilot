@@ -1,6 +1,7 @@
 import {
 	Briefcase,
 	Building2,
+	Database,
 	Edit3,
 	FileText,
 	Home,
@@ -20,6 +21,7 @@ export type NavItem = {
 	url: string;
 	icon: LucideIcon;
 	isActive?: boolean;
+	items?: NavItem[];
 };
 
 export type UserRole = "admin" | "broker" | "lawyer" | "investor";
@@ -82,6 +84,43 @@ export const ROLE_NAVIGATION: Record<UserRole, NavItem[]> = {
 			title: "Manage Mortgages",
 			url: "/dashboard/admin/mortgages/manage",
 			icon: Home,
+		},
+		{
+			title: "MIC Management",
+			url: "/dashboard/admin/mic",
+			icon: Building2,
+			items: [
+				{
+					title: "Overview",
+					url: "/dashboard/admin/mic",
+					icon: LayoutDashboard,
+				},
+				{
+					title: "Investors",
+					url: "/dashboard/admin/mic/investors",
+					icon: Users,
+				},
+				{
+					title: "AUM Portfolio",
+					url: "/dashboard/admin/mic/aum",
+					icon: Briefcase,
+				},
+				{
+					title: "Distributions",
+					url: "/dashboard/admin/mic/distributions",
+					icon: Edit3, // Using Edit3 as placeholder for DollarSign
+				},
+				{
+					title: "Ledger View",
+					url: "/dashboard/admin/mic/ledger",
+					icon: Database,
+				},
+				{
+					title: "Settings",
+					url: "/dashboard/admin/mic/settings",
+					icon: Settings,
+				},
+			],
 		},
 		{
 			title: "Settings",

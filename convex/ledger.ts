@@ -59,6 +59,7 @@ function getFormanceClient(): SDK {
  */
 function sanitizeResponse(result: unknown): unknown {
 	if (result === null || result === undefined) return result;
+	if (result instanceof Date) return result.toISOString();
 	if (typeof result !== "object") return result;
 
 	const obj = result as Record<string, unknown>;
