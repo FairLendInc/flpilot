@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { AutoForm, AutoFormSubmit } from "@/components/ui/auto-form";
 import { DependencyType, FieldConfig, FormLayout } from "@/components/ui/auto-form/types";
 import { toast, Toaster } from "sonner";
-import { User, Mail, Calendar, Settings, Info, Lock, FileText, Hash, CheckSquare, ToggleLeft, List, Radio } from "lucide-react";
+import { User, Mail, Calendar, Settings, Info, Lock, FileText, Hash, CheckSquare, ToggleLeft, List, Radio, Type } from "lucide-react";
 
 const meta: Meta<typeof AutoForm> = {
 	title: "UI/AutoForm",
@@ -319,6 +319,54 @@ export const GhostInputs: Story = {
 					<div className="mt-4 rounded-lg border bg-muted p-4">
 						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
 						<pre className="text-sm">
+							{JSON.stringify(submittedData, null, 2)}
+						</pre>
+					</div>
+				)}
+			</div>
+		);
+	},
+};
+
+// Rich Text Editor Story
+const richTextSchema = z.object({
+	title: z.string().min(1, "Title is required").describe("Article title"),
+	content: z.any().optional().describe("Rich text content"),
+});
+
+export const RichText: Story = {
+	render: () => {
+		const [submittedData, setSubmittedData] = useState<any>(null);
+
+		function handleSubmit(data: any) {
+			setSubmittedData(data);
+			toast.success("Form submitted successfully!");
+		}
+
+		return (
+			<div className="space-y-6">
+				<AutoForm
+					formSchema={richTextSchema}
+					onSubmit={handleSubmit}
+					fieldConfig={{
+						title: {
+							icon: <FileText className="size-4" />,
+							inputProps: { placeholder: "Enter article title..." },
+						},
+						content: {
+							fieldType: "richtext",
+							label: "Content",
+							icon: <Type className="size-4" />,
+							description: "Write your content with rich formatting. Use '/' for quick commands.",
+						},
+					}}
+				>
+					<AutoFormSubmit />
+				</AutoForm>
+				{submittedData && (
+					<div className="mt-4 rounded-lg border bg-muted p-4">
+						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
+						<pre className="max-h-[300px] overflow-auto text-sm">
 							{JSON.stringify(submittedData, null, 2)}
 						</pre>
 					</div>
