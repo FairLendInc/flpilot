@@ -9,6 +9,8 @@ export enum FormLayout {
 
 export type FieldConfigItem = {
   description?: React.ReactNode;
+  icon?: React.ReactNode;
+  variant?: "default" | "ghost";
   inputProps?: React.InputHTMLAttributes<HTMLInputElement> &
     React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
       showLabel?: boolean;

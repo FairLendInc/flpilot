@@ -2,6 +2,7 @@ import { FormControl, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Trash2 } from "lucide-react";
 import { ChangeEvent, useState } from "react";
+import { cn } from "@/lib/utils";
 import AutoFormLabel from "../common/label";
 import AutoFormTooltip from "../common/tooltip";
 import { AutoFormInputComponentProps } from "../types";
@@ -40,6 +41,7 @@ export default function AutoFormFile({
         <AutoFormLabel
           label={fieldConfigItem?.label || label}
           isRequired={isRequired}
+          icon={fieldConfigItem?.icon}
         />
       )}
       {!file && (
@@ -49,11 +51,21 @@ export default function AutoFormFile({
             {...fieldPropsWithoutShowLabel}
             onChange={handleFileChange}
             value={""}
+            className={cn(
+              fieldConfigItem.variant === "ghost" &&
+                "border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-ring focus-visible:ring-ring/50 placeholder:text-muted-foreground/50 text-foreground",
+              fieldPropsWithoutShowLabel.className,
+            )}
           />
         </FormControl>
       )}
       {file && (
-        <div className="flex h-[40px] w-full flex-row items-center justify-between space-x-2 rounded-sm border p-2 text-black focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-white dark:text-black dark:focus-visible:ring-0 dark:focus-visible:ring-offset-0">
+        <div
+          className={cn(
+            "flex h-[40px] w-full flex-row items-center justify-between space-x-2 rounded-sm border p-2 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 bg-background",
+            fieldConfigItem.variant === "ghost" && "border-transparent bg-transparent shadow-none hover:border-input",
+          )}
+        >
           <p>{fileName}</p>
           <button onClick={handleRemoveClick} aria-label="Remove image">
             <Trash2 size={16} />

@@ -5,6 +5,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
 import * as z from "zod";
 import AutoFormLabel from "../common/label";
 import AutoFormTooltip from "../common/tooltip";
@@ -39,6 +40,7 @@ export default function AutoFormRadioGroup({
           <AutoFormLabel
             label={fieldConfigItem?.label || label}
             isRequired={isRequired}
+            icon={fieldConfigItem?.icon}
           />
         )}
         <FormControl>
@@ -50,7 +52,7 @@ export default function AutoFormRadioGroup({
             {values?.map((value: any) => (
               <FormItem
                 key={value}
-                className="mb-2 flex items-center gap-3 space-y-0"
+                className={cn("mb-2 flex items-center gap-3 space-y-0")}
               >
                 <FormControl>
                   <RadioGroupItem value={value} />
