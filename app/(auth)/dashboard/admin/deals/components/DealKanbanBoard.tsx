@@ -15,6 +15,7 @@ import {
 	ArrowRight,
 	Banknote,
 	CheckCircle,
+	ExternalLink,
 	FileSignature,
 	GripVertical,
 	Lock,
@@ -22,6 +23,7 @@ import {
 	SearchCheck,
 	XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -416,6 +418,7 @@ function DealCard({
 	onClick: () => void;
 }) {
 	const IconComponent = STATE_ICONS[deal.currentState];
+	const portalHref = `/dealportal/${deal._id}`;
 
 	return (
 		<Card
@@ -446,6 +449,22 @@ function DealCard({
 						<strong>Days in state:</strong> {deal.daysInState}
 					</p>
 				</div>
+
+				<Button
+					asChild
+					className="w-full justify-between"
+					size="sm"
+					variant="secondary"
+				>
+					<Link
+						aria-label={`Open Deal Portal for ${deal.mortgageAddress}`}
+						href={portalHref}
+						onClick={(event) => event.stopPropagation()}
+					>
+						Open Deal Portal
+						<ExternalLink className="h-4 w-4" />
+					</Link>
+				</Button>
 
 				<div className="flex gap-2 pt-2">
 					{canGoBackward({ currentState: deal.currentState } as Deal) && (
