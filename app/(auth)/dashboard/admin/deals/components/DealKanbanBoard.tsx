@@ -11,22 +11,24 @@
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useMutation } from "convex/react";
 import {
-	ArrowLeft,
-	ArrowRight,
-	Banknote,
-	CheckCircle,
-	FileSignature,
-	GripVertical,
-	Lock,
-	Scale,
-	SearchCheck,
-	XCircle,
+        ArrowLeft,
+        ArrowRight,
+        Banknote,
+        CheckCircle,
+        FileSignature,
+        GripVertical,
+        Lock,
+        Scale,
+        SearchCheck,
+        ExternalLink,
+        XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-	AlertDialog,
+        AlertDialog,
 	AlertDialogAction,
 	AlertDialogCancel,
 	AlertDialogContent,
@@ -43,16 +45,16 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
-	canGoBackward,
-	canProgressForward,
-	DEAL_STATE_COLORS,
-	DEAL_STATE_LABELS,
-	type Deal,
-	type DealEvent,
-	type DealStateValue,
-	formatDealValue,
-	getNextState,
-	getPreviousState,
+        canGoBackward,
+        canProgressForward,
+        DEAL_STATE_COLORS,
+        DEAL_STATE_LABELS,
+        type Deal,
+        type DealEvent,
+        type DealStateValue,
+        formatDealValue,
+        getNextState,
+        getPreviousState,
 } from "@/lib/types/dealTypes";
 
 // Map state values to icon components
@@ -405,22 +407,23 @@ export function DealKanbanBoard() {
  * Individual deal card component
  */
 function DealCard({
-	deal,
-	columnId,
-	onDragStart,
-	onClick,
+        deal,
+        columnId,
+        onDragStart,
+        onClick,
 }: {
 	deal: DealCardData;
 	columnId: DealStateValue;
-	onDragStart: (deal: DealCardData, columnId: DealStateValue) => void;
-	onClick: () => void;
+        onDragStart: (deal: DealCardData, columnId: DealStateValue) => void;
+        onClick: () => void;
 }) {
-	const IconComponent = STATE_ICONS[deal.currentState];
+        const IconComponent = STATE_ICONS[deal.currentState];
+        const portalHref = `/dealportal/${deal._id}`;
 
-	return (
-		<Card
-			className="cursor-pointer transition-shadow hover:shadow-md"
-			draggable
+        return (
+                <Card
+                        className="cursor-pointer transition-shadow hover:shadow-md"
+                        draggable
 			onClick={onClick}
 			onDragStart={() => onDragStart(deal, columnId)}
 		>
@@ -435,22 +438,35 @@ function DealCard({
 					<GripVertical className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
 				</div>
 
-				<div className="space-y-1 text-muted-foreground text-xs">
-					<p>
-						<strong>Investor:</strong> {deal.investorName}
-					</p>
-					<p>
+                                <div className="space-y-1 text-muted-foreground text-xs">
+                                        <p>
+                                                <strong>Investor:</strong> {deal.investorName}
+                                        </p>
+                                        <p>
 						<strong>Value:</strong> {formatDealValue(deal.dealValue)}
 					</p>
 					<p>
-						<strong>Days in state:</strong> {deal.daysInState}
-					</p>
-				</div>
+                                                <strong>Days in state:</strong> {deal.daysInState}
+                                        </p>
+                                </div>
 
-				<div className="flex gap-2 pt-2">
-					{canGoBackward({ currentState: deal.currentState } as Deal) && (
-						<Button
-							className="h-7 flex-1 px-2 text-xs"
+                                <Button
+                                        asChild
+                                        className="w-full justify-between"
+                                        onClick={(event) => event.stopPropagation()}
+                                        size="sm"
+                                        variant="secondary"
+                                >
+                                        <Link href={portalHref}>
+                                                Open Deal Portal
+                                                <ExternalLink className="h-4 w-4" />
+                                        </Link>
+                                </Button>
+
+                                <div className="flex gap-2 pt-2">
+                                        {canGoBackward({ currentState: deal.currentState } as Deal) && (
+                                                <Button
+                                                        className="h-7 flex-1 px-2 text-xs"
 							onClick={(e) => {
 								e.stopPropagation();
 								// TODO: Trigger backward transition
