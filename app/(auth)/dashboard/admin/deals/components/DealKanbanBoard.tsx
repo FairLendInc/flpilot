@@ -453,11 +453,14 @@ function DealCard({
 				<Button
 					asChild
 					className="w-full justify-between"
-					onClick={(event) => event.stopPropagation()}
 					size="sm"
 					variant="secondary"
 				>
-					<Link href={portalHref}>
+					<Link
+						aria-label={`Open Deal Portal for ${deal.mortgageAddress}`}
+						href={portalHref}
+						onClick={(event) => event.stopPropagation()}
+					>
 						Open Deal Portal
 						<ExternalLink className="h-4 w-4" />
 					</Link>
