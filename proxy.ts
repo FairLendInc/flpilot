@@ -12,7 +12,9 @@ import { getSubdomain } from "./lib/subdomains";
 
 export default async function proxy(req: NextRequest) {
 	const url = req.nextUrl;
-	const hostname = req.headers.get("host") || "";
+	const forwardedHost = req.headers.get("x-forwarded-host");
+	const hostname =
+		forwardedHost?.split(",")[0]?.trim() || req.headers.get("host") || "";
 	const { subdomain } = getSubdomain(hostname);
 	const protocol = url.protocol;
 
