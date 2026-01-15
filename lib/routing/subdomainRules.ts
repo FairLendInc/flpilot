@@ -42,8 +42,8 @@ const restrictedAccessRule: SubdomainRedirectRule = {
 	name: "restricted-access-underconstruction",
 	priority: 100,
 	condition: (ctx) => {
-		// Only apply on root domain (no subdomain)
-		if (ctx.subdomain !== null) {
+		// Skip this rule for "mic" subdomain (landing page allowed without auth)
+		if (ctx.subdomain === "mic") {
 			return false;
 		}
 
