@@ -32,10 +32,10 @@ export function SearchAndReplaceToolbar() {
 	const [replaceText, setReplaceText] = useState("");
 	const [checked, setChecked] = useState(false);
 
-	const results = editor?.storage?.searchAndReplace
-		.results as SearchAndReplaceStorage["results"];
-	const selectedResult = editor?.storage?.searchAndReplace
-		.selectedResult as SearchAndReplaceStorage["selectedResult"];
+	const results = (editor?.storage as any)?.searchAndReplace
+		?.results as SearchAndReplaceStorage["results"];
+	const selectedResult = (editor?.storage as any)?.searchAndReplace
+		?.selectedResult as SearchAndReplaceStorage["selectedResult"];
 
 	const replace = () => editor?.chain().replace().run();
 	const replaceAll = () => editor?.chain().replaceAll().run();
