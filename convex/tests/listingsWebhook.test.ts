@@ -503,6 +503,451 @@ describe("/listings/delete webhook", () => {
 	});
 });
 
+describe("/listings/get webhook", () => {
+	test("retrieves listing by listingId with mortgage data", async () => {
+		const t = createTest();
+
+		const createRes = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+		const { result } = (await createRes.json()) as {
+			result: { listingId: string };
+		};
+
+		const response = await t.fetch(`/listings/get?listingId=${result.listingId}`, {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		expect(response.status).toBe(200);
+		const body = (await response.json()) as {
+			code: string;
+			result: { mortgage?: { loanAmount?: number } };
+		};
+		expect(body.code).toBe("listing_found");
+		expect(body.result.mortgage?.loanAmount).toBeDefined();
+	});
+
+	test("retrieves listing by mortgageId", async () => {
+		const t = createTest();
+
+		const createRes = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+		const { result } = (await createRes.json()) as {
+			result: { mortgageId: string };
+		};
+
+		const response = await t.fetch(`/listings/get?mortgageId=${result.mortgageId}`, {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		expect(response.status).toBe(200);
+	});
+
+	test("retrieves listing by externalMortgageId", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(
+				makeWebhookPayload({
+					mortgage: {
+						...makeWebhookPayload().mortgage,
+						externalMortgageId: "external-listing-1",
+					},
+				})
+			),
+		});
+
+		const response = await t.fetch(
+			"/listings/get?externalMortgageId=external-listing-1",
+			{ method: "GET", headers: { "x-api-key": "test-webhook-key" } }
+		);
+
+		expect(response.status).toBe(200);
+	});
+
+	test("excludes mortgage when includeMortgage=false", async () => {
+		const t = createTest();
+
+		const createRes = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+		const { result } = (await createRes.json()) as {
+			result: { listingId: string };
+		};
+
+		const response = await t.fetch(
+			`/listings/get?listingId=${result.listingId}&includeMortgage=false`,
+			{ method: "GET", headers: { "x-api-key": "test-webhook-key" } }
+		);
+
+		const body = (await response.json()) as {
+			result: { mortgage?: unknown };
+		};
+		expect(body.result.mortgage).toBeUndefined();
+	});
+
+	test("includes borrower when requested", async () => {
+		const t = createTest();
+
+		const createRes = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+		const { result } = (await createRes.json()) as {
+			result: { listingId: string; borrowerId: string };
+		};
+
+		const response = await t.fetch(
+			`/listings/get?listingId=${result.listingId}&includeBorrower=true`,
+			{ method: "GET", headers: { "x-api-key": "test-webhook-key" } }
+		);
+
+		const body = (await response.json()) as {
+			result: { borrower?: { _id: string } };
+		};
+		expect(body.result.borrower?._id).toBe(result.borrowerId);
+	});
+
+	test("includes comparables when requested", async () => {
+		const t = createTest();
+
+		const createRes = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(
+				makeWebhookPayload({
+					comparables: [
+						{
+							address: {
+								street: "100 Comp St",
+								city: "Toronto",
+								state: "ON",
+								zip: "M5J 2N1",
+							},
+							saleAmount: 550000,
+							saleDate: "2023-11-01",
+							distance: 0.5,
+						},
+					],
+				})
+			),
+		});
+		const { result } = (await createRes.json()) as {
+			result: { listingId: string };
+		};
+
+		const response = await t.fetch(
+			`/listings/get?listingId=${result.listingId}&includeComparables=true`,
+			{ method: "GET", headers: { "x-api-key": "test-webhook-key" } }
+		);
+
+		const body = (await response.json()) as {
+			result: { comparables?: Array<{ saleAmount: number }> };
+		};
+		expect(body.result.comparables).toHaveLength(1);
+		expect(body.result.comparables?.[0]?.saleAmount).toBe(550000);
+	});
+
+	test("returns 404 when listing not found", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/get?listingId=missing", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		expect(response.status).toBe(404);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("listing_not_found");
+	});
+});
+
+describe("/listings/list webhook", () => {
+	test("lists all listings", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+
+		const response = await t.fetch("/listings/list", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		expect(response.status).toBe(200);
+		const body = (await response.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body.result.listings).toHaveLength(1);
+	});
+
+	test("filters visible=true", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload({ listing: { visible: true } })),
+		});
+
+		const response = await t.fetch("/listings/list?visible=true", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		const body = (await response.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body.result.listings).toHaveLength(1);
+	});
+
+	test("filters locked=false", async () => {
+		const t = createTest();
+
+		const createRes = await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+		const { result } = (await createRes.json()) as {
+			result: { listingId: string };
+		};
+
+		await t.run(async (ctx) => {
+			await ctx.db.patch(result.listingId as Id<"listings">, {
+				locked: true,
+				lockedBy: undefined,
+				lockedAt: Date.now(),
+			});
+		});
+
+		const response = await t.fetch("/listings/list?locked=false", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		const body = (await response.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body.result.listings).toHaveLength(0);
+	});
+
+	test("filters available=true (visible and unlocked)", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload({ listing: { visible: true } })),
+		});
+
+		const response = await t.fetch("/listings/list?available=true", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		const body = (await response.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body.result.listings).toHaveLength(1);
+	});
+
+	test("filters by LTV range", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(
+				makeWebhookPayload({
+					mortgage: {
+						...makeWebhookPayload().mortgage,
+						ltv: 72,
+						externalMortgageId: "ltv-range-1",
+					},
+				})
+			),
+		});
+
+		const response = await t.fetch("/listings/list?minLtv=70&maxLtv=75", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		const body = (await response.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body.result.listings).toHaveLength(1);
+	});
+
+	test("filters by state", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+
+		const response = await t.fetch("/listings/list?state=ON", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		const body = (await response.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body.result.listings).toHaveLength(1);
+	});
+
+	test("filters by propertyType", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(
+				makeWebhookPayload({
+					mortgage: {
+						...makeWebhookPayload().mortgage,
+						propertyType: "Condo",
+						externalMortgageId: "property-type-1",
+					},
+				})
+			),
+		});
+
+		const response = await t.fetch("/listings/list?propertyType=Condo", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		const body = (await response.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body.result.listings).toHaveLength(1);
+	});
+
+	test("paginates results", async () => {
+		const t = createTest();
+
+		for (let i = 0; i < 3; i += 1) {
+			await t.fetch("/listings/create", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"x-api-key": "test-webhook-key",
+				},
+				body: JSON.stringify(
+					makeWebhookPayload({
+						mortgage: {
+							...makeWebhookPayload().mortgage,
+							externalMortgageId: `pagination-${i}`,
+						},
+					})
+				),
+			});
+		}
+
+		const page1 = await t.fetch("/listings/list?limit=2", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+		const body1 = (await page1.json()) as {
+			result: { listings: Doc<"listings">[]; nextCursor?: string; hasMore: boolean };
+		};
+		expect(body1.result.listings).toHaveLength(2);
+		expect(body1.result.hasMore).toBe(true);
+		expect(body1.result.nextCursor).toBeDefined();
+
+		const page2 = await t.fetch(
+			`/listings/list?limit=2&cursor=${body1.result.nextCursor}`,
+			{ method: "GET", headers: { "x-api-key": "test-webhook-key" } }
+		);
+		const body2 = (await page2.json()) as {
+			result: { listings: Doc<"listings">[] };
+		};
+		expect(body2.result.listings).toHaveLength(1);
+	});
+
+	test("excludes mortgage when includeMortgage=false", async () => {
+		const t = createTest();
+
+		await t.fetch("/listings/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": "test-webhook-key",
+			},
+			body: JSON.stringify(makeWebhookPayload()),
+		});
+
+		const response = await t.fetch("/listings/list?includeMortgage=false", {
+			method: "GET",
+			headers: { "x-api-key": "test-webhook-key" },
+		});
+
+		const body = (await response.json()) as {
+			result: { listings: Array<{ mortgage?: unknown }> };
+		};
+		expect(body.result.listings[0]?.mortgage).toBeUndefined();
+	});
+});
+
 describe("/mortgages/update webhook", () => {
 	test("updates mortgage when payload and key are valid", async () => {
 		const t = createTest();

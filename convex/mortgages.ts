@@ -7,7 +7,8 @@ import { type Infer, v } from "convex/values";
 import { checkRbac } from "../lib/authhelper";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
+import { paginateByCreation } from "./lib/webhookPagination";
 import {
 	authenticatedMutation,
 	authenticatedQuery,
@@ -101,11 +102,23 @@ const mortgageDetailsFields = {
 	),
 } as const;
 
+const borrowerInlineValidator = v.object({
+	name: v.string(),
+	email: v.string(),
+	phone: v.optional(v.string()),
+	rotessaCustomerId: v.string(),
+});
+
 export const mortgageDetailsValidator = v.object(mortgageDetailsFields);
 
 export type MortgageDetailsInput = Infer<typeof mortgageDetailsValidator>;
 export type MortgageWriteInput = MortgageDetailsInput & {
 	borrowerId: Id<"borrowers">;
+};
+
+type BorrowerResolution = {
+	borrowerId: Id<"borrowers">;
+	borrowerCreated: boolean;
 };
 
 const validateMortgageDetails = (details: MortgageDetailsInput): void => {
@@ -242,6 +255,294 @@ export const ensureMortgage = async (
 
 	return mortgageId;
 };
+
+const resolveBorrowerForCreate = async (
+	ctx: MutationCtx,
+	args: {
+		borrowerId?: Id<"borrowers">;
+		borrowerRotessaId?: string;
+		borrower?: {
+			name: string;
+			email: string;
+			phone?: string;
+			rotessaCustomerId: string;
+		};
+	}
+): Promise<BorrowerResolution> => {
+	if (args.borrowerId) {
+		const borrower = await ctx.db.get(args.borrowerId);
+		if (!borrower) {
+			throw new Error("invalid_borrower_id");
+		}
+		return { borrowerId: args.borrowerId, borrowerCreated: false };
+	}
+
+	if (args.borrowerRotessaId) {
+		const borrower = await ctx.db
+			.query("borrowers")
+			.withIndex("by_rotessa_customer_id", (q) =>
+				q.eq("rotessaCustomerId", args.borrowerRotessaId)
+			)
+			.first();
+		if (!borrower) {
+			throw new Error("borrower_not_found");
+		}
+		return { borrowerId: borrower._id, borrowerCreated: false };
+	}
+
+	if (args.borrower) {
+		const existing = await ctx.db
+			.query("borrowers")
+			.withIndex("by_rotessa_customer_id", (q) =>
+				q.eq("rotessaCustomerId", args.borrower.rotessaCustomerId)
+			)
+			.first();
+		if (existing) {
+			return { borrowerId: existing._id, borrowerCreated: false };
+		}
+
+		const borrowerId = await ctx.db.insert("borrowers", {
+			name: args.borrower.name,
+			email: args.borrower.email,
+			phone: args.borrower.phone,
+			rotessaCustomerId: args.borrower.rotessaCustomerId,
+		});
+		return { borrowerId, borrowerCreated: true };
+	}
+
+	throw new Error("missing_borrower_reference");
+};
+
+/**
+ * Internal: Create mortgage with flexible borrower resolution.
+ */
+export const createMortgageInternal = internalMutation({
+	args: {
+		borrowerId: v.optional(v.id("borrowers")),
+		borrowerRotessaId: v.optional(v.string()),
+		borrower: v.optional(borrowerInlineValidator),
+		...mortgageDetailsFields,
+	},
+	returns: v.object({
+		mortgageId: v.id("mortgages"),
+		borrowerId: v.id("borrowers"),
+		created: v.boolean(),
+		borrowerCreated: v.boolean(),
+	}),
+	handler: async (ctx, args) => {
+		const { borrowerId, borrowerRotessaId, borrower, ...mortgageDetails } = args;
+		const resolution = await resolveBorrowerForCreate(ctx, {
+			borrowerId,
+			borrowerRotessaId,
+			borrower,
+		});
+
+		const existing = await ctx.db
+			.query("mortgages")
+			.withIndex("by_external_mortgage_id", (q) =>
+				q.eq("externalMortgageId", mortgageDetails.externalMortgageId)
+			)
+			.first();
+
+		if (existing) {
+			if (existing.borrowerId !== resolution.borrowerId) {
+				throw new Error("mortgage_borrower_mismatch");
+			}
+			return {
+				mortgageId: existing._id,
+				borrowerId: existing.borrowerId,
+				created: false,
+				borrowerCreated: resolution.borrowerCreated,
+			};
+		}
+
+		const mortgageId = await ensureMortgage(ctx, {
+			borrowerId: resolution.borrowerId,
+			...(mortgageDetails as MortgageDetailsInput),
+		});
+
+		return {
+			mortgageId,
+			borrowerId: resolution.borrowerId,
+			created: true,
+			borrowerCreated: resolution.borrowerCreated,
+		};
+	},
+});
+
+/**
+ * Internal: Get a mortgage with optional joined borrower and listing data.
+ */
+export const getMortgageInternal = internalQuery({
+	args: {
+		mortgageId: v.optional(v.id("mortgages")),
+		externalMortgageId: v.optional(v.string()),
+		includeBorrower: v.optional(v.boolean()),
+		includeListing: v.optional(v.boolean()),
+	},
+	returns: v.union(v.any(), v.null()),
+	handler: async (ctx, args) => {
+		let mortgage: Doc<"mortgages"> | null = null;
+		if (args.mortgageId) {
+			mortgage = await ctx.db.get(args.mortgageId);
+		} else if (args.externalMortgageId) {
+			mortgage = await ctx.db
+				.query("mortgages")
+				.withIndex("by_external_mortgage_id", (q) =>
+					q.eq("externalMortgageId", args.externalMortgageId)
+				)
+				.first();
+		}
+
+		if (!mortgage) {
+			return null;
+		}
+
+		const response: Record<string, unknown> = { ...mortgage };
+
+		if (args.includeBorrower) {
+			response.borrower = await ctx.db.get(mortgage.borrowerId);
+		}
+
+		if (args.includeListing) {
+			const listing = await ctx.db
+				.query("listings")
+				.withIndex("by_mortgage", (q) => q.eq("mortgageId", mortgage._id))
+				.first();
+			if (listing) {
+				response.listing = listing;
+			}
+		}
+
+		return response;
+	},
+});
+
+/**
+ * Internal: List mortgages with filters and optional borrower joins.
+ */
+export const listMortgagesInternal = internalQuery({
+	args: {
+		borrowerId: v.optional(v.id("borrowers")),
+		borrowerRotessaId: v.optional(v.string()),
+		status: v.optional(v.string()),
+		mortgageType: v.optional(v.string()),
+		minLtv: v.optional(v.number()),
+		maxLtv: v.optional(v.number()),
+		minLoanAmount: v.optional(v.number()),
+		maxLoanAmount: v.optional(v.number()),
+		maturityAfter: v.optional(v.string()),
+		maturityBefore: v.optional(v.string()),
+		createdAfter: v.optional(v.string()),
+		createdBefore: v.optional(v.string()),
+		hasListing: v.optional(v.boolean()),
+		includeBorrower: v.optional(v.boolean()),
+		limit: v.optional(v.number()),
+		cursor: v.optional(v.string()),
+	},
+	returns: v.object({
+		mortgages: v.array(v.any()),
+		nextCursor: v.optional(v.string()),
+		hasMore: v.boolean(),
+		total: v.number(),
+	}),
+	handler: async (ctx, args) => {
+		const mortgages = await ctx.db.query("mortgages").collect();
+		const listings = await ctx.db.query("listings").collect();
+
+		let borrowerFilterId = args.borrowerId;
+		if (!borrowerFilterId && args.borrowerRotessaId) {
+			const borrower = await ctx.db
+				.query("borrowers")
+				.withIndex("by_rotessa_customer_id", (q) =>
+					q.eq("rotessaCustomerId", args.borrowerRotessaId)
+				)
+				.first();
+			borrowerFilterId = borrower?._id;
+		}
+
+		const statusList = args.status
+			? args.status.split(",").map((value) => value.trim())
+			: null;
+
+		const maturityAfter = args.maturityAfter
+			? Date.parse(args.maturityAfter)
+			: null;
+		const maturityBefore = args.maturityBefore
+			? Date.parse(args.maturityBefore)
+			: null;
+		const createdAfter = args.createdAfter ? Date.parse(args.createdAfter) : null;
+		const createdBefore = args.createdBefore
+			? Date.parse(args.createdBefore)
+			: null;
+
+		const listingByMortgageId = new Map(
+			listings.map((listing) => [listing.mortgageId, listing])
+		);
+
+		const filtered = mortgages.filter((mortgage) => {
+			if (borrowerFilterId && mortgage.borrowerId !== borrowerFilterId) {
+				return false;
+			}
+			if (statusList && !statusList.includes(mortgage.status)) {
+				return false;
+			}
+			if (args.mortgageType && mortgage.mortgageType !== args.mortgageType) {
+				return false;
+			}
+			if (args.minLtv !== undefined && mortgage.ltv < args.minLtv) {
+				return false;
+			}
+			if (args.maxLtv !== undefined && mortgage.ltv > args.maxLtv) {
+				return false;
+			}
+			if (args.minLoanAmount !== undefined && mortgage.loanAmount < args.minLoanAmount) {
+				return false;
+			}
+			if (args.maxLoanAmount !== undefined && mortgage.loanAmount > args.maxLoanAmount) {
+				return false;
+			}
+			if (maturityAfter && Date.parse(mortgage.maturityDate) <= maturityAfter) {
+				return false;
+			}
+			if (maturityBefore && Date.parse(mortgage.maturityDate) >= maturityBefore) {
+				return false;
+			}
+			if (createdAfter && mortgage._creationTime <= createdAfter) {
+				return false;
+			}
+			if (createdBefore && mortgage._creationTime >= createdBefore) {
+				return false;
+			}
+			if (args.hasListing !== undefined) {
+				const hasListing = listingByMortgageId.has(mortgage._id);
+				if (args.hasListing !== hasListing) {
+					return false;
+				}
+			}
+			return true;
+		});
+
+		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
+		const paginated = paginateByCreation(filtered, limit, args.cursor);
+
+		const result = [];
+		for (const mortgage of paginated.items) {
+			const record: Record<string, unknown> = { ...mortgage };
+			if (args.includeBorrower) {
+				record.borrower = await ctx.db.get(mortgage.borrowerId);
+			}
+			result.push(record);
+		}
+
+		return {
+			mortgages: result,
+			nextCursor: paginated.nextCursor,
+			hasMore: paginated.hasMore,
+			total: paginated.total,
+		};
+	},
+});
 
 /**
  * Get a mortgage by ID with all details including signed URLs for images and documents
