@@ -213,6 +213,31 @@ describe("/borrowers/create", () => {
 });
 
 describe("/borrowers/get", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/get?borrowerId=missing", {
+			method: "GET",
+			headers: { "x-api-key": WRONG_KEY },
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/get?borrowerId=missing", {
+			method: "GET",
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("retrieves borrower by borrowerId", async () => {
 		const t = createTest();
 
@@ -339,6 +364,31 @@ describe("/borrowers/get", () => {
 });
 
 describe("/borrowers/list", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/list", {
+			method: "GET",
+			headers: { "x-api-key": WRONG_KEY },
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/list", {
+			method: "GET",
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("lists all borrowers", async () => {
 		const t = createTest();
 		for (let i = 1; i <= 3; i += 1) {
@@ -488,6 +538,34 @@ describe("/borrowers/list", () => {
 });
 
 describe("/borrowers/update", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/update", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json", "x-api-key": WRONG_KEY },
+			body: JSON.stringify({ borrowerId: "missing", name: "Nope" }),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/update", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ borrowerId: "missing", name: "Nope" }),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("updates name by borrowerId", async () => {
 		const t = createTest();
 
@@ -616,6 +694,34 @@ describe("/borrowers/update", () => {
 });
 
 describe("/borrowers/delete", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/delete", {
+			method: "DELETE",
+			headers: { "Content-Type": "application/json", "x-api-key": WRONG_KEY },
+			body: JSON.stringify({ borrowerId: "missing" }),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/borrowers/delete", {
+			method: "DELETE",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ borrowerId: "missing" }),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("deletes borrower with no dependencies", async () => {
 		const t = createTest();
 
