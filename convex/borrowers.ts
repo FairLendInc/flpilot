@@ -8,6 +8,10 @@ import {
 	authenticatedMutation,
 	authenticatedQuery,
 } from "./lib/authorizedFunctions";
+import { internal } from "./_generated/api";
+import { internalMutation, internalQuery } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { paginateByCreation } from "./lib/webhookPagination";
 
 /**
  * Schema for borrower document (includes Convex system fields)
@@ -17,6 +21,7 @@ const borrowerSchema = v.object({
 	_creationTime: v.number(),
 	name: v.string(),
 	email: v.string(),
+	phone: v.optional(v.string()),
 	rotessaCustomerId: v.string(),
 });
 
@@ -125,5 +130,245 @@ export const updateBorrower = authenticatedMutation({
 
 		await ctx.db.patch(id, updates);
 		return id;
+	},
+});
+
+const borrowerListResultValidator = v.object({
+	borrowers: v.array(borrowerSchema),
+	nextCursor: v.optional(v.string()),
+	hasMore: v.boolean(),
+	total: v.number(),
+});
+
+const normalizeContainsValue = (value?: string | null) =>
+	value?.trim().toLowerCase() ?? undefined;
+
+const paginateBorrowers = (
+	items: Array<Doc<"borrowers">>,
+	limit: number,
+	cursor?: string | null
+) => {
+	const paginated = paginateByCreation(items, limit, cursor);
+	return {
+		borrowers: paginated.items,
+		nextCursor: paginated.nextCursor,
+		hasMore: paginated.hasMore,
+		total: paginated.total,
+	};
+};
+
+/**
+ * Internal: Create a borrower with idempotency by rotessaCustomerId.
+ */
+export const createBorrowerInternal = internalMutation({
+	args: {
+		name: v.string(),
+		email: v.string(),
+		phone: v.optional(v.string()),
+		rotessaCustomerId: v.string(),
+	},
+	returns: v.object({
+		borrowerId: v.id("borrowers"),
+		created: v.boolean(),
+	}),
+	handler: async (ctx, args) => {
+		const existing = await ctx.db
+			.query("borrowers")
+			.withIndex("by_rotessa_customer_id", (q) =>
+				q.eq("rotessaCustomerId", args.rotessaCustomerId)
+			)
+			.first();
+
+		if (existing) {
+			return { borrowerId: existing._id, created: false };
+		}
+
+		const borrowerId = await ctx.db.insert("borrowers", {
+			name: args.name,
+			email: args.email,
+			phone: args.phone,
+			rotessaCustomerId: args.rotessaCustomerId,
+		});
+
+		return { borrowerId, created: true };
+	},
+});
+
+/**
+ * Internal: Get borrower by borrowerId, rotessaCustomerId, or email.
+ */
+export const getBorrowerInternal = internalQuery({
+	args: {
+		borrowerId: v.optional(v.id("borrowers")),
+		rotessaCustomerId: v.optional(v.string()),
+		email: v.optional(v.string()),
+	},
+	returns: v.union(borrowerSchema, v.null()),
+	handler: async (ctx, args) => {
+		if (args.borrowerId) {
+			return await ctx.db.get(args.borrowerId);
+		}
+		if (args.rotessaCustomerId) {
+			return await ctx.db
+				.query("borrowers")
+				.withIndex("by_rotessa_customer_id", (q) =>
+					q.eq("rotessaCustomerId", args.rotessaCustomerId)
+				)
+				.first();
+		}
+		if (args.email) {
+			return await ctx.db
+				.query("borrowers")
+				.withIndex("by_email", (q) => q.eq("email", args.email))
+				.first();
+		}
+		return null;
+	},
+});
+
+/**
+ * Internal: List borrowers with optional filters and cursor pagination.
+ */
+export const listBorrowersInternal = internalQuery({
+	args: {
+		emailContains: v.optional(v.string()),
+		nameContains: v.optional(v.string()),
+		createdAfter: v.optional(v.string()),
+		createdBefore: v.optional(v.string()),
+		limit: v.optional(v.number()),
+		cursor: v.optional(v.string()),
+	},
+	returns: borrowerListResultValidator,
+	handler: async (ctx, args) => {
+		const emailContains = normalizeContainsValue(args.emailContains);
+		const nameContains = normalizeContainsValue(args.nameContains);
+		const createdAfter = args.createdAfter ? Date.parse(args.createdAfter) : null;
+		const createdBefore = args.createdBefore ? Date.parse(args.createdBefore) : null;
+
+		const borrowers = await ctx.db.query("borrowers").collect();
+		const filtered = borrowers.filter((borrower) => {
+			if (
+				emailContains &&
+				!borrower.email.toLowerCase().includes(emailContains)
+			) {
+				return false;
+			}
+			if (nameContains && !borrower.name.toLowerCase().includes(nameContains)) {
+				return false;
+			}
+			if (createdAfter && borrower._creationTime <= createdAfter) {
+				return false;
+			}
+			if (createdBefore && borrower._creationTime >= createdBefore) {
+				return false;
+			}
+			return true;
+		});
+
+		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
+		return paginateBorrowers(filtered, limit, args.cursor);
+	},
+});
+
+/**
+ * Internal: Update borrower fields by borrowerId or rotessaCustomerId.
+ */
+export const updateBorrowerInternal = internalMutation({
+	args: {
+		borrowerId: v.optional(v.id("borrowers")),
+		rotessaCustomerId: v.optional(v.string()),
+		name: v.optional(v.string()),
+		email: v.optional(v.string()),
+		phone: v.optional(v.string()),
+	},
+	returns: v.object({ borrowerId: v.id("borrowers") }),
+	handler: async (ctx, args) => {
+		let borrower: Doc<"borrowers"> | null = null;
+		if (args.borrowerId) {
+			borrower = await ctx.db.get(args.borrowerId);
+		} else if (args.rotessaCustomerId) {
+			borrower = await ctx.db
+				.query("borrowers")
+				.withIndex("by_rotessa_customer_id", (q) =>
+					q.eq("rotessaCustomerId", args.rotessaCustomerId)
+				)
+				.first();
+		}
+
+		if (!borrower) {
+			throw new Error("borrower_not_found");
+		}
+
+		const updates: Partial<Doc<"borrowers">> = {};
+		if (args.name !== undefined) {
+			updates.name = args.name;
+		}
+		if (args.email !== undefined) {
+			updates.email = args.email;
+		}
+		if (args.phone !== undefined) {
+			updates.phone = args.phone;
+		}
+
+		await ctx.db.patch(borrower._id, updates);
+		return { borrowerId: borrower._id };
+	},
+});
+
+/**
+ * Internal: Delete borrower, optionally cascading mortgages when force is true.
+ */
+export const deleteBorrowerInternal = internalMutation({
+	args: {
+		borrowerId: v.optional(v.id("borrowers")),
+		rotessaCustomerId: v.optional(v.string()),
+		force: v.optional(v.boolean()),
+	},
+	returns: v.object({
+		borrowerId: v.id("borrowers"),
+		deleted: v.boolean(),
+		mortgageCount: v.optional(v.number()),
+	}),
+	handler: async (ctx, args) => {
+		let borrower: Doc<"borrowers"> | null = null;
+		if (args.borrowerId) {
+			borrower = await ctx.db.get(args.borrowerId);
+		} else if (args.rotessaCustomerId) {
+			borrower = await ctx.db
+				.query("borrowers")
+				.withIndex("by_rotessa_customer_id", (q) =>
+					q.eq("rotessaCustomerId", args.rotessaCustomerId)
+				)
+				.first();
+		}
+
+		if (!borrower) {
+			throw new Error("borrower_not_found");
+		}
+
+		const mortgages = await ctx.db
+			.query("mortgages")
+			.withIndex("by_borrower", (q) => q.eq("borrowerId", borrower._id))
+			.collect();
+
+		if (mortgages.length > 0 && !args.force) {
+			return {
+				borrowerId: borrower._id,
+				deleted: false,
+				mortgageCount: mortgages.length,
+			};
+		}
+
+		if (mortgages.length > 0 && args.force) {
+			for (const mortgage of mortgages) {
+				await ctx.runMutation(internal.mortgages.deleteMortgageInternal, {
+					mortgageId: mortgage._id as Id<"mortgages">,
+					force: true,
+				});
+			}
+		}
+
+		await ctx.db.delete(borrower._id);
+		return { borrowerId: borrower._id, deleted: true };
 	},
 });
