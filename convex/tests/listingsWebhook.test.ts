@@ -504,6 +504,31 @@ describe("/listings/delete webhook", () => {
 });
 
 describe("/listings/get webhook", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/get?listingId=missing", {
+			method: "GET",
+			headers: { "x-api-key": "wrong-key" },
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/get?listingId=missing", {
+			method: "GET",
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("retrieves listing by listingId with mortgage data", async () => {
 		const t = createTest();
 
@@ -693,6 +718,31 @@ describe("/listings/get webhook", () => {
 });
 
 describe("/listings/list webhook", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/list", {
+			method: "GET",
+			headers: { "x-api-key": "wrong-key" },
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/listings/list", {
+			method: "GET",
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("lists all listings", async () => {
 		const t = createTest();
 

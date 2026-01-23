@@ -56,6 +56,42 @@ const createBorrower = async (t: ReturnType<typeof createTest>) => {
 };
 
 describe("/mortgages/create", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/create", {
+			method: "POST",
+			headers: { "Content-Type": "application/json", "x-api-key": WRONG_KEY },
+			body: JSON.stringify({
+				...baseMortgagePayload,
+				externalMortgageId: "LOS-2024-099",
+				borrowerId: "missing",
+			}),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/create", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				...baseMortgagePayload,
+				externalMortgageId: "LOS-2024-099",
+				borrowerId: "missing",
+			}),
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("creates mortgage with borrowerId reference", async () => {
 		const t = createTest();
 		const borrowerId = await createBorrower(t);
@@ -264,6 +300,31 @@ describe("/mortgages/create", () => {
 });
 
 describe("/mortgages/get", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/get?mortgageId=missing", {
+			method: "GET",
+			headers: { "x-api-key": WRONG_KEY },
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/get?mortgageId=missing", {
+			method: "GET",
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("retrieves mortgage by mortgageId", async () => {
 		const t = createTest();
 		const borrowerId = await createBorrower(t);
@@ -387,6 +448,31 @@ describe("/mortgages/get", () => {
 });
 
 describe("/mortgages/list", () => {
+	test("rejects invalid API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/list", {
+			method: "GET",
+			headers: { "x-api-key": WRONG_KEY },
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
+	test("rejects missing API key", async () => {
+		const t = createTest();
+
+		const response = await t.fetch("/mortgages/list", {
+			method: "GET",
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { code: string };
+		expect(body.code).toBe("invalid_api_key");
+	});
+
 	test("lists all mortgages", async () => {
 		const t = createTest();
 		const borrowerId = await createBorrower(t);
