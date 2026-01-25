@@ -55,7 +55,7 @@ export default function AutoFormEnum({
         >
           <SelectTrigger
             className={cn(
-              fieldConfigItem.variant === "ghost" &&
+              fieldConfigItem?.variant === "ghost" &&
                 "border-transparent bg-transparent shadow-none hover:border-input focus:border-ring focus:ring-ring/50 data-[placeholder]:text-muted-foreground/50 text-foreground",
               fieldPropsWithoutShowLabel.className,
             )}
@@ -66,7 +66,7 @@ export default function AutoFormEnum({
           </SelectTrigger>
           <SelectContent>
             {values.map(([value, label]) => (
-              <SelectItem value={label} key={value}>
+              <SelectItem value={value} key={value}>
                 {label}
               </SelectItem>
             ))}

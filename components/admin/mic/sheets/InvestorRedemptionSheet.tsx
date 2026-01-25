@@ -57,9 +57,6 @@ export function InvestorRedemptionSheet({
 }: InvestorRedemptionSheetProps) {
 	const [units, setUnits] = React.useState("");
 	const [amount, setAmount] = React.useState("");
-	const [notes, _setNotes] = React.useState("");
-
-	console.log("Notes status:", notes);
 
 	// Simplified unit-to-NAV conversion (1:1 for this MIC)
 	React.useEffect(() => {
@@ -78,7 +75,6 @@ export function InvestorRedemptionSheet({
 		onSubmit({
 			redemptionUnits: u,
 			redemptionAmount: Number.parseFloat(amount) || 0,
-			notes,
 		});
 		onOpenChange(false);
 	};

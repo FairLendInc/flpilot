@@ -8,7 +8,7 @@ import {
   Check,
   ChevronDown,
 } from "lucide-react";
-import { useMediaQuery } from "@/hooks/use-media-querry";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { MobileToolbarGroup, MobileToolbarItem } from "./mobile-toolbar-group";
 
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useToolbar } from "./toolbar-provider";
 
-export const AlignmentTooolbar = () => {
+export const AlignmentToolbar = () => {
   const { editor } = useToolbar();
   const isMobile = useMediaQuery("(max-width: 640px)");
   const handleAlign = (value: string) => {

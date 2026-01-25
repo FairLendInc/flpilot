@@ -134,10 +134,24 @@ const runListingCreation = async (
 ): Promise<ListingCreationResult> => {
 	const borrowerId = await ensureBorrowerForPayload(ctx, payload.borrower);
 
-	const mortgageId = await ensureMortgage(ctx, {
+	const mortgageResult = await ensureMortgage(ctx, {
 		borrowerId,
 		...payload.mortgage,
 	});
+	const mortgageId = mortgageResult.mortgageId;
+
+	// Schedule ledger initialization only if mortgage was newly created
+	if (mortgageResult.created) {
+		const reference = `init:${mortgageId}:${Date.now()}`;
+		await ctx.scheduler.runAfter(
+			0,
+			internal.ledger.initializeMortgageOwnership,
+			{
+				mortgageId: mortgageId.toString(),
+				reference,
+			}
+		);
+	}
 
 	// Create comparables if provided
 	if (payload.comparables && payload.comparables.length > 0) {
@@ -851,9 +865,10 @@ export const getListingInternal = internalQuery({
 		if (args.listingId) {
 			listing = await ctx.db.get(args.listingId);
 		} else if (args.mortgageId) {
+			const mId = args.mortgageId;
 			listing = await ctx.db
 				.query("listings")
-				.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
+				.withIndex("by_mortgage", (q) => q.eq("mortgageId", mId))
 				.first();
 		} else if (args.externalMortgageId) {
 			const mortgage = await ctx.db
@@ -932,10 +947,8 @@ export const listListingsInternal = internalQuery({
 		);
 
 		const filtered = listings.filter((listing) => {
-			if (args.available) {
-				if (!listing.visible || listing.locked) {
-					return false;
-				}
+			if (args.available && (!listing.visible || listing.locked)) {
+				return false;
 			}
 			if (args.visible !== undefined && listing.visible !== args.visible) {
 				return false;

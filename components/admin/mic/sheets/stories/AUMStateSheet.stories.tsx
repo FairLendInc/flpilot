@@ -48,8 +48,9 @@ export const PendingState: Story = {
 		open: true,
 		assetName: "Commercial Bridge Loan",
 		currentState: "pending",
-		onOpenChange: (isOpen) => {
-			console.log(`Open: ${isOpen}`);
+		onOpenChange: () => {},
+		onStateChange: (state) => {
+			if (!state) return;
 		},
 	},
 };

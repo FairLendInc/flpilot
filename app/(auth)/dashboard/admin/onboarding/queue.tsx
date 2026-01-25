@@ -27,6 +27,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
 
+type PendingEntry = NonNullable<
+	typeof api.onboarding.listPending._returnType
+>[number];
+type OrganizationEntry = NonNullable<
+	typeof api.organizations.listOrganizations._returnType
+>[number];
+
 export function PreloadedOnboardingQueue() {
 	return <OnboardingQueueClient />;
 }
@@ -50,7 +57,8 @@ function OnboardingQueueClient() {
 	);
 
 	const selected = useMemo(
-		() => pending?.find((entry) => entry.journey._id === selectedId),
+		() =>
+			pending?.find((entry: PendingEntry) => entry.journey._id === selectedId),
 		[pending, selectedId]
 	);
 
@@ -144,7 +152,7 @@ function OnboardingQueueClient() {
 	return (
 		<div className="grid gap-6 p-6 lg:grid-cols-[2fr_1fr]">
 			<div className="space-y-4">
-				{pending.map((entry) => (
+				{pending.map((entry: PendingEntry) => (
 					<Card className="border" key={entry.journey._id}>
 						<CardContent className="flex items-center justify-between gap-4 py-4">
 							<div>
@@ -233,7 +241,7 @@ function OnboardingQueueClient() {
 												<SelectValue placeholder="Select organization..." />
 											</SelectTrigger>
 											<SelectContent>
-												{organizations?.map((org) => (
+												{organizations?.map((org: OrganizationEntry) => (
 													<SelectItem key={org.id} value={org.id}>
 														{org.name}
 													</SelectItem>

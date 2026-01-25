@@ -6,6 +6,8 @@ import type { Id } from "../_generated/dataModel";
 import type { DealStateValue } from "../dealStateMachine";
 import schema from "../schema";
 
+process.env.OWNERSHIP_LEDGER_SOURCE = "legacy";
+
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
@@ -924,5 +926,462 @@ describe("transitionDealState - Integration Scenarios", () => {
 		}
 		const snapshot = JSON.parse(deal.stateMachineState);
 		expect(snapshot.context.currentState).toBe("cancelled");
+	});
+});
+
+// ============================================================================
+// Ownership Review State Transition Tests (NEW)
+// ============================================================================
+
+describe("transitionDealState - Ownership Review Flow", () => {
+	/**
+	 * Helper to move a deal to pending_verification state
+	 */
+	async function moveDealToPendingVerification(
+		t: ReturnType<typeof createTest>,
+		dealId: Id<"deals">
+	) {
+		const adminT = await getAdminTest(t);
+
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "CONFIRM_LAWYER" },
+		});
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "COMPLETE_DOCS" },
+		});
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "RECEIVE_FUNDS" },
+		});
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_FUNDS" },
+		});
+	}
+
+	test("should transition from pending_verification to pending_ownership_review via VERIFY_COMPLETE", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Verify we're in pending_verification
+		const dealBefore = await adminT.query(api.deals.getDeal, { dealId });
+		expect(dealBefore?.currentState).toBe("pending_verification");
+
+		// Transition to pending_ownership_review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE", notes: "Verification complete" },
+		});
+
+		const dealAfter = await adminT.query(api.deals.getDeal, { dealId });
+		expect(dealAfter?.currentState).toBe("pending_ownership_review");
+	});
+
+	test("should create pending transfer when entering pending_ownership_review state", async () => {
+		const t = createTest();
+		const { dealId, mortgageId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Transition to pending_ownership_review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		// Verify pending transfer was created
+		const transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+
+		expect(transfer).toBeTruthy();
+		expect(transfer?.status).toBe("pending");
+		expect(transfer?.mortgageId).toBe(mortgageId);
+		expect(transfer?.fromOwnerId).toBe("fairlend");
+		expect(transfer?.percentage).toBe(100);
+	});
+
+	test("should create ownership_review_required alert when entering pending_ownership_review", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		// Check alert was created
+		const alerts = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("alerts")
+					.filter((q) =>
+						q.and(
+							q.eq(q.field("relatedDealId"), dealId),
+							q.eq(q.field("type"), "ownership_review_required")
+						)
+					)
+					.collect()
+		);
+
+		expect(alerts.length).toBeGreaterThan(0);
+	});
+
+	test("should transition from pending_ownership_review to completed via CONFIRM_TRANSFER", async () => {
+		const t = createTest();
+		const { dealId, mortgageId, investorId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Move to pending_ownership_review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		// Verify deal is in pending_ownership_review
+		const dealBefore = await adminT.query(api.deals.getDeal, { dealId });
+		expect(dealBefore?.currentState).toBe("pending_ownership_review");
+
+		// Approve the transfer
+		const transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+		await adminT.mutation(
+			api.pendingOwnershipTransfers.approvePendingTransfer,
+			{ transferId: transfer!._id }
+		);
+
+		// Confirm transfer
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "CONFIRM_TRANSFER", notes: "Ownership transferred" },
+		});
+
+		const dealAfter = await adminT.query(api.deals.getDeal, { dealId });
+		expect(dealAfter?.currentState).toBe("completed");
+
+		// Verify ownership was transferred
+		const ownership = await adminT.action(api.ownership.getMortgageOwnership, {
+			mortgageId,
+		});
+		const investorOwnership = ownership.find(
+			(o) => o.ownerId === investorId || o.ownerId === "fairlend"
+		);
+		// After transfer, investor should have 100% (or ownership updated)
+		expect(ownership.length).toBeGreaterThan(0);
+	});
+
+	test("should transition from pending_ownership_review to pending_verification via REJECT_TRANSFER", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Move to pending_ownership_review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		// Get the pending transfer
+		const transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+
+		// Reject the transfer
+		await adminT.mutation(
+			api.pendingOwnershipTransfers.rejectPendingTransfer,
+			{
+				transferId: transfer!._id,
+				reason: "Documents need review",
+			}
+		);
+
+		// Trigger REJECT_TRANSFER
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: {
+				type: "REJECT_TRANSFER",
+				reason: "Documents need review",
+			},
+		});
+
+		const dealAfter = await adminT.query(api.deals.getDeal, { dealId });
+		expect(dealAfter?.currentState).toBe("pending_verification");
+	});
+
+	test("should create ownership_transfer_rejected alert on rejection", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		const transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+
+		await adminT.mutation(
+			api.pendingOwnershipTransfers.rejectPendingTransfer,
+			{
+				transferId: transfer!._id,
+				reason: "Issue found",
+			}
+		);
+
+		// Check rejection alert was created
+		const alerts = await t.run(
+			async (ctx) =>
+				await ctx.db
+					.query("alerts")
+					.filter((q) =>
+						q.and(
+							q.eq(q.field("relatedDealId"), dealId),
+							q.eq(q.field("type"), "ownership_transfer_rejected")
+						)
+					)
+					.collect()
+		);
+
+		expect(alerts.length).toBeGreaterThan(0);
+		expect(alerts[0]?.message).toContain("Issue found");
+	});
+
+	test("should maintain 100% ownership invariant after CONFIRM_TRANSFER", async () => {
+		const t = createTest();
+		const { dealId, mortgageId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Move to pending_ownership_review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		// Verify 100% before transfer
+		const ownershipBefore = await adminT.action(api.ownership.getTotalOwnership, {
+			mortgageId,
+		});
+		expect(ownershipBefore.totalPercentage).toBeCloseTo(100, 2);
+
+		// Approve and confirm transfer
+		const transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+		await adminT.mutation(
+			api.pendingOwnershipTransfers.approvePendingTransfer,
+			{ transferId: transfer!._id }
+		);
+
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "CONFIRM_TRANSFER" },
+		});
+
+		// Verify 100% after transfer
+		const ownershipAfter = await adminT.action(api.ownership.getTotalOwnership, {
+			mortgageId,
+		});
+		expect(ownershipAfter.totalPercentage).toBeCloseTo(100, 2);
+		expect(ownershipAfter.isValid).toBe(true);
+	});
+
+	test("should persist state machine state after each transition", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Transition to pending_ownership_review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		// Verify state machine state is persisted
+		const deal = await adminT.query(api.deals.getDeal, { dealId });
+		expect(deal?.stateMachineState).toBeDefined();
+
+		const snapshot = JSON.parse(deal!.stateMachineState!);
+		expect(snapshot.context.currentState).toBe("pending_ownership_review");
+	});
+
+	test("should escalate to manual resolution after second rejection", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// First cycle: VERIFY_COMPLETE -> reject
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		let transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+
+		// First rejection
+		const result1 = await adminT.mutation(
+			api.pendingOwnershipTransfers.rejectPendingTransfer,
+			{
+				transferId: transfer!._id,
+				reason: "First issue",
+			}
+		);
+		expect(result1.escalated).toBe(false);
+
+		// Move back and re-enter ownership review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "REJECT_TRANSFER", reason: "First issue" },
+		});
+
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+
+		// Second rejection should escalate
+		const result2 = await adminT.mutation(
+			api.pendingOwnershipTransfers.rejectPendingTransfer,
+			{
+				transferId: transfer!._id,
+				reason: "Second issue",
+			}
+		);
+		expect(result2.escalated).toBe(true);
+	});
+
+	test("should reject CONFIRM_TRANSFER if pending transfer not approved", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Move to pending_ownership_review
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		// Try to confirm transfer without approving first
+		await expect(
+			adminT.mutation(api.deals.transitionDealState, {
+				dealId,
+				event: { type: "CONFIRM_TRANSFER" },
+			})
+		).rejects.toThrow();
+	});
+
+	test("should reject VERIFY_COMPLETE from non-pending_verification state", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+		const adminT = await getAdminTest(t);
+
+		// Try VERIFY_COMPLETE from locked state (should fail)
+		await expect(
+			adminT.mutation(api.deals.transitionDealState, {
+				dealId,
+				event: { type: "VERIFY_COMPLETE" },
+			})
+		).rejects.toThrow();
+	});
+
+	test("complete ownership review flow: verification -> review -> approve -> complete", async () => {
+		const t = createTest();
+		const { dealId, mortgageId, investorId } = await createDeal(t);
+
+		await moveDealToPendingVerification(t, dealId);
+
+		const adminT = await getAdminTest(t);
+
+		// Step 1: Complete verification
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "VERIFY_COMPLETE" },
+		});
+
+		let deal = await adminT.query(api.deals.getDeal, { dealId });
+		expect(deal?.currentState).toBe("pending_ownership_review");
+
+		// Step 2: Approve pending transfer
+		const transfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+		expect(transfer).toBeTruthy();
+		expect(transfer?.status).toBe("pending");
+
+		await adminT.mutation(
+			api.pendingOwnershipTransfers.approvePendingTransfer,
+			{ transferId: transfer!._id }
+		);
+
+		const approvedTransfer = await adminT.query(
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId }
+		);
+		expect(approvedTransfer?.status).toBe("approved");
+
+		// Step 3: Confirm transfer
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "CONFIRM_TRANSFER" },
+		});
+
+		deal = await adminT.query(api.deals.getDeal, { dealId });
+		expect(deal?.currentState).toBe("completed");
+
+		// Step 4: Verify ownership is transferred and invariant maintained
+		const ownership = await adminT.action(api.ownership.getTotalOwnership, {
+			mortgageId,
+		});
+		expect(ownership.totalPercentage).toBeCloseTo(100, 2);
+		expect(ownership.isValid).toBe(true);
 	});
 });

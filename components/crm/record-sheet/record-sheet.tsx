@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent  } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { motion } from "motion/react";
-import { ClipboardList, FileText, Files, Plus } from "lucide-react";
+import { ClipboardList, FileText, Files, Plus, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // ============================================================================
@@ -18,7 +18,7 @@ function EmptyState({
     actionLabel, 
     onAction 
 }: { 
-    icon: any; 
+    icon: LucideIcon; 
     title: string; 
     description: string; 
     actionLabel?: string; 
@@ -65,6 +65,9 @@ type RecordSheetRootProps = {
     title: string;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
+	onAddTask?: () => void;
+	onAddNote?: () => void;
+	onUploadFile?: () => void;
 };
 
 
@@ -83,6 +86,9 @@ export function RecordSheetRoot({
 	open,
 	onOpenChange,
     title,
+	onAddTask,
+	onAddNote,
+	onUploadFile,
 }: RecordSheetRootProps) {
 	return (
 			<Sheet onOpenChange={onOpenChange} open={open}>
@@ -97,7 +103,7 @@ export function RecordSheetRoot({
                         </SheetDescription>
                     </SheetHeader>
                     <Separator />
-                    <Tabs>
+                    <Tabs defaultValue={defaultTab ?? "home"}>
                         <TabsList className="w-full">
                             <TabsTrigger value="home">Home</TabsTrigger>
                             <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -110,7 +116,7 @@ export function RecordSheetRoot({
                             <Separator className="mt-6" />
                             <Accordion type="multiple">
                                 {homeContent.connections?.map((connection) => (
-                                    <AccordionItem value={connection.title}>
+                                    <AccordionItem key={connection.title} value={connection.title}>
                                         <AccordionTrigger>{connection.title}</AccordionTrigger>
                                         <AccordionContent>
                                             {connection.content}
@@ -125,7 +131,7 @@ export function RecordSheetRoot({
                                 title="No tasks yet"
                                 description="Stay on top of things by creating your first task for this record."
                                 actionLabel="Add Task"
-                                onAction={() => console.log("Add task")}
+                                onAction={onAddTask}
                             />
                         </TabsContent>
                         <TabsContent value="notes" className="mt-4">
@@ -134,7 +140,7 @@ export function RecordSheetRoot({
                                 title="No notes found"
                                 description="Keep track of important details by adding a note here."
                                 actionLabel="Add Note"
-                                onAction={() => console.log("Add note")}
+                                onAction={onAddNote}
                             />
                         </TabsContent>
                         <TabsContent value="files" className="mt-4">
@@ -143,7 +149,7 @@ export function RecordSheetRoot({
                                 title="No files uploaded"
                                 description="Securely store and access all related documents in one place."
                                 actionLabel="Upload File"
-                                onAction={() => console.log("Upload file")}
+                                onAction={onUploadFile}
                             />
                         </TabsContent>
                     </Tabs>

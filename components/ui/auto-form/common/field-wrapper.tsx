@@ -24,9 +24,7 @@ export function FieldWrapper({
           className,
         )}
       >
-        {label && (
-          <div className="min-w-0 pt-1">{label}</div>
-        )}
+        <div className="min-w-0 pt-1">{label ?? null}</div>
         <div className="min-w-0">
           {children}
         </div>

@@ -46,7 +46,7 @@ export default function AutoFormRadioGroup({
         <FormControl>
           <RadioGroup
             onValueChange={field.onChange}
-            defaultValue={field.value}
+            value={field.value}
             {...fieldPropsWithoutShowLabel}
           >
             {values?.map((value: any) => (

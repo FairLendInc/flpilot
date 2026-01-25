@@ -72,13 +72,7 @@ export const Default: Story = {
 	decorators: [
 		(StoryFn) => (
 			<div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
-				<Button
-					onClick={() => {
-						console.log("clicked");
-					}}
-				>
-					View Details
-				</Button>
+				<Button>View Details</Button>
 				<StoryFn />
 			</div>
 		),

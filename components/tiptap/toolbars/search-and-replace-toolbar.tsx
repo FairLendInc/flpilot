@@ -1,6 +1,4 @@
 "use client";
-/* eslint-disable */
-// @ts-nocheck
 import { ArrowLeftIcon, ArrowRightIcon, X, Repeat } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -26,16 +24,20 @@ import { type SearchAndReplaceStorage } from "../extensions/search-and-replace";
 export function SearchAndReplaceToolbar() {
 	const { editor } = useToolbar();
 
+	type EditorStorageWithSearchReplace = {
+		searchAndReplace?: SearchAndReplaceStorage;
+	};
+
 	const [open, setOpen] = useState(false);
 	const [replacing, setReplacing] = useState(false);
 	const [searchText, setSearchText] = useState("");
 	const [replaceText, setReplaceText] = useState("");
 	const [checked, setChecked] = useState(false);
 
-	const results = (editor?.storage as any)?.searchAndReplace
-		?.results as SearchAndReplaceStorage["results"];
-	const selectedResult = (editor?.storage as any)?.searchAndReplace
-		?.selectedResult as SearchAndReplaceStorage["selectedResult"];
+	const storage = editor?.storage as EditorStorageWithSearchReplace | undefined;
+	const results = storage?.searchAndReplace?.results;
+	const selectedResult = storage?.searchAndReplace?.selectedResult;
+	const selectedIndex = selectedResult ?? 0;
 
 	const replace = () => editor?.chain().replace().run();
 	const replaceAll = () => editor?.chain().replaceAll().run();
@@ -106,7 +108,7 @@ export function SearchAndReplaceToolbar() {
 							placeholder="Search..."
 						/>
 						<span>
-							{results?.length === 0 ? selectedResult : selectedResult + 1}/
+							{results?.length === 0 ? selectedIndex : selectedIndex + 1}/
 							{results?.length}
 						</span>
 						<Button
@@ -149,12 +151,16 @@ export function SearchAndReplaceToolbar() {
 					</div>
 				) : (
 					<div className={cn("relative w-full")}>
-						<X
+						<button
+							type="button"
 							onClick={() => {
 								setOpen(false);
 							}}
 							className="absolute right-3 top-3 h-4 w-4 cursor-pointer"
-						/>
+							aria-label="Close search and replace"
+						>
+							<X className="h-4 w-4" />
+						</button>
 						<div className="flex w-full items-center gap-3">
 							<Button
 								size="icon"
@@ -179,7 +185,7 @@ export function SearchAndReplaceToolbar() {
 									}}
 									placeholder="Search..."
 								/>
-								{results?.length === 0 ? selectedResult : selectedResult + 1}/
+								{results?.length === 0 ? selectedIndex : selectedIndex + 1}/
 								{results?.length}
 							</div>
 							<div className="mb-2">

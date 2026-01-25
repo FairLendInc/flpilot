@@ -33,7 +33,7 @@ import { MICCapBadge } from "./MICCapBadge";
 type InvestorRow = {
 	id: string;
 	name: string;
-	email: string;
+	email: string | null;
 	capitalClass: string;
 	unitsOwned: number;
 	ownershipPercentage: number;
@@ -77,7 +77,7 @@ export function MICInvestorsTable({
 	const filteredData = data.filter(
 		(item) =>
 			item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			item.email.toLowerCase().includes(searchQuery.toLowerCase())
+			(item.email ?? "").toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
 	return (
@@ -146,7 +146,7 @@ export function MICInvestorsTable({
 												{investor.name}
 											</span>
 											<span className="font-medium text-[10px] text-muted-foreground">
-												{investor.email}
+												{investor.email ?? "Email not available"}
 											</span>
 										</div>
 									</TableCell>

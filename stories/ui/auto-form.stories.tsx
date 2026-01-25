@@ -101,12 +101,7 @@ const comprehensiveFieldConfig: FieldConfig<z.infer<typeof comprehensiveSchema>>
 		inputProps: { placeholder: "Select categories..." },
 	},
 	array: {
-		name: {
-			inputProps: { placeholder: "Item name" },
-		},
-		role: {
-			inputProps: { placeholder: "Item role" },
-		},
+		label: "Array Items",
 	},
 	nested: {
 		subfield: {

@@ -31,6 +31,9 @@ import {
 	type DealStateValue,
 } from "@/lib/types/dealTypes";
 
+type DealMetrics = typeof api.deals.getDealMetrics._returnType;
+type RecentActivity = DealMetrics["recentActivity"][number];
+
 export function ActiveDealsMetricCard() {
 	const { user, loading: authLoading } = useAuth();
 	const metrics = useQuery(
@@ -143,7 +146,9 @@ export function DealsByStateWidget() {
 	}
 
 	// Sort states by count (descending)
-	const sortedStates = Object.entries(metrics.byState)
+	const sortedStates = Object.entries(
+		metrics.byState as Record<string, number>
+	)
 		.filter(([state]) => state !== "archived") // Exclude archived from this view
 		.sort(([, a], [, b]) => b - a);
 
@@ -232,7 +237,7 @@ export function RecentDealActivityWidget() {
 					</p>
 				) : (
 					<div className="space-y-3">
-						{metrics.recentActivity.map((activity) => {
+						{metrics.recentActivity.map((activity: RecentActivity) => {
 							const fromColor =
 								DEAL_STATE_COLORS[activity.fromState as DealStateValue];
 							const toColor =

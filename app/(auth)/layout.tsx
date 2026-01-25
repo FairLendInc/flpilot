@@ -30,7 +30,6 @@ export default function AuthLayout({
 async function AuthCheck() {
 	const user = await withAuth();
 	//if the user has "member" role, or no role redirect to root.
-	console.log("USER", { user });
 
 	// Logic to redirect if member or no role (and not on profile)
 	// Note: This logic assumes we want to redirect unauthenticated users (no role) to profile as well?

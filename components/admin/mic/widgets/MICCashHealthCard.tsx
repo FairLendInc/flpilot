@@ -41,10 +41,19 @@ export function MICCashHealthCard({
 	className,
 }: MICCashHealthCardProps) {
 	// Calculate health percentage (clamped at 100)
-	const percentage = Math.min(100, Math.round((balance / target) * 100));
+	const percentage =
+		target > 0 ? Math.min(100, Math.round((balance / target) * 100)) : 0;
 
 	// Determine status color and message
 	const getStatusConfig = () => {
+		if (target <= 0) {
+			return {
+				color: "text-slate-500 bg-slate-500",
+				message:
+					"Target reserve not configured. Set a target to track cash health.",
+				warning: false,
+			};
+		}
 		if (balance > target) {
 			return {
 				color: "text-amber-500 bg-amber-500",
@@ -112,11 +121,11 @@ export function MICCashHealthCard({
 							Target Reserve: {currency}
 							{target.toLocaleString()}
 						</span>
-						<span>{percentage}%</span>
+						<span>{percentage === null ? "N/A" : `${percentage}%`}</span>
 					</div>
 					<Progress
 						className="h-2"
-						value={percentage}
+						value={percentage ?? 0}
 						// Custom styling for the progress indicator
 					/>
 				</div>

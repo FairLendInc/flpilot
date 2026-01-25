@@ -1,6 +1,4 @@
 "use client";
-/* eslint-disable */
-// @ts-nocheck
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +20,7 @@ import { useImageUpload } from "@/hooks/use-image-upload";
 import { cn } from "@/lib/utils";
 
 export interface ImagePlaceholderOptions {
-	HTMLAttributes: Record<string, any>;
+	HTMLAttributes: Record<string, string>;
 	onUpload?: (url: string) => void;
 	onError?: (error: string) => void;
 }
@@ -77,9 +75,9 @@ export const ImagePlaceholder = Node.create<ImagePlaceholderOptions>({
 });
 
 function ImagePlaceholderComponent(props: NodeViewProps) {
-	const { editor, extension, selected } = props;
+	const { editor, selected } = props;
 	const [isExpanded, setIsExpanded] = useState(false);
-	const [activeTab, setActiveTab] = useState<'upload' | 'url'>('upload');
+	const [activeTab, setActiveTab] = useState<"upload" | "url">("upload");
 	const [url, setUrl] = useState("");
 	const [altText, setAltText] = useState("");
 	const [urlError, setUrlError] = useState(false);
@@ -132,7 +130,10 @@ function ImagePlaceholderComponent(props: NodeViewProps) {
 				const dataTransfer = new DataTransfer();
 				dataTransfer.items.add(file);
 				input.files = dataTransfer.files;
-				handleFileChange({ target: input } as any);
+				const changeEvent = {
+					target: input,
+				} as React.ChangeEvent<HTMLInputElement>;
+				handleFileChange(changeEvent);
 			}
 		}
 	};
@@ -158,6 +159,18 @@ function ImagePlaceholderComponent(props: NodeViewProps) {
 				{!isExpanded ? (
 					<div
 						onClick={() => setIsExpanded(true)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								setIsExpanded(true);
+							}
+							if (event.key === " ") {
+								event.preventDefault();
+								setIsExpanded(true);
+							}
+						}}
+						role="button"
+						tabIndex={0}
+						aria-expanded={isExpanded}
 						className={cn(
 							"group relative flex cursor-pointer flex-col items-center gap-4 rounded-lg border-2 border-dashed p-8 transition-all hover:bg-accent",
 							selected && "border-primary bg-primary/5",
@@ -188,7 +201,13 @@ function ImagePlaceholderComponent(props: NodeViewProps) {
 							</Button>
 						</div>
 
-						<Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
+						<Tabs
+							value={activeTab}
+							onValueChange={(value) =>
+								setActiveTab(value === "url" ? "url" : "upload")
+							}
+							className="w-full"
+						>
 							<TabsList className="grid w-full grid-cols-2">
 								<TabsTrigger value="upload">
 									<Upload className="mr-2 h-4 w-4" />
@@ -217,6 +236,8 @@ function ImagePlaceholderComponent(props: NodeViewProps) {
 											<img
 												src={previewUrl}
 												alt="Preview"
+												width={320}
+												height={200}
 												className="mx-auto max-h-[200px] rounded-lg object-cover"
 											/>
 											<div className="space-y-2">

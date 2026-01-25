@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 
 type MICCapBadgeProps = {
 	/**
-	 * The name of the capital class (e.g., "MICCAP-FLMIC/0")
+	 * Optional CSS className for styling/overrides
 	 */
 	className?: string;
 	/**
-	 * The capital class identifier
+	 * The name of the capital class (e.g., "MICCAP-FLMIC/0")
 	 */
 	capitalClass: string;
 	/**

@@ -5,6 +5,8 @@ import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 
+process.env.OWNERSHIP_LEDGER_SOURCE = "legacy";
+
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
@@ -292,7 +294,7 @@ async function verifyTotalOwnership(
 	expectedTotal = 100
 ) {
 	const adminT = await getAdminTest(t);
-	const result = await adminT.query(api.ownership.getTotalOwnership, {
+	const result = await adminT.action(api.ownership.getTotalOwnership, {
 		mortgageId,
 	});
 

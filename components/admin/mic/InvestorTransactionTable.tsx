@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import {
 	ArrowDownLeft,
@@ -33,7 +33,7 @@ type InvestorTransaction = {
 	id: string;
 	type: TransactionType;
 	description: string;
-	timestamp: Date | string;
+	timestamp: Date | string | null;
 	amount: number;
 	balanceAfter: number;
 	reference?: string;
@@ -93,8 +93,10 @@ export function InvestorTransactionTable({
 			item.reference?.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
-	const formatDate = (date: Date | string) => {
+	const formatDate = (date: Date | string | null) => {
+		if (!date) return "Unknown";
 		const d = typeof date === "string" ? new Date(date) : date;
+		if (!isValid(d)) return "Invalid date";
 		return format(d, "MMM d, yyyy HH:mm");
 	};
 

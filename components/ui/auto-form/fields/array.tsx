@@ -12,6 +12,7 @@ import * as z from "zod";
 import { cn } from "@/lib/utils";
 import {
   beautifyObjectName,
+  getBaseSchema,
   getBaseType,
   zodToHtmlInputProps,
 } from "../utils";
@@ -20,18 +21,6 @@ import { INPUT_COMPONENTS } from "../config";
 import AutoFormObject from "./object";
 import { FieldWrapper } from "../common/field-wrapper";
 import AutoFormLabel from "../common/label";
-
-function isZodArray(
-  item: z.ZodArray<any> | z.ZodDefault<any>,
-): item is z.ZodArray<any> {
-  return item instanceof z.ZodArray;
-}
-
-function isZodDefault(
-  item: z.ZodArray<any> | z.ZodDefault<any>,
-): item is z.ZodDefault<any> {
-  return item instanceof z.ZodDefault;
-}
 
 export default function AutoFormArray({
   name,
@@ -54,13 +43,12 @@ export default function AutoFormArray({
   });
   const title = (item as any).description ?? beautifyObjectName(name);
 
-  const itemDefType = isZodArray(item)
-    ? (item as any)._zod?.def?.element
-    : isZodDefault(item)
-    ? (item as any)._zod?.def?.innerType?._zod?.def?.element
-    : null;
+  const baseItem = getBaseSchema(item as unknown as z.ZodTypeAny);
+  const itemDefType = baseItem instanceof z.ZodArray ? baseItem.element : null;
 
-  const elementType = getBaseType(itemDefType);
+  const elementType = itemDefType
+    ? getBaseType(itemDefType as z.ZodTypeAny)
+    : "";
   const fieldConfigItem: FieldConfigItem = fieldConfig?.[name] ?? {};
 
   if (elementType === "ZodString" || elementType === "ZodEnum") {
@@ -137,6 +125,7 @@ export default function AutoFormArray({
                   variant="secondary"
                   size="icon"
                   type="button"
+                  aria-label={`Remove item ${index + 1}`}
                   className={cn(
                     "hover:bg-accent hover:text-accent-foreground focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0",
                   )}

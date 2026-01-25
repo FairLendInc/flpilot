@@ -12,6 +12,8 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 
+const DRAWER_CLOSE_DELAY = 100;
+
 interface MobileToolbarGroupProps {
   label: string;
   children: React.ReactNode;
@@ -72,11 +74,12 @@ export const MobileToolbarItem = ({
       "flex w-full items-center rounded-md px-4 py-2 text-sm transition-colors hover:bg-accent",
       active && "bg-accent",
     )}
+    type="button"
     onClick={(e) => {
       onClick?.(e);
       setTimeout(() => {
         closeDrawer?.();
-      }, 100);
+      }, DRAWER_CLOSE_DELAY);
     }}
     {...props}
   >

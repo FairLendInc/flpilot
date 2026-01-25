@@ -30,7 +30,7 @@ export default function AutoFormRichText({
           onChange={field.onChange}
           disabled={fieldPropsWithoutShowLabel.disabled}
           className={cn(
-            fieldConfigItem.variant === "ghost" &&
+            fieldConfigItem?.variant === "ghost" &&
               "border-transparent bg-transparent shadow-none",
             fieldPropsWithoutShowLabel.className
           )}
