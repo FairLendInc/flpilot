@@ -155,6 +155,7 @@ export function PendingActionsCard({
 										onClick={() => onActionClick?.(action)}
 										size="icon"
 										variant="ghost"
+										aria-label={`Perform ${action.title}`}
 									>
 										<ArrowRight className="size-4" />
 									</Button>

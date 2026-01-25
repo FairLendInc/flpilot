@@ -1,51 +1,113 @@
 /**
  * Mortgage ownership cap table management
  * Tracks fractional ownership with support for institutional and individual investors
+ *
+ * ## Dual-Write Architecture
+ * Ownership is tracked in two places:
+ * 1. Convex `mortgage_ownership` table - Primary source for now
+ * 2. Formance ledger - Scheduled after DB writes for audit trail
+ *
+ * During migration, both are written. After cutover, ledger becomes source of truth.
+ *
+ * @see footguns.md #3 - External API calls must be scheduled actions
+ * @see footguns.md #5 - Always include Formance idempotency key
  */
 
 import { v } from "convex/values";
 import { hasRbacAccess } from "../lib/authhelper";
 import { logger } from "../lib/logger";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { ActionCtx, MutationCtx } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
 import {
+	authenticatedAction,
 	authenticatedMutation,
-	authenticatedQuery,
 } from "./lib/authorizedFunctions";
+import { isLedgerSourceOfTruth } from "./lib/ownershipConfig";
 
-/**
- * Get cap table for a specific mortgage (all ownership records)
- * Sorted by ownership percentage descending (largest owners first)
- */
-export const getMortgageOwnership = authenticatedQuery({
+type OwnershipRecord = {
+	ownerId: "fairlend" | Id<"users">;
+	percentage: number;
+};
+
+type LegacyOwnershipRecord = {
+	mortgageId: Id<"mortgages">;
+	ownerId: "fairlend" | Id<"users">;
+	ownershipPercentage: number;
+};
+
+type LegacyOwnershipSummary = {
+	mortgageId: Id<"mortgages">;
+	totalPercentage: number;
+	isValid: boolean;
+	owners: number;
+	breakdown: Array<{
+		ownerId: "fairlend" | Id<"users">;
+		percentage: number;
+	}>;
+};
+
+type OwnershipCheckResult = {
+	mortgageId: Id<"mortgages">;
+	ownerId: "fairlend" | Id<"users">;
+	ownershipPercentage: number;
+} | null;
+
+async function getLedgerOwnershipSnapshot(
+	ctx: ActionCtx
+): Promise<Record<string, Array<OwnershipRecord>>> {
+	const result = await ctx.runAction(api.ledger.getOwnershipSnapshot, {});
+	if (!result.success) {
+		throw new Error(result.error ?? "Failed to load ledger ownership snapshot");
+	}
+
+	const snapshot =
+		(result.ownershipByMortgage ??
+			{}) as Record<string, Array<OwnershipRecord>>;
+	const normalized: Record<string, Array<OwnershipRecord>> = {};
+
+	for (const [mortgageId, entries] of Object.entries(snapshot)) {
+		normalized[mortgageId] = entries.map((entry) => ({
+			ownerId: entry.ownerId,
+			percentage: entry.percentage,
+		}));
+	}
+
+	return normalized;
+}
+
+export const getMortgageOwnershipLegacy = internalQuery({
 	args: { mortgageId: v.id("mortgages") },
+	returns: v.array(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.union(v.literal("fairlend"), v.id("users")),
+			ownershipPercentage: v.number(),
+		})
+	),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		const ownership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
 			.collect();
 
-		// Sort by ownership percentage descending
 		return ownership.sort(
 			(a, b) => b.ownershipPercentage - a.ownershipPercentage
 		);
 	},
 });
 
-/**
- * Get all mortgages owned by a specific investor
- */
-export const getUserPortfolio = authenticatedQuery({
+export const getUserPortfolioLegacy = internalQuery({
 	args: { userId: v.union(v.literal("fairlend"), v.id("users")) },
+	returns: v.array(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.union(v.literal("fairlend"), v.id("users")),
+			ownershipPercentage: v.number(),
+		})
+	),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		return await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
@@ -53,56 +115,66 @@ export const getUserPortfolio = authenticatedQuery({
 	},
 });
 
-/**
- * Check if a user owns a specific mortgage
- */
-export const checkOwnership = authenticatedQuery({
+export const checkOwnershipLegacy = internalQuery({
 	args: {
 		mortgageId: v.id("mortgages"),
 		ownerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
-		return await ctx.db
+	returns: v.union(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.union(v.literal("fairlend"), v.id("users")),
+			ownershipPercentage: v.number(),
+		}),
+		v.null()
+	),
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage_owner", (q) =>
 				q.eq("mortgageId", args.mortgageId).eq("ownerId", args.ownerId)
 			)
-			.first();
-	},
+			.first(),
 });
 
-/**
- * Get all mortgages owned by FairLend (institutional portfolio)
- */
-export const getInstitutionalPortfolio = authenticatedQuery({
+export const getInstitutionalPortfolioLegacy = internalQuery({
 	args: {},
+	returns: v.array(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.literal("fairlend"),
+			ownershipPercentage: v.number(),
+		})
+	),
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
-		return await ctx.db
+		const records = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", "fairlend"))
 			.collect();
+
+		return records.map((record) => ({
+			mortgageId: record.mortgageId,
+			ownerId: "fairlend" as const,
+			ownershipPercentage: record.ownershipPercentage,
+		}));
 	},
 });
 
-/**
- * Get total ownership percentage for a mortgage (should always equal 100%)
- * Useful for validation and auditing
- */
-export const getTotalOwnership = authenticatedQuery({
+export const getTotalOwnershipLegacy = internalQuery({
 	args: { mortgageId: v.id("mortgages") },
+	returns: v.object({
+		mortgageId: v.id("mortgages"),
+		totalPercentage: v.number(),
+		isValid: v.boolean(),
+		owners: v.number(),
+		breakdown: v.array(
+			v.object({
+				ownerId: v.union(v.literal("fairlend"), v.id("users")),
+				percentage: v.number(),
+			})
+		),
+	}),
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Authentication required");
-		}
 		const allOwnership = await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_mortgage", (q) => q.eq("mortgageId", args.mortgageId))
@@ -116,11 +188,230 @@ export const getTotalOwnership = authenticatedQuery({
 		return {
 			mortgageId: args.mortgageId,
 			totalPercentage: total,
-			isValid: Math.abs(total - 100) < 0.01, // Allow for floating point precision
+			isValid: Math.abs(total - 100) < 0.01,
 			owners: allOwnership.length,
 			breakdown: allOwnership.map((o) => ({
 				ownerId: o.ownerId,
 				percentage: o.ownershipPercentage,
+			})),
+		};
+	},
+});
+
+/**
+ * Get cap table for a specific mortgage (all ownership records)
+ * Sorted by ownership percentage descending (largest owners first)
+ */
+export const getMortgageOwnership = authenticatedAction({
+	args: { mortgageId: v.id("mortgages") },
+	returns: v.array(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.union(v.literal("fairlend"), v.id("users")),
+			ownershipPercentage: v.number(),
+		})
+	),
+	handler: async (ctx, args) => {
+		if (!isLedgerSourceOfTruth()) {
+			const legacyOwnership: Array<LegacyOwnershipRecord> = await ctx.runQuery(
+				internal.ownership.getMortgageOwnershipLegacy,
+				{
+				mortgageId: args.mortgageId,
+				}
+			);
+			return legacyOwnership;
+		}
+
+		const snapshot = await getLedgerOwnershipSnapshot(ctx);
+		const entries = snapshot[args.mortgageId.toString()] ?? [];
+
+		const ownership = entries.map((entry) => ({
+			mortgageId: args.mortgageId,
+			ownerId: entry.ownerId,
+			ownershipPercentage: entry.percentage,
+		}));
+
+		return ownership.sort(
+			(a, b) => b.ownershipPercentage - a.ownershipPercentage
+		);
+	},
+});
+
+/**
+ * Get all mortgages owned by a specific investor
+ */
+export const getUserPortfolio = authenticatedAction({
+	args: { userId: v.union(v.literal("fairlend"), v.id("users")) },
+	returns: v.array(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.union(v.literal("fairlend"), v.id("users")),
+			ownershipPercentage: v.number(),
+		})
+	),
+	handler: async (ctx, args) => {
+		if (!isLedgerSourceOfTruth()) {
+			const legacyOwnership: Array<LegacyOwnershipRecord> = await ctx.runQuery(
+				internal.ownership.getUserPortfolioLegacy,
+				{
+				userId: args.userId,
+				}
+			);
+			return legacyOwnership;
+		}
+
+		const snapshot = await getLedgerOwnershipSnapshot(ctx);
+		const results: Array<{
+			mortgageId: Id<"mortgages">;
+			ownerId: "fairlend" | Id<"users">;
+			ownershipPercentage: number;
+		}> = [];
+
+		for (const [mortgageId, entries] of Object.entries(snapshot)) {
+			for (const entry of entries) {
+				if (entry.ownerId.toString() !== args.userId.toString()) continue;
+				results.push({
+					mortgageId: mortgageId as Id<"mortgages">,
+					ownerId: entry.ownerId,
+					ownershipPercentage: entry.percentage,
+				});
+			}
+		}
+
+		return results;
+	},
+});
+
+/**
+ * Check if a user owns a specific mortgage
+ */
+export const checkOwnership = authenticatedAction({
+	args: {
+		mortgageId: v.id("mortgages"),
+		ownerId: v.union(v.literal("fairlend"), v.id("users")),
+	},
+	returns: v.union(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.union(v.literal("fairlend"), v.id("users")),
+			ownershipPercentage: v.number(),
+		}),
+		v.null()
+	),
+	handler: async (ctx, args): Promise<OwnershipCheckResult> => {
+		if (!isLedgerSourceOfTruth()) {
+			const legacyOwnership: LegacyOwnershipRecord | null =
+				await ctx.runQuery(internal.ownership.checkOwnershipLegacy, {
+				mortgageId: args.mortgageId,
+				ownerId: args.ownerId,
+			});
+			return legacyOwnership;
+		}
+
+		const snapshot = await getLedgerOwnershipSnapshot(ctx);
+		const entries = snapshot[args.mortgageId.toString()] ?? [];
+		const match = entries.find(
+			(entry) => entry.ownerId.toString() === args.ownerId.toString()
+		);
+		if (!match) return null;
+
+		return {
+			mortgageId: args.mortgageId,
+			ownerId: match.ownerId,
+			ownershipPercentage: match.percentage,
+		};
+	},
+});
+
+/**
+ * Get all mortgages owned by FairLend (institutional portfolio)
+ */
+export const getInstitutionalPortfolio = authenticatedAction({
+	args: {},
+	returns: v.array(
+		v.object({
+			mortgageId: v.id("mortgages"),
+			ownerId: v.literal("fairlend"),
+			ownershipPercentage: v.number(),
+		})
+	),
+	handler: async (ctx) => {
+		if (!isLedgerSourceOfTruth()) {
+			const legacyOwnership: Array<LegacyOwnershipRecord> =
+				await ctx.runQuery(
+					internal.ownership.getInstitutionalPortfolioLegacy,
+					{}
+				);
+			return legacyOwnership.map((record) => ({
+				mortgageId: record.mortgageId,
+				ownerId: "fairlend" as const,
+				ownershipPercentage: record.ownershipPercentage,
+			}));
+		}
+
+		const snapshot = await getLedgerOwnershipSnapshot(ctx);
+		const results: Array<{
+			mortgageId: Id<"mortgages">;
+			ownerId: "fairlend";
+			ownershipPercentage: number;
+		}> = [];
+
+		for (const [mortgageId, entries] of Object.entries(snapshot)) {
+			for (const entry of entries) {
+				if (entry.ownerId !== "fairlend") continue;
+				results.push({
+					mortgageId: mortgageId as Id<"mortgages">,
+					ownerId: "fairlend",
+					ownershipPercentage: entry.percentage,
+				});
+			}
+		}
+
+		return results;
+	},
+});
+
+/**
+ * Get total ownership percentage for a mortgage (should always equal 100%)
+ * Useful for validation and auditing
+ */
+export const getTotalOwnership = authenticatedAction({
+	args: { mortgageId: v.id("mortgages") },
+	returns: v.object({
+		mortgageId: v.id("mortgages"),
+		totalPercentage: v.number(),
+		isValid: v.boolean(),
+		owners: v.number(),
+		breakdown: v.array(
+			v.object({
+				ownerId: v.union(v.literal("fairlend"), v.id("users")),
+				percentage: v.number(),
+			})
+		),
+	}),
+	handler: async (ctx, args) => {
+		if (!isLedgerSourceOfTruth()) {
+			const legacySummary: LegacyOwnershipSummary = await ctx.runQuery(
+				internal.ownership.getTotalOwnershipLegacy,
+				{
+				mortgageId: args.mortgageId,
+				}
+			);
+			return legacySummary;
+		}
+
+		const snapshot = await getLedgerOwnershipSnapshot(ctx);
+		const entries = snapshot[args.mortgageId.toString()] ?? [];
+		const total = entries.reduce((sum, record) => sum + record.percentage, 0);
+
+		return {
+			mortgageId: args.mortgageId,
+			totalPercentage: total,
+			isValid: Math.abs(total - 100) < 0.01, // Allow for floating point precision
+			owners: entries.length,
+			breakdown: entries.map((o) => ({
+				ownerId: o.ownerId,
+				percentage: o.percentage,
 			})),
 		};
 	},
@@ -142,6 +433,11 @@ export async function createOwnershipInternal(
 		ownershipPercentage: number;
 	}
 ) {
+	if (isLedgerSourceOfTruth()) {
+		throw new Error(
+			"Legacy ownership writes are disabled. Ownership is managed by the ledger."
+		);
+	}
 	// Validate percentage range
 	if (args.ownershipPercentage <= 0 || args.ownershipPercentage > 100) {
 		throw new Error("Ownership percentage must be between 0 and 100");
@@ -246,6 +542,8 @@ export async function createOwnershipInternal(
  * Create an ownership record
  * Automatically reduces FairLend's ownership to maintain 100% total
  * Auto-creates FairLend ownership if missing (for backward compatibility)
+ *
+ * Also schedules a ledger transfer to record the ownership change in Formance.
  */
 export const createOwnership = authenticatedMutation({
 	args: {
@@ -254,6 +552,11 @@ export const createOwnership = authenticatedMutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
+		if (isLedgerSourceOfTruth()) {
+			throw new Error(
+				"Legacy ownership writes are disabled. Ownership is managed by the ledger."
+			);
+		}
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
 			throw new Error("Authentication required");
@@ -269,8 +572,23 @@ export const createOwnership = authenticatedMutation({
 			throw new Error("Unauthorized: Broker or admin privileges required");
 		}
 
-		// Delegate to internal helper
-		return await createOwnershipInternal(ctx, args);
+		// Delegate to internal helper for DB write
+		const ownershipId = await createOwnershipInternal(ctx, args);
+
+		// Schedule ledger transfer
+		// CRITICAL: footguns.md #3 - external API calls must be scheduled
+		// CRITICAL: footguns.md #5 - use idempotency key (reference)
+		const reference = `create:${ownershipId}:${Date.now()}`;
+		await ctx.scheduler.runAfter(0, internal.ledger.recordOwnershipTransfer, {
+			mortgageId: args.mortgageId.toString(),
+			fromOwnerId: "fairlend",
+			toOwnerId:
+				args.ownerId === "fairlend" ? "fairlend" : args.ownerId.toString(),
+			percentage: args.ownershipPercentage,
+			reference,
+		});
+
+		return ownershipId;
 	},
 });
 
@@ -284,6 +602,11 @@ export const updateOwnershipPercentage = authenticatedMutation({
 		ownershipPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
+		if (isLedgerSourceOfTruth()) {
+			throw new Error(
+				"Legacy ownership writes are disabled. Ownership is managed by the ledger."
+			);
+		}
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
 			throw new Error("Authentication required");
@@ -381,6 +704,8 @@ export const updateOwnershipPercentage = authenticatedMutation({
 
 /**
  * Transfer ownership to a new owner
+ *
+ * Also schedules a ledger transfer to record the ownership change in Formance.
  */
 export const transferOwnership = authenticatedMutation({
 	args: {
@@ -388,6 +713,11 @@ export const transferOwnership = authenticatedMutation({
 		newOwnerId: v.union(v.literal("fairlend"), v.id("users")),
 	},
 	handler: async (ctx, args) => {
+		if (isLedgerSourceOfTruth()) {
+			throw new Error(
+				"Legacy ownership writes are disabled. Ownership is managed by the ledger."
+			);
+		}
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
 			throw new Error("Authentication required");
@@ -413,7 +743,23 @@ export const transferOwnership = authenticatedMutation({
 			// Application layer should validate user ID exists
 		}
 
+		const oldOwnerId = ownership.ownerId;
 		await ctx.db.patch(args.id, { ownerId: args.newOwnerId });
+
+		// Schedule ledger transfer
+		// CRITICAL: footguns.md #3 - external API calls must be scheduled
+		const reference = `transfer:${args.id}:${Date.now()}`;
+		await ctx.scheduler.runAfter(0, internal.ledger.recordOwnershipTransfer, {
+			mortgageId: ownership.mortgageId.toString(),
+			fromOwnerId: oldOwnerId === "fairlend" ? "fairlend" : oldOwnerId.toString(),
+			toOwnerId:
+				args.newOwnerId === "fairlend"
+					? "fairlend"
+					: args.newOwnerId.toString(),
+			percentage: ownership.ownershipPercentage,
+			reference,
+		});
+
 		return args.id;
 	},
 });
@@ -425,6 +771,11 @@ export const transferOwnership = authenticatedMutation({
 export const deleteOwnership = authenticatedMutation({
 	args: { id: v.id("mortgage_ownership") },
 	handler: async (ctx, args) => {
+		if (isLedgerSourceOfTruth()) {
+			throw new Error(
+				"Legacy ownership writes are disabled. Ownership is managed by the ledger."
+			);
+		}
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
 			throw new Error("Authentication required");
@@ -480,6 +831,21 @@ export const deleteOwnership = authenticatedMutation({
 				ownershipPercentage: ownershipRecord.ownershipPercentage,
 			});
 		}
+
+		// Schedule ledger transfer back to FairLend
+		// CRITICAL: footguns.md #3 - external API calls must be scheduled
+		const reference = `delete:${args.id}:${Date.now()}`;
+		const fromOwnerId =
+			ownershipRecord.ownerId === "fairlend"
+				? "fairlend"
+				: ownershipRecord.ownerId.toString();
+		await ctx.scheduler.runAfter(0, internal.ledger.recordOwnershipTransfer, {
+			mortgageId: ownershipRecord.mortgageId.toString(),
+			fromOwnerId,
+			toOwnerId: "fairlend",
+			percentage: ownershipRecord.ownershipPercentage,
+			reference,
+		});
 
 		return args.id;
 	},

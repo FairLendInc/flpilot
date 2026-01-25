@@ -1,6 +1,4 @@
 "use client";
-// @ts-nocheck
-/* eslint-disable */
 import Image from "@tiptap/extension-image";
 import {
   type NodeViewProps,
@@ -125,30 +123,6 @@ function TiptapImage(props: NodeViewProps) {
     }
   }
 
-  function resize(event: MouseEvent) {
-    if (!resizing) return;
-
-    let dx = event.clientX - resizeInitialMouseX;
-    if (resizingPosition === "left") {
-      dx = resizeInitialMouseX - event.clientX;
-    }
-
-    const newWidth = Math.max(resizeInitialWidth + dx, 150);
-    const parentWidth = nodeRef.current?.parentElement?.offsetWidth ?? 0;
-
-    if (newWidth < parentWidth) {
-      updateAttributes({
-        width: newWidth,
-      });
-    }
-  }
-
-  function endResize() {
-    setResizing(false);
-    setResizeInitialMouseX(0);
-    setResizeInitialWidth(0);
-  }
-
   function handleTouchStart(
     event: React.TouchEvent,
     position: "left" | "right"
@@ -160,30 +134,6 @@ function TiptapImage(props: NodeViewProps) {
     if (imageRef.current) {
       setResizeInitialWidth(imageRef.current.offsetWidth);
     }
-  }
-
-  function handleTouchMove(event: TouchEvent) {
-    if (!resizing) return;
-
-    let dx = (event.touches[0]?.clientX ?? resizeInitialMouseX) - resizeInitialMouseX;
-    if (resizingPosition === "left") {
-      dx = resizeInitialMouseX - (event.touches[0]?.clientX ?? resizeInitialMouseX);
-    }
-
-    const newWidth = Math.max(resizeInitialWidth + dx, 150);
-    const parentWidth = nodeRef.current?.parentElement?.offsetWidth ?? 0;
-
-    if (newWidth < parentWidth) {
-      updateAttributes({
-        width: newWidth,
-      });
-    }
-  }
-
-  function handleTouchEnd() {
-    setResizing(false);
-    setResizeInitialMouseX(0);
-    setResizeInitialWidth(0);
   }
 
   function handleCaptionChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -215,17 +165,74 @@ function TiptapImage(props: NodeViewProps) {
   };
 
   useEffect(() => {
-    window.addEventListener("mousemove", resize);
-    window.addEventListener("mouseup", endResize);
+    function handleResize(event: MouseEvent) {
+      if (!resizing) return;
+
+      let dx = event.clientX - resizeInitialMouseX;
+      if (resizingPosition === "left") {
+        dx = resizeInitialMouseX - event.clientX;
+      }
+
+      const newWidth = Math.max(resizeInitialWidth + dx, 150);
+      const parentWidth = nodeRef.current?.parentElement?.offsetWidth ?? 0;
+
+      if (newWidth < parentWidth) {
+        updateAttributes({
+          width: newWidth,
+        });
+      }
+    }
+
+    function handleEndResize() {
+      setResizing(false);
+      setResizeInitialMouseX(0);
+      setResizeInitialWidth(0);
+    }
+
+    function handleTouchMove(event: TouchEvent) {
+      if (!resizing) return;
+
+      let dx =
+        (event.touches[0]?.clientX ?? resizeInitialMouseX) - resizeInitialMouseX;
+      if (resizingPosition === "left") {
+        dx =
+          resizeInitialMouseX -
+          (event.touches[0]?.clientX ?? resizeInitialMouseX);
+      }
+
+      const newWidth = Math.max(resizeInitialWidth + dx, 150);
+      const parentWidth = nodeRef.current?.parentElement?.offsetWidth ?? 0;
+
+      if (newWidth < parentWidth) {
+        updateAttributes({
+          width: newWidth,
+        });
+      }
+    }
+
+    function handleTouchEnd() {
+      setResizing(false);
+      setResizeInitialMouseX(0);
+      setResizeInitialWidth(0);
+    }
+
+    window.addEventListener("mousemove", handleResize);
+    window.addEventListener("mouseup", handleEndResize);
     window.addEventListener("touchmove", handleTouchMove);
     window.addEventListener("touchend", handleTouchEnd);
     return () => {
-      window.removeEventListener("mousemove", resize);
-      window.removeEventListener("mouseup", endResize);
+      window.removeEventListener("mousemove", handleResize);
+      window.removeEventListener("mouseup", handleEndResize);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [resizing, resizeInitialMouseX, resizeInitialWidth]);
+  }, [
+    resizing,
+    resizeInitialMouseX,
+    resizeInitialWidth,
+    resizingPosition,
+    updateAttributes,
+  ]);
 
   return (
     <NodeViewWrapper
@@ -298,6 +305,18 @@ function TiptapImage(props: NodeViewProps) {
           <div
             className="mt-2 cursor-text text-center text-sm text-muted-foreground"
             onClick={() => editor?.isEditable && setEditingCaption(true)}
+            onKeyDown={(event) => {
+              if (!editor?.isEditable) return;
+              if (event.key === "Enter") {
+                setEditingCaption(true);
+              }
+              if (event.key === " ") {
+                event.preventDefault();
+                setEditingCaption(true);
+              }
+            }}
+            role="button"
+            tabIndex={0}
           >
             {caption || "Add a caption..."}
           </div>

@@ -1,18 +1,27 @@
 /**
  * Mortgage management
  * Core loan + property data with embedded property information
+ *
+ * ## Ownership Initialization
+ * When a new mortgage is created, two things happen:
+ * 1. A `mortgage_ownership` record is created with FairLend owning 100%
+ * 2. A ledger action is scheduled to initialize ownership in Formance
+ *
+ * See footguns.md #3 - external API calls must be scheduled actions, not mutations.
  */
 
 import { type Infer, v } from "convex/values";
 import { checkRbac } from "../lib/authhelper";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { paginateByCreation } from "./lib/webhookPagination";
 import {
 	authenticatedMutation,
 	authenticatedQuery,
 } from "./lib/authorizedFunctions";
+import { isLedgerSourceOfTruth } from "./lib/ownershipConfig";
+import { paginateByCreation } from "./lib/webhookPagination";
 
 const mortgageStatusValidator = v.union(
 	v.literal("active"),
@@ -177,10 +186,18 @@ const normalizeMortgageDetails = (
 	documentTemplates: details.documentTemplates ?? [],
 });
 
+/**
+ * Result from ensureMortgage operation
+ */
+type EnsureMortgageResult = {
+	mortgageId: Id<"mortgages">;
+	created: boolean;
+};
+
 export const ensureMortgage = async (
 	ctx: MutationCtx,
 	input: MortgageWriteInput
-): Promise<Id<"mortgages">> => {
+): Promise<EnsureMortgageResult> => {
 	const { borrowerId, ...detailsWithoutBorrower } = input;
 	const details: MortgageDetailsInput = detailsWithoutBorrower;
 	validateMortgageDetails(details);
@@ -236,7 +253,8 @@ export const ensureMortgage = async (
 		patchData.externalMortgageId = externalMortgageId;
 
 		await ctx.db.patch(existing._id, patchData);
-		return existing._id;
+		// Return with created flag to signal callers NOT to schedule ledger init
+		return { mortgageId: existing._id, created: false };
 	}
 
 	const insertData = {
@@ -247,13 +265,30 @@ export const ensureMortgage = async (
 
 	const mortgageId = await ctx.db.insert("mortgages", insertData);
 
-	await ctx.db.insert("mortgage_ownership", {
-		mortgageId,
-		ownerId: "fairlend",
-		ownershipPercentage: 100,
-	});
+	if (!isLedgerSourceOfTruth()) {
+		await ctx.db.insert("mortgage_ownership", {
+			mortgageId,
+			ownerId: "fairlend",
+			ownershipPercentage: 100,
+		});
+	}
 
-	return mortgageId;
+	// Return with created flag to signal callers to schedule ledger init
+	return { mortgageId, created: true };
+};
+
+/**
+ * Legacy wrapper for backward compatibility
+ * Callers that don't need the created flag can use this
+ */
+const ensureMortgageId = async (
+	ctx: MutationCtx,
+	args: {
+		borrowerId: Id<"borrowers">;
+	} & MortgageDetailsInput
+): Promise<Id<"mortgages">> => {
+	const result = await ensureMortgage(ctx, args);
+	return result.mortgageId;
 };
 
 const resolveBorrowerForCreate = async (
@@ -278,10 +313,11 @@ const resolveBorrowerForCreate = async (
 	}
 
 	if (args.borrowerRotessaId) {
+		const rotessaId = args.borrowerRotessaId;
 		const borrower = await ctx.db
 			.query("borrowers")
 			.withIndex("by_rotessa_customer_id", (q) =>
-				q.eq("rotessaCustomerId", args.borrowerRotessaId)
+				q.eq("rotessaCustomerId", rotessaId)
 			)
 			.first();
 		if (!borrower) {
@@ -291,10 +327,11 @@ const resolveBorrowerForCreate = async (
 	}
 
 	if (args.borrower) {
+		const rotessaId = args.borrower.rotessaCustomerId;
 		const existing = await ctx.db
 			.query("borrowers")
 			.withIndex("by_rotessa_customer_id", (q) =>
-				q.eq("rotessaCustomerId", args.borrower.rotessaCustomerId)
+				q.eq("rotessaCustomerId", rotessaId)
 			)
 			.first();
 		if (existing) {
@@ -330,7 +367,8 @@ export const createMortgageInternal = internalMutation({
 		borrowerCreated: v.boolean(),
 	}),
 	handler: async (ctx, args) => {
-		const { borrowerId, borrowerRotessaId, borrower, ...mortgageDetails } = args;
+		const { borrowerId, borrowerRotessaId, borrower, ...mortgageDetails } =
+			args;
 		const resolution = await resolveBorrowerForCreate(ctx, {
 			borrowerId,
 			borrowerRotessaId,
@@ -356,15 +394,30 @@ export const createMortgageInternal = internalMutation({
 			};
 		}
 
-		const mortgageId = await ensureMortgage(ctx, {
+		const result = await ensureMortgage(ctx, {
 			borrowerId: resolution.borrowerId,
 			...(mortgageDetails as MortgageDetailsInput),
 		});
 
+		// Schedule ledger initialization only if mortgage was newly created
+		// This records the initial 100% FairLend ownership in Formance
+		// See footguns.md #3 - external API calls must be scheduled actions
+		if (result.created) {
+			const reference = `init:${result.mortgageId}:${Date.now()}`;
+			await ctx.scheduler.runAfter(
+				0,
+				internal.ledger.initializeMortgageOwnership,
+				{
+					mortgageId: result.mortgageId.toString(),
+					reference,
+				}
+			);
+		}
+
 		return {
-			mortgageId,
+			mortgageId: result.mortgageId,
 			borrowerId: resolution.borrowerId,
-			created: true,
+			created: result.created,
 			borrowerCreated: resolution.borrowerCreated,
 		};
 	},
@@ -452,10 +505,11 @@ export const listMortgagesInternal = internalQuery({
 
 		let borrowerFilterId = args.borrowerId;
 		if (!borrowerFilterId && args.borrowerRotessaId) {
+			const rotessaId = args.borrowerRotessaId;
 			const borrower = await ctx.db
 				.query("borrowers")
 				.withIndex("by_rotessa_customer_id", (q) =>
-					q.eq("rotessaCustomerId", args.borrowerRotessaId)
+					q.eq("rotessaCustomerId", rotessaId)
 				)
 				.first();
 			borrowerFilterId = borrower?._id;
@@ -471,7 +525,9 @@ export const listMortgagesInternal = internalQuery({
 		const maturityBefore = args.maturityBefore
 			? Date.parse(args.maturityBefore)
 			: null;
-		const createdAfter = args.createdAfter ? Date.parse(args.createdAfter) : null;
+		const createdAfter = args.createdAfter
+			? Date.parse(args.createdAfter)
+			: null;
 		const createdBefore = args.createdBefore
 			? Date.parse(args.createdBefore)
 			: null;
@@ -496,16 +552,25 @@ export const listMortgagesInternal = internalQuery({
 			if (args.maxLtv !== undefined && mortgage.ltv > args.maxLtv) {
 				return false;
 			}
-			if (args.minLoanAmount !== undefined && mortgage.loanAmount < args.minLoanAmount) {
+			if (
+				args.minLoanAmount !== undefined &&
+				mortgage.loanAmount < args.minLoanAmount
+			) {
 				return false;
 			}
-			if (args.maxLoanAmount !== undefined && mortgage.loanAmount > args.maxLoanAmount) {
+			if (
+				args.maxLoanAmount !== undefined &&
+				mortgage.loanAmount > args.maxLoanAmount
+			) {
 				return false;
 			}
 			if (maturityAfter && Date.parse(mortgage.maturityDate) <= maturityAfter) {
 				return false;
 			}
-			if (maturityBefore && Date.parse(mortgage.maturityDate) >= maturityBefore) {
+			if (
+				maturityBefore &&
+				Date.parse(mortgage.maturityDate) >= maturityBefore
+			) {
 				return false;
 			}
 			if (createdAfter && mortgage._creationTime <= createdAfter) {
@@ -692,8 +757,22 @@ export const createMortgage = authenticatedMutation({
 		if (!identity) {
 			throw new Error("Authentication required");
 		}
-		const mortgageId = await ensureMortgage(ctx, args);
-		return mortgageId;
+		const result = await ensureMortgage(ctx, args);
+
+		// Schedule ledger initialization only if mortgage was newly created
+		if (result.created) {
+			const reference = `init:${result.mortgageId}:${Date.now()}`;
+			await ctx.scheduler.runAfter(
+				0,
+				internal.ledger.initializeMortgageOwnership,
+				{
+					mortgageId: result.mortgageId.toString(),
+					reference,
+				}
+			);
+		}
+
+		return result.mortgageId;
 	},
 });
 

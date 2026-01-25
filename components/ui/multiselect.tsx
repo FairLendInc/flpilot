@@ -326,8 +326,7 @@ const MultipleSelector = React.forwardRef<
       }
 
       void exec()
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus])
+    }, [debouncedSearchTerm, groupBy, onSearchSync, open, triggerSearchOnFocus])
 
     useEffect(() => {
       /** async search */
@@ -352,8 +351,7 @@ const MultipleSelector = React.forwardRef<
       }
 
       void exec()
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus])
+    }, [debouncedSearchTerm, groupBy, onSearch, open, triggerSearchOnFocus])
 
     const CreatableItem = () => {
       if (!creatable) return undefined
@@ -367,7 +365,7 @@ const MultipleSelector = React.forwardRef<
       const Item = (
         <CommandItem
           value={inputValue}
-          className="cursor-pointe mx-1 mb-1"
+          className="cursor-pointer mx-1 mb-1"
           onMouseDown={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -484,6 +482,7 @@ const MultipleSelector = React.forwardRef<
                   {option.label}
                   <button
                     className="absolute -inset-y-px -end-px flex size-7 items-center justify-center rounded-e-lg border border-transparent p-0 text-muted-foreground/80 outline-0 transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70"
+                    type="button"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         handleUnselect(option)

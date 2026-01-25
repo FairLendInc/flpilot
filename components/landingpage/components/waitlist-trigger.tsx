@@ -2,7 +2,6 @@
 
 import { useWaitlist } from "@/lib/context/waitlist-context";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WaitlistTriggerProps {
@@ -50,19 +49,18 @@ export function WaitlistTextTrigger({ className, children }: { className?: strin
 }
 
 // Special trigger for the footer/text link style that behaves like a link
-export function WaitlistLinkTrigger({ className, children, href = "#" }: { className?: string, children: React.ReactNode, href?: string }) {
+export function WaitlistLinkTrigger({ className, children }: { className?: string, children: React.ReactNode }) {
     const { setShowWaitlistModal } = useWaitlist();
     
     return (
-        <a
+        <button
             className={className}
-            href={href}
-            onClick={(e) => {
-                e.preventDefault();
+            onClick={() => {
                 setShowWaitlistModal(true);
             }}
+            type="button"
         >
             {children}
-        </a>
+        </button>
     );
 }

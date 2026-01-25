@@ -7,12 +7,16 @@ import schema from "../schema";
 process.env.LISTINGS_WEBHOOK_API_KEY = "test-webhook-key";
 process.env.LISTINGS_WEBHOOK_ALLOWED_ORIGIN = "*";
 
+// @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
 
 const API_KEY = "test-webhook-key";
 const WRONG_KEY = "wrong-key";
-const JSON_HEADERS = { "Content-Type": "application/json", "x-api-key": API_KEY };
+const JSON_HEADERS = {
+	"Content-Type": "application/json",
+	"x-api-key": API_KEY,
+};
 
 const baseBorrowerPayload = {
 	name: "Borrower One",
@@ -372,7 +376,9 @@ describe("/mortgages/get", () => {
 		);
 
 		expect(response.status).toBe(200);
-		const body = (await response.json()) as { result: { externalMortgageId: string } };
+		const body = (await response.json()) as {
+			result: { externalMortgageId: string };
+		};
 		expect(body.result.externalMortgageId).toBe("LOS-GET-2");
 	});
 
@@ -395,7 +401,9 @@ describe("/mortgages/get", () => {
 			{ method: "GET", headers: { "x-api-key": API_KEY } }
 		);
 
-		const body = (await response.json()) as { result: { borrower?: { _id: string } } };
+		const body = (await response.json()) as {
+			result: { borrower?: { _id: string } };
+		};
 		expect(body.result.borrower?._id).toBe(borrowerId);
 	});
 
@@ -429,7 +437,9 @@ describe("/mortgages/get", () => {
 			{ method: "GET", headers: { "x-api-key": API_KEY } }
 		);
 
-		const body = (await response.json()) as { result: { listing?: { mortgageId: string } } };
+		const body = (await response.json()) as {
+			result: { listing?: { mortgageId: string } };
+		};
 		expect(body.result.listing?.mortgageId).toBe(result.mortgageId);
 	});
 
@@ -493,7 +503,9 @@ describe("/mortgages/list", () => {
 		});
 
 		expect(response.status).toBe(200);
-		const body = (await response.json()) as { result: { mortgages: Doc<"mortgages">[] } };
+		const body = (await response.json()) as {
+			result: { mortgages: Doc<"mortgages">[] };
+		};
 		expect(body.result.mortgages.length).toBeGreaterThan(0);
 	});
 
@@ -516,7 +528,9 @@ describe("/mortgages/list", () => {
 			headers: { "x-api-key": API_KEY },
 		});
 
-		const body = (await response.json()) as { result: { mortgages: Doc<"mortgages">[] } };
+		const body = (await response.json()) as {
+			result: { mortgages: Doc<"mortgages">[] };
+		};
 		expect(body.result.mortgages).toHaveLength(1);
 	});
 
@@ -540,7 +554,9 @@ describe("/mortgages/list", () => {
 			headers: { "x-api-key": API_KEY },
 		});
 
-		const body = (await response.json()) as { result: { mortgages: Doc<"mortgages">[] } };
+		const body = (await response.json()) as {
+			result: { mortgages: Doc<"mortgages">[] };
+		};
 		expect(body.result.mortgages).toHaveLength(1);
 	});
 
@@ -564,7 +580,9 @@ describe("/mortgages/list", () => {
 			headers: { "x-api-key": API_KEY },
 		});
 
-		const body = (await response.json()) as { result: { mortgages: Doc<"mortgages">[] } };
+		const body = (await response.json()) as {
+			result: { mortgages: Doc<"mortgages">[] };
+		};
 		expect(body.result.mortgages).toHaveLength(1);
 	});
 
@@ -588,7 +606,9 @@ describe("/mortgages/list", () => {
 			{ method: "GET", headers: { "x-api-key": API_KEY } }
 		);
 
-		const body = (await response.json()) as { result: { mortgages: Doc<"mortgages">[] } };
+		const body = (await response.json()) as {
+			result: { mortgages: Doc<"mortgages">[] };
+		};
 		expect(body.result.mortgages).toHaveLength(1);
 	});
 
@@ -622,7 +642,9 @@ describe("/mortgages/list", () => {
 			headers: { "x-api-key": API_KEY },
 		});
 
-		const body = (await response.json()) as { result: { mortgages: Doc<"mortgages">[] } };
+		const body = (await response.json()) as {
+			result: { mortgages: Doc<"mortgages">[] };
+		};
 		expect(body.result.mortgages).toHaveLength(1);
 	});
 
@@ -647,7 +669,11 @@ describe("/mortgages/list", () => {
 			headers: { "x-api-key": API_KEY },
 		});
 		const body1 = (await page1.json()) as {
-			result: { mortgages: Doc<"mortgages">[]; nextCursor?: string; hasMore: boolean };
+			result: {
+				mortgages: Doc<"mortgages">[];
+				nextCursor?: string;
+				hasMore: boolean;
+			};
 		};
 		expect(body1.result.mortgages).toHaveLength(2);
 		expect(body1.result.hasMore).toBe(true);

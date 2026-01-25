@@ -4,13 +4,13 @@
  */
 
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalMutation, internalQuery } from "./_generated/server";
 import {
 	authenticatedMutation,
 	authenticatedQuery,
 } from "./lib/authorizedFunctions";
-import { internal } from "./_generated/api";
-import { internalMutation, internalQuery } from "./_generated/server";
-import type { Doc, Id } from "./_generated/dataModel";
 import { paginateByCreation } from "./lib/webhookPagination";
 
 /**
@@ -209,17 +209,19 @@ export const getBorrowerInternal = internalQuery({
 			return await ctx.db.get(args.borrowerId);
 		}
 		if (args.rotessaCustomerId) {
+			const rotessaId = args.rotessaCustomerId;
 			return await ctx.db
 				.query("borrowers")
 				.withIndex("by_rotessa_customer_id", (q) =>
-					q.eq("rotessaCustomerId", args.rotessaCustomerId)
+					q.eq("rotessaCustomerId", rotessaId)
 				)
 				.first();
 		}
 		if (args.email) {
+			const email = args.email;
 			return await ctx.db
 				.query("borrowers")
-				.withIndex("by_email", (q) => q.eq("email", args.email))
+				.withIndex("by_email", (q) => q.eq("email", email))
 				.first();
 		}
 		return null;
@@ -242,8 +244,12 @@ export const listBorrowersInternal = internalQuery({
 	handler: async (ctx, args) => {
 		const emailContains = normalizeContainsValue(args.emailContains);
 		const nameContains = normalizeContainsValue(args.nameContains);
-		const createdAfter = args.createdAfter ? Date.parse(args.createdAfter) : null;
-		const createdBefore = args.createdBefore ? Date.parse(args.createdBefore) : null;
+		const createdAfter = args.createdAfter
+			? Date.parse(args.createdAfter)
+			: null;
+		const createdBefore = args.createdBefore
+			? Date.parse(args.createdBefore)
+			: null;
 
 		const borrowers = await ctx.db.query("borrowers").collect();
 		const filtered = borrowers.filter((borrower) => {
@@ -287,10 +293,11 @@ export const updateBorrowerInternal = internalMutation({
 		if (args.borrowerId) {
 			borrower = await ctx.db.get(args.borrowerId);
 		} else if (args.rotessaCustomerId) {
+			const rotessaId = args.rotessaCustomerId;
 			borrower = await ctx.db
 				.query("borrowers")
 				.withIndex("by_rotessa_customer_id", (q) =>
-					q.eq("rotessaCustomerId", args.rotessaCustomerId)
+					q.eq("rotessaCustomerId", rotessaId)
 				)
 				.first();
 		}
@@ -334,10 +341,11 @@ export const deleteBorrowerInternal = internalMutation({
 		if (args.borrowerId) {
 			borrower = await ctx.db.get(args.borrowerId);
 		} else if (args.rotessaCustomerId) {
+			const rotessaId = args.rotessaCustomerId;
 			borrower = await ctx.db
 				.query("borrowers")
 				.withIndex("by_rotessa_customer_id", (q) =>
-					q.eq("rotessaCustomerId", args.rotessaCustomerId)
+					q.eq("rotessaCustomerId", rotessaId)
 				)
 				.first();
 		}

@@ -26,7 +26,7 @@ export default function AutoFormTextarea({
         <Textarea
           {...fieldPropsWithoutShowLabel}
           className={cn(
-            fieldConfigItem.variant === "ghost" &&
+            fieldConfigItem?.variant === "ghost" &&
               "border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-ring focus-visible:ring-ring/50 placeholder:text-muted-foreground/50 text-foreground",
             fieldPropsWithoutShowLabel.className,
           )}

@@ -165,7 +165,9 @@ export function useMICDemo() {
 					};
 				};
 			};
-			const data = result.data as AccountsResponse | undefined;
+			const data = ("data" in result
+				? result.data
+				: undefined) as AccountsResponse | undefined;
 
 			if (result.success && data?.v2AccountsCursorResponse?.cursor?.data) {
 				const formanceAccounts = data.v2AccountsCursorResponse.cursor.data;
@@ -252,7 +254,9 @@ export function useMICDemo() {
 				});
 
 				if (!seedResult.success) {
-					throw new Error(seedResult.error || "Failed to seed treasury");
+					const errorMessage =
+						"error" in seedResult ? seedResult.error : undefined;
+					throw new Error(errorMessage || "Failed to seed treasury");
 				}
 
 				// Step 2.5: Seed investor wallet with CAD from @world
@@ -309,7 +313,8 @@ send $amount (
 				});
 
 				if (!result.success) {
-					throw new Error(result.error || "Failed to execute subscription");
+					const errorMessage = "error" in result ? result.error : undefined;
+					throw new Error(errorMessage || "Failed to execute subscription");
 				}
 
 				toast.success("Step A0 complete: Investor subscribed!");
@@ -364,7 +369,8 @@ send $amount (
 				});
 
 				if (!result.success) {
-					throw new Error(result.error || "Failed to collect interest");
+					const errorMessage = "error" in result ? result.error : undefined;
+					throw new Error(errorMessage || "Failed to collect interest");
 				}
 
 				toast.success("Step H complete: Interest collected from borrower!");
@@ -401,7 +407,8 @@ send $amount (
 				});
 
 				if (!result.success) {
-					throw new Error(result.error || "Failed to distribute dividend");
+					const errorMessage = "error" in result ? result.error : undefined;
+					throw new Error(errorMessage || "Failed to distribute dividend");
 				}
 
 				toast.success("Step H5 complete: Dividend distributed (net-zero)!");

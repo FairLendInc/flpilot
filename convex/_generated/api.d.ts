@@ -9,6 +9,8 @@
  */
 
 import type * as alerts from "../alerts.js";
+import type * as auditEvents from "../auditEvents.js";
+import type * as auditEventsCron from "../auditEventsCron.js";
 import type * as authTests from "../authTests.js";
 import type * as borrowers from "../borrowers.js";
 import type * as comparables from "../comparables.js";
@@ -27,7 +29,14 @@ import type * as ledger from "../ledger.js";
 import type * as lib_authorizedFunctions from "../lib/authorizedFunctions.js";
 import type * as lib_broker from "../lib/broker.js";
 import type * as lib_client from "../lib/client.js";
+import type * as lib_events_auditedMutation from "../lib/events/auditedMutation.js";
+import type * as lib_events_emitter from "../lib/events/emitter.js";
+import type * as lib_events_index from "../lib/events/index.js";
+import type * as lib_events_types from "../lib/events/types.js";
+import type * as lib_ownershipConfig from "../lib/ownershipConfig.js";
+import type * as lib_ownershipLedger from "../lib/ownershipLedger.js";
 import type * as lib_server from "../lib/server.js";
+import type * as lib_webhookPagination from "../lib/webhookPagination.js";
 import type * as listings from "../listings.js";
 import type * as lockRequests from "../lockRequests.js";
 import type * as logger from "../logger.js";
@@ -40,6 +49,7 @@ import type * as onboarding from "../onboarding.js";
 import type * as organizations from "../organizations.js";
 import type * as ownership from "../ownership.js";
 import type * as payments from "../payments.js";
+import type * as pendingOwnershipTransfers from "../pendingOwnershipTransfers.js";
 import type * as profile from "../profile.js";
 import type * as roles from "../roles.js";
 import type * as seed from "../seed.js";
@@ -65,6 +75,8 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   alerts: typeof alerts;
+  auditEvents: typeof auditEvents;
+  auditEventsCron: typeof auditEventsCron;
   authTests: typeof authTests;
   borrowers: typeof borrowers;
   comparables: typeof comparables;
@@ -83,7 +95,14 @@ declare const fullApi: ApiFromModules<{
   "lib/authorizedFunctions": typeof lib_authorizedFunctions;
   "lib/broker": typeof lib_broker;
   "lib/client": typeof lib_client;
+  "lib/events/auditedMutation": typeof lib_events_auditedMutation;
+  "lib/events/emitter": typeof lib_events_emitter;
+  "lib/events/index": typeof lib_events_index;
+  "lib/events/types": typeof lib_events_types;
+  "lib/ownershipConfig": typeof lib_ownershipConfig;
+  "lib/ownershipLedger": typeof lib_ownershipLedger;
   "lib/server": typeof lib_server;
+  "lib/webhookPagination": typeof lib_webhookPagination;
   listings: typeof listings;
   lockRequests: typeof lockRequests;
   logger: typeof logger;
@@ -96,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   organizations: typeof organizations;
   ownership: typeof ownership;
   payments: typeof payments;
+  pendingOwnershipTransfers: typeof pendingOwnershipTransfers;
   profile: typeof profile;
   roles: typeof roles;
   seed: typeof seed;

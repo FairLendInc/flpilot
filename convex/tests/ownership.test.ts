@@ -5,6 +5,8 @@ import { api } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import schema from "../schema";
 
+process.env.OWNERSHIP_LEDGER_SOURCE = "legacy";
+
 // @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
@@ -103,7 +105,7 @@ async function verifyTotalOwnership(
 	expectedTotal = 100
 ) {
 	const authT = getAuthenticatedTest(t);
-	const result = await authT.query(api.ownership.getTotalOwnership, {
+	const result = await authT.action(api.ownership.getTotalOwnership, {
 		mortgageId,
 	});
 
@@ -1129,7 +1131,7 @@ describe("getTotalOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		const authT = getAuthenticatedTest(t);
-		const result = await authT.query(api.ownership.getTotalOwnership, {
+		const result = await authT.action(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1160,7 +1162,7 @@ describe("getTotalOwnership", () => {
 			ownershipPercentage: 25,
 		});
 
-		const result = await authT.query(api.ownership.getTotalOwnership, {
+		const result = await authT.action(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1189,7 +1191,7 @@ describe("getTotalOwnership", () => {
 			ownershipPercentage: 50,
 		});
 
-		const result = await authT.query(api.ownership.getTotalOwnership, {
+		const result = await authT.action(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1214,7 +1216,7 @@ describe("getTotalOwnership", () => {
 			ownershipPercentage: 33.33,
 		});
 
-		const result = await authT.query(api.ownership.getTotalOwnership, {
+		const result = await authT.action(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 
@@ -1242,7 +1244,7 @@ describe("getMortgageOwnership", () => {
 			ownershipPercentage: 30,
 		});
 
-		const result = await authT.query(api.ownership.getMortgageOwnership, {
+		const result = await authT.action(api.ownership.getMortgageOwnership, {
 			mortgageId,
 		});
 
@@ -1273,7 +1275,7 @@ describe("getMortgageOwnership", () => {
 		});
 
 		const authT = getAuthenticatedTest(t);
-		const result = await authT.query(api.ownership.getMortgageOwnership, {
+		const result = await authT.action(api.ownership.getMortgageOwnership, {
 			mortgageId,
 		});
 
@@ -1304,14 +1306,12 @@ describe("getUserPortfolio", () => {
 			ownershipPercentage: 40,
 		});
 
-		const result = await authT.query(api.ownership.getUserPortfolio, {
+		const result = await authT.action(api.ownership.getUserPortfolio, {
 			userId: user1,
 		});
 
 		expect(result).toHaveLength(2);
-		const mortgageIds = result.map(
-			(r: Doc<"mortgage_ownership">) => r.mortgageId
-		);
+		const mortgageIds = result.map((r) => r.mortgageId);
 		expect(mortgageIds).toContain(m1);
 		expect(mortgageIds).toContain(m2);
 	});
@@ -1321,7 +1321,7 @@ describe("getUserPortfolio", () => {
 		await createTestMortgage(t);
 
 		const authT = getAuthenticatedTest(t);
-		const result = await authT.query(api.ownership.getUserPortfolio, {
+		const result = await authT.action(api.ownership.getUserPortfolio, {
 			userId: await createTestUser(t, "investor_999"),
 		});
 
@@ -1342,7 +1342,7 @@ describe("checkOwnership", () => {
 			ownershipPercentage: 30,
 		});
 
-		const result = await authT.query(api.ownership.checkOwnership, {
+		const result = await authT.action(api.ownership.checkOwnership, {
 			mortgageId,
 			ownerId: user1,
 		});
@@ -1357,7 +1357,7 @@ describe("checkOwnership", () => {
 		const { mortgageId } = await createTestMortgage(t);
 
 		const authT = getAuthenticatedTest(t);
-		const result = await authT.query(api.ownership.checkOwnership, {
+		const result = await authT.action(api.ownership.checkOwnership, {
 			mortgageId,
 			ownerId: await createTestUser(t, "investor_999"),
 		});
@@ -1389,7 +1389,7 @@ describe("getInstitutionalPortfolio", () => {
 			ownershipPercentage: 100,
 		});
 
-		const result = await authT.query(
+		const result = await authT.action(
 			api.ownership.getInstitutionalPortfolio,
 			{}
 		);
@@ -1398,9 +1398,7 @@ describe("getInstitutionalPortfolio", () => {
 		// m2 has no FairLend ownership (100% sold)
 		expect(result.length).toBeGreaterThanOrEqual(2);
 
-		const mortgageIds = result.map(
-			(r: Doc<"mortgage_ownership">) => r.mortgageId
-		);
+		const mortgageIds = result.map((r) => r.mortgageId);
 		expect(mortgageIds).toContain(m1);
 		expect(mortgageIds).toContain(m3);
 	});
@@ -1493,7 +1491,7 @@ describe("ownership invariant integration", () => {
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// Verify all investors were created
-		const total = await authT.query(api.ownership.getTotalOwnership, {
+		const total = await authT.action(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 		expect(total.owners).toBe(4); // 3 investors + FairLend
@@ -1692,7 +1690,7 @@ describe("ownership invariant integration", () => {
 				ownershipPercentage: pct,
 			});
 
-			const total = await authT.query(api.ownership.getTotalOwnership, {
+			const total = await authT.action(api.ownership.getTotalOwnership, {
 				mortgageId,
 			});
 
@@ -1725,7 +1723,7 @@ describe("ownership invariant integration", () => {
 			ownershipPercentage: 33.33,
 		});
 
-		const total = await authT.query(api.ownership.getTotalOwnership, {
+		const total = await authT.action(api.ownership.getTotalOwnership, {
 			mortgageId,
 		});
 

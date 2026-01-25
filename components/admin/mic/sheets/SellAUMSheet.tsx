@@ -56,9 +56,6 @@ export function SellAUMSheet({
 }: SellAUMSheetProps) {
 	const [sellPercentage, setSellPercentage] = React.useState("");
 	const [price, setPrice] = React.useState("");
-	const [notes, _setNotes] = React.useState("");
-
-	console.log(`Sell AUM Sheet - Notes State: ${notes}`);
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -68,7 +65,6 @@ export function SellAUMSheet({
 		onSubmit({
 			percentageToSell: p,
 			salesPrice: Number.parseFloat(price) || 0,
-			notes,
 		});
 		onOpenChange(false);
 	};

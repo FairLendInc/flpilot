@@ -30,7 +30,7 @@ export default function AutoFormTags({
           onChange={field.onChange}
           {...fieldPropsWithoutShowLabel}
           className={cn(
-            fieldConfigItem.variant === "ghost" &&
+            fieldConfigItem?.variant === "ghost" &&
               "border-transparent bg-transparent shadow-none hover:border-input focus-within:border-ring focus-within:ring-ring/50",
             fieldPropsWithoutShowLabel.className,
           )}

@@ -2,12 +2,14 @@
 
 import { useAction } from "convex/react";
 import type { UserIdentity } from "convex/server";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ClipboardCheck } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { OwnershipTransferReview } from "@/components/admin/deals/OwnershipTransferReview";
 import { DealPortalLoading } from "@/components/deal-portal/DealPortalLoading";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
@@ -21,6 +23,7 @@ import {
 	mapDocumensoToDocumentLegacy,
 } from "@/lib/mappers/documenso";
 import type { DocumensoDocumentSummary } from "@/lib/types/documenso";
+import { DEAL_STATE_LABELS_INVESTOR } from "@/lib/types/dealTypes";
 import { LawyerInviteManagement } from "@/stories/dealPortal/components/LawyerInviteManagement";
 import { LawyerRepresentationConfirmation } from "@/stories/dealPortal/components/LawyerRepresentationConfirmation";
 import DealPortal from "@/stories/dealPortal/DealPortal";
@@ -51,6 +54,80 @@ function PendingLawyerState({
 			lawyerLSONumber={deal.lawyerLSONumber}
 			lawyerName={deal.lawyerName}
 		/>
+	);
+}
+
+/**
+ * Ownership Review State Component
+ *
+ * For admins: Shows the OwnershipTransferReview component for approval/rejection
+ * For investors: Shows a "Finalizing Transfer" status message
+ */
+function PendingOwnershipReviewState({
+	dealId,
+	viewer,
+}: {
+	dealId: Id<"deals">;
+	viewer: UserIdentity;
+}) {
+	// Check if user is admin
+	const isAdmin = (viewer as { role?: string })?.role === "admin";
+
+	if (isAdmin) {
+		return (
+			<div className="container max-w-4xl py-8">
+				<div className="mb-6">
+					<h1 className="flex items-center gap-2 font-bold text-2xl">
+						<ClipboardCheck className="h-6 w-6 text-primary" />
+						Ownership Transfer Review
+					</h1>
+					<p className="text-muted-foreground">
+						Review and approve the ownership transfer for this deal
+					</p>
+				</div>
+				<OwnershipTransferReview
+					dealId={dealId}
+					onApproved={() => {
+						toast.success("Transfer approved successfully");
+					}}
+					onRejected={() => {
+						toast.info("Transfer rejected - deal returned to verification");
+					}}
+				/>
+			</div>
+		);
+	}
+
+	// Investor view - show "Finalizing Transfer" status
+	return (
+		<div className="flex flex-1 items-center justify-center p-6">
+			<Card className="max-w-md">
+				<CardHeader className="text-center">
+					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+						<ClipboardCheck className="h-8 w-8 text-primary" />
+					</div>
+					<CardTitle>
+						{DEAL_STATE_LABELS_INVESTOR.pending_ownership_review}
+					</CardTitle>
+					<CardDescription>
+						Your investment is in the final stages of processing
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-4 text-center">
+					<p className="text-muted-foreground text-sm">
+						Our team is reviewing the ownership transfer details. This process
+						typically takes 1-2 business days. You&apos;ll receive a notification
+						once the transfer is complete.
+					</p>
+					<Badge
+						className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+						variant="secondary"
+					>
+						Review in Progress
+					</Badge>
+				</CardContent>
+			</Card>
+		</div>
 	);
 }
 
@@ -173,6 +250,11 @@ export default function DealPortalPage() {
 		);
 	}
 
+	// Handle pending_ownership_review state - admins can review, investors see status
+	if (dealData.deal.currentState === "pending_ownership_review" && viewer) {
+		return <PendingOwnershipReviewState dealId={dealId} viewer={viewer} />;
+	}
+
 	// Show error banner if Documenso fetch failed
 	if (documensoError) {
 		return (
@@ -180,7 +262,7 @@ export default function DealPortalPage() {
 				<Card className="max-w-md">
 					<CardContent className="p-6">
 						<div className="flex items-start gap-3">
-							<AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive" />
+							<AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
 							<div className="flex flex-col gap-2">
 								<p className="font-medium text-sm">Failed to load documents</p>
 								<p className="text-muted-foreground text-sm">

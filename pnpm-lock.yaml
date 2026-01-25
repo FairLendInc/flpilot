@@ -414,9 +414,6 @@ importers:
       playwright:
         specifier: ^1.56.1
         version: 1.56.1
-      raw-loader:
-        specifier: ^4.0.2
-        version: 4.0.2(webpack@5.103.0(esbuild@0.25.4))
       storybook:
         specifier: ^9.1.15
         version: 9.1.15(@testing-library/dom@10.4.1)(prettier@3.6.2)(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))
@@ -5873,12 +5870,6 @@ packages:
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
-
-  raw-loader@4.0.2:
-    resolution: {integrity: sha512-ZnScIV3ag9A4wPX/ZayxL/jZH+euYb6FcUinPcgiQW0+UBtEv0O6Q3lGd3cqJ+GHH+rksEv3Pj99oxJ3u3VIKA==}
-    engines: {node: '>= 10.13.0'}
-    peerDependencies:
-      webpack: ^4.0.0 || ^5.0.0
 
   react-aria-components@1.13.0:
     resolution: {integrity: sha512-t1mm3AVy/MjUJBZ7zrb+sFC5iya8Vvw3go3mGKtTm269bXGZho7BLA4IgT+0nOS3j+ku6ChVi8NEoQVFoYzJJA==}
@@ -13040,12 +13031,6 @@ snapshots:
       safe-buffer: 5.2.1
 
   range-parser@1.2.1: {}
-
-  raw-loader@4.0.2(webpack@5.103.0(esbuild@0.25.4)):
-    dependencies:
-      loader-utils: 2.0.4
-      schema-utils: 3.3.0
-      webpack: 5.103.0(esbuild@0.25.4)
 
   react-aria-components@1.13.0(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027):
     dependencies:

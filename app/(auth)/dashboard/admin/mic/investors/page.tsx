@@ -46,13 +46,13 @@ export default function InvestorsPage() {
 				// TODO: Get name from Convex user registry
 				name: mockInvestor?.name || `Investor ${bal.investorId}`,
 				// TODO: Get email from Convex user registry
-				email:
-					mockInvestor?.email || `${bal.investorId.toLowerCase()}@example.com`,
+				email: mockInvestor?.email || null,
 				capitalClass: "MICCAP-FLMIC/0", // TODO: Check governance token
 				// ✅ Formance: Units owned from ledger
 				unitsOwned: bal.miccapBalance / 100,
 				// ✅ Formance: Ownership percentage calculated from ledger
 				ownershipPercentage: bal.ownershipPercentage,
+				// TODO: Replace with current unit price when available
 				currentValue: bal.miccapBalance / 100,
 				accrualStatus: "up-to-date" as const,
 				lastAccruedDate: undefined,
@@ -91,7 +91,7 @@ export default function InvestorsPage() {
 							type: (p.destination.includes("capital")
 								? "subscription"
 								: "distribution") as "subscription" | "distribution",
-							timestamp: tx.timestamp || tx.date || new Date().toISOString(),
+							timestamp: tx.timestamp || tx.date || null,
 							amount: Number(p.amount) / 100,
 							description: `${p.source.split(":").pop()} → ${p.destination.split(":").pop()}`,
 							balanceAfter: 0, // TODO: Calculate running balance

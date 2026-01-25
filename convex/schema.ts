@@ -487,6 +487,7 @@ export default defineSchema({
 				v.literal("pending_docs"),
 				v.literal("pending_transfer"),
 				v.literal("pending_verification"),
+				v.literal("pending_ownership_review"),
 				v.literal("completed"),
 				v.literal("cancelled"),
 				v.literal("archived")
@@ -599,7 +600,11 @@ export default defineSchema({
 			v.literal("deal_state_changed"),
 			v.literal("deal_completed"),
 			v.literal("deal_cancelled"),
-			v.literal("deal_stuck") // Future: for time-based alerts
+			v.literal("deal_stuck"), // Future: for time-based alerts
+			// Ownership transfer workflow alerts
+			v.literal("ownership_review_required"),
+			v.literal("ownership_transfer_rejected"),
+			v.literal("manual_resolution_required")
 		),
 		severity: v.union(
 			v.literal("info"),
@@ -681,4 +686,68 @@ export default defineSchema({
 		.index("by_group", ["groupName"])
 		.index("by_name", ["name"])
 		.index("by_group_name", ["groupName", "name"]),
+
+	// ============================================================================
+	// Ownership Transfer Workflow Tables
+	// ============================================================================
+
+	/**
+	 * Pending ownership transfers - staged for admin review before execution
+	 * Implements the Maker-Checker pattern for ownership transfers
+	 */
+	pending_ownership_transfers: defineTable({
+		// References
+		dealId: v.id("deals"),
+		mortgageId: v.id("mortgages"),
+		// Owner reference - union type: userId from users table OR "fairlend" literal
+		fromOwnerId: v.union(v.literal("fairlend"), v.id("users")),
+		toOwnerId: v.id("users"),
+		// Transfer details
+		percentage: v.number(), // Percentage being transferred (0-100)
+		// Status tracking
+		status: v.union(
+			v.literal("pending"),
+			v.literal("approved"),
+			v.literal("rejected")
+		),
+		// Timestamps
+		createdAt: v.number(),
+		reviewedAt: v.optional(v.number()),
+		// Review metadata
+		reviewedBy: v.optional(v.id("users")),
+		reviewNotes: v.optional(v.string()),
+		// Rejection tracking for manual resolution escalation
+		rejectionCount: v.optional(v.number()),
+	})
+		.index("by_deal", ["dealId"])
+		.index("by_status", ["status"])
+		.index("by_mortgage", ["mortgageId"]),
+
+	/**
+	 * Audit events - durable storage for events before external emission
+	 * Write-ahead pattern ensures no events lost; supports at-least-once delivery
+	 */
+	audit_events: defineTable({
+		// Event identification
+		eventType: v.string(), // e.g., "ownership.transfer.created"
+		entityType: v.string(), // e.g., "mortgage_ownership"
+		entityId: v.string(), // ID of the affected entity
+		// Actor
+		userId: v.id("users"), // Who triggered the event
+		// Timing
+		timestamp: v.number(),
+		// State snapshots (sanitized - no PII)
+		beforeState: v.optional(v.any()),
+		afterState: v.optional(v.any()),
+		// Additional context
+		metadata: v.optional(v.any()),
+		// Emission tracking
+		emittedAt: v.optional(v.number()), // null = not yet emitted
+		emitFailures: v.optional(v.number()), // Retry counter
+	})
+		.index("by_entity", ["entityType", "entityId"])
+		.index("by_type", ["eventType"])
+		.index("by_emitted", ["emittedAt"]) // For cron job - find unemitted events
+		.index("by_user", ["userId"])
+		.index("by_timestamp", ["timestamp"]), // For 7-year retention cleanup
 });

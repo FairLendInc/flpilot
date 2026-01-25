@@ -18,6 +18,11 @@ import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel";
 
+type DocumentTypeItem =
+	(typeof api.documentTypes.getDocumentTypes._returnType)[number];
+type DocumentGroupItem =
+	(typeof api.documentGroups.getDocumentGroups._returnType)[number];
+
 export interface DocumentTypeCreationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -128,7 +133,7 @@ export function DocumentTypeCreationDialog({
       // Check for duplicates in the selected group
       const normalizedName = formData.name.trim().toLowerCase();
       const existingType = existingTypes?.find(
-        type => type.name.toLowerCase() === normalizedName
+        (type: DocumentTypeItem) => type.name.toLowerCase() === normalizedName
       );
       if (existingType) {
         errors.name = `Document type "${formData.name}" already exists in group "${formData.groupName}"`;
@@ -388,7 +393,7 @@ export function DocumentTypeCreationDialog({
                     <SelectValue placeholder="Select a document group" />
                   </SelectTrigger>
                   <SelectContent>
-                    {documentGroups?.map((group) => (
+                    {documentGroups?.map((group: DocumentGroupItem) => (
                       <SelectItem key={group._id} value={group.name}>
                         <div className="flex items-center space-x-2">
                           {group.icon && <span>{group.icon}</span>}

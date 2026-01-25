@@ -1,6 +1,4 @@
 "use client";
-/* eslint-disable */
-// @ts-nocheck
 import { Button } from "@/components/ui/button";
 import {
 	Popover,
@@ -20,7 +18,7 @@ import type { Extension } from "@tiptap/core";
 import type { ColorOptions } from "@tiptap/extension-color";
 import type { HighlightOptions } from "@tiptap/extension-highlight";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
-import { useMediaQuery } from "@/hooks/use-media-querry";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { MobileToolbarGroup, MobileToolbarItem } from "./mobile-toolbar-group";
 
 type TextStylingExtensions =

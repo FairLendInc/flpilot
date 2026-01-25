@@ -98,7 +98,7 @@ export const useMICStore = create<MICStore>((set) => ({
 				...state.aums,
 				{
 					...data,
-					id: `M${Math.floor(Math.random() * 1000)}`,
+					id: `M-${crypto.randomUUID()}`,
 					state: "active",
 					accruedInterest: 0,
 					nextPaymentDate: new Date(
@@ -109,17 +109,23 @@ export const useMICStore = create<MICStore>((set) => ({
 		})),
 
 	sellAUM: (id, percentage, _buyerId, proceeds) =>
-		set((state) => ({
-			aums: state.aums.map((aum) =>
-				aum.id === id
-					? { ...aum, micOwnership: Math.max(0, aum.micOwnership - percentage) }
-					: aum
-			),
-			metrics: {
-				...state.metrics,
-				cashBalance: state.metrics.cashBalance + proceeds,
-			},
-		})),
+		set((state) => {
+			const target = state.aums.find((aum) => aum.id === id);
+			if (!target || percentage > target.micOwnership) {
+				return state;
+			}
+			return {
+				aums: state.aums.map((aum) =>
+					aum.id === id
+						? { ...aum, micOwnership: aum.micOwnership - percentage }
+						: aum
+				),
+				metrics: {
+					...state.metrics,
+					cashBalance: state.metrics.cashBalance + proceeds,
+				},
+			};
+		}),
 
 	updateAUMState: (id, state) =>
 		set((prev) => ({

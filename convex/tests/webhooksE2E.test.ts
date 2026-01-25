@@ -1,17 +1,21 @@
 // @vitest-environment node
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import schema from "../schema";
 
 process.env.LISTINGS_WEBHOOK_API_KEY = "test-webhook-key";
 process.env.LISTINGS_WEBHOOK_ALLOWED_ORIGIN = "*";
 
+// @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
 
 const API_KEY = "test-webhook-key";
-const JSON_HEADERS = { "Content-Type": "application/json", "x-api-key": API_KEY };
+const JSON_HEADERS = {
+	"Content-Type": "application/json",
+	"x-api-key": API_KEY,
+};
 
 const baseBorrower = {
 	name: "E2E Borrower",
@@ -98,9 +102,15 @@ describe("End-to-End Workflows", () => {
 		});
 		expect(listingRes.status).toBe(201);
 
-		const borrowers = await t.run(async (ctx) => ctx.db.query("borrowers").collect());
-		const mortgages = await t.run(async (ctx) => ctx.db.query("mortgages").collect());
-		const listings = await t.run(async (ctx) => ctx.db.query("listings").collect());
+		const borrowers = await t.run(async (ctx) =>
+			ctx.db.query("borrowers").collect()
+		);
+		const mortgages = await t.run(async (ctx) =>
+			ctx.db.query("mortgages").collect()
+		);
+		const listings = await t.run(async (ctx) =>
+			ctx.db.query("listings").collect()
+		);
 
 		expect(borrowers).toHaveLength(1);
 		expect(mortgages).toHaveLength(2);
@@ -165,7 +175,9 @@ describe("End-to-End Workflows", () => {
 		const getMortgageBody = (await getMortgageRes.json()) as {
 			result: { borrower?: { rotessaCustomerId: string } };
 		};
-		expect(getMortgageBody.result.borrower?.rotessaCustomerId).toBe("rot_inline_99");
+		expect(getMortgageBody.result.borrower?.rotessaCustomerId).toBe(
+			"rot_inline_99"
+		);
 
 		const getBorrowerRes = await t.fetch(
 			"/borrowers/get?rotessaCustomerId=rot_inline_99",
@@ -238,9 +250,15 @@ describe("End-to-End Workflows", () => {
 			body: JSON.stringify(baseBorrower),
 		});
 
-		const firstBody = (await first.json()) as { result: { borrowerId: string } };
-		const secondBody = (await second.json()) as { result: { borrowerId: string } };
-		const thirdBody = (await third.json()) as { result: { borrowerId: string } };
+		const firstBody = (await first.json()) as {
+			result: { borrowerId: string };
+		};
+		const secondBody = (await second.json()) as {
+			result: { borrowerId: string };
+		};
+		const thirdBody = (await third.json()) as {
+			result: { borrowerId: string };
+		};
 
 		expect(firstBody.result.borrowerId).toBe(secondBody.result.borrowerId);
 		expect(secondBody.result.borrowerId).toBe(thirdBody.result.borrowerId);
@@ -284,7 +302,9 @@ describe("End-to-End Workflows", () => {
 			mortgageThirdBody.result.mortgageId
 		);
 
-		const mortgages = await t.run(async (ctx) => ctx.db.query("mortgages").collect());
+		const mortgages = await t.run(async (ctx) =>
+			ctx.db.query("mortgages").collect()
+		);
 		expect(mortgages).toHaveLength(1);
 	});
 
@@ -554,7 +574,10 @@ describe("Error Code Consistency", () => {
 		});
 
 		expect(response.status).toBe(409);
-		const body = (await response.json()) as { code: string; mortgageCount: number };
+		const body = (await response.json()) as {
+			code: string;
+			mortgageCount: number;
+		};
 		expect(body.code).toBe("borrower_has_dependencies");
 		expect(body.mortgageCount).toBeGreaterThan(0);
 	});

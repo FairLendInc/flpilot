@@ -20,23 +20,13 @@ export const Default: Story = {
 		open: true,
 		assetName: "First Mortgage Toronto",
 		currentShare: 100,
-		onOpenChange: (isOpen) => {
-			if (!isOpen) return;
-		},
-		onSubmit: (data) => {
-			if (!data) return;
-		},
+		onOpenChange: (() => {}) as any,
+		onSubmit: (() => {}) as any,
 	},
 	decorators: [
 		(StoryFn) => (
 			<div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
-				<Button
-					onClick={() => {
-						console.log("clicked");
-					}}
-				>
-					Sell Share
-				</Button>
+				<Button onClick={(() => {}) as any}>Sell Share</Button>
 				<StoryFn />
 			</div>
 		),
@@ -48,11 +38,9 @@ export const PartialShare: Story = {
 		open: true,
 		assetName: "Commercial Bridge Loan",
 		currentShare: 40,
-		onOpenChange: (isOpen) => {
-			if (!isOpen) return;
-		},
-		onSubmit: (data) => {
-			if (!data) return;
-		},
+		onOpenChange: (() => {}) as any,
+		onSubmit: (() => {}) as any,
 	},
 };
+
+

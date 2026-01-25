@@ -24,6 +24,14 @@ export default function AutoFormNumber({
       "Enter",
       ".",
       "-",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+      "PageUp",
+      "PageDown",
     ];
     const isNumber = /^[0-9]$/.test(e.key);
     const isAllowed =
@@ -49,7 +57,7 @@ export default function AutoFormNumber({
           {...fieldPropsWithoutShowLabel}
           onKeyDown={handleKeyDown}
           className={cn(
-            fieldConfigItem.variant === "ghost" &&
+            fieldConfigItem?.variant === "ghost" &&
               "border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-ring focus-visible:ring-ring/50 placeholder:text-muted-foreground/50 text-foreground",
             fieldPropsWithoutShowLabel.className,
           )}

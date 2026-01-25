@@ -38,6 +38,7 @@ export function getUrlFromString(str: string) {
   } catch {
     return null;
   }
+  return null;
 }
 
 export function absoluteUrl(path: string) {

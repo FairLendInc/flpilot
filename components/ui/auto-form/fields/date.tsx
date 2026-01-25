@@ -30,7 +30,7 @@ export default function AutoFormDate({
           onDateChange={field.onChange}
           {...fieldPropsWithoutShowLabel}
           className={cn(
-            fieldConfigItem.variant === "ghost" &&
+            fieldConfigItem?.variant === "ghost" &&
               "border-transparent bg-transparent shadow-none hover:border-input focus:border-ring focus:ring-ring/50",
             fieldPropsWithoutShowLabel.className,
           )}

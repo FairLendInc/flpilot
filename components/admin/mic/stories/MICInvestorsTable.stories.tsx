@@ -20,14 +20,13 @@ const meta: Meta<typeof MICInvestorsTable> = {
 export default meta;
 type Story = StoryObj<typeof MICInvestorsTable>;
 
-const mockInvestors = [
+const baseInvestors = [
 	{
 		id: "1",
 		name: "Michael Scott",
 		email: "michael.scott@dundermifflin.com",
 		capitalClass: "MICCAP-FLMIC/0",
 		unitsOwned: 250000,
-		ownershipPercentage: 22.5,
 		currentValue: 250000,
 		accrualStatus: "up-to-date" as const,
 		lastAccruedDate: "2024-12-01",
@@ -38,7 +37,6 @@ const mockInvestors = [
 		email: "dwight.schrute@schrutefarms.com",
 		capitalClass: "MICCAP-FLMIC/0",
 		unitsOwned: 850000,
-		ownershipPercentage: 76.8,
 		currentValue: 850000,
 		accrualStatus: "behind" as const,
 		lastAccruedDate: "2024-11-15",
@@ -49,7 +47,6 @@ const mockInvestors = [
 		email: "pam.beesly@dundermifflin.com",
 		capitalClass: "MICCAP-FLMIC/0",
 		unitsOwned: 50000,
-		ownershipPercentage: 4.5,
 		currentValue: 50000,
 		accrualStatus: "pending" as const,
 		lastAccruedDate: "2024-11-30",
@@ -60,11 +57,23 @@ const mockInvestors = [
 		email: "jim.halpert@athlead.com",
 		capitalClass: "MICCAP-FLMIC/0",
 		unitsOwned: 10000,
-		ownershipPercentage: 0.9,
 		currentValue: 10000,
 		accrualStatus: "up-to-date" as const,
 	},
 ];
+
+const totalUnits = baseInvestors.reduce(
+	(total, investor) => total + investor.unitsOwned,
+	0
+);
+
+const mockInvestors = baseInvestors.map((investor) => ({
+	...investor,
+	ownershipPercentage:
+		totalUnits > 0
+			? Number(((investor.unitsOwned / totalUnits) * 100).toFixed(1))
+			: 0,
+}));
 
 export const Default: Story = {
 	args: {

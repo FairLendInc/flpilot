@@ -1,6 +1,11 @@
 import { cn } from "@/lib/utils";
+import type { FieldConfigItem } from "../types";
 
-function AutoFormTooltip({ fieldConfigItem }: { fieldConfigItem: any }) {
+function AutoFormTooltip({
+  fieldConfigItem,
+}: {
+  fieldConfigItem: FieldConfigItem;
+}) {
   return (
     <>
       {fieldConfigItem?.description && (

@@ -181,8 +181,10 @@ function handleMicSubdomain(
 	// If not on landing page, redirect to landing page on same subdomain
 	if (url.pathname !== "/") {
 		const landingUrl = new URL(`${protocol}//${hostname}/`);
-		console.log("[proxy] mic subdomain restricting to landing:", {
-			from: `${protocol}//${hostname}${url.pathname}`,
+		logger.debug("[proxy] mic subdomain restricting to landing:", {
+			protocol,
+			hostname,
+			pathname: url.pathname,
 			to: landingUrl.toString(),
 		});
 		return NextResponse.redirect(landingUrl.toString());
@@ -204,8 +206,9 @@ function handleMicSubdomain(
 		rewriteRes.headers.set(key, val);
 	});
 
-	console.log(
-		"[proxy] mic subdomain serving landing page with x-subdomain header"
+	logger.debug(
+		"[proxy] mic subdomain serving landing page with x-subdomain header",
+		{ subdomain: "mic", header: "x-subdomain" }
 	);
 	return rewriteRes;
 }

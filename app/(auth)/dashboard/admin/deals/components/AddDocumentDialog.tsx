@@ -73,7 +73,11 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 			const details = await getTemplateDetails({ templateId: template.id });
 
 			// Map template recipients to form state
-			const templateRecipients = details.recipients || [];
+			const templateRecipients: Array<{
+				id: number;
+				role: DocumensoRecipientRole;
+				signingOrder?: number | null;
+			}> = details.recipients || [];
 
 			setSignatories(
 				templateRecipients.map((r) => ({
@@ -81,7 +85,7 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 					role: requireDocumensoRole(r.role),
 					name: "", // User must fill this
 					email: "", // User must fill this
-					signingOrder: r.signingOrder,
+					signingOrder: r.signingOrder ?? null,
 				}))
 			);
 			setStep("signatories");

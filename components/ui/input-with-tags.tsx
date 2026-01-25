@@ -1,17 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface Tag {
-text: string;
-onRemove: () => void;
+interface TagProps {
+  text: string;
+  onRemove: () => void;
 }
 
-const Tag = ({ text, onRemove }: Tag) => {
+type TagItem = {
+  id: string;
+  text: string;
+};
+
+const Tag = ({ text, onRemove }: TagProps) => {
 return (
   <motion.span
     initial={{ opacity: 0, scale: 0.8, y: -10, filter: "blur(10px)" }}
@@ -28,6 +33,8 @@ return (
     <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
       <Button
         onClick={onRemove}
+        type="button"
+        aria-label="Remove tag"
         className="bg-transparent text-xs h-fit flex items-center rounded-full justify-center text-accent-foreground p-1 hover:bg-accent"
       >
         <X className="w-4 h-4" />
@@ -54,33 +61,50 @@ const InputWithTags = ({
   onChange,
   disabled,
 }: InputWithTagsProps) => {
-  const [internalTags, setInternalTags] = useState<string[]>([]);
-  const tags = value !== undefined ? value : internalTags;
+  const [internalTags, setInternalTags] = useState<TagItem[]>([]);
+  const currentValues = value ?? internalTags.map((tag) => tag.text);
 
   const [inputValue, setInputValue] = useState("");
+
+  const buildTagItems = (values: string[], previous: TagItem[]) => {
+    const remaining = [...previous];
+    return values.map((text) => {
+      const matchIndex = remaining.findIndex((item) => item.text === text);
+      if (matchIndex >= 0) {
+        const [match] = remaining.splice(matchIndex, 1);
+        return match;
+      }
+      return { id: crypto.randomUUID(), text };
+    });
+  };
+
+  useEffect(() => {
+    if (value !== undefined) {
+      setInternalTags((prev) => buildTagItems(value, prev));
+    }
+  }, [value]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && inputValue.trim()) {
       e.preventDefault();
-      if (!limit || tags.length < limit) {
-        const newTags = [...tags, inputValue.trim()];
+      if (!limit || currentValues.length < limit) {
+        const newValues = [...currentValues, inputValue.trim()];
         if (onChange) {
-          onChange(newTags);
-        } else {
-          setInternalTags(newTags);
+          onChange(newValues);
         }
+        setInternalTags((prev) => buildTagItems(newValues, prev));
         setInputValue("");
       }
     }
   };
 
-  const removeTag = (indexToRemove: number) => {
-    const newTags = tags.filter((_, index) => index !== indexToRemove);
+  const removeTag = (idToRemove: string) => {
+    const newTags = internalTags.filter((tag) => tag.id !== idToRemove);
+    const newValues = newTags.map((tag) => tag.text);
     if (onChange) {
-      onChange(newTags);
-    } else {
-      setInternalTags(newTags);
+      onChange(newValues);
     }
+    setInternalTags(newTags);
   };
 
   return (
@@ -99,13 +123,13 @@ const InputWithTags = ({
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
           className="w-full px-4 py-2 bg-background border border-input rounded-xl text-foreground placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          disabled={disabled || (limit ? tags.length >= limit : false)}
+          disabled={disabled || (limit ? currentValues.length >= limit : false)}
         />
       </motion.div>
     <div className="flex flex-wrap gap-2">
       <AnimatePresence>
-        {tags.map((tag, index) => (
-          <Tag key={index} text={tag} onRemove={() => removeTag(index)} />
+        {internalTags.map((tag) => (
+          <Tag key={tag.id} text={tag.text} onRemove={() => removeTag(tag.id)} />
         ))}
       </AnimatePresence>
     </div>

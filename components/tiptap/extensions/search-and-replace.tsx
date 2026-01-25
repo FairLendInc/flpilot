@@ -2,7 +2,7 @@
 
 import { type Editor as CoreEditor, Extension, type Range } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, type EditorState, Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 
 declare module "@tiptap/core" {
@@ -76,10 +76,6 @@ function processSearches(
 	const results: Range[] = [];
 	const textNodesWithPosition: TextNodeWithPosition[] = [];
 
-	if (!searchTerm) {
-		return { decorationsToReturn: DecorationSet.empty, results: [] };
-	}
-
 	doc.descendants((node, pos) => {
 		if (node.isText) {
 			textNodesWithPosition.push({ text: node.text || "", pos });
@@ -122,7 +118,10 @@ function processSearches(
 const replace = (
 	replaceTerm: string,
 	results: Range[],
-	{ state, dispatch }: any
+	{
+		state,
+		dispatch,
+	}: { state: EditorState; dispatch?: (tr: Transaction) => void }
 ) => {
 	const firstResult = results[0];
 
@@ -171,7 +170,7 @@ const rebaseNextResult = (
 const replaceAll = (
 	replaceTerm: string,
 	results: Range[],
-	{ tr, dispatch }: { tr: any; dispatch: any }
+	{ tr, dispatch }: { tr: Transaction; dispatch: (tr: Transaction) => void }
 ) => {
 	if (!results.length) {
 		return;
@@ -195,8 +194,10 @@ const replaceAll = (
 };
 
 const selectNext = (editor: CoreEditor) => {
-	const storage = (editor.storage as any)
-		.searchAndReplace as SearchAndReplaceStorage;
+	const storage = (
+		editor.storage as unknown as { searchAndReplace?: SearchAndReplaceStorage }
+	).searchAndReplace;
+	if (!storage) return;
 
 	const { results } = storage;
 
@@ -221,17 +222,18 @@ const selectNext = (editor: CoreEditor) => {
 	const view: EditorView | undefined = editor.view;
 
 	if (view) {
-		view
-			.domAtPos(from)
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore
-			.node.scrollIntoView({ behavior: "smooth", block: "center" });
+		const node = view.domAtPos(from).node;
+		if (node instanceof Element) {
+			node.scrollIntoView({ behavior: "smooth", block: "center" });
+		}
 	}
 };
 
 const selectPrevious = (editor: CoreEditor) => {
-	const storage = (editor.storage as any)
-		.searchAndReplace as SearchAndReplaceStorage;
+	const storage = (
+		editor.storage as unknown as { searchAndReplace?: SearchAndReplaceStorage }
+	).searchAndReplace;
+	if (!storage) return;
 
 	const { results } = storage;
 
@@ -248,17 +250,17 @@ const selectPrevious = (editor: CoreEditor) => {
 		storage.selectedResult -= 1;
 	}
 
-	const { from } =
-		results[storage.selectedResult];
+	const result = results[storage.selectedResult];
+	if (!result) return;
+	const { from } = result;
 
 	const view: EditorView | undefined = editor.view;
 
 	if (view) {
-		view
-			.domAtPos(from)
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore
-			.node.scrollIntoView({ behavior: "smooth", block: "center" });
+		const node = view.domAtPos(from).node;
+		if (node instanceof Element) {
+			node.scrollIntoView({ behavior: "smooth", block: "center" });
+		}
 	}
 };
 
@@ -291,7 +293,7 @@ export const SearchAndReplace = Extension.create<
 
 	addOptions() {
 		return {
-			searchResultClass: " bg-yellow-200",
+			searchResultClass: "bg-yellow-200",
 			selectedResultClass: "bg-yellow-500",
 			disableRegex: true,
 		};
@@ -341,6 +343,10 @@ export const SearchAndReplace = Extension.create<
 				({ editor, tr, dispatch }) => {
 					const { replaceTerm, results } = (editor.storage as any)
 						.searchAndReplace as SearchAndReplaceStorage;
+
+					if (!dispatch) {
+						return false;
+					}
 
 					replaceAll(replaceTerm, results, { tr, dispatch });
 
@@ -433,9 +439,9 @@ export const SearchAndReplace = Extension.create<
 
 						((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).results = results;
 
-						if (selectedResult > results.length) {
-							((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).selectedResult = 1;
-							editor.commands.selectPreviousResult();
+						if (selectedResult >= results.length) {
+							((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).selectedResult =
+								Math.max(results.length - 1, 0);
 						}
 
 						return decorationsToReturn;

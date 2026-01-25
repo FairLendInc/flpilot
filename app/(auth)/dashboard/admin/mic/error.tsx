@@ -3,6 +3,7 @@
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { createClientAdapter } from "@/lib/clientAdapter";
 
 export default function MICAdminError({
 	error,
@@ -12,8 +13,13 @@ export default function MICAdminError({
 	reset: () => void;
 }) {
 	useEffect(() => {
-		// Log the error to an error reporting service
-		console.error(error);
+		const adapter = createClientAdapter();
+		adapter.error(error, {
+			component: "admin/mic/error",
+			hook: "useEffect",
+			message: error.message,
+			stack: error.stack,
+		});
 	}, [error]);
 
 	return (

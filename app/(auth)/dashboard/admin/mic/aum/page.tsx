@@ -21,7 +21,7 @@
  */
 
 import { Filter, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { MICAUMTable } from "@/components/admin/mic/MICAUMTable";
 import { AddAUMSheet } from "@/components/admin/mic/sheets/AddAUMSheet";
 import { AUMStateSheet } from "@/components/admin/mic/sheets/AUMStateSheet";
@@ -38,37 +38,29 @@ export default function AUMPortfolioPage() {
 	const [isSellSheetOpen, setIsSellSheetOpen] = useState(false);
 	const [isStateSheetOpen, setIsStateSheetOpen] = useState(false);
 
-	const mappedAUMs = useMemo(
-		() =>
-			aums
-				.map((aum) => ({
-					id: aum.id,
-					mortgageName: aum.address.split(",")[0],
-					address: aum.address,
-					totalValue: aum.principal / 100,
-					ownershipPercentage: aum.micOwnership,
-					micValue: (aum.principal * aum.micOwnership) / 10000,
-					accrualStatus:
-						aum.state === "active"
-							? ("up-to-date" as const)
-							: ("pending" as const),
-					lastAccruedDate: aum.originationDate,
-				}))
-				.filter((aum) => {
-					if (activeTab === "all") return true;
-					if (activeTab === "full") return aum.ownershipPercentage === 100;
-					if (activeTab === "partial") return aum.ownershipPercentage < 100;
-					if (activeTab === "stressed")
-						return aum.accrualStatus !== "up-to-date";
-					return true;
-				}),
-		[aums, activeTab]
-	);
+	const mappedAUMs = aums
+		.map((aum) => ({
+			id: aum.id,
+			mortgageName: aum.address.split(",")[0],
+			address: aum.address,
+			totalValue: aum.principal / 100,
+			ownershipPercentage: aum.micOwnership,
+			micValue: (aum.principal * aum.micOwnership) / 10000,
+			accrualStatus:
+				aum.state === "active"
+					? ("up-to-date" as const)
+					: ("pending" as const),
+			lastAccruedDate: aum.originationDate,
+		}))
+		.filter((aum) => {
+			if (activeTab === "all") return true;
+			if (activeTab === "full") return aum.ownershipPercentage === 100;
+			if (activeTab === "partial") return aum.ownershipPercentage < 100;
+			if (activeTab === "stressed") return aum.accrualStatus !== "up-to-date";
+			return true;
+		});
 
-	const selectedAUM = useMemo(
-		() => aums.find((a) => a.id === selectedAUMId) || null,
-		[aums, selectedAUMId]
-	);
+	const selectedAUM = aums.find((a) => a.id === selectedAUMId) || null;
 
 	return (
 		<div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">

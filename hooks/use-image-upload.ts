@@ -2,9 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseImageUploadProps {
   onUpload?: (url: string) => void;
+  uploadHandler?: (file: File, localUrl: string) => Promise<string>;
+  onError?: (error: Error) => void;
 }
 
-export function useImageUpload({ onUpload }: UseImageUploadProps = {}) {
+export function useImageUpload({
+  onUpload,
+  uploadHandler,
+  onError,
+}: UseImageUploadProps = {}) {
   const previewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -12,7 +18,7 @@ export function useImageUpload({ onUpload }: UseImageUploadProps = {}) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Dummy upload function that simulates a delay and returns the local preview URL
+  // TODO: Demo-only upload helper. Replace with real upload handler.
   const dummyUpload = async (file: File, localUrl: string): Promise<string> => {
     try {
       setUploading(true);
@@ -50,17 +56,30 @@ export function useImageUpload({ onUpload }: UseImageUploadProps = {}) {
         previewRef.current = localUrl;
 
         try {
-          const uploadedUrl = await dummyUpload(file, localUrl);
+          if (!uploadHandler && process.env.NODE_ENV === "production") {
+            throw new Error("Image upload handler not configured");
+          }
+          const resolvedUpload =
+            uploadHandler ??
+            (process.env.NODE_ENV === "development" ? dummyUpload : null);
+          if (!resolvedUpload) {
+            throw new Error("Image upload handler not configured");
+          }
+          const uploadedUrl = await resolvedUpload(file, localUrl);
           onUpload?.(uploadedUrl);
         } catch (err) {
           URL.revokeObjectURL(localUrl);
           setPreviewUrl(null);
           setFileName(null);
-          return console.error(err)
+          const error =
+            err instanceof Error ? err : new Error("Upload failed");
+          setError(error.message);
+          onError?.(error);
+          throw error;
         }
       }
     },
-    [onUpload]
+    [onError, onUpload, uploadHandler]
   );
 
   const handleRemove = useCallback(() => {

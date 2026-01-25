@@ -1,18 +1,22 @@
 // @vitest-environment node
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test } from "vitest";
-import type { Doc, Id } from "../_generated/dataModel";
+import { describe, expect, test } from "vitest";
+import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 
 process.env.LISTINGS_WEBHOOK_API_KEY = "test-webhook-key";
 process.env.LISTINGS_WEBHOOK_ALLOWED_ORIGIN = "*";
 
+// @ts-ignore
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
 
 const API_KEY = "test-webhook-key";
 const WRONG_KEY = "wrong-key";
-const JSON_HEADERS = { "Content-Type": "application/json", "x-api-key": API_KEY };
+const JSON_HEADERS = {
+	"Content-Type": "application/json",
+	"x-api-key": API_KEY,
+};
 
 type BorrowerPayload = {
 	name: string;
@@ -156,8 +160,7 @@ describe("/borrowers/create", () => {
 	test("rejects missing rotessaCustomerId", async () => {
 		const t = createTest();
 
-		const { rotessaCustomerId: _unused, ...payload } =
-			makeBorrowerPayload();
+		const { rotessaCustomerId: _unused, ...payload } = makeBorrowerPayload();
 		const response = await t.fetch("/borrowers/create", {
 			method: "POST",
 			headers: JSON_HEADERS,
@@ -250,10 +253,13 @@ describe("/borrowers/get", () => {
 			result: { borrowerId: string };
 		};
 
-		const response = await t.fetch(`/borrowers/get?borrowerId=${result.borrowerId}`, {
-			method: "GET",
-			headers: { "x-api-key": API_KEY },
-		});
+		const response = await t.fetch(
+			`/borrowers/get?borrowerId=${result.borrowerId}`,
+			{
+				method: "GET",
+				headers: { "x-api-key": API_KEY },
+			}
+		);
 
 		expect(response.status).toBe(200);
 		const body = (await response.json()) as {
@@ -304,10 +310,10 @@ describe("/borrowers/get", () => {
 			),
 		});
 
-		const response = await t.fetch(
-			"/borrowers/get?email=lookup@example.com",
-			{ method: "GET", headers: { "x-api-key": API_KEY } }
-		);
+		const response = await t.fetch("/borrowers/get?email=lookup@example.com", {
+			method: "GET",
+			headers: { "x-api-key": API_KEY },
+		});
 
 		expect(response.status).toBe(200);
 		const body = (await response.json()) as { result: { email: string } };
@@ -488,13 +494,10 @@ describe("/borrowers/list", () => {
 			),
 		});
 
-		const response = await t.fetch(
-			"/borrowers/list?createdAfter=2024-01-01",
-			{
-				method: "GET",
-				headers: { "x-api-key": API_KEY },
-			}
-		);
+		const response = await t.fetch("/borrowers/list?createdAfter=2024-01-01", {
+			method: "GET",
+			headers: { "x-api-key": API_KEY },
+		});
 
 		expect(response.status).toBe(200);
 	});
@@ -520,7 +523,11 @@ describe("/borrowers/list", () => {
 			headers: { "x-api-key": API_KEY },
 		});
 		const body1 = (await page1.json()) as {
-			result: { borrowers: Array<{ _id: string }>; nextCursor?: string; hasMore: boolean };
+			result: {
+				borrowers: Array<{ _id: string }>;
+				nextCursor?: string;
+				hasMore: boolean;
+			};
 		};
 		expect(body1.result.borrowers).toHaveLength(2);
 		expect(body1.result.hasMore).toBe(true);
@@ -581,7 +588,10 @@ describe("/borrowers/update", () => {
 		const response = await t.fetch("/borrowers/update", {
 			method: "PATCH",
 			headers: JSON_HEADERS,
-			body: JSON.stringify({ borrowerId: result.borrowerId, name: "Updated Name" }),
+			body: JSON.stringify({
+				borrowerId: result.borrowerId,
+				name: "Updated Name",
+			}),
 		});
 
 		expect(response.status).toBe(200);
@@ -827,7 +837,10 @@ describe("/borrowers/delete", () => {
 		});
 
 		expect(response.status).toBe(409);
-		const body = (await response.json()) as { code: string; mortgageCount: number };
+		const body = (await response.json()) as {
+			code: string;
+			mortgageCount: number;
+		};
 		expect(body.code).toBe("borrower_has_dependencies");
 		expect(body.mortgageCount).toBeGreaterThan(0);
 	});

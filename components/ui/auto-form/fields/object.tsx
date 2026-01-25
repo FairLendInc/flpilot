@@ -48,24 +48,51 @@ export default function AutoFormObject<
   if (!schema) {
     return null;
   }
-  const { shape } = getBaseSchema<SchemaType>(schema) || {};
+  const baseSchema = getBaseSchema(schema) as z.ZodObject<any, any> | null;
+  const { shape } = baseSchema || {};
 
   if (!shape) {
     return null;
   }
 
   const handleIfZodNumber = (item: z.ZodAny) => {
-    const zodDef = (item as any)._zod?.def;
-    const isZodNumber = zodDef?.type === "ZodNumber";
-    const isInnerZodNumber = zodDef?.innerType?._zod?.def?.type === "ZodNumber";
-
-    if (isZodNumber) {
-      zodDef.coerce = true;
-    } else if (isInnerZodNumber) {
-      zodDef.innerType._zod.def.coerce = true;
+    const baseSchema = getBaseSchema(item);
+    if (!(baseSchema instanceof z.ZodNumber)) {
+      return item;
     }
 
-    return item;
+    type ZodWithDef = z.ZodTypeAny & {
+      _def?: { type?: string; innerType?: z.ZodTypeAny };
+    };
+
+    let current: ZodWithDef | undefined = item;
+    let isOptional = false;
+    let isNullable = false;
+
+    while (current) {
+      const defType = current._def?.type;
+      if (defType === "optional") {
+        isOptional = true;
+        current = current._def?.innerType as ZodWithDef | undefined;
+        continue;
+      }
+      if (defType === "nullable") {
+        isNullable = true;
+        current = current._def?.innerType as ZodWithDef | undefined;
+        continue;
+      }
+      break;
+    }
+
+    let schema: z.ZodTypeAny = z.coerce.number();
+    if (isOptional) {
+      schema = schema.optional();
+    }
+    if (isNullable) {
+      schema = schema.nullable();
+    }
+
+    return schema;
   };
 
   const sortedFieldKeys = sortFieldsByOrder(fieldConfig, Object.keys(shape));

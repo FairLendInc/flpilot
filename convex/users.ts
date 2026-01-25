@@ -225,3 +225,8 @@ export const getUserByIdpId = internalQuery({
 	args: { idpId: v.string() },
 	handler: async (ctx, { idpId }) => await userByExternalId(ctx, idpId),
 });
+
+export const getUserById = internalQuery({
+	args: { userId: v.id("users") },
+	handler: async (ctx, { userId }) => await ctx.db.get(userId),
+});

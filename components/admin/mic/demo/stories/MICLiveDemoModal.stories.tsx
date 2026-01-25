@@ -77,7 +77,7 @@ const mockAccounts = [
 ];
 
 const mockTransaction = {
-	description: "Subscription of $100,000 from Micheal Scott",
+	description: "Subscription of $100,000 from Michael Scott",
 	legs: [
 		{
 			source: "world",
