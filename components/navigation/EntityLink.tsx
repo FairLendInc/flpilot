@@ -8,13 +8,13 @@ type EntityType = "broker" | "client" | "deal" | "listing" | "mortgage";
 
 type EntityLinkProps = {
 	type: EntityType;
-	id: string | Id<any>;
+	id: string | Id<"brokers" | "users" | "deals" | "listings" | "mortgages">;
 	children: React.ReactNode;
 	className?: string;
 };
 
 export function EntityLink({ type, id, children, className }: EntityLinkProps) {
-	const { subdomain, isBranded } = useBranding();
+	const { isBranded } = useBranding();
 
 	const getPath = () => {
 		const basePath = isBranded ? "" : "/dashboard";

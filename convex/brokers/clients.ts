@@ -1,5 +1,10 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type {
+	AuthorizedMutationCtx,
+	AuthorizedQueryCtx,
+} from "../lib/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
 
 /**
@@ -29,11 +34,11 @@ export const getClientByEmail = createAuthorizedQuery(
 	args: {
 		email: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		// Since broker_clients doesn't have an email field, we need to find the user first
 		const user = await ctx.db
 			.query("users")
-			.withIndex("by_email", (q: any) => q.eq("email", args.email))
+			.withIndex("by_email", (q) => q.eq("email", args.email))
 			.first();
 
 		if (!user) {
@@ -43,7 +48,7 @@ export const getClientByEmail = createAuthorizedQuery(
 		// Find client records for this user
 		const clients = await ctx.db
 			.query("broker_clients")
-			.withIndex("by_client", (q: any) => q.eq("clientId", user._id))
+			.withIndex("by_client", (q) => q.eq("clientId", user._id))
 			.collect();
 
 		return clients;
@@ -61,15 +66,49 @@ function generateInviteToken(): string {
 	return crypto.randomUUID();
 }
 
+function requireSubjectId(ctx: { subject?: string | null }): Id<"users"> {
+	if (!ctx.subject) {
+		throw new Error("Authentication required");
+	}
+	return ctx.subject as Id<"users">;
+}
+
 /**
  * Validate filter values against broker constraints
  */
+type BrokerFilterConstraints = {
+	minLTV?: number;
+	maxLTV?: number;
+	minLoanAmount?: number;
+	maxLoanAmount?: number;
+	minInterestRate?: number;
+	maxInterestRate?: number;
+	allowedPropertyTypes?: string[];
+	allowedLocations?: string[];
+	allowedRiskProfiles?: Array<"conservative" | "balanced" | "growth">;
+};
+
+type BrokerFilterValues = {
+	minLTV?: number;
+	maxLTV?: number;
+	minLoanAmount?: number;
+	maxLoanAmount?: number;
+	minInterestRate?: number;
+	maxInterestRate?: number;
+	propertyTypes: string[];
+	locations: string[];
+	riskProfile: "conservative" | "balanced" | "growth";
+};
+
 function validateFiltersAgainstConstraints(
-	constraints: any,
-	values: any,
+	constraints: BrokerFilterConstraints,
+	values: BrokerFilterValues,
 	isAdmin: boolean
 ): { valid: boolean; errors: string[] } {
 	const errors: string[] = [];
+	const allowedPropertyTypes = constraints.allowedPropertyTypes ?? [];
+	const allowedLocations = constraints.allowedLocations ?? [];
+	const allowedRiskProfiles = constraints.allowedRiskProfiles ?? [];
 
 	// Admin can bypass all constraints
 	if (isAdmin) {
@@ -133,12 +172,9 @@ function validateFiltersAgainstConstraints(
 	}
 
 	// Validate property types against allowed list
-	if (
-		constraints.allowedPropertyTypes &&
-		constraints.allowedPropertyTypes.length > 0
-	) {
+	if (allowedPropertyTypes.length > 0) {
 		const invalidTypes = values.propertyTypes.filter(
-			(type: string) => !constraints.allowedPropertyTypes.includes(type)
+			(type: string) => !allowedPropertyTypes.includes(type)
 		);
 		if (invalidTypes.length > 0) {
 			errors.push(`Invalid property types: ${invalidTypes.join(", ")}`);
@@ -146,9 +182,9 @@ function validateFiltersAgainstConstraints(
 	}
 
 	// Validate locations against allowed list
-	if (constraints.allowedLocations && constraints.allowedLocations.length > 0) {
+	if (allowedLocations.length > 0) {
 		const invalidLocations = values.locations.filter(
-			(loc: string) => !constraints.allowedLocations.includes(loc)
+			(loc: string) => !allowedLocations.includes(loc)
 		);
 		if (invalidLocations.length > 0) {
 			errors.push(`Invalid locations: ${invalidLocations.join(", ")}`);
@@ -157,9 +193,8 @@ function validateFiltersAgainstConstraints(
 
 	// Validate risk profile against allowed list
 	if (
-		constraints.allowedRiskProfiles &&
-		constraints.allowedRiskProfiles.length > 0 &&
-		!constraints.allowedRiskProfiles.includes(values.riskProfile)
+		allowedRiskProfiles.length > 0 &&
+		!allowedRiskProfiles.includes(values.riskProfile)
 	) {
 		errors.push(`Risk profile ${values.riskProfile} is not allowed`);
 	}
@@ -170,10 +205,12 @@ function validateFiltersAgainstConstraints(
 /**
  * Get FAIRLEND broker (default broker for clients without a broker)
  */
-async function getFairlendBroker(ctx: any): Promise<Id<"brokers"> | null> {
+async function getFairlendBroker(
+	ctx: QueryCtx | MutationCtx
+): Promise<Id<"brokers"> | null> {
 	const fairlend = await ctx.db
 		.query("brokers")
-		.withIndex("by_subdomain", (q: any) => q.eq("subdomain", "fairlend"))
+		.withIndex("by_subdomain", (q) => q.eq("subdomain", "fairlend"))
 		.first();
 	return fairlend?._id ?? null;
 }
@@ -193,7 +230,7 @@ export const getClientWithFilters = createAuthorizedQuery([
 	args: {
 		clientBrokerId: v.id("broker_clients"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -201,10 +238,12 @@ export const getClientWithFilters = createAuthorizedQuery([
 		}
 
 		// Verify the requesting user is the client's broker
-		if (
-			(ctx as any).role !== "admin" &&
-			client.brokerId !== (ctx as any).brokerId
-		) {
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (ctx.role !== "admin" && client.brokerId !== broker?._id) {
 			throw new Error("Unauthorized to access this client");
 		}
 
@@ -238,34 +277,32 @@ export const listBrokerClients = createAuthorizedQuery([
 			})
 		),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
+		const subjectId = requireSubjectId(ctx);
 		const broker = await ctx.db
 			.query("brokers")
-			.withIndex("by_user", (q: any) => q.eq("userId", (ctx as any).subject))
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
 			.first();
 
 		if (!broker) {
 			throw new Error("Broker not found");
 		}
 
-		let query: any;
-
 		// Apply status filter if provided
-		if (args.status) {
-			query = ctx.db
-				.query("broker_clients")
-				.withIndex("by_broker_status", (q) =>
-					q.eq("brokerId", broker._id).eq("onboardingStatus", args.status!)
-				);
-		} else {
-			query = ctx.db
-				.query("broker_clients")
-				.withIndex("by_broker", (q) => q.eq("brokerId", broker._id));
-		}
-
-		// Apply pagination if provided
 		const limit = args.pagination?.limit ?? 50;
-		const clients = await query.take(limit);
+		const clients = args.status
+			? await ctx.db
+					.query("broker_clients")
+					.withIndex("by_broker_status", (q) =>
+						q
+							.eq("brokerId", broker._id)
+							.eq("onboardingStatus", args.status ?? "invited")
+					)
+					.take(limit)
+			: await ctx.db
+					.query("broker_clients")
+					.withIndex("by_broker", (q) => q.eq("brokerId", broker._id))
+					.take(limit);
 
 		return {
 			clients,
@@ -284,7 +321,7 @@ export const getClientDetail = createAuthorizedQuery([
 	args: {
 		clientBrokerId: v.id("broker_clients"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -292,10 +329,12 @@ export const getClientDetail = createAuthorizedQuery([
 		}
 
 		// Verify the requesting user is the client's broker
-		if (
-			(ctx as any).role !== "admin" &&
-			client.brokerId !== (ctx as any).brokerId
-		) {
+		const subjectId = requireSubjectId(ctx);
+		const userBroker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (ctx.role !== "admin" && client.brokerId !== userBroker?._id) {
 			throw new Error("Unauthorized to access this client");
 		}
 
@@ -364,11 +403,12 @@ export const createClientOnboarding = createAuthorizedMutation([
 		}),
 		returnAdjustmentPercentage: v.number(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
+		const subjectId = requireSubjectId(ctx);
 		// Get broker record for current user
 		const broker = await ctx.db
 			.query("brokers")
-			.withIndex("by_user", (q: any) => q.eq("userId", (ctx as any).subject))
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
 			.first();
 
 		if (!broker) {
@@ -379,7 +419,7 @@ export const createClientOnboarding = createAuthorizedMutation([
 		const validation = validateFiltersAgainstConstraints(
 			args.filters.constraints,
 			args.filters.values,
-			(ctx as any).role === "admin"
+			ctx.role === "admin"
 		);
 
 		if (!validation.valid) {
@@ -394,7 +434,7 @@ export const createClientOnboarding = createAuthorizedMutation([
 			.withIndex("by_email", (q) => q.eq("email", args.clientEmail))
 			.first();
 
-		let clientId: string;
+		let clientId: Id<"users">;
 
 		if (existingUser) {
 			// Check if this user is already a client of this broker
@@ -424,7 +464,7 @@ export const createClientOnboarding = createAuthorizedMutation([
 		const now = new Date().toISOString();
 		const clientBrokerId = await ctx.db.insert("broker_clients", {
 			brokerId: broker._id,
-			clientId: clientId as any,
+			clientId,
 			workosOrgId: "", // Will be filled by WorkOS provisioning action
 			filters: args.filters,
 			returnAdjustmentPercentage: args.returnAdjustmentPercentage,
@@ -474,7 +514,7 @@ export const saveClientProfile = createAuthorizedMutation([
 			phoneNumber: v.string(),
 		}),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -482,15 +522,13 @@ export const saveClientProfile = createAuthorizedMutation([
 		}
 
 		// Verify authorization - client can update their own profile
-		if (
-			(ctx as any).role !== "admin" &&
-			(ctx as any).subject !== client.clientId
-		) {
+		const subjectId = requireSubjectId(ctx);
+		if (ctx.role !== "admin" && subjectId.toString() !== client.clientId.toString()) {
 			throw new Error("Unauthorized to update this client profile");
 		}
 
 		// Update client user record with profile information
-		await ctx.db.patch(client.clientId as any, {
+		await ctx.db.patch(client.clientId, {
 			first_name: args.profile.firstName,
 			last_name: args.profile.lastName,
 			updated_at: new Date().toISOString(),
@@ -519,7 +557,7 @@ export const submitClientForApproval = createAuthorizedMutation([
 	args: {
 		clientBrokerId: v.id("broker_clients"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -527,10 +565,8 @@ export const submitClientForApproval = createAuthorizedMutation([
 		}
 
 		// Verify authorization
-		if (
-			(ctx as any).role !== "admin" &&
-			(ctx as any).subject !== client.clientId
-		) {
+		const subjectId = requireSubjectId(ctx);
+		if (ctx.role !== "admin" && subjectId.toString() !== client.clientId.toString()) {
 			throw new Error("Unauthorized to submit this client");
 		}
 
@@ -560,7 +596,7 @@ export const approveClient = createAuthorizedMutation(["broker_admin"])({
 	args: {
 		clientBrokerId: v.id("broker_clients"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -568,7 +604,12 @@ export const approveClient = createAuthorizedMutation(["broker_admin"])({
 		}
 
 		// Verify broker owns this client
-		if (client.brokerId !== (ctx as any).brokerId) {
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (!broker || client.brokerId !== broker._id) {
 			throw new Error("You can only approve clients under your brokerage");
 		}
 
@@ -609,7 +650,7 @@ export const rejectClient = createAuthorizedMutation(["broker_admin"])({
 		clientBrokerId: v.id("broker_clients"),
 		reason: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -617,7 +658,12 @@ export const rejectClient = createAuthorizedMutation(["broker_admin"])({
 		}
 
 		// Verify broker owns this client
-		if (client.brokerId !== (ctx as any).brokerId) {
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (!broker || client.brokerId !== broker._id) {
 			throw new Error("You can only reject clients under your brokerage");
 		}
 
@@ -664,7 +710,7 @@ export const updateClientFilters = createAuthorizedMutation([
 			}),
 		}),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -672,11 +718,15 @@ export const updateClientFilters = createAuthorizedMutation([
 		}
 
 		// Verify authorization
-		const isClient = (ctx as any).subject === client.clientId;
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		const isClient = subjectId.toString() === client.clientId.toString();
 		const isBrokerAdmin =
-			(ctx as any).role === "broker_admin" &&
-			client.brokerId === (ctx as any).brokerId;
-		const isAdmin = (ctx as any).role === "admin";
+			ctx.role === "broker_admin" && client.brokerId === broker?._id;
+		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isBrokerAdmin || isClient)) {
 			throw new Error("Unauthorized to update this client's filters");
@@ -756,7 +806,7 @@ export const revokeClient = createAuthorizedMutation(["broker_admin"])({
 		clientBrokerId: v.id("broker_clients"),
 		reason: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -764,7 +814,12 @@ export const revokeClient = createAuthorizedMutation(["broker_admin"])({
 		}
 
 		// Verify broker owns this client
-		if (client.brokerId !== (ctx as any).brokerId) {
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (!broker || client.brokerId !== broker._id) {
 			throw new Error("You can only revoke clients under your brokerage");
 		}
 

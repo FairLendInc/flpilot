@@ -47,9 +47,9 @@ export const emitPendingEvents = internalAction({
 			entityId: string;
 			userId: Id<"users">;
 			timestamp: number;
-			beforeState?: any;
-			afterState?: any;
-			metadata?: any;
+			beforeState?: unknown;
+			afterState?: unknown;
+			metadata?: unknown;
 			emittedAt?: number;
 			emitFailures?: number;
 		}> = await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {

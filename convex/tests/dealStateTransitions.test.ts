@@ -1063,10 +1063,12 @@ describe("transitionDealState - Ownership Review Flow", () => {
 			api.pendingOwnershipTransfers.getPendingTransferByDeal,
 			{ dealId }
 		);
-		await adminT.mutation(
-			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id as any }
-		);
+		if (!transfer?._id) {
+			throw new Error("Pending transfer not found");
+		}
+		await adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
+			transferId: transfer._id,
+		});
 
 		// Confirm transfer
 		await adminT.mutation(api.deals.transitionDealState, {
@@ -1081,13 +1083,14 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		const ownership = await adminT.action(api.ownership.getMortgageOwnership, {
 			mortgageId,
 		});
-		const investorOwnership = ownership.find((o) => o.ownerId === investorId);
-		expect(investorOwnership).toBeTruthy();
+		const investorOwnership = ownership.find((o) => o.ownerId === investorId) as
+			| { ownershipPercentage?: number; percentage?: number }
+			| undefined;
+		if (!investorOwnership) {
+			throw new Error("Investor ownership not found");
+		}
 		const investorPercentage =
-			investorOwnership &&
-			("ownershipPercentage" in investorOwnership
-				? investorOwnership.ownershipPercentage
-				: investorOwnership.percentage);
+			investorOwnership.ownershipPercentage ?? investorOwnership.percentage;
 		expect(investorPercentage).toBe(100);
 	});
 
@@ -1112,8 +1115,11 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		);
 
 		// Reject the transfer
+		if (!transfer?._id) {
+			throw new Error("Pending transfer not found");
+		}
 		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-			transferId: transfer?._id as any,
+			transferId: transfer._id,
 			reason: "Documents need review",
 		});
 
@@ -1148,8 +1154,11 @@ describe("transitionDealState - Ownership Review Flow", () => {
 			{ dealId }
 		);
 
+		if (!transfer?._id) {
+			throw new Error("Pending transfer not found");
+		}
 		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-			transferId: transfer?._id,
+			transferId: transfer._id,
 			reason: "Issue found",
 		});
 
@@ -1199,9 +1208,12 @@ describe("transitionDealState - Ownership Review Flow", () => {
 			api.pendingOwnershipTransfers.getPendingTransferByDeal,
 			{ dealId }
 		);
+		if (!transfer?._id) {
+			throw new Error("Pending transfer not found");
+		}
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id }
+			{ transferId: transfer._id }
 		);
 
 		await adminT.mutation(api.deals.transitionDealState, {
@@ -1262,10 +1274,13 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		);
 
 		// First rejection
+		if (!transfer?._id) {
+			throw new Error("Pending transfer not found");
+		}
 		const result1 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer?._id,
+				transferId: transfer._id,
 				reason: "First issue",
 			}
 		);
@@ -1291,10 +1306,13 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		);
 
 		// Second rejection should escalate
+		if (!transfer?._id) {
+			throw new Error("Pending transfer not found");
+		}
 		const result2 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer?._id,
+				transferId: transfer._id,
 				reason: "Second issue",
 			}
 		);
@@ -1360,12 +1378,14 @@ describe("transitionDealState - Ownership Review Flow", () => {
 			api.pendingOwnershipTransfers.getPendingTransferByDeal,
 			{ dealId }
 		);
-		expect(transfer).toBeTruthy();
-		expect(transfer?.status).toBe("pending");
+		if (!transfer?._id) {
+			throw new Error("Pending transfer not found");
+		}
+		expect(transfer.status).toBe("pending");
 
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id }
+			{ transferId: transfer._id }
 		);
 
 		const approvedTransfer = await adminT.query(

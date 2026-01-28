@@ -24,6 +24,18 @@ process.env.OWNERSHIP_LEDGER_SOURCE = "legacy";
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
 
+function requireTransferId(
+	transfer:
+		| { _id?: Id<"pending_ownership_transfers"> }
+		| null
+		| undefined
+): Id<"pending_ownership_transfers"> {
+	if (!transfer?._id) {
+		throw new Error("Pending transfer not found");
+	}
+	return transfer._id;
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -378,7 +390,7 @@ describe("approvePendingTransfer", () => {
 		const result = await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
 			{
-				transferId: transfer?._id as any,
+				transferId: requireTransferId(transfer),
 				notes: "Approved after review",
 			}
 		);
@@ -409,13 +421,13 @@ describe("approvePendingTransfer", () => {
 		// Approve it once
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id as any }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Try to approve again (should fail - idempotency check)
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
-				transferId: transfer?._id as any,
+				transferId: requireTransferId(transfer),
 			})
 		).rejects.toThrow("Transfer is not pending");
 	});
@@ -462,7 +474,7 @@ describe("approvePendingTransfer", () => {
 		const beforeApproval = Date.now();
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 		const afterApproval = Date.now();
 
@@ -497,7 +509,7 @@ describe("rejectPendingTransfer", () => {
 		const result = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer?._id as any,
+				transferId: requireTransferId(transfer),
 				reason: "Documentation incomplete",
 			}
 		);
@@ -527,7 +539,7 @@ describe("rejectPendingTransfer", () => {
 		);
 
 		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-			transferId: transfer?._id as any,
+			transferId: requireTransferId(transfer),
 			reason: "Need verification",
 		});
 
@@ -564,7 +576,7 @@ describe("rejectPendingTransfer", () => {
 		const result1 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer?._id,
+				transferId: requireTransferId(transfer),
 				reason: "First issue",
 			}
 		);
@@ -573,14 +585,14 @@ describe("rejectPendingTransfer", () => {
 		// Update rejection count manually to simulate retry scenario
 		// (In real flow, a new transfer would be created for retry)
 		await t.run(async (ctx) => {
-			await ctx.db.patch(transfer?._id, { status: "pending" });
+			await ctx.db.patch(requireTransferId(transfer), { status: "pending" });
 		});
 
 		// Second rejection
 		const result2 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer?._id as any,
+				transferId: requireTransferId(transfer),
 				reason: "Second issue",
 			}
 		);
@@ -625,7 +637,7 @@ describe("getOwnershipPreview", () => {
 
 		const preview = await adminT.action(
 			api.pendingOwnershipTransfers.getOwnershipPreview,
-			{ transferId: transfer?._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Before: FairLend 100%
@@ -719,7 +731,7 @@ describe("getPendingTransfersForReview", () => {
 		// Approve it
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Check it's not in pending list
@@ -754,7 +766,7 @@ describe("ownership invariant - 100% maintained", () => {
 
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Now complete the deal to execute the transfer
@@ -781,7 +793,7 @@ describe("ownership invariant - 100% maintained", () => {
 		);
 
 		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-			transferId: transfer?._id,
+			transferId: requireTransferId(transfer),
 			reason: "Test rejection",
 		});
 
@@ -802,20 +814,20 @@ describe("ownership invariant - 100% maintained", () => {
 
 		// First: reject
 		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-			transferId: transfer?._id,
+			transferId: requireTransferId(transfer),
 			reason: "Issue 1",
 		});
 		await verifyTotalOwnership(t, mortgageId, 100);
 
 		// Reset to pending (simulate retry flow)
 		await t.run(async (ctx) => {
-			await ctx.db.patch(transfer?._id, { status: "pending" });
+			await ctx.db.patch(requireTransferId(transfer), { status: "pending" });
 		});
 
 		// Second: approve
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id as any }
+			{ transferId: requireTransferId(transfer) }
 		);
 		await verifyTotalOwnership(t, mortgageId, 100);
 	});
@@ -840,13 +852,13 @@ describe("idempotency - double submission handling", () => {
 		// First approval
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer?._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Second approval should fail
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
-				transferId: transfer?._id,
+				transferId: requireTransferId(transfer),
 			})
 		).rejects.toThrow("Transfer is not pending");
 	});
@@ -864,14 +876,14 @@ describe("idempotency - double submission handling", () => {
 
 		// First rejection
 		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-			transferId: transfer?._id,
+			transferId: requireTransferId(transfer),
 			reason: "Issue",
 		});
 
 		// Second rejection should fail
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-				transferId: transfer?._id,
+				transferId: requireTransferId(transfer),
 				reason: "Issue again",
 			})
 		).rejects.toThrow("Transfer is not pending");

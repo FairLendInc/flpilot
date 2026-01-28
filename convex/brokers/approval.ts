@@ -1,6 +1,14 @@
 import { v } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
+function requireSubjectId(ctx: unknown): Id<"users"> {
+	const subject = (ctx as { subject?: string | null }).subject;
+	if (!subject) {
+		throw new Error("Authentication required");
+	}
+	return subject as Id<"users">;
+}
+
 
 // ============================================
 // Admin Broker Review Queries
@@ -23,24 +31,21 @@ export const listPendingBrokerJourneys = createAuthorizedQuery(["admin"])({
 	},
 	handler: async (ctx, args) => {
 		// Query broker journeys by status with persona filter
-		let journeys;
-		if (args.status) {
-			journeys = await ctx.db
-				.query("onboarding_journeys")
-				.withIndex("by_status")
-				.filter((q) =>
-					q.and(
-						q.eq(q.field("status"), args.status),
-						q.eq(q.field("persona"), "broker")
+		const journeys = args.status
+			? await ctx.db
+					.query("onboarding_journeys")
+					.withIndex("by_status")
+					.filter((q) =>
+						q.and(
+							q.eq(q.field("status"), args.status),
+							q.eq(q.field("persona"), "broker")
+						)
 					)
-				)
-				.collect();
-		} else {
-			journeys = await ctx.db
-				.query("onboarding_journeys")
-				.filter((q) => q.eq(q.field("persona"), "broker"))
-				.collect();
-		}
+					.collect()
+			: await ctx.db
+					.query("onboarding_journeys")
+					.filter((q) => q.eq(q.field("persona"), "broker"))
+					.collect();
 
 		// Sort by lastTouchedAt descending (most recent first)
 		return journeys.sort(
@@ -98,17 +103,19 @@ export const sendAdminFollowUp = createAuthorizedMutation(["admin"])({
 		const now = new Date().toISOString();
 
 		// Create new timeline entry
+		const subjectId = requireSubjectId(ctx);
 		const newEntry: AdminRequestTimelineEntry = {
 			id: requestId,
 			type: args.requestType,
-			requestedBy: (ctx as any).subject as any, // Admin userId
+			requestedBy: subjectId, // Admin userId
 			requestedAt: now,
 			message: args.message,
 			resolved: false,
 		};
 
+		const brokerContext = journey.context.broker;
 		const updatedTimeline = [
-			...((journey.context.broker as any)?.adminRequestTimeline ?? []),
+			...(brokerContext?.adminRequestTimeline ?? []),
 			newEntry,
 		];
 
@@ -116,9 +123,9 @@ export const sendAdminFollowUp = createAuthorizedMutation(["admin"])({
 			context: {
 				...journey.context,
 				broker: {
-					...(journey.context.broker as any),
+					...brokerContext,
 					adminRequestTimeline: updatedTimeline,
-				} as any,
+				} as BrokerContext,
 			},
 			lastTouchedAt: now,
 		});
@@ -146,15 +153,16 @@ export const respondToAdminRequest = createAuthorizedMutation(["any"])({
 		}
 
 		// Ensure user owns this journey
-		if (journey.userId !== (ctx as any).subject) {
+		const subjectId = requireSubjectId(ctx);
+		if (journey.userId !== subjectId) {
 			throw new Error(
 				"Unauthorized: You can only respond to your own requests"
 			);
 		}
 
-		const timeline =
-			(journey.context.broker as any)?.adminRequestTimeline ?? [];
-		const entryIndex = timeline.findIndex((e: any) => e.id === args.requestId);
+		const brokerContext = journey.context.broker;
+		const timeline = brokerContext?.adminRequestTimeline ?? [];
+		const entryIndex = timeline.findIndex((e) => e.id === args.requestId);
 
 		if (entryIndex === -1) {
 			throw new Error("Request not found");
@@ -179,9 +187,9 @@ export const respondToAdminRequest = createAuthorizedMutation(["any"])({
 			context: {
 				...journey.context,
 				broker: {
-					...(journey.context.broker as any),
+					...brokerContext,
 					adminRequestTimeline: updatedTimeline,
-				} as any,
+				} as BrokerContext,
 			},
 			lastTouchedAt: now,
 		});
@@ -219,7 +227,6 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 		const now = new Date().toISOString();
 
 		// Create broker record
-		// Create broker record
 		const brokerId = await ctx.db.insert("brokers", {
 			userId: journey.userId,
 			workosOrgId: "", // Will be set by WorkOS provisioning action
@@ -233,11 +240,13 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 				returnAdjustmentPercentage: args.returnAdjustmentPercentage,
 			},
 			status: "active",
+			approvedAt: now,
 			createdAt: now,
 			updatedAt: now,
-		} as any);
+		});
 
 		// Update journey status
+		const brokerContext = journey.context.broker;
 		await ctx.db.patch(args.journeyId, {
 			status: "approved",
 			stateValue: "broker.approved",
@@ -245,14 +254,14 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 			context: {
 				...journey.context,
 				broker: {
-					...(journey.context.broker as any),
-					brokerId: brokerId as any,
-					approvedBy: (ctx as any).subject as any,
+					...(brokerContext ?? {}),
+					brokerId: brokerId.toString(),
+					approvedBy: requireSubjectId(ctx),
 					approvedAt: now,
 					subdomain: args.subdomain.toLowerCase(),
-				} as any,
+				} as BrokerContext,
 			},
-		} as any);
+		});
 
 		return { brokerId, journeyId: args.journeyId };
 	},
@@ -281,6 +290,7 @@ export const rejectBrokerOnboarding = createAuthorizedMutation(["admin"])({
 		const now = new Date().toISOString();
 
 		// Update journey status
+		const brokerContext = journey.context.broker;
 		await ctx.db.patch(args.journeyId, {
 			status: "rejected",
 			stateValue: "broker.rejected",
@@ -288,13 +298,13 @@ export const rejectBrokerOnboarding = createAuthorizedMutation(["admin"])({
 			context: {
 				...journey.context,
 				broker: {
-					...(journey.context.broker as any),
-					rejectedBy: (ctx as any).subject as any,
+					...(brokerContext ?? {}),
+					rejectedBy: requireSubjectId(ctx),
 					rejectedAt: now,
 					rejectionReason: args.reason,
-				} as any,
+				} as BrokerContext,
 			},
-		} as any);
+		});
 
 		return { journeyId: args.journeyId, rejectedAt: now };
 	},
@@ -365,11 +375,12 @@ export const rollbackBrokerJourney = createAuthorizedMutation(["admin"])({
 
 		// Clear fields based on rollback target
 		const clearedContext: Partial<BrokerContext> = {};
-		mapping.clearedFields.forEach((field) => {
+		for (const field of mapping.clearedFields) {
 			clearedContext[field] = undefined;
-		});
+		}
 
 		// Update journey with rolled-back state
+		const brokerContext = journey.context.broker;
 		await ctx.db.patch(args.journeyId, {
 			status: "draft",
 			stateValue: mapping.stateValue,
@@ -377,12 +388,11 @@ export const rollbackBrokerJourney = createAuthorizedMutation(["admin"])({
 			context: {
 				...journey.context,
 				broker: {
-					...(journey.context.broker as any),
+					...(brokerContext ?? {}),
 					...clearedContext,
 					// Preserve timeline and other admin-maintained data
-					adminRequestTimeline: (journey.context.broker as any)
-						?.adminRequestTimeline,
-				} as any,
+					adminRequestTimeline: brokerContext?.adminRequestTimeline,
+				} as BrokerContext,
 			},
 		});
 
@@ -398,64 +408,8 @@ export const rollbackBrokerJourney = createAuthorizedMutation(["admin"])({
 // Type Definitions
 // ============================================
 
-type AdminRequestTimelineEntry = {
-	id: string;
-	type: "info_request" | "document_request" | "clarification";
-	requestedBy: Id<"users">;
-	requestedAt: string;
-	message: string;
-	resolved: boolean;
-	resolvedAt?: string;
-	response?: string;
-	responseDocuments?: Array<{
-		storageId: Id<"_storage">;
-		label: string;
-	}>;
-};
+type BrokerContext = NonNullable<Doc<"onboarding_journeys">["context"]["broker"]>;
 
-type BrokerContext = {
-	companyInfo?: {
-		companyName?: string;
-		entityType?: string;
-		registrationNumber?: string;
-		address?: string;
-		city?: string;
-		province?: string;
-		postalCode?: string;
-		country?: string;
-		jurisdiction?: string;
-		phone?: string;
-		email?: string;
-		website?: string;
-		logoUrl?: string;
-	};
-	licensing?: {
-		licenseType?: string;
-		licenseNumber?: string;
-		issuer?: string;
-		issueDate?: string;
-		expiryDate?: string;
-		jurisdictions?: string[];
-	};
-	representatives?: Array<{
-		name?: string;
-		title?: string;
-		email?: string;
-		phone?: string;
-	}>;
-	documents?: Array<{
-		documentType?: string;
-		storageId?: string;
-		label?: string;
-		uploadedAt?: string;
-	}>;
-	adminRequestTimeline?: AdminRequestTimelineEntry[];
-	proposedSubdomain?: string;
-	brokerId?: string;
-	approvedBy?: string;
-	approvedAt?: string;
-	rejectedBy?: string;
-	rejectedAt?: string;
-	rejectionReason?: string;
-	subdomain?: string;
-};
+type AdminRequestTimelineEntry = NonNullable<
+	BrokerContext["adminRequestTimeline"]
+>[number];

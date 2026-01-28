@@ -17,6 +17,7 @@ import type * as brokers_approval from "../brokers/approval.js";
 import type * as brokers_clients from "../brokers/clients.js";
 import type * as brokers_commissions from "../brokers/commissions.js";
 import type * as brokers_commissions_actions from "../brokers/commissions_actions.js";
+import type * as brokers_commissions_internal from "../brokers/commissions_internal.js";
 import type * as brokers_communication from "../brokers/communication.js";
 import type * as brokers_management from "../brokers/management.js";
 import type * as brokers_onboarding from "../brokers/onboarding.js";
@@ -51,9 +52,9 @@ import type * as lib_webhookPagination from "../lib/webhookPagination.js";
 import type * as listings from "../listings.js";
 import type * as lockRequests from "../lockRequests.js";
 import type * as logger from "../logger.js";
+import type * as migrations from "../migrations.js";
 import type * as migrations_documentGroupsAndTypes from "../migrations/documentGroupsAndTypes.js";
 import type * as migrations_fix_ownership_user_references from "../migrations/fix_ownership_user_references.js";
-import type * as migrations from "../migrations.js";
 import type * as mortgages from "../mortgages.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as onboarding from "../onboarding.js";
@@ -76,14 +77,6 @@ import type {
   FunctionReference,
 } from "convex/server";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 declare const fullApi: ApiFromModules<{
   alerts: typeof alerts;
   auditEvents: typeof auditEvents;
@@ -94,6 +87,7 @@ declare const fullApi: ApiFromModules<{
   "brokers/clients": typeof brokers_clients;
   "brokers/commissions": typeof brokers_commissions;
   "brokers/commissions_actions": typeof brokers_commissions_actions;
+  "brokers/commissions_internal": typeof brokers_commissions_internal;
   "brokers/communication": typeof brokers_communication;
   "brokers/management": typeof brokers_management;
   "brokers/onboarding": typeof brokers_onboarding;
@@ -128,9 +122,9 @@ declare const fullApi: ApiFromModules<{
   listings: typeof listings;
   lockRequests: typeof lockRequests;
   logger: typeof logger;
+  migrations: typeof migrations;
   "migrations/documentGroupsAndTypes": typeof migrations_documentGroupsAndTypes;
   "migrations/fix_ownership_user_references": typeof migrations_fix_ownership_user_references;
-  migrations: typeof migrations;
   mortgages: typeof mortgages;
   myFunctions: typeof myFunctions;
   onboarding: typeof onboarding;
@@ -147,14 +141,30 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   workos: typeof workos;
 }>;
-declare const fullApiWithMounts: typeof fullApi;
 
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "internal">
 >;
 

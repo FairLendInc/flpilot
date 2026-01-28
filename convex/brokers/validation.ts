@@ -1,13 +1,27 @@
 import { v } from "convex/values";
-import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
+import type { Doc } from "../_generated/dataModel";
+import {
+	AuthorizedMutationCtx,
+	AuthorizedQueryCtx,
+	createAuthorizedMutation,
+	createAuthorizedQuery,
+} from "../lib/server";
+function requireSubjectId(ctx: unknown): Doc<"users">["_id"] {
+	const subject = (ctx as { subject?: string | null }).subject;
+	if (!subject) {
+		throw new Error("Authentication required");
+	}
+	return subject as Doc<"users">["_id"];
+}
+
 
 // ============================================
 // Helper Functions (for internal use)
 // ============================================
 
 async function validateJourneyCompletenessInline(
-	_ctx: any,
-	journey: any
+	_ctx: unknown,
+	journey: Doc<"onboarding_journeys">
 ): Promise<{
 	valid: boolean;
 	errors: string[];
@@ -24,27 +38,21 @@ async function validateJourneyCompletenessInline(
 			companyName,
 			entityType,
 			registrationNumber,
-			address,
-			city,
-			province,
-			postalCode,
-			country,
-			jurisdiction,
-			phone,
-			email,
+			registeredAddress,
+			businessPhone,
+			businessEmail,
 		} = brokerContext.companyInfo;
 
 		if (!companyName) errors.push("Company name is required");
 		if (!entityType) errors.push("Entity type is required");
 		if (!registrationNumber) errors.push("Registration number is required");
-		if (!address) errors.push("Address is required");
-		if (!city) errors.push("City is required");
-		if (!province) errors.push("Province is required");
-		if (!postalCode) errors.push("Postal code is required");
-		if (!country) errors.push("Country is required");
-		if (!jurisdiction) errors.push("Jurisdiction is required");
-		if (!phone) errors.push("Phone number is required");
-		if (!email) errors.push("Email is required");
+		if (!registeredAddress?.street) errors.push("Street address is required");
+		if (!registeredAddress?.city) errors.push("City is required");
+		if (!registeredAddress?.state) errors.push("State is required");
+		if (!registeredAddress?.zip) errors.push("Postal code is required");
+		if (!registeredAddress?.country) errors.push("Country is required");
+		if (!businessPhone) errors.push("Business phone is required");
+		if (!businessEmail) errors.push("Business email is required");
 	} else {
 		missingSections.push("companyInfo");
 		errors.push("Company information is required");
@@ -52,13 +60,13 @@ async function validateJourneyCompletenessInline(
 
 	// Validate Licensing Information
 	if (brokerContext?.licensing) {
-		const { licenseType, licenseNumber, issuer, issueDate, expiryDate } =
+		const { licenseType, licenseNumber, issuer, issuedDate, expiryDate } =
 			brokerContext.licensing;
 
 		if (!licenseType) errors.push("License type is required");
 		if (!licenseNumber) errors.push("License number is required");
 		if (!issuer) errors.push("License issuer is required");
-		if (!issueDate) errors.push("License issue date is required");
+		if (!issuedDate) errors.push("License issue date is required");
 		if (!expiryDate) errors.push("License expiry date is required");
 
 		// Check if license is not expired
@@ -78,16 +86,25 @@ async function validateJourneyCompletenessInline(
 		missingSections.push("representatives");
 		errors.push("At least one representative is required");
 	} else {
-		brokerContext.representatives.forEach((rep: any, index: number) => {
-			if (!rep.name)
-				errors.push(`Representative ${index + 1} name is required`);
-			if (!rep.title)
-				errors.push(`Representative ${index + 1} title is required`);
-			if (!rep.email)
-				errors.push(`Representative ${index + 1} email is required`);
-			if (!rep.phone)
-				errors.push(`Representative ${index + 1} phone is required`);
-		});
+		const representatives = brokerContext.representatives;
+		if (representatives) {
+			for (const [index, rep] of representatives.entries()) {
+				if (!rep.firstName)
+					errors.push(`Representative ${index + 1} first name is required`);
+				if (!rep.lastName)
+					errors.push(`Representative ${index + 1} last name is required`);
+				if (!rep.role)
+					errors.push(`Representative ${index + 1} role is required`);
+				if (!rep.email)
+					errors.push(`Representative ${index + 1} email is required`);
+				if (!rep.phone)
+					errors.push(`Representative ${index + 1} phone is required`);
+				if (!rep.hasAuthority)
+					errors.push(
+						`Representative ${index + 1} authority status is required`
+					);
+			}
+		}
 	}
 
 	// Validate Documents
@@ -100,9 +117,8 @@ async function validateJourneyCompletenessInline(
 			"certificate_of_incorporation",
 		];
 
-		const uploadedTypes = brokerContext.documents.map(
-			(d: any) => d.documentType
-		);
+		const documents = brokerContext.documents;
+		const uploadedTypes = documents?.map((d) => d.type) ?? [];
 		const missingTypes = requiredDocumentTypes.filter(
 			(type) => !uploadedTypes.includes(type)
 		);
@@ -113,10 +129,13 @@ async function validateJourneyCompletenessInline(
 	}
 
 	// Check for unresolved admin requests
-	if (brokerContext?.adminRequestTimeline) {
-		const unresolvedRequests = (
-			brokerContext.adminRequestTimeline as any[]
-		).filter((req: any) => !req.resolved);
+	const adminRequestTimeline = brokerContext?.adminRequestTimeline as
+		| Array<{ resolved?: boolean }>
+		| undefined;
+	if (adminRequestTimeline) {
+		const unresolvedRequests = adminRequestTimeline.filter(
+			(req) => !req.resolved
+		);
 
 		if (unresolvedRequests.length > 0) {
 			errors.push(
@@ -132,6 +151,9 @@ async function validateJourneyCompletenessInline(
 		totalErrors: errors.length,
 	};
 }
+
+// Regex moved to top level for performance
+const VALID_SUBDOMAIN_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i;
 
 async function validateSubdomainFormatInline(subdomain: string): Promise<{
 	valid: boolean;
@@ -149,8 +171,7 @@ async function validateSubdomainFormatInline(subdomain: string): Promise<{
 	}
 
 	// Check for valid characters (letters, numbers, hyphens)
-	const validPattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i;
-	if (!validPattern.test(normalized)) {
+	if (!VALID_SUBDOMAIN_PATTERN.test(normalized)) {
 		errors.push(
 			"Subdomain can only contain letters, numbers, and hyphens, and must start and end with a letter or number"
 		);
@@ -179,10 +200,10 @@ async function validateSubdomainFormatInline(subdomain: string): Promise<{
 }
 
 async function isSubdomainAvailableInline(
-	ctx: any,
-	subdomain: string
+	ctx: AuthorizedQueryCtx,
+	subdomainParam: string
 ): Promise<{ available: boolean; reason: string }> {
-	const normalizedSubdomain = subdomain.toLowerCase().trim();
+	const normalizedSubdomain = subdomainParam.toLowerCase().trim();
 
 	// Check against reserved subdomains
 	const reservedSubdomains = [
@@ -237,9 +258,7 @@ async function isSubdomainAvailableInline(
 	// Check if subdomain is already taken in brokers table
 	const existingBroker = await ctx.db
 		.query("brokers")
-		.withIndex("by_subdomain", (q: any) =>
-			q.eq("subdomain", normalizedSubdomain)
-		)
+		.withIndex("by_subdomain", (q) => q.eq("subdomain", normalizedSubdomain))
 		.first();
 
 	if (existingBroker) {
@@ -247,22 +266,22 @@ async function isSubdomainAvailableInline(
 	}
 
 	// Check if subdomain is proposed in an existing journey
-	const existingJourneys = (await ctx.db
+	const existingJourneys = await ctx.db
 		.query("onboarding_journeys")
-		.withIndex("by_persona", (q: any) =>
-			q.eq("persona", "broker").eq("deleted", false)
-		)
-		.filter((q: any) =>
+		.filter((q) =>
 			q.and(
+				q.eq(q.field("persona"), "broker"),
 				q.neq(q.field("status"), "approved"),
 				q.neq(q.field("status"), "rejected")
 			)
 		)
-		.collect()) as any[];
+		.collect();
 
 	const journeyWithSubdomain = existingJourneys.find(
-		(j: any) =>
-			j.context.broker?.proposedSubdomain?.toLowerCase() === normalizedSubdomain
+		(j) =>
+			(
+				j.context as { broker?: { proposedSubdomain?: string } }
+			)?.broker?.proposedSubdomain?.toLowerCase() === normalizedSubdomain
 	);
 
 	if (journeyWithSubdomain) {
@@ -339,7 +358,7 @@ export const validateAndPrepareJourney = createAuthorizedMutation(["any"])({
 	args: {
 		journeyId: v.id("onboarding_journeys"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const journey = await ctx.db.get(args.journeyId);
 
 		if (!journey || journey.persona !== "broker") {
@@ -347,7 +366,7 @@ export const validateAndPrepareJourney = createAuthorizedMutation(["any"])({
 		}
 
 		// Ensure user owns this journey
-		if (journey.userId !== (ctx as any).subject) {
+		if (journey.userId !== requireSubjectId(ctx)) {
 			throw new Error("Unauthorized: You can only validate your own journey");
 		}
 

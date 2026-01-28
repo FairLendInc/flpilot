@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { BROKER_ASSETS } from "../lib/brokerLedger";
+import type { AuthorizedQueryCtx } from "../lib/server";
 import { createAuthorizedQuery } from "../lib/server";
 
 /**
@@ -83,7 +84,7 @@ export const getBrokerReconciliationStatus = createAuthorizedQuery([
 	args: {
 		brokerId: v.id("brokers"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		// Check if broker exists
 		const broker = await ctx.db.get(args.brokerId);
 
@@ -92,8 +93,8 @@ export const getBrokerReconciliationStatus = createAuthorizedQuery([
 		}
 
 		// Verify authorization
-		const isBroker = (ctx as any).org_id === args.brokerId;
-		const isAdmin = (ctx as any).role === "admin";
+		const isBroker = ctx.org_id === args.brokerId.toString();
+		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isBroker)) {
 			throw new Error("Unauthorized to access this broker's reconciliation");
@@ -129,7 +130,7 @@ export const getBrokerCommissionSummary = createAuthorizedQuery([
 			)
 		),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		// Check if broker exists
 		const broker = await ctx.db.get(args.brokerId);
 
@@ -138,8 +139,8 @@ export const getBrokerCommissionSummary = createAuthorizedQuery([
 		}
 
 		// Verify authorization
-		const isBroker = (ctx as any).org_id === args.brokerId;
-		const isAdmin = (ctx as any).role === "admin";
+		const isBroker = ctx.org_id === args.brokerId.toString();
+		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isBroker)) {
 			throw new Error(

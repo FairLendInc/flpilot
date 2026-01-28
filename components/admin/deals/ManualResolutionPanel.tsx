@@ -67,6 +67,9 @@ import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 type AlertItem = (typeof api.alerts.getAllUserAlerts._returnType)[number];
 
+// Email validation regex - moved to top level for performance
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -286,7 +289,7 @@ function EscalatedDealCard({
 			const isValidEmail =
 				typeof email === "string" &&
 				email.length > 0 &&
-				/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+				EMAIL_REGEX.test(email);
 
 			if (!isValidEmail) {
 				toast.error("Investor email unavailable", {

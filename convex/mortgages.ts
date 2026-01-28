@@ -591,7 +591,7 @@ export const listMortgagesInternal = internalQuery({
 		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
 		const paginated = paginateByCreation(filtered, limit, args.cursor);
 
-		const result = [];
+		const result: Record<string, unknown>[] = [];
 		for (const mortgage of paginated.items) {
 			const record: Record<string, unknown> = { ...mortgage };
 			if (args.includeBorrower) {

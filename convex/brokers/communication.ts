@@ -1,4 +1,10 @@
 import { v } from "convex/values";
+import type { Id } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type {
+	AuthorizedMutationCtx,
+	AuthorizedQueryCtx,
+} from "../lib/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
 
 /**
@@ -66,6 +72,13 @@ function generateUUID(): string {
 	return crypto.randomUUID();
 }
 
+function requireSubjectId(ctx: { subject?: string | null }): Id<"users"> {
+	if (!ctx.subject) {
+		throw new Error("Authentication required");
+	}
+	return ctx.subject as Id<"users">;
+}
+
 /**
  * Validate document labels match document IDs
  */
@@ -100,14 +113,16 @@ function formatDocumentAttachments(
 
 /**
  * Get broker ID for current user
+ * TODO: add brokerID to user context
  */
+
 async function getBrokerIdForUser(
-	ctx: any,
-	userId: string
-): Promise<string | null> {
+	ctx: QueryCtx | MutationCtx,
+	userId: Id<"users">
+): Promise<Id<"brokers"> | null> {
 	const broker = await ctx.db
 		.query("brokers")
-		.withIndex("by_user", (q: any) => q.eq("userId", userId))
+		.withIndex("by_user", (q) => q.eq("userId", userId))
 		.first();
 	return broker?._id ?? null;
 }
@@ -127,7 +142,7 @@ export const getClientCommunicationTimeline = createAuthorizedQuery([
 	args: {
 		clientBrokerId: v.id("broker_clients"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -135,10 +150,12 @@ export const getClientCommunicationTimeline = createAuthorizedQuery([
 		}
 
 		// Verify authorization
-		const isClient = (ctx as any).subject === client.clientId;
-		const isBroker = await getBrokerIdForUser(ctx, (ctx as any).subject);
-		const isClientBroker = isBroker === client.brokerId;
-		const isAdmin = (ctx as any).role === "admin";
+		const subjectId = requireSubjectId(ctx);
+		const isClient = subjectId.toString() === client.clientId.toString();
+		const brokerId = await getBrokerIdForUser(ctx, subjectId);
+		const isClientBroker =
+			brokerId !== null && brokerId.toString() === client.brokerId.toString();
+		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isClientBroker || isClient)) {
 			throw new Error("Unauthorized to access this client's communications");
@@ -166,7 +183,7 @@ export const getCommunicationEntry = createAuthorizedQuery([
 		clientBrokerId: v.id("broker_clients"),
 		communicationId: v.string(), // UUID of the timeline entry
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -174,10 +191,12 @@ export const getCommunicationEntry = createAuthorizedQuery([
 		}
 
 		// Verify authorization
-		const isClient = (ctx as any).subject === client.clientId;
-		const isBroker = await getBrokerIdForUser(ctx, (ctx as any).subject);
-		const isClientBroker = isBroker === client.brokerId;
-		const isAdmin = (ctx as any).role === "admin";
+		const subjectId = requireSubjectId(ctx);
+		const isClient = subjectId.toString() === client.clientId.toString();
+		const brokerId = await getBrokerIdForUser(ctx, subjectId);
+		const isClientBroker =
+			brokerId !== null && brokerId.toString() === client.brokerId.toString();
+		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isClientBroker || isClient)) {
 			throw new Error("Unauthorized to access this client's communications");
@@ -199,7 +218,7 @@ export const getClientUnresolvedRequestsCount = createAuthorizedQuery([
 	args: {
 		clientBrokerId: v.id("broker_clients"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -207,9 +226,11 @@ export const getClientUnresolvedRequestsCount = createAuthorizedQuery([
 		}
 
 		// Verify authorization
-		const isBroker = await getBrokerIdForUser(ctx, (ctx as any).subject);
-		const isClientBroker = isBroker === client.brokerId;
-		const isAdmin = (ctx as any).role === "admin";
+		const subjectId = requireSubjectId(ctx);
+		const brokerId = await getBrokerIdForUser(ctx, subjectId);
+		const isClientBroker =
+			brokerId !== null && brokerId.toString() === client.brokerId.toString();
+		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isClientBroker)) {
 			throw new Error("Unauthorized to access this client's requests");
@@ -229,8 +250,9 @@ export const getBrokerUnresolvedRequestsCount = createAuthorizedQuery([
 	"broker_admin",
 ])({
 	args: {},
-	handler: async (ctx) => {
-		const brokerId = await getBrokerIdForUser(ctx, (ctx as any).subject);
+	handler: async (ctx: AuthorizedQueryCtx) => {
+		const subjectId = requireSubjectId(ctx);
+		const brokerId = await getBrokerIdForUser(ctx, subjectId);
 
 		if (!brokerId) {
 			throw new Error("Broker not found");
@@ -239,7 +261,9 @@ export const getBrokerUnresolvedRequestsCount = createAuthorizedQuery([
 		// Get all clients for this broker
 		const clients = await ctx.db
 			.query("broker_clients")
-			.withIndex("by_broker", (q: any) => q.eq("brokerId", brokerId))
+			.withIndex("by_broker", (q) =>
+				q.eq("brokerId", brokerId)
+			)
 			.collect();
 
 		// Count unresolved requests across all clients
@@ -273,7 +297,7 @@ export const sendClientRequest = createAuthorizedMutation(["broker_admin"])({
 		documentIds: v.optional(v.array(v.id("_storage"))),
 		documentLabels: v.optional(v.array(v.string())),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -281,7 +305,12 @@ export const sendClientRequest = createAuthorizedMutation(["broker_admin"])({
 		}
 
 		// Verify broker owns this client
-		if (client.brokerId !== (ctx as any).org_id) {
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (!broker || client.brokerId !== broker._id) {
 			throw new Error("You can only send requests to your own clients");
 		}
 
@@ -295,7 +324,7 @@ export const sendClientRequest = createAuthorizedMutation(["broker_admin"])({
 
 		// Format document attachments
 		const documents = formatDocumentAttachments(
-			args.documentIds as any,
+			args.documentIds?.map((id) => id.toString()),
 			args.documentLabels
 		);
 
@@ -304,7 +333,7 @@ export const sendClientRequest = createAuthorizedMutation(["broker_admin"])({
 		const _timelineEntry = {
 			id: requestId,
 			type: args.requestType,
-			sentBy: (ctx as any).subject,
+			sentBy: subjectId.toString(),
 			sentAt: now,
 			message: args.message,
 			documents,
@@ -342,7 +371,7 @@ export const respondToClientRequest = createAuthorizedMutation([
 		documentIds: v.optional(v.array(v.id("_storage"))),
 		documentLabels: v.optional(v.array(v.string())),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -350,7 +379,8 @@ export const respondToClientRequest = createAuthorizedMutation([
 		}
 
 		// Verify authorization - client can respond to their own requests
-		if ((ctx as any).subject !== client.clientId) {
+		const subjectId = requireSubjectId(ctx);
+		if (subjectId.toString() !== client.clientId.toString()) {
 			throw new Error("Unauthorized to respond to this request");
 		}
 
@@ -363,7 +393,7 @@ export const respondToClientRequest = createAuthorizedMutation([
 
 		// Format document attachments
 		const responseDocuments = formatDocumentAttachments(
-			args.documentIds as any,
+			args.documentIds?.map((id) => id.toString()),
 			args.documentLabels
 		);
 
@@ -374,7 +404,7 @@ export const respondToClientRequest = createAuthorizedMutation([
 			resolvedAt: now,
 			response: args.response,
 			documents: responseDocuments,
-			respondedBy: (ctx as any).subject,
+			respondedBy: subjectId.toString(),
 		};
 
 		// TODO: Update communication_timeline table with requestId
@@ -405,7 +435,7 @@ export const sendMessageToBroker = createAuthorizedMutation([
 		documentIds: v.optional(v.array(v.id("_storage"))),
 		documentLabels: v.optional(v.array(v.string())),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -413,7 +443,8 @@ export const sendMessageToBroker = createAuthorizedMutation([
 		}
 
 		// Verify authorization - client can send messages about themselves
-		if ((ctx as any).subject !== client.clientId) {
+		const subjectId = requireSubjectId(ctx);
+		if (subjectId.toString() !== client.clientId.toString()) {
 			throw new Error("Unauthorized to send message for this client");
 		}
 
@@ -427,7 +458,7 @@ export const sendMessageToBroker = createAuthorizedMutation([
 
 		// Format document attachments
 		const documents = formatDocumentAttachments(
-			args.documentIds as any,
+			args.documentIds?.map((id) => id.toString()),
 			args.documentLabels
 		);
 
@@ -435,7 +466,7 @@ export const sendMessageToBroker = createAuthorizedMutation([
 		const _timelineEntry = {
 			id: messageId,
 			type: "info_request" as const, // Messages are treated as info requests
-			sentBy: (ctx as any).subject,
+			sentBy: subjectId.toString(),
 			sentAt: now,
 			message: args.message,
 			documents,
@@ -470,7 +501,7 @@ export const respondToClientMessage = createAuthorizedMutation([
 		documentIds: v.optional(v.array(v.id("_storage"))),
 		documentLabels: v.optional(v.array(v.string())),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -478,7 +509,12 @@ export const respondToClientMessage = createAuthorizedMutation([
 		}
 
 		// Verify broker owns this client
-		if (client.brokerId !== (ctx as any).org_id) {
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (!broker || client.brokerId !== broker._id) {
 			throw new Error("You can only respond to messages from your clients");
 		}
 
@@ -491,7 +527,7 @@ export const respondToClientMessage = createAuthorizedMutation([
 
 		// Format document attachments
 		const documents = formatDocumentAttachments(
-			args.documentIds as any,
+			args.documentIds?.map((id) => id.toString()),
 			args.documentLabels
 		);
 
@@ -501,7 +537,7 @@ export const respondToClientMessage = createAuthorizedMutation([
 			resolvedAt: now,
 			response: args.response,
 			documents,
-			respondedBy: (ctx as any).subject,
+			respondedBy: subjectId.toString(),
 		};
 
 		// TODO: Update communication_timeline table with communicationId
@@ -528,7 +564,7 @@ export const resolveClientRequest = createAuthorizedMutation(["broker_admin"])({
 		requestId: v.string(),
 		reason: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const client = await ctx.db.get(args.clientBrokerId);
 
 		if (!client) {
@@ -536,7 +572,12 @@ export const resolveClientRequest = createAuthorizedMutation(["broker_admin"])({
 		}
 
 		// Verify broker owns this client
-		if (client.brokerId !== (ctx as any).org_id) {
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (!broker || client.brokerId !== broker._id) {
 			throw new Error("You can only resolve requests for your clients");
 		}
 
@@ -547,7 +588,7 @@ export const resolveClientRequest = createAuthorizedMutation(["broker_admin"])({
 			resolved: true,
 			resolvedAt: now,
 			response: `Closed by broker: ${args.reason}`,
-			respondedBy: (ctx as any).subject,
+			respondedBy: subjectId.toString(),
 		};
 
 		// TODO: Update communication_timeline table with requestId
@@ -576,7 +617,7 @@ export const sendBrokerAnnouncement = createAuthorizedMutation([
 		documentIds: v.optional(v.array(v.id("_storage"))),
 		documentLabels: v.optional(v.array(v.string())),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		// Validate client count
 		if (args.clientBrokerIds.length === 0) {
 			throw new Error("At least one client must be specified");
@@ -592,7 +633,7 @@ export const sendBrokerAnnouncement = createAuthorizedMutation([
 
 		// Format document attachments
 		const documents = formatDocumentAttachments(
-			args.documentIds as any,
+			args.documentIds?.map((id) => id.toString()),
 			args.documentLabels
 		);
 
@@ -601,11 +642,20 @@ export const sendBrokerAnnouncement = createAuthorizedMutation([
 			args.clientBrokerIds.map((id) => ctx.db.get(id))
 		);
 
+		const subjectId = requireSubjectId(ctx);
+		const broker = await ctx.db
+			.query("brokers")
+			.withIndex("by_user", (q) => q.eq("userId", subjectId))
+			.first();
+		if (!broker) {
+			throw new Error("Broker not found");
+		}
+
 		for (const client of clients) {
 			if (!client) {
 				throw new Error("One or more clients not found");
 			}
-			if (client.brokerId !== (ctx as any).org_id) {
+			if (client.brokerId !== broker._id) {
 				throw new Error("All clients must belong to your brokerage");
 			}
 		}
@@ -614,7 +664,7 @@ export const sendBrokerAnnouncement = createAuthorizedMutation([
 		const _timelineEntries = clients.map((_client) => ({
 			id: generateUUID(), // Unique ID per client
 			type: "announcement" as const,
-			sentBy: (ctx as any).subject,
+			sentBy: subjectId.toString(),
 			sentAt: now,
 			message: args.message,
 			documents,
