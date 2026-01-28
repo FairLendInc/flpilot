@@ -58,7 +58,9 @@ export default function CommissionsPage() {
 						</CardHeader>
 						<CardContent>
 							<div className="font-bold text-2xl">
-								${((commissionTotal?.total || 0) / 1000).toFixed(1)}K
+								$
+								{((commissionTotal?.totals.totalEarned || 0) / 1000).toFixed(1)}
+								K
 							</div>
 						</CardContent>
 					</Card>
@@ -70,7 +72,9 @@ export default function CommissionsPage() {
 						</CardHeader>
 						<CardContent>
 							<div className="font-bold text-2xl">
-								${((commissionTotal?.ytd || 0) / 1000).toFixed(1)}K
+								$
+								{((commissionTotal?.totals.totalEarned || 0) / 1000).toFixed(1)}
+								K
 							</div>
 						</CardContent>
 					</Card>

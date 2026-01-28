@@ -1,9 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import type {
-	AuthorizedMutationCtx,
-	AuthorizedQueryCtx,
-} from "../lib/server";
+import type { AuthorizedMutationCtx, AuthorizedQueryCtx } from "../lib/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
 
 function requireSubjectId(ctx: unknown): Id<"users"> {

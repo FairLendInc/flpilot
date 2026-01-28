@@ -246,9 +246,9 @@ export const getAdjustmentRateForDeal = createAuthorizedAction([
 		// Find most recent adjustment rate BEFORE deal completion
 		const rateEntries: Array<{ effectiveAt: string; newRate: number }> =
 			await ctx.runQuery(
-			internal.brokers.commissions_internal.getReturnAdjustmentRateHistory,
-			{ brokerId: args.brokerId }
-		);
+				internal.brokers.commissions_internal.getReturnAdjustmentRateHistory,
+				{ brokerId: args.brokerId }
+			);
 
 		// Filter for entries effective before deal completion
 		const historicalRates: Array<{ effectiveAt: string; newRate: number }> =

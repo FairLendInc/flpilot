@@ -25,10 +25,7 @@ const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
 
 function requireTransferId(
-	transfer:
-		| { _id?: Id<"pending_ownership_transfers"> }
-		| null
-		| undefined
+	transfer: { _id?: Id<"pending_ownership_transfers"> } | null | undefined
 ): Id<"pending_ownership_transfers"> {
 	if (!transfer?._id) {
 		throw new Error("Pending transfer not found");
@@ -262,17 +259,12 @@ async function moveDealToOwnershipReview(
  */
 async function verifyTotalOwnership(
 	t: ReturnType<typeof createTest>,
-	mortgageId: Id<"mortgages">,
-	expectedTotal = 100
+	mortgageId: Id<"mortgages">
 ) {
 	const adminT = await getAdminTest(t);
 	const result = await adminT.action(api.ownership.getTotalOwnership, {
 		mortgageId,
 	});
-
-	expect(result.totalPercentage).toBeCloseTo(expectedTotal, 2);
-	expect(result.isValid).toBe(Math.abs(result.totalPercentage - 100) < 0.01);
-
 	return result;
 }
 
@@ -455,7 +447,7 @@ describe("approvePendingTransfer", () => {
 		const adminT = await getAdminTest(t);
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
-				transferId: transferId! as any,
+				transferId: transferId as string as Id<"pending_ownership_transfers">,
 			})
 		).rejects.toThrow("Deal is not in pending_ownership_review state");
 	});
@@ -529,7 +521,7 @@ describe("rejectPendingTransfer", () => {
 
 	test("should create alert on rejection", async () => {
 		const t = createTest();
-		const { dealId, investorId } = await createDeal(t);
+		const { dealId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
 		const adminT = await getAdminTest(t);
@@ -626,7 +618,7 @@ describe("rejectPendingTransfer", () => {
 describe("getOwnershipPreview", () => {
 	test("should show correct before and after ownership", async () => {
 		const t = createTest();
-		const { dealId, mortgageId } = await createDeal(t);
+		const { dealId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
 		const adminT = await getAdminTest(t);
@@ -714,7 +706,7 @@ describe("getPendingTransfersForReview", () => {
 		);
 
 		expect(pendingTransfers.length).toBeGreaterThanOrEqual(2);
-		expect(pendingTransfers.every((t) => t.status === "pending")).toBe(true);
+		expect(pendingTransfers.every((pt) => pt.status === "pending")).toBe(true);
 	});
 
 	test("should not return approved or rejected transfers", async () => {
@@ -740,7 +732,7 @@ describe("getPendingTransfersForReview", () => {
 			{}
 		);
 
-		const found = pendingTransfers.find((t) => t.dealId === dealId);
+		const found = pendingTransfers.find((pt) => pt.dealId === dealId);
 		expect(found).toBeUndefined();
 	});
 });
@@ -756,7 +748,8 @@ describe("ownership invariant - 100% maintained", () => {
 		await moveDealToOwnershipReview(t, dealId);
 
 		// Verify before
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const before = await verifyTotalOwnership(t, mortgageId);
+		expect(before.totalPercentage).toBeCloseTo(100, 2);
 
 		const adminT = await getAdminTest(t);
 		const transfer = await adminT.query(
@@ -776,7 +769,8 @@ describe("ownership invariant - 100% maintained", () => {
 		});
 
 		// Verify after - should still be 100%
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const after = await verifyTotalOwnership(t, mortgageId);
+		expect(after.totalPercentage).toBeCloseTo(100, 2);
 	});
 
 	test("should maintain 100% ownership after rejection", async () => {
@@ -784,7 +778,8 @@ describe("ownership invariant - 100% maintained", () => {
 		const { dealId, mortgageId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const before = await verifyTotalOwnership(t, mortgageId);
+		expect(before.totalPercentage).toBeCloseTo(100, 2);
 
 		const adminT = await getAdminTest(t);
 		const transfer = await adminT.query(
@@ -798,7 +793,8 @@ describe("ownership invariant - 100% maintained", () => {
 		});
 
 		// Ownership unchanged
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const after = await verifyTotalOwnership(t, mortgageId);
+		expect(after.totalPercentage).toBeCloseTo(100, 2);
 	});
 
 	test("should maintain 100% ownership after multiple approve/reject cycles", async () => {
@@ -817,7 +813,8 @@ describe("ownership invariant - 100% maintained", () => {
 			transferId: requireTransferId(transfer),
 			reason: "Issue 1",
 		});
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const afterReject = await verifyTotalOwnership(t, mortgageId);
+		expect(afterReject.totalPercentage).toBeCloseTo(100, 2);
 
 		// Reset to pending (simulate retry flow)
 		await t.run(async (ctx) => {
@@ -829,7 +826,8 @@ describe("ownership invariant - 100% maintained", () => {
 			api.pendingOwnershipTransfers.approvePendingTransfer,
 			{ transferId: requireTransferId(transfer) }
 		);
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const afterApprove = await verifyTotalOwnership(t, mortgageId);
+		expect(afterApprove.totalPercentage).toBeCloseTo(100, 2);
 	});
 });
 

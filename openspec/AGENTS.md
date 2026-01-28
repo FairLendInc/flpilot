@@ -1,3 +1,23 @@
+---
+description: 
+alwaysApply: true
+---
+
+---
+description: 
+alwaysApply: false
+---
+
+---
+description: 
+alwaysApply: false
+---
+
+---
+description: 
+alwaysApply: false
+---
+
 # OpenSpec Instructions
 
 Instructions for AI coding assistants using OpenSpec for spec-driven development.

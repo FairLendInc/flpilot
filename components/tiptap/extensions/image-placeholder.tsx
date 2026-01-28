@@ -26,14 +26,14 @@ export type ImagePlaceholderOptions = {
 };
 
 declare module "@tiptap/core" {
-	type Commands<ReturnType> = {
+	interface Commands<ReturnType> {
 		imagePlaceholder: {
 			/**
 			 * Inserts an image placeholder
 			 */
 			insertImagePlaceholder: () => ReturnType;
 		};
-	};
+	}
 }
 
 export const ImagePlaceholder = Node.create<ImagePlaceholderOptions>({

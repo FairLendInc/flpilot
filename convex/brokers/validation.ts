@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import {
-	AuthorizedMutationCtx,
-	AuthorizedQueryCtx,
+	type AuthorizedMutationCtx,
+	type AuthorizedQueryCtx,
 	createAuthorizedMutation,
 	createAuthorizedQuery,
 } from "../lib/server";
+
 function requireSubjectId(ctx: unknown): Doc<"users">["_id"] {
 	const subject = (ctx as { subject?: string | null }).subject;
 	if (!subject) {
@@ -13,7 +14,6 @@ function requireSubjectId(ctx: unknown): Doc<"users">["_id"] {
 	}
 	return subject as Doc<"users">["_id"];
 }
-
 
 // ============================================
 // Helper Functions (for internal use)
