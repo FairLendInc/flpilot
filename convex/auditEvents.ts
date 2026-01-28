@@ -42,6 +42,9 @@ export const createAuditEvent = internalMutation({
 		const sanitizedAfter = args.afterState
 			? sanitizeState(args.afterState)
 			: undefined;
+		const sanitizedMetadata = args.metadata
+			? sanitizeState(args.metadata)
+			: undefined;
 
 		return await ctx.db.insert("audit_events", {
 			eventType: args.eventType,
@@ -51,7 +54,7 @@ export const createAuditEvent = internalMutation({
 			timestamp: Date.now(),
 			beforeState: sanitizedBefore,
 			afterState: sanitizedAfter,
-			metadata: args.metadata,
+			metadata: sanitizedMetadata,
 			emittedAt: undefined, // Not yet emitted
 			emitFailures: 0,
 		});
@@ -321,6 +324,9 @@ export async function emitAuditEvent(
 	const sanitizedAfter = event.afterState
 		? sanitizeState(event.afterState)
 		: undefined;
+	const sanitizedMetadata = event.metadata
+		? sanitizeState(event.metadata)
+		: undefined;
 
 	return await ctx.db.insert("audit_events", {
 		eventType: event.eventType,
@@ -330,7 +336,7 @@ export async function emitAuditEvent(
 		timestamp: Date.now(),
 		beforeState: sanitizedBefore,
 		afterState: sanitizedAfter,
-		metadata: event.metadata,
+		metadata: sanitizedMetadata,
 		emittedAt: undefined,
 		emitFailures: 0,
 	});

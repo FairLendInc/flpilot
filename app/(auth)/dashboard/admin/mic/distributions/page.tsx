@@ -20,8 +20,10 @@ export default function DistributionsPage() {
 	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
 	const now = new Date();
+	const MS_PER_DAY = 1000 * 60 * 60 * 24;
 	const currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-	const currentPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+	const currentPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+	const displayLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 	const periodName = now.toLocaleString("en-US", {
 		month: "long",
 		year: "numeric",
@@ -29,11 +31,12 @@ export default function DistributionsPage() {
 	const periodDuration =
 		currentPeriodEnd.getTime() - currentPeriodStart.getTime();
 	const elapsed = now.getTime() - currentPeriodStart.getTime();
-	const progress = periodDuration > 0
-		? Math.min(100, Math.max(0, Math.round((elapsed / periodDuration) * 100)))
-		: 0;
+	const progress =
+		periodDuration > 0
+			? Math.min(100, Math.max(0, Math.round((elapsed / periodDuration) * 100)))
+			: 0;
 	const daysRemaining = Math.ceil(
-		(currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+		(currentPeriodEnd.getTime() - now.getTime()) / MS_PER_DAY
 	);
 	const periodStatus =
 		now >= currentPeriodEnd
@@ -164,7 +167,7 @@ export default function DistributionsPage() {
 				<div className="xl:col-span-1">
 					{/* TODO: Period tracking needs dedicated system */}
 					<CurrentPeriodCard
-						endDate={currentPeriodEnd}
+						endDate={displayLastDay}
 						periodName={periodName}
 						progress={progress}
 						startDate={currentPeriodStart}

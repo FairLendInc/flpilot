@@ -77,8 +77,12 @@ export function CurrentPeriodCard({
 		},
 	} as const;
 
-	const { label, badgeClassName, icon: Icon, description } =
-		statusConfig[status];
+	const {
+		label,
+		badgeClassName,
+		icon: Icon,
+		description,
+	} = statusConfig[status];
 
 	const formatDate = (date: Date | string) => {
 		const d = typeof date === "string" ? new Date(date) : date;

@@ -15,18 +15,22 @@ const meta: Meta<typeof SellAUMSheet> = {
 export default meta;
 type Story = StoryObj<typeof SellAUMSheet>;
 
+const noop = () => {
+	// Intentional no-op for Storybook stories
+};
+
 export const Default: Story = {
 	args: {
 		open: true,
 		assetName: "First Mortgage Toronto",
 		currentShare: 100,
-		onOpenChange: (() => {}) as any,
-		onSubmit: (() => {}) as any,
+		onOpenChange: noop,
+		onSubmit: noop,
 	},
 	decorators: [
 		(StoryFn) => (
 			<div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
-				<Button onClick={(() => {}) as any}>Sell Share</Button>
+				<Button onClick={noop}>Sell Share</Button>
 				<StoryFn />
 			</div>
 		),
@@ -38,9 +42,7 @@ export const PartialShare: Story = {
 		open: true,
 		assetName: "Commercial Bridge Loan",
 		currentShare: 40,
-		onOpenChange: (() => {}) as any,
-		onSubmit: (() => {}) as any,
+		onOpenChange: noop,
+		onSubmit: noop,
 	},
 };
-
-

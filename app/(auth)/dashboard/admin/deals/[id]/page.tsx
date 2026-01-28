@@ -358,8 +358,7 @@ export default function DealDetailPage({
 						</Card>
 
 						{/* Ownership Transfer Review - shown when in pending_ownership_review state */}
-						{deal.currentState &&
-							isOwnershipReviewState(deal.currentState) && (
+						{deal.currentState && isOwnershipReviewState(deal.currentState) && (
 							<OwnershipTransferReview
 								dealId={deal._id}
 								onApproved={() => {
@@ -448,36 +447,36 @@ export default function DealDetailPage({
 											entry: NonNullable<typeof deal.stateHistory>[number],
 											idx: number
 										) => (
-										<div
-											className="flex gap-4"
-											key={`${entry.timestamp}-${entry.fromState}-${entry.toState}`}
-										>
-											<div className="flex flex-col items-center">
-												<div className="h-2 w-2 rounded-full bg-primary" />
-												{idx < (deal.stateHistory?.length ?? 0) - 1 && (
-													<div className="mt-1 w-px flex-1 bg-border" />
-												)}
-											</div>
-											<div className="flex-1 pb-4">
-												<div className="mb-1 flex items-center gap-2">
-													<Badge className="text-xs" variant="outline">
-														{entry.fromState} → {entry.toState}
-													</Badge>
-													<span className="text-muted-foreground text-xs">
-														{format(
-															new Date(entry.timestamp),
-															"MMM d, yyyy HH:mm"
-														)}
-													</span>
+											<div
+												className="flex gap-4"
+												key={`${entry.timestamp}-${entry.fromState}-${entry.toState}`}
+											>
+												<div className="flex flex-col items-center">
+													<div className="h-2 w-2 rounded-full bg-primary" />
+													{idx < (deal.stateHistory?.length ?? 0) - 1 && (
+														<div className="mt-1 w-px flex-1 bg-border" />
+													)}
 												</div>
-												{entry.notes && (
-													<p className="text-muted-foreground text-sm">
-														{entry.notes}
-													</p>
-												)}
+												<div className="flex-1 pb-4">
+													<div className="mb-1 flex items-center gap-2">
+														<Badge className="text-xs" variant="outline">
+															{entry.fromState} → {entry.toState}
+														</Badge>
+														<span className="text-muted-foreground text-xs">
+															{format(
+																new Date(entry.timestamp),
+																"MMM d, yyyy HH:mm"
+															)}
+														</span>
+													</div>
+													{entry.notes && (
+														<p className="text-muted-foreground text-sm">
+															{entry.notes}
+														</p>
+													)}
+												</div>
 											</div>
-										</div>
-									)
+										)
 									)}
 								</div>
 							</CardContent>

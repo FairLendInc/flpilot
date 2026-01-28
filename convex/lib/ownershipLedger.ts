@@ -26,7 +26,6 @@
 import { v } from "convex/values";
 import { logger } from "../../lib/logger";
 import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 
 // ============================================================================
@@ -34,6 +33,8 @@ import type { ActionCtx } from "../_generated/server";
 // ============================================================================
 
 export const DEFAULT_LEDGER = "flpilot";
+export const SHARE_UNIT_SCALE = 100;
+export const TOTAL_SHARE_UNITS = 100 * SHARE_UNIT_SCALE;
 
 /**
  * Generate the share asset name for a mortgage
@@ -65,6 +66,44 @@ export function generateOwnershipReference(
 ): string {
 	const ts = timestamp ?? Date.now();
 	return `${operation}:${dealId}:${mortgageId}:${ts}`;
+}
+
+export function toShareUnits(percentage: number): number {
+	return Math.round(percentage * SHARE_UNIT_SCALE);
+}
+
+export function fromShareUnits(units: number): number {
+	return units / SHARE_UNIT_SCALE;
+}
+
+export function parseOwnershipBalances(
+	balances: Record<string, Record<string, bigint>>,
+	shareAsset: string
+): Array<{ ownerId: string; percentage: number }> {
+	const ownership: Array<{ ownerId: string; percentage: number }> = [];
+
+	const fairlendBalance =
+		balances[OWNERSHIP_ACCOUNTS.fairlendInventory]?.[shareAsset];
+	if (fairlendBalance && Number(fairlendBalance) > 0) {
+		ownership.push({
+			ownerId: "fairlend",
+			percentage: fromShareUnits(Number(fairlendBalance)),
+		});
+	}
+
+	for (const [account, accountBalances] of Object.entries(balances)) {
+		const match = /^investor:(.+):inventory$/.exec(account);
+		if (!match) continue;
+		const investorId = match[1];
+		const amount = accountBalances?.[shareAsset];
+		if (!amount || Number(amount) <= 0) continue;
+		ownership.push({
+			ownerId: investorId,
+			percentage: fromShareUnits(Number(amount)),
+		});
+	}
+
+	return ownership;
 }
 
 // ============================================================================
@@ -101,7 +140,7 @@ export async function initializeMortgageOwnership(
 	const { mortgageId, reference } = args;
 	const shareAsset = getMortgageShareAsset(mortgageId);
 
-	// Numscript to mint 100 shares to FairLend
+	// Numscript to mint total share units to FairLend
 	// Using @world as infinite source (standard Formance pattern)
 	const script = `
 vars {
@@ -109,7 +148,7 @@ vars {
   account $fairlend_inventory
 }
 
-send [SHARE 100] (
+send [$asset ${TOTAL_SHARE_UNITS}] (
   source = @world
   destination = $fairlend_inventory
 )
@@ -131,8 +170,7 @@ send [SHARE 100] (
 		});
 
 		if (!result.success) {
-			const errorMessage =
-				"error" in result ? result.error : "Unknown error";
+			const errorMessage = "error" in result ? result.error : "Unknown error";
 			logger.error("Failed to initialize mortgage ownership in ledger", {
 				mortgageId,
 				error: errorMessage,
@@ -140,10 +178,9 @@ send [SHARE 100] (
 			return { success: false, error: errorMessage };
 		}
 
-		const transactionId =
-			("data" in result
-				? (result.data as { data?: { id?: string } })
-				: undefined)?.data?.id;
+		const transactionId = (
+			"data" in result ? (result.data as { data?: { id?: string } }) : undefined
+		)?.data?.id;
 		logger.info("Initialized mortgage ownership in ledger", {
 			mortgageId,
 			transactionId,
@@ -204,8 +241,8 @@ export async function recordOwnershipTransfer(
 		return { success: false, error: "Percentage must be between 0 and 100" };
 	}
 
-	// Convert percentage to share units (100% = 100 shares)
-	const shareAmount = Math.round(percentage);
+	// Convert percentage to share units (100% = TOTAL_SHARE_UNITS)
+	const shareUnits = toShareUnits(percentage);
 	const shareAsset = getMortgageShareAsset(mortgageId);
 
 	// Determine source and destination accounts
@@ -225,7 +262,7 @@ vars {
   asset $asset
   account $source
   account $destination
-  monetary $amount = [SHARE ${shareAmount}]
+  monetary $amount = [$asset ${shareUnits}]
 }
 
 send $amount (
@@ -255,8 +292,7 @@ send $amount (
 		});
 
 		if (!result.success) {
-			const errorMessage =
-				"error" in result ? result.error : "Unknown error";
+			const errorMessage = "error" in result ? result.error : "Unknown error";
 			// Check if it's an idempotency conflict (duplicate reference)
 			if (errorMessage?.includes("CONFLICT")) {
 				logger.warn("Duplicate ownership transfer reference (idempotent)", {
@@ -277,10 +313,9 @@ send $amount (
 			return { success: false, error: errorMessage };
 		}
 
-		const transactionId =
-			("data" in result
-				? (result.data as { data?: { id?: string } })
-				: undefined)?.data?.id;
+		const transactionId = (
+			"data" in result ? (result.data as { data?: { id?: string } }) : undefined
+		)?.data?.id;
 		logger.info("Recorded ownership transfer in ledger", {
 			mortgageId,
 			fromOwnerId,
@@ -329,40 +364,28 @@ export async function getOwnershipFromLedger(
 		// Query balances for the share asset
 		const result = await ctx.runAction(api.ledger.getBalances, {
 			ledgerName: DEFAULT_LEDGER,
-			address: `*:inventory`, // Match all inventory accounts
+			address: "*:inventory", // Match all inventory accounts
 		});
 
 		if (!result.success) {
-			const errorMessage =
-				"error" in result ? result.error : "Unknown error";
+			const errorMessage = "error" in result ? result.error : "Unknown error";
 			return { success: false, error: errorMessage };
 		}
 
 		// Parse balances to extract ownership
-		const balances =
-			("data" in result
+		const balances = (
+			"data" in result
 				? (result.data as { data?: Record<string, unknown> })
-				: undefined)?.data;
+				: undefined
+		)?.data;
 		if (!balances) {
 			return { success: true, ownership: [] };
 		}
 
-		// Extract ownership from account balances
-		const ownership: Array<{ ownerId: string; percentage: number }> = [];
-
-		// Check FairLend inventory
-		const fairlendBalance = (balances as Record<string, Record<string, bigint>>)[
-			OWNERSHIP_ACCOUNTS.fairlendInventory
-		]?.[shareAsset];
-		if (fairlendBalance && Number(fairlendBalance) > 0) {
-			ownership.push({
-				ownerId: "fairlend",
-				percentage: Number(fairlendBalance),
-			});
-		}
-
-		// Check investor inventories (would need to iterate or use a query pattern)
-		// For now, return what we have - full implementation would query all accounts
+		const ownership = parseOwnershipBalances(
+			balances as Record<string, Record<string, bigint>>,
+			shareAsset
+		);
 
 		return { success: true, ownership };
 	} catch (error) {

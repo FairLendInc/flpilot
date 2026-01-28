@@ -310,18 +310,15 @@ const listingCreationWebhookSchema = z.object({
 
 type ListingWebhookPayload = z.infer<typeof listingCreationWebhookSchema>;
 
-const booleanQueryParam = z.preprocess(
-	(value) => {
-		if (value === "true") return true;
-		if (value === "false") return false;
-		return value;
-	},
-	z.boolean()
-);
+const booleanQueryParam = z.preprocess((value) => {
+	if (value === "true") return true;
+	if (value === "false") return false;
+	return value;
+}, z.boolean());
 
 const numberQueryParam = z.preprocess((value) => {
 	if (typeof value !== "string") return value;
-	if (value.trim() === "") return undefined;
+	if (value.trim() === "") return;
 	return Number(value);
 }, z.number());
 
@@ -513,7 +510,9 @@ const parseQueryParams = <T>(
 	request: Request,
 	schema: z.ZodSchema<T>
 ): { data?: T; errorResponse?: Response } => {
-	const params = Object.fromEntries(new URL(request.url).searchParams.entries());
+	const params = Object.fromEntries(
+		new URL(request.url).searchParams.entries()
+	);
 	const parsed = schema.safeParse(params);
 	if (!parsed.success) {
 		return {
@@ -621,9 +620,11 @@ http.route({
 
 		const params = new URL(request.url).searchParams;
 		if (
-			!params.get("borrowerId") &&
-			!params.get("rotessaCustomerId") &&
-			!params.get("email")
+			!(
+				params.get("borrowerId") ||
+				params.get("rotessaCustomerId") ||
+				params.get("email")
+			)
 		) {
 			return corsJsonResponse(400, {
 				code: "missing_identifier",
@@ -695,9 +696,12 @@ http.route({
 			return errorResponse;
 		}
 
-		const result = await ctx.runQuery(internal.borrowers.listBorrowersInternal, {
-			...data,
-		});
+		const result = await ctx.runQuery(
+			internal.borrowers.listBorrowersInternal,
+			{
+				...data,
+			}
+		);
 
 		return corsJsonResponse(200, {
 			code: "borrowers_listed",
@@ -735,7 +739,9 @@ http.route({
 			});
 		}
 
-		if (!parsedPayload.data.borrowerId && !parsedPayload.data.rotessaCustomerId) {
+		if (
+			!(parsedPayload.data.borrowerId || parsedPayload.data.rotessaCustomerId)
+		) {
 			return corsJsonResponse(400, {
 				code: "missing_identifier",
 				message: "Provide borrowerId or rotessaCustomerId",
@@ -770,7 +776,8 @@ http.route({
 
 			return corsJsonResponse(400, {
 				code: "processing_error",
-				message: error instanceof Error ? error.message : "Unknown processing error",
+				message:
+					error instanceof Error ? error.message : "Unknown processing error",
 			});
 		}
 	}),
@@ -805,7 +812,9 @@ http.route({
 			});
 		}
 
-		if (!parsedPayload.data.borrowerId && !parsedPayload.data.rotessaCustomerId) {
+		if (
+			!(parsedPayload.data.borrowerId || parsedPayload.data.rotessaCustomerId)
+		) {
 			return corsJsonResponse(400, {
 				code: "missing_identifier",
 				message: "Provide borrowerId or rotessaCustomerId",
@@ -846,7 +855,8 @@ http.route({
 
 			return corsJsonResponse(400, {
 				code: "processing_error",
-				message: error instanceof Error ? error.message : "Unknown processing error",
+				message:
+					error instanceof Error ? error.message : "Unknown processing error",
 			});
 		}
 	}),
@@ -1321,23 +1331,23 @@ http.route({
 				});
 			}
 
-			if (error instanceof Error) {
-				if (
-					error.message === "invalid_borrower_id" ||
+			if (
+				error instanceof Error &&
+				(error.message === "invalid_borrower_id" ||
 					error.message === "borrower_not_found" ||
 					error.message === "missing_borrower_reference" ||
-					error.message === "mortgage_borrower_mismatch"
-				) {
-					return corsJsonResponse(400, {
-						code: error.message,
-						message: error.message,
-					});
-				}
+					error.message === "mortgage_borrower_mismatch")
+			) {
+				return corsJsonResponse(400, {
+					code: error.message,
+					message: error.message,
+				});
 			}
 
 			return corsJsonResponse(400, {
 				code: "processing_error",
-				message: error instanceof Error ? error.message : "Unknown processing error",
+				message:
+					error instanceof Error ? error.message : "Unknown processing error",
 			});
 		}
 	}),
@@ -1359,7 +1369,7 @@ http.route({
 		}
 
 		const params = new URL(request.url).searchParams;
-		if (!params.get("mortgageId") && !params.get("externalMortgageId")) {
+		if (!(params.get("mortgageId") || params.get("externalMortgageId"))) {
 			return corsJsonResponse(400, {
 				code: "missing_identifier",
 				message: "Provide mortgageId or externalMortgageId",
@@ -1431,12 +1441,15 @@ http.route({
 			return errorResponse;
 		}
 
-		const result = await ctx.runQuery(internal.mortgages.listMortgagesInternal, {
-			...data,
-			borrowerId: data?.borrowerId
-				? (data.borrowerId as Id<"borrowers">)
-				: undefined,
-		});
+		const result = await ctx.runQuery(
+			internal.mortgages.listMortgagesInternal,
+			{
+				...data,
+				borrowerId: data?.borrowerId
+					? (data.borrowerId as Id<"borrowers">)
+					: undefined,
+			}
+		);
 
 		return corsJsonResponse(200, {
 			code: "mortgages_listed",
@@ -1462,9 +1475,11 @@ http.route({
 
 		const params = new URL(request.url).searchParams;
 		if (
-			!params.get("listingId") &&
-			!params.get("mortgageId") &&
-			!params.get("externalMortgageId")
+			!(
+				params.get("listingId") ||
+				params.get("mortgageId") ||
+				params.get("externalMortgageId")
+			)
 		) {
 			return corsJsonResponse(400, {
 				code: "missing_identifier",

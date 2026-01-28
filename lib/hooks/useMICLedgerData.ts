@@ -245,9 +245,9 @@ export function useMICLedgerData(): MICLedgerData {
 					cursor?: { data?: FormanceAccount[] };
 				};
 			};
-			const accountsData = ("data" in accountsResult
-				? accountsResult.data
-				: undefined) as AccountsResponse | undefined;
+			const accountsData = (
+				"data" in accountsResult ? accountsResult.data : undefined
+			) as AccountsResponse | undefined;
 
 			if (
 				accountsResult.success &&
@@ -268,9 +268,9 @@ export function useMICLedgerData(): MICLedgerData {
 					cursor?: { data?: FormanceTransaction[] };
 				};
 			};
-			const txData = ("data" in txResult
-				? txResult.data
-				: undefined) as TransactionsResponse | undefined;
+			const txData = ("data" in txResult ? txResult.data : undefined) as
+				| TransactionsResponse
+				| undefined;
 
 			if (
 				txResult.success &&
@@ -279,7 +279,7 @@ export function useMICLedgerData(): MICLedgerData {
 				setRawTransactions(txData.v2TransactionsCursorResponse.cursor.data);
 			}
 		} catch (err) {
-		logger.error("Failed to fetch MIC ledger data", { error: err });
+			logger.error("Failed to fetch MIC ledger data", { error: err });
 			setError(err instanceof Error ? err.message : "Unknown error");
 		} finally {
 			setIsLoading(false);

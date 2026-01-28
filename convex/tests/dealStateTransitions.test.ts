@@ -1065,7 +1065,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		);
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: transfer?._id as any }
 		);
 
 		// Confirm transfer
@@ -1081,11 +1081,14 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		const ownership = await adminT.action(api.ownership.getMortgageOwnership, {
 			mortgageId,
 		});
-		const investorOwnership = ownership.find(
-			(o) => o.ownerId === investorId || o.ownerId === "fairlend"
-		);
-		// After transfer, investor should have 100% (or ownership updated)
-		expect(ownership.length).toBeGreaterThan(0);
+		const investorOwnership = ownership.find((o) => o.ownerId === investorId);
+		expect(investorOwnership).toBeTruthy();
+		const investorPercentage =
+			investorOwnership &&
+			("ownershipPercentage" in investorOwnership
+				? investorOwnership.ownershipPercentage
+				: investorOwnership.percentage);
+		expect(investorPercentage).toBe(100);
 	});
 
 	test("should transition from pending_ownership_review to pending_verification via REJECT_TRANSFER", async () => {
@@ -1109,13 +1112,10 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		);
 
 		// Reject the transfer
-		await adminT.mutation(
-			api.pendingOwnershipTransfers.rejectPendingTransfer,
-			{
-				transferId: transfer!._id,
-				reason: "Documents need review",
-			}
-		);
+		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
+			transferId: transfer?._id as any,
+			reason: "Documents need review",
+		});
 
 		// Trigger REJECT_TRANSFER
 		await adminT.mutation(api.deals.transitionDealState, {
@@ -1148,13 +1148,10 @@ describe("transitionDealState - Ownership Review Flow", () => {
 			{ dealId }
 		);
 
-		await adminT.mutation(
-			api.pendingOwnershipTransfers.rejectPendingTransfer,
-			{
-				transferId: transfer!._id,
-				reason: "Issue found",
-			}
-		);
+		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
+			transferId: transfer?._id,
+			reason: "Issue found",
+		});
 
 		// Check rejection alert was created
 		const alerts = await t.run(
@@ -1189,9 +1186,12 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		});
 
 		// Verify 100% before transfer
-		const ownershipBefore = await adminT.action(api.ownership.getTotalOwnership, {
-			mortgageId,
-		});
+		const ownershipBefore = await adminT.action(
+			api.ownership.getTotalOwnership,
+			{
+				mortgageId,
+			}
+		);
 		expect(ownershipBefore.totalPercentage).toBeCloseTo(100, 2);
 
 		// Approve and confirm transfer
@@ -1201,7 +1201,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		);
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: transfer?._id }
 		);
 
 		await adminT.mutation(api.deals.transitionDealState, {
@@ -1210,9 +1210,12 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		});
 
 		// Verify 100% after transfer
-		const ownershipAfter = await adminT.action(api.ownership.getTotalOwnership, {
-			mortgageId,
-		});
+		const ownershipAfter = await adminT.action(
+			api.ownership.getTotalOwnership,
+			{
+				mortgageId,
+			}
+		);
 		expect(ownershipAfter.totalPercentage).toBeCloseTo(100, 2);
 		expect(ownershipAfter.isValid).toBe(true);
 	});
@@ -1235,7 +1238,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		const deal = await adminT.query(api.deals.getDeal, { dealId });
 		expect(deal?.stateMachineState).toBeDefined();
 
-		const snapshot = JSON.parse(deal!.stateMachineState!);
+		const snapshot = JSON.parse(deal?.stateMachineState!);
 		expect(snapshot.context.currentState).toBe("pending_ownership_review");
 	});
 
@@ -1262,16 +1265,19 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		const result1 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer!._id,
+				transferId: transfer?._id,
 				reason: "First issue",
 			}
 		);
 		expect(result1.escalated).toBe(false);
 
-		// Move back and re-enter ownership review
+		// Trigger REJECT_TRANSFER
 		await adminT.mutation(api.deals.transitionDealState, {
 			dealId,
-			event: { type: "REJECT_TRANSFER", reason: "First issue" },
+			event: {
+				type: "REJECT_TRANSFER",
+				reason: "First issue",
+			},
 		});
 
 		await adminT.mutation(api.deals.transitionDealState, {
@@ -1288,7 +1294,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		const result2 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer!._id,
+				transferId: transfer?._id,
 				reason: "Second issue",
 			}
 		);
@@ -1315,7 +1321,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 				dealId,
 				event: { type: "CONFIRM_TRANSFER" },
 			})
-		).rejects.toThrow();
+		).rejects.toThrow("Transfer is not approved");
 	});
 
 	test("should reject VERIFY_COMPLETE from non-pending_verification state", async () => {
@@ -1329,7 +1335,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 				dealId,
 				event: { type: "VERIFY_COMPLETE" },
 			})
-		).rejects.toThrow();
+		).rejects.toThrow("Invalid transition");
 	});
 
 	test("complete ownership review flow: verification -> review -> approve -> complete", async () => {
@@ -1359,7 +1365,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: transfer?._id }
 		);
 
 		const approvedTransfer = await adminT.query(

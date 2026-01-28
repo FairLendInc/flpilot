@@ -57,6 +57,7 @@ type LockRequestItem =
 	| (typeof api.lockRequests.getPendingLockRequestsWithDetails._returnType)[number]
 	| (typeof api.lockRequests.getApprovedLockRequestsWithDetails._returnType)[number]
 	| (typeof api.lockRequests.getRejectedLockRequestsWithDetails._returnType)[number];
+
 import {
 	type LockRequestSortColumn,
 	type LockStatusFilter,

@@ -133,8 +133,8 @@ export const pruneOldEvents = internalAction({
 		const deletedCount: number = await ctx.runMutation(
 			internal.auditEvents.deleteOldEvents,
 			{
-			cutoffTimestamp,
-			limit: 500,
+				cutoffTimestamp,
+				limit: 500,
 			}
 		);
 

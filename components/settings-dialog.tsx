@@ -69,6 +69,7 @@ type LockRequestItem =
 	| (typeof api.lockRequests.getPendingLockRequestsWithDetails._returnType)[number]
 	| (typeof api.lockRequests.getApprovedLockRequestsWithDetails._returnType)[number]
 	| (typeof api.lockRequests.getRejectedLockRequestsWithDetails._returnType)[number];
+
 import {
 	DEAL_STATE_COLORS,
 	DEAL_STATE_LABELS,

@@ -19,19 +19,19 @@ const ItalicToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						variant="ghost"
-						size="icon"
 						className={cn(
 							"h-8 w-8 p-0 sm:h-9 sm:w-9",
 							editor?.isActive("italic") && "bg-accent",
-							className,
+							className
 						)}
+						disabled={!editor?.can().chain().focus().toggleItalic().run()}
 						onClick={(e) => {
 							editor?.chain().focus().toggleItalic().run();
 							onClick?.(e);
 						}}
-						disabled={!editor?.can().chain().focus().toggleItalic().run()}
 						ref={ref}
+						size="icon"
+						variant="ghost"
 						{...props}
 					>
 						{children ?? <ItalicIcon className="h-4 w-4" />}
@@ -39,11 +39,11 @@ const ItalicToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				</TooltipTrigger>
 				<TooltipContent>
 					<span>Italic</span>
-					<span className="ml-1 text-xs text-gray-11">(cmd + i)</span>
+					<span className="ml-1 text-gray-11 text-xs">(cmd + i)</span>
 				</TooltipContent>
 			</Tooltip>
 		);
-	},
+	}
 );
 
 ItalicToolbar.displayName = "ItalicToolbar";

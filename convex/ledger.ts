@@ -603,7 +603,7 @@ export const initializeMortgageOwnership = internalAction({
 		transactionId: v.optional(v.string()),
 		error: v.optional(v.string()),
 	}),
-	handler: async (ctx, args) => {
+	handler: async (_ctx, args) => {
 		const { mortgageId, reference } = args;
 		const shareAsset = getMortgageShareAsset(mortgageId);
 
@@ -621,7 +621,7 @@ send [$asset 100] (
 `.trim();
 
 		try {
-			const sdk = getFormanceClient();
+			const _sdk = getFormanceClient();
 
 			// Get token
 			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
@@ -746,7 +746,7 @@ export const recordOwnershipTransfer = internalAction({
 		transactionId: v.optional(v.string()),
 		error: v.optional(v.string()),
 	}),
-	handler: async (ctx, args) => {
+	handler: async (_ctx, args) => {
 		const {
 			mortgageId,
 			fromOwnerId,
@@ -915,7 +915,7 @@ export const getOwnershipFromLedger = action({
 		totalShares: v.optional(v.number()),
 		error: v.optional(v.string()),
 	}),
-	handler: async (ctx, args) => {
+	handler: async (_ctx, args) => {
 		const { mortgageId } = args;
 		const shareAsset = getMortgageShareAsset(mortgageId);
 
@@ -980,14 +980,13 @@ export const getOwnershipFromLedger = action({
 
 			// Check investor accounts - iterate through all accounts
 			for (const [account, balances] of Object.entries(aggregatedBalances)) {
-				if (
-					account.startsWith("investor:") &&
-					account.endsWith(":inventory")
-				) {
+				if (account.startsWith("investor:") && account.endsWith(":inventory")) {
 					const balance = (balances as Record<string, number>)?.[shareAsset];
 					if (balance && Number(balance) > 0) {
 						// Extract user ID from account path
-						const userId = account.replace("investor:", "").replace(":inventory", "");
+						const userId = account
+							.replace("investor:", "")
+							.replace(":inventory", "");
 						const shares = Number(balance);
 						ownership.push({
 							ownerId: userId,
@@ -1075,8 +1074,10 @@ export const getOwnershipSnapshot = action({
 			}
 
 			const data = await apiResponse.json();
-			const aggregatedBalances: Record<string, Record<string, number>> =
-				data?.data ?? {};
+			const aggregatedBalances: Record<
+				string,
+				Record<string, number>
+			> = data?.data ?? {};
 
 			const ownershipByMortgage: Record<
 				string,
@@ -1091,9 +1092,7 @@ export const getOwnershipSnapshot = action({
 					account.startsWith("investor:") &&
 					account.endsWith(":inventory")
 				) {
-					ownerId = account
-						.replace("investor:", "")
-						.replace(":inventory", "");
+					ownerId = account.replace("investor:", "").replace(":inventory", "");
 				}
 
 				if (!ownerId) {
@@ -1101,7 +1100,7 @@ export const getOwnershipSnapshot = action({
 				}
 
 				for (const [asset, balance] of Object.entries(balances)) {
-					if (!asset.startsWith("M") || !asset.endsWith("/SHARE")) {
+					if (!(asset.startsWith("M") && asset.endsWith("/SHARE"))) {
 						continue;
 					}
 

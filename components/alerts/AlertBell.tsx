@@ -34,6 +34,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { getTimeAgo } from "@/lib/types/dealTypes";
 
 type AlertItem = (typeof api.alerts.getUnreadAlerts._returnType)[number];
+
 import { cn } from "@/lib/utils";
 
 // Map alert type strings to icon components

@@ -1,8 +1,16 @@
 import { SDK } from "@formance/formance-sdk";
 
-const SERVER_URL = "https://aeqjzpikyllz-nkeg.eu.sandbox.formance.cloud";
-const CLIENT_ID = "58117e46-ef2d-48c5-a3a9-424362ae367f";
-const CLIENT_SECRET = "ec50454f-f001-4060-80cc-7368b941541e";
+const SERVER_URL = process.env.SERVER_URL;
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+
+const missing = ["SERVER_URL", "CLIENT_ID", "CLIENT_SECRET"].filter(
+	(key) => !process.env[key]
+);
+if (missing.length > 0) {
+	throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+}
+
 const TOKEN_URL = `${SERVER_URL}/api/auth/oauth/token`;
 
 const sdk = new SDK({
