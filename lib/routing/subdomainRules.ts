@@ -57,6 +57,7 @@ const restrictedAccessRule: SubdomainRedirectRule = {
 			"/sign-in",
 			"/sign-up",
 			"/callback",
+			"/onboarding",
 			"/api",
 			"/blog",
 			"/contact",

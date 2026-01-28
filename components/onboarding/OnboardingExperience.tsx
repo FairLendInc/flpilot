@@ -1,12 +1,10 @@
 "use client";
 
-import type { Preloaded } from "convex/react";
 import {
 	useAction,
 	useMutation,
-	usePreloadedQuery,
-	useQuery,
 } from "convex/react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { formatDistanceToNow } from "date-fns";
 import {
 	AlertTriangle,
@@ -21,10 +19,20 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -151,6 +159,19 @@ const BROKER_LICENSE_TYPES = [
 	"mortgage_dealer",
 ] as const;
 
+const brokerLicensingSchema = z.object({
+	licenseType: z.enum(BROKER_LICENSE_TYPES, {
+		message: "License type is required",
+	}),
+	licenseNumber: z.string().min(1, "License number is required"),
+	issuer: z.string().min(1, "Issuing organization is required"),
+	issuedDate: z.string().min(1, "Issuance date is required"),
+	expiryDate: z.string().min(1, "Expiry date is required"),
+	jurisdictions: z
+		.array(z.string().min(1))
+		.min(1, "At least one jurisdiction is required"),
+});
+
 function stateValueToString(
 	value: string | Record<string, unknown>
 ): OnboardingStateValue {
@@ -164,10 +185,6 @@ function stateValueToString(
 	}
 	return "personaSelection";
 }
-
-type Props = {
-	preloadedJourney: Preloaded<typeof api.onboarding.getJourney>;
-};
 
 type InvestorProfileValues = {
 	firstName: string;
@@ -238,13 +255,9 @@ type BrokerDocument = {
 	uploadedAt?: string;
 };
 
-export function OnboardingExperience({ preloadedJourney }: Props) {
+export function OnboardingExperience() {
 	const router = useRouter();
-	const preloadedData = usePreloadedQuery(preloadedJourney);
-	const liveJourney = useQuery(api.onboarding.getJourney, {});
-	// Use liveJourney if it's loaded (even if null), otherwise fall back to preloadedData
-	// This ensures we use realtime updates once the query has loaded
-	const journey = liveJourney !== undefined ? liveJourney : preloadedData;
+	const journey = useAuthenticatedQuery(api.onboarding.getJourney, {});
 	const userProfile = useAuthenticatedQuery(
 		api.profile.getCurrentUserProfile,
 		{}
@@ -259,6 +272,9 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 	const generateUploadUrl = useAction(api.onboarding.generateDocumentUploadUrl);
 
 	// Broker mutations
+	const advanceBrokerIntro = useMutation(
+		api.brokers.onboarding.advanceBrokerIntro
+	);
 	const saveBrokerCompanyInfo = useMutation(
 		api.brokers.onboarding.saveBrokerCompanyInfo
 	);
@@ -454,7 +470,16 @@ export function OnboardingExperience({ preloadedJourney }: Props) {
 
 	// Broker handlers
 	const handleBrokerIntroContinue = async () => {
-		router.push("/dashboard"); // For now, just redirect - can show placeholder
+		setSavingState("broker.company_info");
+		try {
+			await advanceBrokerIntro({});
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to continue onboarding";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
 	};
 
 	const handleBrokerCompanyInfoSubmit = async (
@@ -1820,48 +1845,46 @@ function BrokerLicensingForm({
 	onSubmit: (values: BrokerLicensingValues) => Promise<void>;
 	busy: boolean;
 }) {
-	const [formValues, setFormValues] = useState<BrokerLicensingValues>(
-		defaultValues ?? {
+	const form = useForm<BrokerLicensingValues>({
+		resolver: zodResolver(brokerLicensingSchema),
+		mode: "onChange",
+		defaultValues: defaultValues ?? {
 			licenseType: "mortgage_broker",
 			licenseNumber: "",
 			issuer: "",
 			issuedDate: "",
 			expiryDate: "",
 			jurisdictions: [],
-		}
-	);
+		},
+	});
+	const [jurisdictionInput, setJurisdictionInput] = useState("");
 
 	useEffect(() => {
 		if (defaultValues) {
-			setFormValues(defaultValues);
+			form.reset(defaultValues);
 		}
-	}, [defaultValues]);
+	}, [defaultValues, form]);
 
-	const [jurisdictionInput, setJurisdictionInput] = useState("");
-
-	const disabled = !(
-		formValues.licenseNumber &&
-		formValues.issuer &&
-		formValues.issuedDate &&
-		formValues.expiryDate &&
-		formValues.jurisdictions.length > 0
-	);
+	const jurisdictions = form.watch("jurisdictions");
 
 	const handleAddJurisdiction = () => {
-		if (jurisdictionInput.trim()) {
-			setFormValues((prev) => ({
-				...prev,
-				jurisdictions: [...prev.jurisdictions, jurisdictionInput.trim()],
-			}));
-			setJurisdictionInput("");
+		const next = jurisdictionInput.trim();
+		if (!next) {
+			return;
 		}
+		form.setValue("jurisdictions", [...jurisdictions, next], {
+			shouldValidate: true,
+		});
+		setJurisdictionInput("");
 	};
 
 	const handleRemoveJurisdiction = (index: number) => {
-		setFormValues((prev) => ({
-			...prev,
-			jurisdictions: prev.jurisdictions.filter((_, i) => i !== index),
-		}));
+		const next = jurisdictions.filter((_, i) => i !== index);
+		form.setValue("jurisdictions", next, { shouldValidate: true });
+	};
+
+	const handleSubmit = (values: BrokerLicensingValues) => {
+		onSubmit(values);
 	};
 
 	return (
@@ -1869,142 +1892,166 @@ function BrokerLicensingForm({
 			<CardHeader>
 				<CardTitle>Licensing Information</CardTitle>
 			</CardHeader>
-			<CardContent className="space-y-4">
-				<div className="grid gap-4">
-					<div>
-						<Label>License type</Label>
-						<Select
-							onValueChange={(value) =>
-								setFormValues((prev) => ({
-									...prev,
-									licenseType: value as BrokerLicensingValues["licenseType"],
-								}))
-							}
-							value={formValues.licenseType}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select license type" />
-							</SelectTrigger>
-							<SelectContent>
-								{BROKER_LICENSE_TYPES.map((type) => (
-									<SelectItem key={type} value={type}>
-										{String(type)
-											.split("_")
-											.map(
-												(word) => word.charAt(0).toUpperCase() + word.slice(1)
-											)
-											.join(" ")}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label htmlFor="licenseNumber">License number</Label>
-						<Input
-							id="licenseNumber"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									licenseNumber: event.target.value,
-								}))
-							}
-							value={formValues.licenseNumber}
-						/>
-					</div>
-					<div>
-						<Label htmlFor="issuer">Issuing organization</Label>
-						<Input
-							id="issuer"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									issuer: event.target.value,
-								}))
-							}
-							value={formValues.issuer}
-						/>
-					</div>
-					<div className="grid gap-4 md:grid-cols-2">
-						<div>
-							<Label htmlFor="issuedDate">Issuance date</Label>
-							<Input
-								id="issuedDate"
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										issuedDate: event.target.value,
-									}))
-								}
-								type="date"
-								value={formValues.issuedDate}
-							/>
-						</div>
-						<div>
-							<Label htmlFor="expiryDate">Expiry date</Label>
-							<Input
-								id="expiryDate"
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										expiryDate: event.target.value,
-									}))
-								}
-								type="date"
-								value={formValues.expiryDate}
-							/>
-						</div>
-					</div>
-				</div>
-
-				<div>
-					<Label>Jurisdictions</Label>
-					<div className="mt-2 flex gap-2">
-						<Input
-							onChange={(event) => setJurisdictionInput(event.target.value)}
-							onKeyDown={(event) => {
-								if (event.key === "Enter") {
-									event.preventDefault();
-									handleAddJurisdiction();
-								}
-							}}
-							placeholder="Add a province or territory"
-							value={jurisdictionInput}
-						/>
-						<Button onClick={handleAddJurisdiction} variant="secondary">
-							Add
-						</Button>
-					</div>
-					{formValues.jurisdictions.length > 0 ? (
-						<div className="mt-2 flex flex-wrap gap-2">
-							{formValues.jurisdictions.map((jurisdiction) => (
-								<Badge
-									className="cursor-pointer"
-									key={jurisdiction}
-									onClick={() =>
-										handleRemoveJurisdiction(
-											formValues.jurisdictions.indexOf(jurisdiction)
-										)
-									}
-									variant="secondary"
-								>
-									{jurisdiction}
-									<span className="ml-1">×</span>
-								</Badge>
-							))}
-						</div>
-					) : null}
-				</div>
-
-				<div className="flex justify-end gap-3">
-					<Button
-						disabled={disabled || busy}
-						onClick={() => onSubmit(formValues)}
+			<CardContent className="space-y-6">
+				<Form {...form}>
+					<form
+						className="space-y-6"
+						onSubmit={form.handleSubmit(handleSubmit)}
 					>
-						{busy ? "Saving..." : "Continue"}
-						<ArrowRight className="ml-2 size-4" />
-					</Button>
-				</div>
+						<div className="grid gap-4">
+							<FormField
+								control={form.control}
+								name="licenseType"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>License type *</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select license type" />
+												</SelectTrigger>
+												<SelectContent>
+													{BROKER_LICENSE_TYPES.map((type) => (
+														<SelectItem key={type} value={type}>
+															{String(type)
+																.split("_")
+																.map(
+																	(word) =>
+																		word.charAt(0).toUpperCase() +
+																		word.slice(1)
+																)
+																.join(" ")}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="licenseNumber"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>License number *</FormLabel>
+										<FormControl>
+											<Input {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="issuer"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>Issuing organization *</FormLabel>
+										<FormControl>
+											<Input {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<div className="grid gap-4 md:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="issuedDate"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>Issuance date *</FormLabel>
+											<FormControl>
+												<Input type="date" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="expiryDate"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>Expiry date *</FormLabel>
+											<FormControl>
+												<Input type="date" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
+
+						<FormField
+							control={form.control}
+							name="jurisdictions"
+							render={() => (
+								<FormItem className="space-y-2">
+									<FormLabel>Jurisdictions *</FormLabel>
+									<FormControl>
+										<div className="flex flex-col gap-3">
+											<div className="flex gap-2">
+												<Input
+													onChange={(event) =>
+														setJurisdictionInput(event.target.value)
+													}
+													onKeyDown={(event) => {
+														if (event.key === "Enter") {
+															event.preventDefault();
+															handleAddJurisdiction();
+														}
+													}}
+													placeholder="Add a province or territory"
+													value={jurisdictionInput}
+												/>
+												<Button
+													onClick={handleAddJurisdiction}
+													type="button"
+													variant="secondary"
+												>
+													Add
+												</Button>
+											</div>
+											{jurisdictions.length > 0 ? (
+												<div className="flex flex-wrap gap-2">
+													{jurisdictions.map((jurisdiction, index) => (
+														<Badge
+															className="cursor-pointer"
+															key={`${jurisdiction}-${index}`}
+															onClick={() => handleRemoveJurisdiction(index)}
+															variant="secondary"
+														>
+															{jurisdiction}
+															<span className="ml-1">×</span>
+														</Badge>
+													))}
+												</div>
+											) : null}
+										</div>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<div className="flex justify-end gap-3">
+							<Button disabled={!form.formState.isValid || busy} type="submit">
+								{busy ? "Saving..." : "Continue"}
+								<ArrowRight className="ml-2 size-4" />
+							</Button>
+						</div>
+					</form>
+				</Form>
 			</CardContent>
 		</Card>
 	);
@@ -2542,9 +2589,9 @@ function BrokerPendingAdminStep({
 }
 
 function BrokerRejectedStep({
-	_broker,
+	broker: _broker,
 }: {
-	_broker: NonNullable<JourneyDoc["context"]>["broker"] | undefined;
+	broker: NonNullable<JourneyDoc["context"]>["broker"] | undefined;
 }) {
 	return (
 		<Card className="border-destructive">

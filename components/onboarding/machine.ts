@@ -390,6 +390,7 @@ export const onboardingMachine = setup({
 				documents: {},
 				review: {},
 				pending_admin: {},
+				rejected: {},
 			},
 		},
 		lawyer: {
