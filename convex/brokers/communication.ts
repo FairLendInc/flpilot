@@ -1,10 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type {
-	AuthorizedMutationCtx,
-	AuthorizedQueryCtx,
-} from "../lib/server";
+import type { AuthorizedMutationCtx, AuthorizedQueryCtx } from "../lib/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
 
 /**
@@ -261,9 +258,7 @@ export const getBrokerUnresolvedRequestsCount = createAuthorizedQuery([
 		// Get all clients for this broker
 		const clients = await ctx.db
 			.query("broker_clients")
-			.withIndex("by_broker", (q) =>
-				q.eq("brokerId", brokerId)
-			)
+			.withIndex("by_broker", (q) => q.eq("brokerId", brokerId))
 			.collect();
 
 		// Count unresolved requests across all clients

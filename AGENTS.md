@@ -1,14 +1,29 @@
+---
+description:
+alwaysApply: true
+---
+
+---
+
+description:
+alwaysApply: false
+
+---
+
 <!-- OPENSPEC:START -->
+
 # OpenSpec Instructions
 
 These instructions are for AI assistants working in this project.
 
 Always open `@/openspec/AGENTS.md` when the request:
+
 - Mentions planning or proposals (words like proposal, spec, change, plan)
 - Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
 - Sounds ambiguous and you need the authoritative spec before coding
 
 Use `@/openspec/AGENTS.md` to learn:
+
 - How to create and apply change proposals
 - Spec format and conventions
 - Project structure and guidelines
@@ -20,8 +35,13 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 ## Convex Development Guidelines
 
 **For all Convex-related work:**
+
 - **Always reference `.cursor/rules/convex_rules.mdc`** for patterns, best practices, and implementation examples
 - **Use the explicit authorization helpers `createAuthorizedQuery`, `createAuthorizedMutation`, and `createAuthorizedAction` from `convex/lib/server.ts`**. These require you to declare allowed roles and whether authentication is required. Default is authenticated; pass `false` as the third argument to opt into unauthenticated access.
+- **Type handlers with `AuthorizedQueryCtx`, `AuthorizedMutationCtx`, or `AuthorizedActionCtx` when using `createAuthorized*`** and use a `requireSubjectId()` helper before accessing `ctx.subject` or user-scoped indexes.
+- **Always use `ctx.runQuery` to call a query from a query, mutation, or action.**
+- **Always use `ctx.runMutation` to call a mutation from a mutation or action.**
+- **Always use `ctx.runAction` to call an action from an action.**
 - **Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `convex/lib/client.ts`** for all authenticated client-side queries
 - **Never use `preloadQuery` with authentication tokens** - This is an anti-pattern that prevents static rendering and creates security vulnerabilities
 - **RBAC context is automatically available** - When using `createAuthorized*`, access `ctx.role`, `ctx.roles`, `ctx.permissions`, `ctx.org_id` directly without calling `ctx.auth.getUserIdentity()`
@@ -32,6 +52,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 **Authentication Patterns:**
 
 **Backend (Convex Functions):**
+
 ```typescript
 import { v } from "convex/values";
 import { createAuthorizedQuery } from "./lib/server";
@@ -48,11 +69,12 @@ export const getProfile = authenticatedQuery({
   handler: async (ctx) => {
     const { role, permissions, org_id } = ctx;
     return { name: ctx.first_name };
-  }
+  },
 });
 ```
 
 **Frontend (React Components):**
+
 ```typescript
 "use client";
 import { useConvexAuth } from "convex/react";
@@ -62,17 +84,18 @@ import { api } from "@/convex/_generated/api";
 function MyComponent() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const data = useAuthenticatedQuery(api.myFunction.getData, {});
-  
+
   // Always check authLoading FIRST (prevents race condition)
   if (authLoading) return <LoadingSpinner />;
   if (!isAuthenticated) return <SignInPrompt />;
   if (!data) return <LoadingData />;
-  
+
   return <DataDisplay data={data} />;
 }
 ```
 
 **Anti-Patterns to Avoid:**
+
 - ❌ Using `preloadQuery` with `accessToken` for authenticated data
 - ❌ Using `useQuery` directly for authenticated data (use `useAuthenticatedQuery` instead)
 - ❌ Manually calling `ctx.auth.getUserIdentity()` when using `createAuthorized*` helpers (RBAC context is already available)
@@ -84,13 +107,14 @@ Convex provides three distinct patterns for fetching data in Next.js application
 
 #### Pattern Selection Guide
 
-| Pattern | SSR Preload | Client Reactive | Cached? | CDN Cached? | Security | Use Case |
-|---------|-------------|-----------------|---------|-------------|----------|----------|
-| `fetchQuery` | ✅ Yes | ❌ No | ❌ No | ❌ No | ✅ Safe | SSR, metadata, one-time fetch |
-| `preloadQuery` | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ Unsafe for auth | Public data with reactivity |
-| `useAuthenticatedQuery` | ❌ No | ✅ Yes | ✅ Yes | ❌ No | ✅ Safe | **Default for user data** |
+| Pattern                 | SSR Preload | Client Reactive | Cached? | CDN Cached? | Security           | Use Case                      |
+| ----------------------- | ----------- | --------------- | ------- | ----------- | ------------------ | ----------------------------- |
+| `fetchQuery`            | ✅ Yes      | ❌ No           | ❌ No   | ❌ No       | ✅ Safe            | SSR, metadata, one-time fetch |
+| `preloadQuery`          | ✅ Yes      | ✅ Yes          | ✅ Yes  | ✅ Yes      | ❌ Unsafe for auth | Public data with reactivity   |
+| `useAuthenticatedQuery` | ❌ No       | ✅ Yes          | ✅ Yes  | ❌ No       | ✅ Safe            | **Default for user data**     |
 
 **Decision Tree:**
+
 1. **Is the data authenticated/user-specific?**
    - Yes → Use `useAuthenticatedQuery` (Pattern 3)
    - No → Continue to 2
@@ -103,11 +127,13 @@ Convex provides three distinct patterns for fetching data in Next.js application
    - Yes → Use `fetchQuery` (Pattern 1)
 
 **Summary:**
+
 - **For authenticated user data → Always use `useAuthenticatedQuery`** (pure client-side reactive)
 - **For public data needing SSR + reactivity → Use `preloadQuery`** (server preload + client reactive)
 - **For SSR/metadata (one-time) → Use `fetchQuery`** (one-time server fetch)
 
 **Key Insight:**
+
 - Patterns 2 and 3 both provide reactive updates on the client
 - Pattern 2 preloads server-side for faster initial render, then becomes reactive
 - Pattern 3 is purely client-side from the start
@@ -116,6 +142,7 @@ Convex provides three distinct patterns for fetching data in Next.js application
 **Examples:**
 
 **Pattern 1: `fetchQuery` (SSR Metadata)**
+
 ```typescript
 // Server Component - metadata generation
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -123,7 +150,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   const data = await fetchQuery(
     api.mortgages.getMortgage,
     { id: params.id as Id<"mortgages"> },
-    { token: accessToken }
+    { token: accessToken },
   );
 
   return { title: data?.title || "Listing" };
@@ -131,6 +158,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 ```
 
 **Pattern 2: `preloadQuery` (Public Data with Reactivity)**
+
 ```typescript
 // Server Component - public data only
 export default async function PublicPage() {
@@ -148,6 +176,7 @@ function ClientComponent({ preloaded }) {
 ```
 
 **Pattern 3: `useAuthenticatedQuery` (Authenticated User Data)**
+
 ```typescript
 "use client";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
@@ -410,6 +439,7 @@ No importing `next/head` in `_document.tsx`. Use `<Head>` from `next/document` i
 This project uses React Compiler for automatic performance optimization. When writing React code:
 
 ### ✅ DO: Write React Compiler-Optimized Code
+
 - Use plain functions instead of wrapping in `useCallback`
 - Use plain derived data logic instead of `useMemo`
 - Let React Compiler handle memoization automatically
@@ -417,6 +447,7 @@ This project uses React Compiler for automatic performance optimization. When wr
 - Trust the compiler to optimize state transitions
 
 ### ❌ DON'T: Manual Performance Optimization
+
 - Avoid `useMemo` for computed values
 - Avoid `useCallback` for event handlers
 - Don't manually manage dependency arrays
@@ -425,18 +456,19 @@ This project uses React Compiler for automatic performance optimization. When wr
 ### Examples
 
 **✅ GOOD - React Compiler Style:**
+
 ```typescript
 function Component({ data }: Props) {
   // Plain function - React Compiler optimizes automatically
   function getDisplayName(user: User) {
     return user.firstName + ' ' + user.lastName;
   }
-  
+
   // Plain handler - React Compiler optimizes
   function handleClick(id: string) {
     console.log('Clicked:', id);
   }
-  
+
   return (
     <div>
       <span>{getDisplayName(data.user)}</span>
@@ -447,18 +479,19 @@ function Component({ data }: Props) {
 ```
 
 **❌ BAD - Manual Optimization:**
+
 ```typescript
 function Component({ data }: Props) {
   // Don't manually memoize - React Compiler does this better
   const getDisplayName = useCallback((user: User) => {
     return user.firstName + ' ' + user.lastName;
   }, []);
-  
+
   // Don't manually wrap handlers
   const handleClick = useCallback((id: string) => {
     console.log('Clicked:', id);
   }, []);
-  
+
   return (
     <div>
       <span>{getDisplayName(data.user)}</span>
@@ -469,6 +502,7 @@ function Component({ data }: Props) {
 ```
 
 ### Key Benefits
+
 - **Less Boilerplate**: No dependency arrays to manage
 - **Better Performance**: React Compiler optimizes better than manual approaches
 - **Cleaner Code**: Business logic is more direct and readable
@@ -476,7 +510,9 @@ function Component({ data }: Props) {
 - **Future-Proof**: As React Compiler improves, your code gets faster automatically
 
 ### Migration Notes
+
 When refactoring existing code:
+
 1. Remove `useMemo` and `useCallback` where appropriate
 2. Replace wrapped functions with plain functions
 3. Let React Compiler handle the optimization

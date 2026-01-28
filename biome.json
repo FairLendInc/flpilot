@@ -9,6 +9,9 @@
     "ignoreUnknown": false,
     "includes": [
       "app/**",
+      "!.vscode",
+      "!.vscode/*",
+      "!.vscode/settings.json",
       "components/**",
       "convex/**",
       "hooks/**",
@@ -105,6 +108,9 @@
       },
       "a11y": {
         "useSemanticElements": "off"
+      },
+      "performance": {
+        "noBarrelFile": "off"
       },
       "recommended": true
     }

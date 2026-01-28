@@ -1,14 +1,17 @@
 <!-- OPENSPEC:START -->
+
 # OpenSpec Instructions
 
 These instructions are for AI assistants working in this project.
 
 Always open `@/openspec/AGENTS.md` when the request:
+
 - Mentions planning or proposals (words like proposal, spec, change, plan)
 - Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
 - Sounds ambiguous and you need the authoritative spec before coding
 
 Use `@/openspec/AGENTS.md` to learn:
+
 - How to create and apply change proposals
 - Spec format and conventions
 - Project structure and guidelines
@@ -120,17 +123,20 @@ pnpm run build-storybook
 ### Key Architectural Patterns
 
 #### Authentication Flow
+
 - WorkOS AuthKit handles authentication via redirect-based flow
 - Middleware (`middleware.ts`) protects routes and manages session state
 - `ConvexClientProvider` bridges WorkOS auth with Convex authentication
 - Unauthenticated paths: `/`, `/sign-in`, `/sign-up`
 
 #### Client-Side Data Fetching with Authentication
+
 **⚠️ CRITICAL: For REACTIVE data with AUTH, use reactive client-side queries (NOT preload patterns)**
 
 **✅ CORRECT: Reactive Auth Query Pattern**
 
 **Client Component:**
+
 ```typescript
 "use client";
 import { useConvexAuth } from "convex/react";
@@ -151,6 +157,7 @@ export function ProfileComponent() {
 ```
 
 **Key Points:**
+
 - Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `@/convex/lib/client`
 - Always check `authLoading` from `useConvexAuth()` before rendering
 - Query automatically skips when not authenticated
@@ -160,6 +167,7 @@ export function ProfileComponent() {
 **❌ ANTI-PATTERN: Preloading Authenticated Data**
 
 **DO NOT use this pattern for authenticated data:**
+
 ```typescript
 // ❌ WRONG - Prevents static rendering, stale data
 // Server Component
@@ -182,12 +190,14 @@ function Client({ preloaded }) {
 ```
 
 **Why This Fails:**
+
 - Prevents Next.js static optimization (forces dynamic rendering)
 - Data frozen at server render time
 - Doesn't react to auth changes (logout, refresh)
 - Creates security vulnerability (stale auth data)
 
 **When to Use Preloading:**
+
 - Only for truly public/unauthenticated data
 - Never use `preloadQuery` with `accessToken` for authenticated content
 
@@ -198,11 +208,13 @@ Convex provides three distinct patterns for fetching data in Next.js application
 ##### Pattern 1: `fetchQuery` - One-Time Server Fetching
 
 **Use for:**
+
 - Server-side rendering (SSR) of metadata (`generateMetadata`)
 - One-time data fetching where real-time updates aren't needed
 - API routes that need direct data access without reactivity
 
 **Behavior:**
+
 - ❌ No client-side caching
 - ❌ No reactive updates
 - ✅ Fetches data once on server and returns it
@@ -210,6 +222,7 @@ Convex provides three distinct patterns for fetching data in Next.js application
 - ❌ Data becomes stale immediately after render
 
 **Example:**
+
 ```typescript
 // Server Component - metadata generation
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -217,7 +230,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   const data = await fetchQuery(
     api.mortgages.getMortgage,
     { id: params.id as Id<"mortgages"> },
-    { token: accessToken }
+    { token: accessToken },
   );
 
   return { title: data?.title || "Listing" };
@@ -225,11 +238,13 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 ```
 
 **Next.js CDN Caching:**
+
 - ❌ **No HTML caching** - Dynamic, user-specific content renders per request
 - ✅ Static assets (JS, CSS, images) still cached
 - ✅ Browser caching of resources still applies
 
 **Performance Trade-off:**
+
 - Pros: Always fresh data at render time, user-specific, no stale data risks
 - Cons: Higher server costs, slower TTFB, no CDN benefit for HTML, no reactivity
 
@@ -238,18 +253,21 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 ##### Pattern 2: `preloadQuery` + `usePreloadedQuery` - Server Preload with Client Reactivity
 
 **Use for:**
+
 - Public/unauthenticated data that benefits from SSR preload
 - Content that needs fast initial render AND reactive updates
 - Static or semi-static data (e.g., marketing pages, public listings)
 - **Good for: Initial speed + client-side reactivity**
 
 **Behavior:**
+
 - ✅ Preloads data server-side for instant initial render
 - ✅ Becomes fully reactive on client (updates when data changes)
 - ✅ Combines SSR speed with client-side reactivity
 - ❌ Not suitable for authenticated data (security risk)
 
 **Example:**
+
 ```typescript
 // Server Component - public data only
 export default async function PublicPage() {
@@ -267,11 +285,13 @@ function ClientComponent({ preloaded }) {
 ```
 
 **Next.js CDN Caching:**
+
 - ✅ **Can leverage CDN caching** - If data is truly public
 - ✅ Set `export const revalidate = 3600` for ISR
 - ✅ Static assets fully cached
 
 **Performance Trade-off:**
+
 - Pros: Fast initial load, reactive updates, can use CDN caching
 - Cons: Security risk for authenticated data, still dynamic HTML
 
@@ -280,12 +300,14 @@ function ClientComponent({ preloaded }) {
 ##### Pattern 3: `useQuery` / `useAuthenticatedQuery` - Pure Client-Side Reactive
 
 **Use for:**
+
 - Authenticated user data that needs real-time updates
 - Data that changes based on user actions
 - Dashboard components, user profiles, live data
 - **This is the DEFAULT for authenticated user data**
 
 **Behavior:**
+
 - ✅ Full client-side caching and reactive updates
 - ✅ Real-time data synchronization
 - ✅ Updates when underlying data changes
@@ -293,6 +315,7 @@ function ClientComponent({ preloaded }) {
 - ✅ Client-side only (good for static rendering)
 
 **Example:**
+
 ```typescript
 "use client";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
@@ -311,11 +334,13 @@ function AuthenticatedComponent() {
 ```
 
 **Next.js CDN Caching:**
+
 - ❌ **No HTML caching** - Dynamic, user-specific content
 - ✅ Static assets fully cached
 - ✅ Enables static page rendering with client-side data fetching
 
 **Performance Trade-off:**
+
 - Pros: Always fresh, reactive updates, best UX for authenticated users, enables static rendering
 - Cons: Requires client hydration, requires careful auth loading states
 
@@ -323,13 +348,14 @@ function AuthenticatedComponent() {
 
 ##### Pattern Selection Guide
 
-| Pattern | SSR Preload | Client Reactive | Cached? | CDN Cached? | Security | Use Case |
-|---------|-------------|-----------------|---------|-------------|----------|----------|
-| `fetchQuery` | ✅ Yes | ❌ No | ❌ No | ❌ No | ✅ Safe | SSR, metadata, one-time fetch |
-| `preloadQuery` | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ Unsafe for auth | Public data with reactivity |
-| `useAuthenticatedQuery` | ❌ No | ✅ Yes | ✅ Yes | ❌ No | ✅ Safe | **Default for user data** |
+| Pattern                 | SSR Preload | Client Reactive | Cached? | CDN Cached? | Security           | Use Case                      |
+| ----------------------- | ----------- | --------------- | ------- | ----------- | ------------------ | ----------------------------- |
+| `fetchQuery`            | ✅ Yes      | ❌ No           | ❌ No   | ❌ No       | ✅ Safe            | SSR, metadata, one-time fetch |
+| `preloadQuery`          | ✅ Yes      | ✅ Yes          | ✅ Yes  | ✅ Yes      | ❌ Unsafe for auth | Public data with reactivity   |
+| `useAuthenticatedQuery` | ❌ No       | ✅ Yes          | ✅ Yes  | ❌ No       | ✅ Safe            | **Default for user data**     |
 
 **Decision Tree:**
+
 1. **Is the data authenticated/user-specific?**
    - Yes → Use `useAuthenticatedQuery` (Pattern 3)
    - No → Continue to 2
@@ -342,17 +368,20 @@ function AuthenticatedComponent() {
    - Yes → Use `fetchQuery` (Pattern 1)
 
 **Summary:**
+
 - **For authenticated user data → Always use `useAuthenticatedQuery`** (pure client-side reactive)
 - **For public data needing SSR + reactivity → Use `preloadQuery`** (server preload + client reactive)
 - **For SSR/metadata (one-time) → Use `fetchQuery`** (one-time server fetch)
 
 **Key Insight:**
+
 - Patterns 2 and 3 both provide reactive updates on the client
 - Pattern 2 preloads server-side for faster initial render, then becomes reactive
 - Pattern 3 is purely client-side from the start
 - **For authenticated data, Pattern 3 is required for security (no server-side token preloading)**
 
 #### Data Flow
+
 - Convex schema defined in `convex/schema.ts` with 6 core tables:
   - `mortgages` - Core loan + property records with borrower reference
   - `borrowers` - Minimal borrower profiles with Rotessa integration
@@ -365,9 +394,56 @@ function AuthenticatedComponent() {
 - All data queries go through Convex's reactive query system
 - **100% Ownership Invariant**: Every mortgage has exactly 100% ownership, with FairLend as the default remainder owner
 
+#### Ownership Transfer Workflow (Maker-Checker Pattern)
+
+When deals complete the verification phase, ownership is transferred via a two-step review process:
+
+1. **State Transition**: Deal transitions `pending_verification` → `pending_ownership_review` via `VERIFY_COMPLETE` event
+2. **Transfer Creation**: A `pending_ownership_transfers` record is auto-created for admin review
+3. **Admin Review**: Admin reviews the cap table preview (before/after visualization)
+4. **Approval/Rejection**:
+   - `approvePendingTransfer()` → `CONFIRM_TRANSFER` → ownership executed, deal completed
+   - `rejectPendingTransfer()` → `REJECT_TRANSFER` → returns to `pending_verification`
+5. **Escalation**: After 2 rejections, transfers escalate to manual resolution
+
+**Critical Functions:**
+
+```typescript
+// ✅ ALWAYS use createOwnershipInternal() for ownership changes
+import { createOwnershipInternal } from "@/convex/ownership";
+
+// State machine events (via transitionDealState)
+{ type: "VERIFY_COMPLETE" }     // → pending_ownership_review
+{ type: "CONFIRM_TRANSFER" }    // → completed (after approval)
+{ type: "REJECT_TRANSFER", reason: "..." }  // → pending_verification
+```
+
+**⚠️ CRITICAL FOOTGUNS:**
+
+- **#1**: NEVER directly insert `mortgage_ownership` - ALWAYS use `createOwnershipInternal()`
+- **#3**: NEVER call Formance/external APIs in mutations - use `ctx.scheduler.runAfter()`
+- **#4**: NEVER log PII in audit events - use `sanitizeState()` before storing
+- **#5**: ALWAYS include Formance idempotency key (`reference` field)
+- **#6**: ALWAYS persist XState state after transitions (`stateMachineState` field)
+
+**Audit Events:**
+All ownership changes emit structured audit events via `emitAuditEvent()`:
+
+```typescript
+await emitAuditEvent(ctx, {
+  eventType: "ownership_transfer",
+  entityType: "mortgage",
+  entityId: mortgageId,
+  beforeState: sanitizeState(before), // PII removed
+  afterState: sanitizeState(after),
+});
+```
+
 #### Convex Best Practices
+
 - **Always consult `.cursor/rules/convex_rules.mdc`** for Convex development patterns and guidelines
 - **Use the explicit authorization helpers `createAuthorizedQuery`, `createAuthorizedMutation`, and `createAuthorizedAction` from `convex/lib/server.ts`**. Declare allowed roles and whether authentication is required. Default is authenticated; pass `false` as the third argument to opt into unauthenticated access.
+- **Type Convex handlers with `AuthorizedQueryCtx`, `AuthorizedMutationCtx`, or `AuthorizedActionCtx` when using `createAuthorized*`** and gate `ctx.subject` usage through a `requireSubjectId()` helper.
 - **Use `useAuthenticatedQuery` or `useAuthenticatedQueryWithStatus` from `convex/lib/client.ts`** for all authenticated client-side queries
 - **Never use `preloadQuery` with authentication tokens** - Use reactive client-side queries instead
 - **RBAC context is automatically available** - When using `createAuthorized*`, access `ctx.role`, `ctx.roles`, `ctx.permissions`, `ctx.org_id` directly without calling `ctx.auth.getUserIdentity()`
@@ -376,6 +452,7 @@ function AuthenticatedComponent() {
 - Leverage the 100% ownership invariant when working with mortgage ownership operations
 
 **Backend Authentication Pattern:**
+
 ```typescript
 import { v } from "convex/values";
 import { createAuthorizedQuery } from "./lib/server";
@@ -391,17 +468,18 @@ export const getProfile = authenticatedQuery({
   returns: v.object({ name: v.string(), role: v.string() }),
   handler: async (ctx) => {
     const { role, roles, permissions, org_id } = ctx;
-    
+
     if (!permissions?.includes("read:profile")) {
       throw new Error("Permission denied");
     }
-    
+
     return { name: ctx.first_name, role: ctx.role };
-  }
+  },
 });
 ```
 
 **Frontend Authentication Pattern:**
+
 ```typescript
 "use client";
 import { useConvexAuth } from "convex/react";
@@ -411,16 +489,17 @@ import { api } from "@/convex/_generated/api";
 function MyComponent() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const data = useAuthenticatedQuery(api.myFunction.getData, {});
-  
+
   if (authLoading) return <LoadingSpinner />;
   if (!isAuthenticated) return <SignInPrompt />;
   if (!data) return <LoadingData />;
-  
+
   return <DataDisplay data={data} />;
 }
 ```
 
 #### Logging Architecture
+
 - Centralized logging system with adapter pattern
 - Server: Pino-based structured logging with pretty output in dev
 - Client: Batching adapter that posts to `/api/logs`
@@ -428,6 +507,7 @@ function MyComponent() {
 - Environment: `LOG_LEVEL`, `LOG_PRETTY`, `LOG_SERVICE_NAME`
 
 #### Toast Notifications
+
 - **Sonner** is used for all toast notifications (NOT `use-toast` hook)
 - Import from `sonner`: `import { toast } from "sonner"`
 - Usage: `toast.success("Message")`, `toast.error("Message")`, `toast.info("Message")`
@@ -435,6 +515,7 @@ function MyComponent() {
 - Never create or import `@/hooks/use-toast` - use `sonner` directly
 
 #### React Compiler Optimization
+
 - **This project uses React Compiler for automatic performance optimization**
 - **DO NOT manually use `useMemo` or `useCallback`** - React Compiler handles this automatically
 - Write plain functions and let the compiler optimize them
@@ -447,18 +528,23 @@ function MyComponent() {
   - ✅ Better performance than manual optimization
 
 **Example - DON'T DO THIS (Manual Optimization):**
+
 ```typescript
 // ❌ Manual optimization - NOT needed with React Compiler
 const derivedData = useMemo(() => {
   return expensiveComputation(data);
 }, [data]);
 
-const handleClick = useCallback((id: string) => {
-  doSomething(id);
-}, [doSomething]);
+const handleClick = useCallback(
+  (id: string) => {
+    doSomething(id);
+  },
+  [doSomething],
+);
 ```
 
 **Example - DO THIS (React Compiler):**
+
 ```typescript
 // ✅ Let React Compiler handle optimization automatically
 function getDerivedData(data: typeof userData) {
@@ -521,6 +607,7 @@ Copy `.env.local.example` to `.env.local` and configure:
 ### Development Workflow
 
 1. **Initial Setup**:
+
    ```bash
    pnpm install
    cp .env.local.example .env.local
@@ -530,6 +617,7 @@ Copy `.env.local.example` to `.env.local` and configure:
    ```
 
 2. **Daily Development**:
+
    ```bash
    pnpm run dev  # Starts both frontend and backend
    ```
@@ -544,16 +632,19 @@ Copy `.env.local.example` to `.env.local` and configure:
 ### Key Integration Points
 
 #### WorkOS + Convex Integration
+
 - `components/ConvexClientProvider.tsx` bridges AuthKit with Convex
 - Custom `useAuthFromAuthKit()` function provides Convex-compatible auth interface
 - Token refresh handled automatically by AuthKit components
 
 #### Middleware Protection
+
 - `middleware.ts` implements route protection and request ID tracking
 - Eager authentication mode redirects unauthenticated users to sign-in
 - Request IDs automatically added to headers for log correlation
 
 #### Logging Integration
+
 - Import from `lib/logger.ts` everywhere (server, client, Convex)
 - Use `logger.child()` for request-scoped context
 - Client logs automatically forwarded to server logging infrastructure

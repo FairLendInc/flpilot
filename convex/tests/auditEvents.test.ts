@@ -426,7 +426,7 @@ describe("getEventsForEntity", () => {
 
 		// Create 5 events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 5; i++) {
+			for (let i = 0; i < 5; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `event.type.${i}`,
 					entityType: "test_entity",
@@ -523,7 +523,7 @@ describe("getRecentEvents", () => {
 
 		// Create several events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 5; i++) {
+			for (let i = 0; i < 5; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `recent.event.${i}`,
 					entityType: "test",
@@ -540,7 +540,7 @@ describe("getRecentEvents", () => {
 
 		expect(events.length).toBeLessThanOrEqual(3);
 		// Should be in descending order
-		for (let i = 0; i < events.length - 1; i++) {
+		for (let i = 0; i < events.length - 1; i += 1) {
 			expect(events[i]._creationTime).toBeGreaterThanOrEqual(
 				events[i + 1]._creationTime
 			);
@@ -671,7 +671,7 @@ describe("getUnemittedEvents", () => {
 
 		// Create 5 events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 5; i++) {
+			for (let i = 0; i < 5; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `batch.event.${i}`,
 					entityType: "test",
@@ -703,7 +703,7 @@ describe("emitPendingEvents cron job", () => {
 
 		// Create multiple unemitted events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 3; i++) {
+			for (let i = 0; i < 3; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `cron.test.event.${i}`,
 					entityType: "test",

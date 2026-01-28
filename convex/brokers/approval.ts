@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
+
 function requireSubjectId(ctx: unknown): Id<"users"> {
 	const subject = (ctx as { subject?: string | null }).subject;
 	if (!subject) {
@@ -8,7 +9,6 @@ function requireSubjectId(ctx: unknown): Id<"users"> {
 	}
 	return subject as Id<"users">;
 }
-
 
 // ============================================
 // Admin Broker Review Queries
@@ -408,7 +408,9 @@ export const rollbackBrokerJourney = createAuthorizedMutation(["admin"])({
 // Type Definitions
 // ============================================
 
-type BrokerContext = NonNullable<Doc<"onboarding_journeys">["context"]["broker"]>;
+type BrokerContext = NonNullable<
+	Doc<"onboarding_journeys">["context"]["broker"]
+>;
 
 type AdminRequestTimelineEntry = NonNullable<
 	BrokerContext["adminRequestTimeline"]

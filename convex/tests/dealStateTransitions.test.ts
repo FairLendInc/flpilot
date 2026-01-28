@@ -1066,9 +1066,12 @@ describe("transitionDealState - Ownership Review Flow", () => {
 		if (!transfer?._id) {
 			throw new Error("Pending transfer not found");
 		}
-		await adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
-			transferId: transfer._id,
-		});
+		await adminT.mutation(
+			api.pendingOwnershipTransfers.approvePendingTransfer,
+			{
+				transferId: transfer._id,
+			}
+		);
 
 		// Confirm transfer
 		await adminT.mutation(api.deals.transitionDealState, {
@@ -1248,9 +1251,11 @@ describe("transitionDealState - Ownership Review Flow", () => {
 
 		// Verify state machine state is persisted
 		const deal = await adminT.query(api.deals.getDeal, { dealId });
-		expect(deal?.stateMachineState).toBeDefined();
+		if (!deal?.stateMachineState) {
+			throw new Error("Deal or state machine state not found");
+		}
 
-		const snapshot = JSON.parse(deal?.stateMachineState!);
+		const snapshot = JSON.parse(deal.stateMachineState);
 		expect(snapshot.context.currentState).toBe("pending_ownership_review");
 	});
 
@@ -1358,7 +1363,7 @@ describe("transitionDealState - Ownership Review Flow", () => {
 
 	test("complete ownership review flow: verification -> review -> approve -> complete", async () => {
 		const t = createTest();
-		const { dealId, mortgageId, investorId } = await createDeal(t);
+		const { dealId, mortgageId } = await createDeal(t);
 
 		await moveDealToPendingVerification(t, dealId);
 

@@ -1,10 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type {
-	AuthorizedMutationCtx,
-	AuthorizedQueryCtx,
-} from "../lib/server";
+import type { AuthorizedMutationCtx, AuthorizedQueryCtx } from "../lib/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
 
 /**
@@ -523,7 +520,10 @@ export const saveClientProfile = createAuthorizedMutation([
 
 		// Verify authorization - client can update their own profile
 		const subjectId = requireSubjectId(ctx);
-		if (ctx.role !== "admin" && subjectId.toString() !== client.clientId.toString()) {
+		if (
+			ctx.role !== "admin" &&
+			subjectId.toString() !== client.clientId.toString()
+		) {
 			throw new Error("Unauthorized to update this client profile");
 		}
 
@@ -566,7 +566,10 @@ export const submitClientForApproval = createAuthorizedMutation([
 
 		// Verify authorization
 		const subjectId = requireSubjectId(ctx);
-		if (ctx.role !== "admin" && subjectId.toString() !== client.clientId.toString()) {
+		if (
+			ctx.role !== "admin" &&
+			subjectId.toString() !== client.clientId.toString()
+		) {
 			throw new Error("Unauthorized to submit this client");
 		}
 

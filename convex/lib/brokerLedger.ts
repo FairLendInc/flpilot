@@ -64,15 +64,15 @@ export const BROKER_ASSETS = {
 /**
  * Generate a unique idempotency reference for broker operations
  */
-export function generateBrokerReference(
-	operation: "commission" | "adjustment",
-	dealId: string,
-	brokerId: string,
-	clientId: string,
-	timestamp?: number
-): string {
-	const ts = timestamp ?? Date.now();
-	return `${operation}:${dealId}:${brokerId}:${clientId}:${ts}`;
+export function generateBrokerReference(args: {
+	operation: "commission" | "adjustment";
+	dealId: string;
+	brokerId: string;
+	clientId: string;
+	timestamp?: number;
+}): string {
+	const ts = args.timestamp ?? Date.now();
+	return `${args.operation}:${args.dealId}:${args.brokerId}:${args.clientId}:${ts}`;
 }
 
 /**
@@ -161,12 +161,12 @@ export async function recordBrokerCommission(
 		}
 
 		// Generate idempotency reference
-		const reference = generateBrokerReference(
-			"commission",
-			args.dealId,
-			args.brokerId,
-			args.clientId
-		);
+		const reference = generateBrokerReference({
+			operation: "commission",
+			dealId: args.dealId,
+			brokerId: args.brokerId,
+			clientId: args.clientId,
+		});
 
 		// Generate numscript to record commission
 		const script = `
@@ -281,12 +281,12 @@ export async function recordClientReturnAdjustment(
 		}
 
 		// Generate idempotency reference
-		const reference = generateBrokerReference(
-			"adjustment",
-			args.dealId,
-			args.brokerId,
-			args.clientId
-		);
+		const reference = generateBrokerReference({
+			operation: "adjustment",
+			dealId: args.dealId,
+			brokerId: args.brokerId,
+			clientId: args.clientId,
+		});
 
 		// Generate numscript to record adjustment
 		const script = `
@@ -384,9 +384,7 @@ export async function getBrokerCommissionBalance(
 		const balances = result.data?.page ?? [];
 		const cadAsset = balances.find((b) => b.asset === BROKER_ASSETS.cad);
 
-		const balance = cadAsset?.amount
-			? Number.parseFloat(cadAsset.amount)
-			: 0;
+		const balance = cadAsset?.amount ? Number.parseFloat(cadAsset.amount) : 0;
 
 		return {
 			success: true,

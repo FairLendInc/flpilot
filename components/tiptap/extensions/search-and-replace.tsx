@@ -1,6 +1,11 @@
 "use client";
 
-import { type Editor as CoreEditor, Extension, type Range } from "@tiptap/core";
+import {
+	type CommandProps,
+	type Editor as CoreEditor,
+	Extension,
+	type Range,
+} from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import {
 	type EditorState,
@@ -11,42 +16,49 @@ import {
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 
 declare module "@tiptap/core" {
-	type Commands<ReturnType> = {
-		search: {
-			/**
-			 * @description Set search term in extension.
-			 */
-			setSearchTerm: (searchTerm: string) => ReturnType;
-			/**
-			 * @description Set replace term in extension.
-			 */
-			setReplaceTerm: (replaceTerm: string) => ReturnType;
-			/**
-			 * @description Replace first instance of search result with given replace term.
-			 */
-			replace: () => ReturnType;
-			/**
-			 * @description Replace all instances of search result with given replace term.
-			 */
-			replaceAll: () => ReturnType;
-			/**
-			 * @description Select the next search result.
-			 */
-			selectNextResult: () => ReturnType;
-			/**
-			 * @description Select the previous search result.
-			 */
-			selectPreviousResult: () => ReturnType;
-			/**
-			 * @description Set case sensitivity in extension.
-			 */
-			setCaseSensitive: (caseSensitive: boolean) => ReturnType;
-		};
-	};
+	interface Commands<ReturnType> {
+		/**
+		 * @description Set search term in extension.
+		 */
+		setSearchTerm: (searchTerm: string) => ReturnType;
+		/**
+		 * @description Set replace term in extension.
+		 */
+		setReplaceTerm: (replaceTerm: string) => ReturnType;
+		/**
+		 * @description Replace first instance of search result with given replace term.
+		 */
+		replace: () => ReturnType;
+		/**
+		 * @description Replace all instances of search result with given replace term.
+		 */
+		replaceAll: () => ReturnType;
+		/**
+		 * @description Select the next search result.
+		 */
+		selectNextResult: () => ReturnType;
+		/**
+		 * @description Select the previous search result.
+		 */
+		selectPreviousResult: () => ReturnType;
+		/**
+		 * @description Set case sensitivity in extension.
+		 */
+		setCaseSensitive: (caseSensitive: boolean) => ReturnType;
+	}
 
 	type EditorStorage = {
 		searchAndReplace: SearchAndReplaceStorage;
 	};
+}
+
+type SearchAndReplaceEditorStorage = {
+	searchAndReplace: SearchAndReplaceStorage;
+};
+
+function getSearchStorage(editor: CoreEditor): SearchAndReplaceStorage {
+	return (editor.storage as unknown as SearchAndReplaceEditorStorage)
+		.searchAndReplace;
 }
 
 type TextNodeWithPosition = {
@@ -319,37 +331,24 @@ export const SearchAndReplace = Extension.create<
 		return {
 			setSearchTerm:
 				(searchTerm: string) =>
-				({ editor }: { editor: CoreEditor }) => {
-					(
-						(editor.storage as unknown)
-							.searchAndReplace as SearchAndReplaceStorage
-					).searchTerm = searchTerm;
+				({ editor }: CommandProps) => {
+					const storage = getSearchStorage(editor);
+					storage.searchTerm = searchTerm;
 
 					return false;
 				},
 			setReplaceTerm:
 				(replaceTerm: string) =>
-				({ editor }: { editor: CoreEditor }) => {
-					(
-						(editor.storage as unknown)
-							.searchAndReplace as SearchAndReplaceStorage
-					).replaceTerm = replaceTerm;
+				({ editor }: CommandProps) => {
+					const storage = getSearchStorage(editor);
+					storage.replaceTerm = replaceTerm;
 
 					return false;
 				},
 			replace:
 				() =>
-				({
-					editor,
-					state,
-					dispatch,
-				}: {
-					editor: CoreEditor;
-					state: EditorState;
-					dispatch?: (tr: Transaction) => void;
-				}) => {
-					const { replaceTerm, results } = (editor.storage as unknown)
-						.searchAndReplace as SearchAndReplaceStorage;
+				({ editor, state, dispatch }: CommandProps) => {
+					const { replaceTerm, results } = getSearchStorage(editor);
 
 					replace(replaceTerm, results, { state, dispatch });
 
@@ -357,17 +356,8 @@ export const SearchAndReplace = Extension.create<
 				},
 			replaceAll:
 				() =>
-				({
-					editor,
-					tr,
-					dispatch,
-				}: {
-					editor: CoreEditor;
-					tr: Transaction;
-					dispatch: (tr: Transaction) => void;
-				}) => {
-					const { replaceTerm, results } = (editor.storage as unknown)
-						.searchAndReplace as SearchAndReplaceStorage;
+				({ editor, tr, dispatch }: CommandProps) => {
+					const { replaceTerm, results } = getSearchStorage(editor);
 
 					if (!dispatch) {
 						return false;
@@ -379,25 +369,23 @@ export const SearchAndReplace = Extension.create<
 				},
 			selectNextResult:
 				() =>
-				({ editor }: { editor: CoreEditor }) => {
+				({ editor }: CommandProps) => {
 					selectNext(editor);
 
 					return false;
 				},
 			selectPreviousResult:
 				() =>
-				({ editor }: { editor: CoreEditor }) => {
+				({ editor }: CommandProps) => {
 					selectPrevious(editor);
 
 					return false;
 				},
 			setCaseSensitive:
 				(caseSensitive: boolean) =>
-				({ editor }: { editor: CoreEditor }) => {
-					(
-						(editor.storage as unknown)
-							.searchAndReplace as SearchAndReplaceStorage
-					).caseSensitive = caseSensitive;
+				({ editor }: CommandProps) => {
+					const storage = getSearchStorage(editor);
+					storage.caseSensitive = caseSensitive;
 
 					return false;
 				},
