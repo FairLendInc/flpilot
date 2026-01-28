@@ -59,6 +59,50 @@ export const startBrokerJourney = mutation({
 });
 
 /**
+ * Advance broker onboarding from intro to company info
+ */
+export const advanceBrokerIntro = mutation({
+	args: {},
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		const user = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+
+		if (!user) {
+			throw new Error("User record not found");
+		}
+
+		const journey = await ctx.db
+			.query("onboarding_journeys")
+			.withIndex("by_user", (q) => q.eq("userId", user._id))
+			.unique();
+
+		if (!journey || journey.persona !== "broker") {
+			throw new Error("Broker journey not found");
+		}
+
+		if (journey.status !== "draft") {
+			throw new Error("Journey is not in draft status");
+		}
+
+		const now = new Date().toISOString();
+
+		await ctx.db.patch(journey._id, {
+			stateValue: "broker.company_info",
+			lastTouchedAt: now,
+		});
+
+		return await ctx.db.get(journey._id);
+	},
+});
+
+/**
  * Save broker company information
  */
 export const saveBrokerCompanyInfo = mutation({
