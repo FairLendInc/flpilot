@@ -76,6 +76,9 @@ export function fromShareUnits(units: number): number {
 	return units / SHARE_UNIT_SCALE;
 }
 
+// Regex moved to top level for performance
+const INVESTOR_ACCOUNT_PATTERN = /^investor:(.+):inventory$/;
+
 export function parseOwnershipBalances(
 	balances: Record<string, Record<string, bigint>>,
 	shareAsset: string
@@ -92,7 +95,7 @@ export function parseOwnershipBalances(
 	}
 
 	for (const [account, accountBalances] of Object.entries(balances)) {
-		const match = /^investor:(.+):inventory$/.exec(account);
+		const match = INVESTOR_ACCOUNT_PATTERN.exec(account);
 		if (!match) continue;
 		const investorId = match[1];
 		const amount = accountBalances?.[shareAsset];

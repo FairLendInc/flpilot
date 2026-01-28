@@ -1,7 +1,9 @@
 "use node";
 
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { BROKER_ACCOUNTS, BROKER_ASSETS } from "../lib/brokerLedger";
+import type { AuthorizedActionCtx } from "../lib/server";
 import { createAuthorizedAction } from "../lib/server";
 
 /**
@@ -112,10 +114,10 @@ export const fetchBrokerCommissionBalance = createAuthorizedAction([
 	args: {
 		brokerId: v.id("brokers"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedActionCtx, args) => {
 		// Verify authorization
-		const isBroker = (ctx as any).org_id === args.brokerId;
-		const isAdmin = (ctx as any).role === "admin";
+		const isBroker = ctx.org_id === args.brokerId.toString();
+		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isBroker)) {
 			throw new Error(
@@ -124,8 +126,11 @@ export const fetchBrokerCommissionBalance = createAuthorizedAction([
 		}
 
 		// Check if broker exists
-		const broker = await ctx.db.get(args.brokerId);
-		if (!broker) {
+		const brokerExists = await ctx.runQuery(
+			internal.brokers.commissions_internal.getBrokerExists,
+			{ brokerId: args.brokerId }
+		);
+		if (!brokerExists) {
 			throw new Error("Broker not found");
 		}
 
@@ -156,9 +161,9 @@ export const fetchBrokerCommissionHistory = createAuthorizedAction([
 		before: v.optional(v.string()), // ISO date
 		limit: v.optional(v.number()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedActionCtx, args) => {
 		// Verify authorization
-		const isBroker = ctx.org_id === args.brokerId;
+		const isBroker = ctx.org_id === args.brokerId.toString();
 		const isAdmin = ctx.role === "admin";
 
 		if (!(isAdmin || isBroker)) {
@@ -168,8 +173,11 @@ export const fetchBrokerCommissionHistory = createAuthorizedAction([
 		}
 
 		// Check if broker exists
-		const broker = await ctx.db.get(args.brokerId);
-		if (!broker) {
+		const brokerExists = await ctx.runQuery(
+			internal.brokers.commissions_internal.getBrokerExists,
+			{ brokerId: args.brokerId }
+		);
+		if (!brokerExists) {
 			throw new Error("Broker not found");
 		}
 
@@ -194,10 +202,13 @@ export const reconcileBrokerCommissions = createAuthorizedAction(["admin"])({
 		fromDate: v.optional(v.string()), // ISO date
 		toDate: v.optional(v.string()), // ISO date
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedActionCtx, args) => {
 		// Check if broker exists
-		const broker = await ctx.db.get(args.brokerId);
-		if (!broker) {
+		const brokerExists = await ctx.runQuery(
+			internal.brokers.commissions_internal.getBrokerExists,
+			{ brokerId: args.brokerId }
+		);
+		if (!brokerExists) {
 			throw new Error("Broker not found");
 		}
 
@@ -231,19 +242,17 @@ export const getAdjustmentRateForDeal = createAuthorizedAction([
 		brokerId: v.id("brokers"),
 		dealCompletedAt: v.string(), // ISO timestamp
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedActionCtx, args) => {
 		// Find most recent adjustment rate BEFORE deal completion
-		const rateEntries = await ctx.db
-			.query("broker_rate_history")
-			.withIndex("by_broker_type", (q) =>
-				q.eq("brokerId", args.brokerId).eq("type", "return_adjustment" as const)
-			)
-			.collect();
+		const rateEntries: Array<{ effectiveAt: string; newRate: number }> =
+			await ctx.runQuery(
+			internal.brokers.commissions_internal.getReturnAdjustmentRateHistory,
+			{ brokerId: args.brokerId }
+		);
 
 		// Filter for entries effective before deal completion
-		const historicalRates = rateEntries.filter(
-			(entry) => entry.effectiveAt < args.dealCompletedAt
-		);
+		const historicalRates: Array<{ effectiveAt: string; newRate: number }> =
+			rateEntries.filter((entry) => entry.effectiveAt < args.dealCompletedAt);
 
 		// Sort by effectiveAt descending (most recent first)
 		historicalRates.sort((a, b) => b.effectiveAt.localeCompare(a.effectiveAt));
@@ -255,11 +264,11 @@ export const getAdjustmentRateForDeal = createAuthorizedAction([
 			adjustmentRate = historicalRates[0].newRate;
 		} else {
 			// No history, use current broker rate
-			const broker = await ctx.db.get(args.brokerId);
-			if (!broker) {
-				throw new Error("Broker not found");
-			}
-			adjustmentRate = broker.commission.returnAdjustmentPercentage;
+			const commission = await ctx.runQuery(
+				internal.brokers.commissions_internal.getBrokerCommission,
+				{ brokerId: args.brokerId }
+			);
+			adjustmentRate = commission.returnAdjustmentPercentage;
 		}
 
 		return {

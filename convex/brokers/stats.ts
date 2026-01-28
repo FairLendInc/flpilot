@@ -1,4 +1,6 @@
 import { v } from "convex/values";
+import type { Id } from "../_generated/dataModel";
+import type { AuthorizedQueryCtx } from "../lib/server";
 import { createAuthorizedQuery } from "../lib/server";
 
 // ============================================
@@ -21,7 +23,7 @@ export const getBrokerDashboardStats = createAuthorizedQuery(["any"])({
 			)
 		),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -30,8 +32,8 @@ export const getBrokerDashboardStats = createAuthorizedQuery(["any"])({
 
 		// Ensure user owns this broker or is admin
 		if (
-			(ctx as any).subject !== broker.userId &&
-			!(ctx as any).roles?.includes("admin")
+			ctx.subject !== broker.userId.toString() &&
+			!ctx.roles?.includes("admin")
 		) {
 			return null;
 		}
@@ -110,7 +112,7 @@ export const getBrokerCommissionTotal = createAuthorizedQuery(["any"])({
 	args: {
 		brokerId: v.id("brokers"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -119,8 +121,8 @@ export const getBrokerCommissionTotal = createAuthorizedQuery(["any"])({
 
 		// Ensure user owns this broker or is admin
 		if (
-			(ctx as any).subject !== broker.userId &&
-			!(ctx as any).roles?.includes("admin")
+			ctx.subject !== broker.userId.toString() &&
+			!ctx.roles?.includes("admin")
 		) {
 			return null;
 		}
@@ -162,7 +164,7 @@ export const getBrokerClientList = createAuthorizedQuery(["any"])({
 		limit: v.optional(v.number()),
 		cursor: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -171,36 +173,35 @@ export const getBrokerClientList = createAuthorizedQuery(["any"])({
 
 		// Ensure user owns this broker or is admin
 		if (
-			(ctx as any).subject !== broker.userId &&
-			!(ctx as any).roles?.includes("admin")
+			ctx.subject !== broker.userId.toString() &&
+			!ctx.roles?.includes("admin")
 		) {
 			return { clients: [], nextCursor: null };
 		}
 
 		const limit = Math.min(args.limit ?? 50, 100); // Max 100 per page
-		let query: any = ctx.db
-			.query("broker_clients")
-			.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId));
-
-		// Filter by status if provided
-		if (args.status) {
-			query = query.filter((q: any) =>
-				q.eq(q.field("onboardingStatus"), args.status)
-			);
-		}
+		const allClients = args.status
+			? await ctx.db
+					.query("broker_clients")
+					.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId))
+					.filter((q) =>
+						q.eq(q.field("onboardingStatus"), args.status ?? "invited")
+					)
+					.collect()
+			: await ctx.db
+					.query("broker_clients")
+					.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId))
+					.collect();
 
 		// Pagination logic
-		const clients: any[] = [];
+		const clients: typeof allClients = [];
 		const cursorLimit = args.cursor ? limit + 1 : limit;
 		let hasNext = false;
 		let nextCursor: string | null = null;
 
-		// Collect clients with cursor/pagination
-		const allClients = (await query.collect()) as any[];
-
 		if (args.cursor) {
 			const cursorIndex = allClients.findIndex(
-				(c: any) => c._id.toString() === args.cursor
+				(c) => c._id.toString() === args.cursor
 			);
 			if (cursorIndex !== -1) {
 				const paginatedClients = allClients.slice(
@@ -260,7 +261,7 @@ export const getBrokerGrowthMetrics = createAuthorizedQuery(["any"])({
 			v.union(v.literal("monthly"), v.literal("quarterly"), v.literal("yearly"))
 		),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -269,8 +270,8 @@ export const getBrokerGrowthMetrics = createAuthorizedQuery(["any"])({
 
 		// Ensure user owns this broker or is admin
 		if (
-			(ctx as any).subject !== broker.userId &&
-			!(ctx as any).roles?.includes("admin")
+			ctx.subject !== broker.userId.toString() &&
+			!ctx.roles?.includes("admin")
 		) {
 			return { metrics: [] };
 		}
@@ -288,8 +289,13 @@ export const getBrokerGrowthMetrics = createAuthorizedQuery(["any"])({
 		);
 
 		// Generate placeholder time series
-		const metrics: any[] = [];
-		for (let i = 0; i < monthCount; i++) {
+		const metrics: Array<{
+			period: string;
+			clients: { total: number; new: number; churn: number };
+			assets: { aum: number; growth: number };
+			commissions: { earned: number; paid: number };
+		}> = [];
+		for (let i = 0; i < monthCount; i += 1) {
 			const date = new Date(
 				startDate.getFullYear(),
 				startDate.getMonth() + i,
@@ -333,7 +339,7 @@ export const getBrokerActivityLog = createAuthorizedQuery(["any"])({
 		brokerId: v.id("brokers"),
 		limit: v.optional(v.number()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -342,8 +348,8 @@ export const getBrokerActivityLog = createAuthorizedQuery(["any"])({
 
 		// Ensure user owns this broker or is admin
 		if (
-			(ctx as any).subject !== broker.userId &&
-			!(ctx as any).roles?.includes("admin")
+			ctx.subject !== broker.userId.toString() &&
+			!ctx.roles?.includes("admin")
 		) {
 			return { activities: [] };
 		}
@@ -354,7 +360,15 @@ export const getBrokerActivityLog = createAuthorizedQuery(["any"])({
 		// For now, return placeholder structure
 
 		const now = new Date();
-		const activities: any[] = [];
+		const activities: Array<{
+			id: string;
+			type: string;
+			event?: string;
+			clientId?: Id<"broker_clients">;
+			rateType?: string;
+			description: string;
+			timestamp: string;
+		}> = [];
 
 		// Add client onboarding activities from broker_clients
 		const clients = await ctx.db
@@ -362,7 +376,7 @@ export const getBrokerActivityLog = createAuthorizedQuery(["any"])({
 			.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId))
 			.collect();
 
-		clients.forEach((client) => {
+		for (const client of clients) {
 			activities.push({
 				id: crypto.randomUUID(),
 				type: "client_onboarding",
@@ -371,7 +385,7 @@ export const getBrokerActivityLog = createAuthorizedQuery(["any"])({
 				description: `Client ${client._id} status: ${client.onboardingStatus}`,
 				timestamp: client.createdAt,
 			});
-		});
+		}
 
 		// Add commission rate changes from broker_rate_history
 		const rateHistory = await ctx.db
@@ -379,7 +393,7 @@ export const getBrokerActivityLog = createAuthorizedQuery(["any"])({
 			.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId))
 			.collect();
 
-		rateHistory.forEach((history) => {
+		for (const history of rateHistory) {
 			activities.push({
 				id: crypto.randomUUID(),
 				type: "rate_change",
@@ -387,11 +401,11 @@ export const getBrokerActivityLog = createAuthorizedQuery(["any"])({
 				description: `${history.type} changed from ${history.oldRate}% to ${history.newRate}%`,
 				timestamp: history.effectiveAt,
 			});
-		});
+		}
 
 		// Sort by timestamp descending
-		(activities as any[]).sort(
-			(a: any, b: any) =>
+		activities.sort(
+			(a, b) =>
 				new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
 		);
 

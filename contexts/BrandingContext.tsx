@@ -37,8 +37,12 @@ const defaultContext: BrandingContextType = {
 		ratePercentage: 0,
 		returnAdjustmentPercentage: 0,
 	},
-	setBranding: () => {},
-	clearBranding: () => {},
+	setBranding: () => {
+		// Default no-op implementation
+	},
+	clearBranding: () => {
+		// Default no-op implementation
+	},
 };
 
 const BrandingContext = createContext<BrandingContextType>(defaultContext);

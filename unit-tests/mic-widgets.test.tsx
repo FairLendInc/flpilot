@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { MICCashHealthCard } from "@/components/admin/mic/widgets/MICCashHealthCard";
 import { InvestorTransactionTable } from "@/components/admin/mic/InvestorTransactionTable";
+import { MICCashHealthCard } from "@/components/admin/mic/widgets/MICCashHealthCard";
 
 describe("MIC widgets", () => {
 	it("shows N/A when cash target is unconfigured", () => {

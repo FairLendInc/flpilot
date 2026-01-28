@@ -35,6 +35,12 @@ import { logger } from "../logger";
 
 export const DEFAULT_LEDGER = "flpilot";
 
+type ExecuteNumscriptResult = {
+	success: boolean;
+	data?: { txid?: string };
+	error?: string;
+};
+
 /**
  * Account path patterns for broker commission tracking
  */
@@ -196,7 +202,7 @@ send [COMMISSION ${commissionAmount.toFixed(2)}] (
 				commissionAmount: commissionAmount.toFixed(2),
 				earnedAt: new Date().toISOString(),
 			},
-		})) as any;
+		})) as ExecuteNumscriptResult;
 
 		if (!result.success) {
 			throw new Error(result.error ?? "Failed to record commission");
@@ -316,7 +322,7 @@ send [ADJUSTMENT ${adjustmentAmount.toFixed(2)}] (
 				adjustmentAmount: adjustmentAmount.toFixed(2),
 				recordedAt: new Date().toISOString(),
 			},
-		})) as any;
+		})) as ExecuteNumscriptResult;
 
 		if (!result.success) {
 			throw new Error(result.error ?? "Failed to record adjustment");
@@ -363,7 +369,11 @@ export async function getBrokerCommissionBalance(
 		const result = (await ctx.runAction(api.ledger.getBalances, {
 			ledgerName: DEFAULT_LEDGER,
 			address: BROKER_ACCOUNTS.brokerCommission(args.brokerId),
-		})) as any;
+		})) as {
+			success: boolean;
+			data?: { page?: Array<{ asset?: string; amount?: string }> };
+			error?: string;
+		};
 
 		if (!result.success) {
 			throw new Error(result.error ?? "Failed to get commission balance");
@@ -372,9 +382,11 @@ export async function getBrokerCommissionBalance(
 		// Extract CAD balance from response
 		// Formance balances format: { "CAD/2": { "metadata": {}, "input": "1234.56" } }
 		const balances = result.data?.page ?? [];
-		const cadAsset = balances.find((b: any) => b.asset === BROKER_ASSETS.cad);
+		const cadAsset = balances.find((b) => b.asset === BROKER_ASSETS.cad);
 
-		const balance = cadAsset ? Number.parseFloat(cadAsset.amount) : 0;
+		const balance = cadAsset?.amount
+			? Number.parseFloat(cadAsset.amount)
+			: 0;
 
 		return {
 			success: true,
@@ -428,7 +440,24 @@ export async function getBrokerCommissionHistory(
 		const result = (await ctx.runAction(api.ledger.listTransactions, {
 			ledgerName: DEFAULT_LEDGER,
 			pageSize: args.limit ?? 100,
-		})) as any;
+		})) as {
+			success: boolean;
+			data?: {
+				page?: Array<{
+					id?: string;
+					metadata?: {
+						type?: string;
+						earnedAt?: string;
+						dealId?: string;
+						clientId?: string;
+						capitalDeployed?: string;
+						commissionRate?: string;
+						commissionAmount?: string;
+					};
+				}>;
+			};
+			error?: string;
+		};
 
 		if (!result.success) {
 			throw new Error(result.error ?? "Failed to get commission history");
@@ -436,7 +465,7 @@ export async function getBrokerCommissionHistory(
 
 		// Filter and transform transactions
 		const transactions = (result.data?.page ?? [])
-			.filter((tx: any) => {
+			.filter((tx) => {
 				// Only include commission transactions
 				const metadata = tx.metadata ?? {};
 				if (metadata.type !== "broker_commission") {
@@ -445,23 +474,25 @@ export async function getBrokerCommissionHistory(
 
 				// Apply date filters if provided
 				const txDate = metadata.earnedAt;
-				if (args.after && args.after > txDate) {
+				if (args.after && txDate && args.after > txDate) {
 					return false;
 				}
-				if (args.before && args.before < txDate) {
+				if (args.before && txDate && args.before < txDate) {
 					return false;
 				}
 
 				return true;
 			})
-			.map((tx: any) => ({
-				transactionId: tx.id,
-				date: tx.metadata.earnedAt,
-				dealId: tx.metadata.dealId,
-				clientId: tx.metadata.clientId,
-				capitalDeployed: Number.parseFloat(tx.metadata.capitalDeployed),
-				commissionRate: Number.parseFloat(tx.metadata.commissionRate),
-				commissionAmount: Number.parseFloat(tx.metadata.commissionAmount),
+			.map((tx) => ({
+				transactionId: tx.id ?? "",
+				date: tx.metadata?.earnedAt ?? "",
+				dealId: tx.metadata?.dealId ?? "",
+				clientId: tx.metadata?.clientId ?? "",
+				capitalDeployed: Number.parseFloat(tx.metadata?.capitalDeployed ?? "0"),
+				commissionRate: Number.parseFloat(tx.metadata?.commissionRate ?? "0"),
+				commissionAmount: Number.parseFloat(
+					tx.metadata?.commissionAmount ?? "0"
+				),
 			}));
 
 		return {

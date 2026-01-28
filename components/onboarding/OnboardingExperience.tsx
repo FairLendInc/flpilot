@@ -1977,11 +1977,15 @@ function BrokerLicensingForm({
 					</div>
 					{formValues.jurisdictions.length > 0 ? (
 						<div className="mt-2 flex flex-wrap gap-2">
-							{formValues.jurisdictions.map((jurisdiction, index) => (
+							{formValues.jurisdictions.map((jurisdiction) => (
 								<Badge
 									className="cursor-pointer"
-									key={index}
-									onClick={() => handleRemoveJurisdiction(index)}
+									key={jurisdiction}
+									onClick={() =>
+										handleRemoveJurisdiction(
+											formValues.jurisdictions.indexOf(jurisdiction)
+										)
+									}
 									variant="secondary"
 								>
 									{jurisdiction}
@@ -2071,7 +2075,7 @@ function BrokerRepresentativesForm({
 						{representatives.map((rep, index) => (
 							<div
 								className="flex items-start justify-between rounded border p-3"
-								key={index}
+								key={rep.email || `rep-${index}`}
 							>
 								<div>
 									<p className="font-medium">
@@ -2399,8 +2403,8 @@ function BrokerReviewStep({
 						Representatives ({representatives.length})
 					</p>
 					<ul className="list-disc pl-5 text-muted-foreground text-sm">
-						{representatives.slice(0, 3).map((rep, index) => (
-							<li key={index}>
+						{representatives.slice(0, 3).map((rep) => (
+							<li key={rep.email || `${rep.firstName}-${rep.lastName}`}>
 								{rep.firstName} {rep.lastName} - {rep.role}
 							</li>
 						))}
@@ -2413,8 +2417,8 @@ function BrokerReviewStep({
 				<div className="rounded border p-4">
 					<p className="font-medium text-sm">Documents ({documents.length})</p>
 					<ul className="list-disc pl-5 text-muted-foreground text-sm">
-						{documents.map((doc, index) => (
-							<li key={index}>
+						{documents.map((doc) => (
+							<li key={doc.storageId || `${doc.label}-${doc.type}`}>
 								{doc.label} ({doc.type})
 							</li>
 						))}
@@ -2538,9 +2542,9 @@ function BrokerPendingAdminStep({
 }
 
 function BrokerRejectedStep({
-	broker,
+	_broker,
 }: {
-	broker: NonNullable<JourneyDoc["context"]>["broker"] | undefined;
+	_broker: NonNullable<JourneyDoc["context"]>["broker"] | undefined;
 }) {
 	return (
 		<Card className="border-destructive">

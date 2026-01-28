@@ -21,6 +21,12 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 
+type Client = NonNullable<
+	NonNullable<
+		ReturnType<typeof api.brokers.stats.getBrokerClientList._returnType>
+	>["clients"][number]
+>;
+
 export default function BrokerClientsPage() {
 	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
 	const router = useRouter();
@@ -207,7 +213,7 @@ export default function BrokerClientsPage() {
 	);
 }
 
-function ClientCard({ client }: { client: any }) {
+function ClientCard({ client }: { client: Client }) {
 	const router = useRouter();
 
 	const getStatusBadge = (status: string) => {
@@ -235,10 +241,18 @@ function ClientCard({ client }: { client: any }) {
 		}
 	};
 
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			router.push(`/dashboard/broker/clients/${client._id}`);
+		}
+	};
+
 	return (
 		<div
 			className="flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
 			onClick={() => router.push(`/dashboard/broker/clients/${client._id}`)}
+			onKeyDown={handleKeyDown}
 			role="button"
 			tabIndex={0}
 		>

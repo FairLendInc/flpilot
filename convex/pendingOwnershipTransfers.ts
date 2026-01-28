@@ -53,24 +53,7 @@ type PendingTransferRecord = {
 	rejectionCount?: number;
 };
 
-type OwnershipPreview = {
-	transfer: {
-		_id: Id<"pending_ownership_transfers">;
-		fromOwnerId: "fairlend" | Id<"users">;
-		toOwnerId: Id<"users">;
-		percentage: number;
-	};
-	currentOwnership: Array<{
-		ownerId: "fairlend" | Id<"users">;
-		percentage: number;
-		ownerName: string;
-	}>;
-	afterOwnership: Array<{
-		ownerId: "fairlend" | Id<"users">;
-		percentage: number;
-		ownerName: string;
-	}>;
-};
+// OwnershipPreview type is defined inline in the function return type
 
 async function getLedgerOwnershipSnapshot(
 	ctx: ActionCtx

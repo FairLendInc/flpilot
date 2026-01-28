@@ -34,6 +34,10 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 
+type Broker = NonNullable<
+	ReturnType<typeof api.brokers.management.listBrokers._returnType>[number]
+>;
+
 export default function ManagedBrokersPage() {
 	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
 	const router = useRouter();
@@ -200,7 +204,7 @@ export default function ManagedBrokersPage() {
 	);
 }
 
-function BrokerCard({ broker }: { broker: any }) {
+function BrokerCard({ broker }: { broker: Broker }) {
 	const router = useRouter();
 	const brandName = broker.branding?.brandName || broker.subdomain;
 	const portalUrl = `https://${broker.subdomain}.flpilot.com`;
@@ -222,10 +226,18 @@ function BrokerCard({ broker }: { broker: any }) {
 		}
 	};
 
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			router.push(`/dashboard/admin/brokers/${broker._id}`);
+		}
+	};
+
 	return (
 		<div
 			className="flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
 			onClick={() => router.push(`/dashboard/admin/brokers/${broker._id}`)}
+			onKeyDown={handleKeyDown}
 			role="button"
 			tabIndex={0}
 		>

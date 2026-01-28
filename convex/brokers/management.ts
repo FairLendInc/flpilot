@@ -1,6 +1,18 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
+import type {
+	AuthorizedMutationCtx,
+	AuthorizedQueryCtx,
+} from "../lib/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
+
+function requireSubjectId(ctx: unknown): Id<"users"> {
+	const subject = (ctx as { subject?: string | null }).subject;
+	if (!subject) {
+		throw new Error("Authentication required");
+	}
+	return subject as Id<"users">;
+}
 
 // ============================================
 // Broker Query Functions
@@ -12,11 +24,11 @@ import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
  */
 export const getBrokerByUserId = createAuthorizedQuery(["any"])({
 	args: {
-		userId: v.optional(v.string()),
+		userId: v.optional(v.id("users")),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		// If no userId provided, use current user
-		const targetUserId = args.userId ?? (ctx as any).subject;
+		const targetUserId = args.userId ?? requireSubjectId(ctx);
 
 		const broker = await ctx.db
 			.query("brokers")
@@ -35,7 +47,7 @@ export const getBrokerBySubdomain = createAuthorizedQuery(["any"])({
 	args: {
 		subdomain: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const normalizedSubdomain = args.subdomain.toLowerCase();
 
 		const broker = await ctx.db
@@ -55,7 +67,7 @@ export const getBrokerByWorkosOrgId = createAuthorizedQuery(["any"])({
 	args: {
 		workosOrgId: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const broker = await ctx.db
 			.query("brokers")
 			.withIndex("by_workos_org", (q) => q.eq("workosOrgId", args.workosOrgId))
@@ -75,21 +87,19 @@ export const listBrokers = createAuthorizedQuery(["admin"])({
 			v.union(v.literal("active"), v.literal("suspended"), v.literal("revoked"))
 		),
 	},
-	handler: async (ctx, args) => {
-		let query = ctx.db.query("brokers");
-
-		if (args.status) {
-			query = (ctx.db.query("brokers") as any).withIndex(
-				"by_status",
-				(q: any) => q.eq("status", args.status!)
-			);
-		}
-
-		const brokers = await query.collect();
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
+		const brokers = args.status
+			? await ctx.db
+					.query("brokers")
+					.withIndex("by_status", (q) =>
+						q.eq("status", args.status ?? "active")
+					)
+					.collect()
+			: await ctx.db.query("brokers").collect();
 
 		// Sort by createdAt descending
-		return (brokers as any[]).sort(
-			(a: any, b: any) =>
+		return brokers.sort(
+			(a, b) =>
 				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 		);
 	},
@@ -110,7 +120,7 @@ export const createBrokerRecord = createAuthorizedMutation(["admin"])({
 		commissionRate: v.number(),
 		returnAdjustmentPercentage: v.number(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const now = new Date().toISOString();
 		const normalizedSubdomain = args.subdomain.toLowerCase();
 
@@ -147,7 +157,7 @@ export const updateBrokerOrgId = createAuthorizedMutation(["admin"])({
 		brokerId: v.id("brokers"),
 		workosOrgId: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -180,7 +190,7 @@ export const updateBrokerConfiguration = createAuthorizedMutation(["any"])({
 			})
 		),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -188,7 +198,7 @@ export const updateBrokerConfiguration = createAuthorizedMutation(["any"])({
 		}
 
 		// Ensure user owns this broker
-		if (broker.userId !== (ctx as any).subject) {
+		if (broker.userId !== ctx.subject) {
 			throw new Error(
 				"Unauthorized: You can only update your own broker record"
 			);
@@ -199,9 +209,11 @@ export const updateBrokerConfiguration = createAuthorizedMutation(["any"])({
 		// Update configuration
 		await ctx.db.patch(args.brokerId, {
 			branding: {
-				...(broker.branding as any),
-				primaryColor: args.branding?.primaryColor,
-				secondaryColor: args.branding?.secondaryColor,
+				...broker.branding,
+				primaryColor:
+					args.branding?.primaryColor ?? broker.branding.primaryColor,
+				secondaryColor:
+					args.branding?.secondaryColor ?? broker.branding.secondaryColor,
 			},
 			updatedAt: now,
 		});
@@ -219,7 +231,7 @@ export const suspendBroker = createAuthorizedMutation(["admin"])({
 		brokerId: v.id("brokers"),
 		reason: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -250,7 +262,7 @@ export const revokeBroker = createAuthorizedMutation(["admin"])({
 		brokerId: v.id("brokers"),
 		reason: v.string(),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -280,7 +292,7 @@ export const reactivateBroker = createAuthorizedMutation(["admin"])({
 	args: {
 		brokerId: v.id("brokers"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -312,7 +324,7 @@ export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 		commissionRate: v.optional(v.number()),
 		returnAdjustmentPercentage: v.optional(v.number()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
 
 		if (!broker) {
@@ -320,15 +332,15 @@ export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 		}
 
 		const now = new Date().toISOString();
-		const commissionChanges: any = {};
+		const commissionChanges: Record<string, { old: number; new: number }> = {};
 
 		// Track changes for history
 		if (
 			args.commissionRate !== undefined &&
-			args.commissionRate !== (broker.commission as any).ratePercentage
+			args.commissionRate !== broker.commission.ratePercentage
 		) {
 			commissionChanges.ratePercentage = {
-				old: (broker.commission as any).ratePercentage,
+				old: broker.commission.ratePercentage,
 				new: args.commissionRate,
 			};
 
@@ -336,10 +348,10 @@ export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 			await ctx.db.insert("broker_rate_history", {
 				brokerId: args.brokerId,
 				type: "commission",
-				oldRate: (broker.commission as any).ratePercentage,
+				oldRate: broker.commission.ratePercentage,
 				newRate: args.commissionRate,
 				effectiveAt: now,
-				changedBy: (ctx as any).subject,
+				changedBy: requireSubjectId(ctx),
 				createdAt: now,
 			});
 		}
@@ -347,10 +359,10 @@ export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 		if (
 			args.returnAdjustmentPercentage !== undefined &&
 			args.returnAdjustmentPercentage !==
-				(broker.commission as any).returnAdjustmentPercentage
+				broker.commission.returnAdjustmentPercentage
 		) {
 			commissionChanges.returnAdjustmentPercentage = {
-				old: (broker.commission as any).returnAdjustmentPercentage,
+				old: broker.commission.returnAdjustmentPercentage,
 				new: args.returnAdjustmentPercentage,
 			};
 
@@ -358,17 +370,17 @@ export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 			await ctx.db.insert("broker_rate_history", {
 				brokerId: args.brokerId,
 				type: "return_adjustment",
-				oldRate: (broker.commission as any).returnAdjustmentPercentage,
+				oldRate: broker.commission.returnAdjustmentPercentage,
 				newRate: args.returnAdjustmentPercentage,
 				effectiveAt: now,
-				changedBy: (ctx as any).subject,
+				changedBy: requireSubjectId(ctx),
 				createdAt: now,
 			});
 		}
 
 		// Update broker commission
 		const updatedCommission = {
-			...(broker.commission as any),
+			...broker.commission,
 			...(args.commissionRate !== undefined && {
 				ratePercentage: args.commissionRate,
 			}),
@@ -401,20 +413,21 @@ export const getBrokerRateHistory = createAuthorizedQuery(["any"])({
 			v.union(v.literal("commission"), v.literal("return_adjustment"))
 		),
 	},
-	handler: async (ctx, args) => {
-		let query: any = ctx.db
-			.query("broker_rate_history")
-			.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId));
-
-		if (args.type) {
-			query = query.filter((q: any) => q.eq(q.field("type"), args.type));
-		}
-
-		const history = await query.collect();
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
+		const history = args.type
+			? await ctx.db
+					.query("broker_rate_history")
+					.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId))
+					.filter((q) => q.eq(q.field("type"), args.type))
+					.collect()
+			: await ctx.db
+					.query("broker_rate_history")
+					.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId))
+					.collect();
 
 		// Sort by createdAt descending (most recent first)
 		return history.sort(
-			(a: any, b: any) =>
+			(a, b) =>
 				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 		);
 	},

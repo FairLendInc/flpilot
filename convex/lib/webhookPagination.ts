@@ -47,11 +47,12 @@ export const paginateByCreation = <
 
 	const pageItems = sorted.slice(startIndex, startIndex + limit);
 	const hasMore = startIndex + limit < sorted.length;
+	const lastItem = pageItems[pageItems.length - 1];
 	const nextCursor =
-		hasMore && pageItems.length > 0
+		hasMore && lastItem
 			? encodeCursor({
-					time: pageItems.at(-1)?._creationTime,
-					id: pageItems.at(-1)?._id,
+					time: lastItem._creationTime,
+					id: lastItem._id,
 				})
 			: undefined;
 
