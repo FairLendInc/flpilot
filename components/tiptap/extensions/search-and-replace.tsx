@@ -2,11 +2,16 @@
 
 import { type Editor as CoreEditor, Extension, type Range } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
-import { Plugin, PluginKey, type EditorState, Transaction } from "@tiptap/pm/state";
+import {
+	type EditorState,
+	Plugin,
+	PluginKey,
+	type Transaction,
+} from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 
 declare module "@tiptap/core" {
-	interface Commands<ReturnType> {
+	type Commands<ReturnType> = {
 		search: {
 			/**
 			 * @description Set search term in extension.
@@ -37,17 +42,17 @@ declare module "@tiptap/core" {
 			 */
 			setCaseSensitive: (caseSensitive: boolean) => ReturnType;
 		};
-	}
+	};
 
-	interface EditorStorage {
+	type EditorStorage = {
 		searchAndReplace: SearchAndReplaceStorage;
-	}
+	};
 }
 
-interface TextNodeWithPosition {
+type TextNodeWithPosition = {
 	text: string;
 	pos: number;
-}
+};
 
 const getRegex = (
 	searchString: string,
@@ -60,10 +65,10 @@ const getRegex = (
 	return new RegExp(escapedString, caseSensitive ? "gu" : "gui");
 };
 
-interface ProcessedSearches {
+type ProcessedSearches = {
 	decorationsToReturn: DecorationSet;
 	results: Range[];
-}
+};
 
 function processSearches(
 	doc: PMNode,
@@ -213,8 +218,7 @@ const selectNext = (editor: CoreEditor) => {
 		storage.selectedResult += 1;
 	}
 
-	const result =
-		results[storage.selectedResult];
+	const result = results[storage.selectedResult];
 	if (!result) return;
 
 	const { from } = result;
@@ -244,8 +248,7 @@ const selectPrevious = (editor: CoreEditor) => {
 	const { selectedResult } = storage;
 
 	if (selectedResult <= 0) {
-		storage.selectedResult =
-			results.length - 1;
+		storage.selectedResult = results.length - 1;
 	} else {
 		storage.selectedResult -= 1;
 	}
@@ -268,13 +271,13 @@ export const searchAndReplacePluginKey = new PluginKey(
 	"searchAndReplacePlugin"
 );
 
-export interface SearchAndReplaceOptions {
+export type SearchAndReplaceOptions = {
 	searchResultClass: string;
 	selectedResultClass: string;
 	disableRegex: boolean;
-}
+};
 
-export interface SearchAndReplaceStorage {
+export type SearchAndReplaceStorage = {
 	searchTerm: string;
 	replaceTerm: string;
 	results: Range[];
@@ -283,7 +286,7 @@ export interface SearchAndReplaceStorage {
 	lastSelectedResult: number;
 	caseSensitive: boolean;
 	lastCaseSensitiveState: boolean;
-}
+};
 
 export const SearchAndReplace = Extension.create<
 	SearchAndReplaceOptions,
@@ -316,22 +319,36 @@ export const SearchAndReplace = Extension.create<
 		return {
 			setSearchTerm:
 				(searchTerm: string) =>
-				({ editor }) => {
-					((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).searchTerm = searchTerm;
+				({ editor }: { editor: CoreEditor }) => {
+					(
+						(editor.storage as unknown)
+							.searchAndReplace as SearchAndReplaceStorage
+					).searchTerm = searchTerm;
 
 					return false;
 				},
 			setReplaceTerm:
 				(replaceTerm: string) =>
-				({ editor }) => {
-					((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).replaceTerm = replaceTerm;
+				({ editor }: { editor: CoreEditor }) => {
+					(
+						(editor.storage as unknown)
+							.searchAndReplace as SearchAndReplaceStorage
+					).replaceTerm = replaceTerm;
 
 					return false;
 				},
 			replace:
 				() =>
-				({ editor, state, dispatch }) => {
-					const { replaceTerm, results } = (editor.storage as any)
+				({
+					editor,
+					state,
+					dispatch,
+				}: {
+					editor: CoreEditor;
+					state: EditorState;
+					dispatch?: (tr: Transaction) => void;
+				}) => {
+					const { replaceTerm, results } = (editor.storage as unknown)
 						.searchAndReplace as SearchAndReplaceStorage;
 
 					replace(replaceTerm, results, { state, dispatch });
@@ -340,8 +357,16 @@ export const SearchAndReplace = Extension.create<
 				},
 			replaceAll:
 				() =>
-				({ editor, tr, dispatch }) => {
-					const { replaceTerm, results } = (editor.storage as any)
+				({
+					editor,
+					tr,
+					dispatch,
+				}: {
+					editor: CoreEditor;
+					tr: Transaction;
+					dispatch: (tr: Transaction) => void;
+				}) => {
+					const { replaceTerm, results } = (editor.storage as unknown)
 						.searchAndReplace as SearchAndReplaceStorage;
 
 					if (!dispatch) {
@@ -354,23 +379,25 @@ export const SearchAndReplace = Extension.create<
 				},
 			selectNextResult:
 				() =>
-				({ editor }) => {
+				({ editor }: { editor: CoreEditor }) => {
 					selectNext(editor);
 
 					return false;
 				},
 			selectPreviousResult:
 				() =>
-				({ editor }) => {
+				({ editor }: { editor: CoreEditor }) => {
 					selectPrevious(editor);
 
 					return false;
 				},
 			setCaseSensitive:
 				(caseSensitive: boolean) =>
-				({ editor }) => {
-					((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).caseSensitive =
-						caseSensitive;
+				({ editor }: { editor: CoreEditor }) => {
+					(
+						(editor.storage as unknown)
+							.searchAndReplace as SearchAndReplaceStorage
+					).caseSensitive = caseSensitive;
 
 					return false;
 				},
@@ -383,15 +410,21 @@ export const SearchAndReplace = Extension.create<
 			this.options;
 
 		const setLastSearchTerm = (t: string) => {
-			((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).lastSearchTerm = t;
+			(
+				(editor.storage as any).searchAndReplace as SearchAndReplaceStorage
+			).lastSearchTerm = t;
 		};
 
 		const setLastSelectedResult = (r: number) => {
-			((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).lastSelectedResult = r;
+			(
+				(editor.storage as any).searchAndReplace as SearchAndReplaceStorage
+			).lastSelectedResult = r;
 		};
 
 		const setLastCaseSensitiveState = (s: boolean) => {
-			((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).lastCaseSensitiveState = s;
+			(
+				(editor.storage as any).searchAndReplace as SearchAndReplaceStorage
+			).lastCaseSensitiveState = s;
 		};
 
 		return [
@@ -424,8 +457,14 @@ export const SearchAndReplace = Extension.create<
 						setLastCaseSensitiveState(caseSensitive);
 
 						if (!searchTerm) {
-							((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).selectedResult = 0;
-							((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).results = [];
+							(
+								(editor.storage as any)
+									.searchAndReplace as SearchAndReplaceStorage
+							).selectedResult = 0;
+							(
+								(editor.storage as any)
+									.searchAndReplace as SearchAndReplaceStorage
+							).results = [];
 							return DecorationSet.empty;
 						}
 
@@ -437,11 +476,16 @@ export const SearchAndReplace = Extension.create<
 							selectedResultClass
 						);
 
-						((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).results = results;
+						(
+							(editor.storage as any)
+								.searchAndReplace as SearchAndReplaceStorage
+						).results = results;
 
 						if (selectedResult >= results.length) {
-							((editor.storage as any).searchAndReplace as SearchAndReplaceStorage).selectedResult =
-								Math.max(results.length - 1, 0);
+							(
+								(editor.storage as any)
+									.searchAndReplace as SearchAndReplaceStorage
+							).selectedResult = Math.max(results.length - 1, 0);
 						}
 
 						return decorationsToReturn;

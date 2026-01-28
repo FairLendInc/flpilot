@@ -7,8 +7,6 @@
 
 "use client";
 
-import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import {
 	AlertTriangle,
@@ -21,6 +19,7 @@ import {
 	User,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ManualResolutionPanel } from "@/components/admin/deals/ManualResolutionPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,21 +40,22 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 type PendingTransfer =
 	(typeof api.pendingOwnershipTransfers.getPendingTransfersForReview._returnType)[number];
 
 export default function OwnershipReviewPage() {
-	const { user, loading: authLoading } = useAuth();
+	const router = useRouter();
 
 	// Query pending transfers
-	const pendingTransfers = useQuery(
+	const pendingTransfers = useAuthenticatedQuery(
 		api.pendingOwnershipTransfers.getPendingTransfersForReview,
-		authLoading || !user ? "skip" : {}
+		{}
 	);
 
 	// Loading state
-	if (authLoading || pendingTransfers === undefined) {
+	if (pendingTransfers === undefined) {
 		return (
 			<div className="container space-y-8 py-8">
 				<div className="flex items-center justify-between">
@@ -74,8 +74,44 @@ export default function OwnershipReviewPage() {
 
 	const pendingCount = pendingTransfers?.length ?? 0;
 	const escalatedCount =
-		pendingTransfers?.filter((t: PendingTransfer) => (t.rejectionCount ?? 0) >= 2)
-			.length ?? 0;
+		pendingTransfers?.filter(
+			(t: PendingTransfer) => (t.rejectionCount ?? 0) >= 2
+		).length ?? 0;
+	const reviewedTransfers = pendingTransfers.filter(
+		(transfer) => typeof transfer.reviewedAt === "number"
+	);
+	const avgReviewTimeMs =
+		reviewedTransfers.length > 0
+			? reviewedTransfers.reduce(
+					(sum: number, transfer: PendingTransfer) =>
+						sum + (transfer.reviewedAt - transfer.createdAt),
+					0
+				) / reviewedTransfers.length
+			: null;
+	const avgReviewTimeHours =
+		avgReviewTimeMs !== null ? avgReviewTimeMs / (1000 * 60 * 60) : null;
+	const slaThresholdMs = 4 * 60 * 60 * 1000;
+	const avgReviewTimeLabel =
+		avgReviewTimeHours !== null ? `${avgReviewTimeHours.toFixed(1)}h` : "—";
+	const slaStatus =
+		avgReviewTimeMs === null
+			? {
+					label: "placeholder",
+					className: "text-muted-foreground",
+					icon: Clock,
+				}
+			: avgReviewTimeMs <= slaThresholdMs
+				? {
+						label: "Within SLA target",
+						className: "text-green-600",
+						icon: CheckCircle,
+					}
+				: {
+						label: "Outside SLA target",
+						className: "text-amber-600",
+						icon: AlertTriangle,
+					};
+	const StatusIcon = slaStatus.icon;
 
 	return (
 		<div className="container space-y-8 py-8">
@@ -90,7 +126,7 @@ export default function OwnershipReviewPage() {
 						Review and approve pending mortgage ownership transfers
 					</p>
 				</div>
-				<Button variant="outline">
+				<Button onClick={() => router.refresh()} variant="outline">
 					<RefreshCw className="mr-2 h-4 w-4" />
 					Refresh
 				</Button>
@@ -141,12 +177,12 @@ export default function OwnershipReviewPage() {
 				<Card>
 					<CardHeader className="pb-2">
 						<CardDescription>Avg. Review Time</CardDescription>
-						<CardTitle className="text-3xl">2.4h</CardTitle>
+						<CardTitle className="text-3xl">{avgReviewTimeLabel}</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="flex items-center text-green-600 text-sm">
-							<CheckCircle className="mr-1 h-4 w-4" />
-							Within SLA target
+						<div className={`flex items-center text-sm ${slaStatus.className}`}>
+							<StatusIcon className="mr-1 h-4 w-4" />
+							{slaStatus.label}
 						</div>
 					</CardContent>
 				</Card>

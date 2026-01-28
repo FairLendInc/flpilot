@@ -32,8 +32,8 @@ import {
 	investorLawyerAdminMutation,
 } from "./lib/authorizedFunctions";
 import { getBrokerOfRecord } from "./lib/broker";
-import { createOwnershipInternal } from "./ownership";
 import { isLedgerSourceOfTruth } from "./lib/ownershipConfig";
+import { createOwnershipInternal } from "./ownership";
 
 type AuthContextFields = {
 	role?: string;
@@ -1212,6 +1212,26 @@ export const transitionDealState = mutation({
 		const newSnapshot = actor.getSnapshot();
 		const newContext = newSnapshot.context;
 
+		// Validate transition actually happened (XState v5 returns same state if no transition found)
+		if (
+			newSnapshot.value === machineState.value &&
+			args.event.type !== "GO_BACK"
+		) {
+			// Check if the event is actually handled in the current state
+			// In XState v5, we can check if the state changed or if there are any actions/transitions
+			// For simplicity, we'll check if the state value is the same as before
+			// NOTE: Some transitions might stay in the same state (self-transitions), but for our machine
+			// most events should move to a new state.
+			// Actually, a better way is to check if the event is valid for the current state.
+			const canHandle = actor.getSnapshot().can(eventWithAdmin);
+			if (!canHandle) {
+				actor.stop();
+				throw new Error(
+					`Invalid transition: Event ${args.event.type} is not allowed in state ${deal.currentState}`
+				);
+			}
+		}
+
 		// Update deal in database
 		await ctx.db.patch(args.dealId, {
 			stateMachineState: JSON.stringify(newSnapshot),
@@ -1226,46 +1246,88 @@ export const transitionDealState = mutation({
 		// Handle special transitions for ownership review workflow
 		const previousState = deal.currentState;
 		const newState = newContext.currentState;
+		const transitionSucceeded = previousState !== newState;
 
 		// VERIFY_COMPLETE: Create pending transfer when entering ownership review
 		if (
 			args.event.type === "VERIFY_COMPLETE" &&
-			newState === "pending_ownership_review"
+			newState === "pending_ownership_review" &&
+			transitionSucceeded
 		) {
-			// Create pending transfer for admin review
-			await ctx.db.insert("pending_ownership_transfers", {
-				dealId: args.dealId,
-				mortgageId: deal.mortgageId,
-				fromOwnerId: "fairlend",
-				toOwnerId: deal.investorId,
-				percentage: deal.purchasePercentage ?? 100,
-				status: "pending",
-				createdAt: Date.now(),
-				rejectionCount: 0,
-			});
+			const existingTransfers = await ctx.db
+				.query("pending_ownership_transfers")
+				.withIndex("by_deal", (q) => q.eq("dealId", args.dealId))
+				.collect();
+			const existingPendingTransfer = existingTransfers.find(
+				(transfer) =>
+					transfer.status === "pending" &&
+					transfer.mortgageId === deal.mortgageId
+			);
+			if (existingPendingTransfer) {
+				logger.info("Pending ownership transfer already exists", {
+					dealId: args.dealId,
+				});
+			} else {
+				// Check for existing rejected transfer to carry over rejection count
+				const previousTransfer = [...existingTransfers].sort(
+					(a, b) => b.createdAt - a.createdAt
+				)[0];
 
-			// Create alert for admins about required review
-			await ctx.db.insert("alerts", {
-				userId: adminUserId,
-				type: "ownership_review_required",
-				severity: "info",
-				title: "Ownership Transfer Review Required",
-				message: `Deal requires ownership transfer review for ${deal.purchasePercentage ?? 100}% stake`,
-				relatedDealId: args.dealId,
-				relatedListingId: deal.listingId,
-				read: false,
-				createdAt: Date.now(),
-			});
+				const rejectionCount =
+					previousTransfer?.status === "rejected"
+						? (previousTransfer.rejectionCount ?? 0)
+						: 0;
 
-			logger.info("Pending ownership transfer created", {
-				dealId: args.dealId,
-				investorId: deal.investorId,
-				percentage: deal.purchasePercentage ?? 100,
-			});
+				// Create pending transfer for admin review
+				await ctx.db.insert("pending_ownership_transfers", {
+					dealId: args.dealId,
+					mortgageId: deal.mortgageId,
+					fromOwnerId: "fairlend",
+					toOwnerId: deal.investorId,
+					percentage: deal.purchasePercentage ?? 100,
+					status: "pending",
+					createdAt: Date.now(),
+					rejectionCount,
+				});
+
+				// Create alert for admins about required review
+				await ctx.db.insert("alerts", {
+					userId: adminUserId,
+					type: "ownership_review_required",
+					severity: "info",
+					title: "Ownership Transfer Review Required",
+					message: `Deal requires ownership transfer review for ${deal.purchasePercentage ?? 100}% stake`,
+					relatedDealId: args.dealId,
+					relatedListingId: deal.listingId,
+					read: false,
+					createdAt: Date.now(),
+				});
+
+				logger.info("Pending ownership transfer created", {
+					dealId: args.dealId,
+					investorId: deal.investorId,
+					percentage: deal.purchasePercentage ?? 100,
+				});
+			}
 		}
 
 		// CONFIRM_TRANSFER: Execute ownership transfer on approval
 		if (args.event.type === "CONFIRM_TRANSFER" && newState === "completed") {
+			// Update pending transfer status
+			const pendingTransfer = await ctx.db
+				.query("pending_ownership_transfers")
+				.withIndex("by_deal", (q) => q.eq("dealId", args.dealId))
+				.filter((q) => q.eq(q.field("status"), "approved"))
+				.first();
+
+			if (!pendingTransfer) {
+				throw new Error(
+					"Transfer is not approved. Deal cannot be completed without an approved ownership transfer."
+				);
+			}
+
+			const reference = `transfer:${pendingTransfer._id}`;
+
 			if (!isLedgerSourceOfTruth()) {
 				// Execute ownership transfer using createOwnershipInternal
 				// CRITICAL: footguns.md #1 - NEVER direct insert, use helper
@@ -1280,7 +1342,6 @@ export const transitionDealState = mutation({
 			// CRITICAL: footguns.md #3 - external API calls must be scheduled actions
 			// CRITICAL: footguns.md #5 - use idempotency key (reference)
 			const percentage = deal.purchasePercentage ?? 100;
-			const reference = `transfer:${args.dealId}:${deal.mortgageId}:${Date.now()}`;
 			await ctx.scheduler.runAfter(0, internal.ledger.recordOwnershipTransfer, {
 				mortgageId: deal.mortgageId.toString(),
 				fromOwnerId: "fairlend",
@@ -1291,20 +1352,12 @@ export const transitionDealState = mutation({
 			});
 
 			// Update pending transfer status
-			const pendingTransfer = await ctx.db
-				.query("pending_ownership_transfers")
-				.withIndex("by_deal", (q) => q.eq("dealId", args.dealId))
-				.filter((q) => q.eq(q.field("status"), "pending"))
-				.first();
-
-			if (pendingTransfer) {
-				await ctx.db.patch(pendingTransfer._id, {
-					status: "approved",
-					reviewedAt: Date.now(),
-					reviewedBy: adminUserId,
-					reviewNotes: "notes" in args.event ? args.event.notes : undefined,
-				});
-			}
+			await ctx.db.patch(pendingTransfer._id, {
+				status: "approved", // Should already be approved, but keeping for consistency
+				reviewedAt: Date.now(),
+				reviewedBy: adminUserId,
+				reviewNotes: "notes" in args.event ? args.event.notes : undefined,
+			});
 
 			// Mark deal as completed
 			await ctx.db.patch(args.dealId, {
@@ -1547,7 +1600,9 @@ export const completeDeal = mutation({
 
 		// Schedule ledger transfer (Formance)
 		// CRITICAL: footguns.md #3 - external API calls must be scheduled actions
-		const reference = `legacy-complete:${args.dealId}:${deal.mortgageId}:${Date.now()}`;
+		const referenceTimestamp =
+			deal.completedAt ?? deal.updatedAt ?? deal.createdAt;
+		const reference = `legacy-complete:${args.dealId}:${deal.mortgageId}:${referenceTimestamp}`;
 		await ctx.scheduler.runAfter(0, internal.ledger.recordOwnershipTransfer, {
 			mortgageId: deal.mortgageId.toString(),
 			fromOwnerId: "fairlend",

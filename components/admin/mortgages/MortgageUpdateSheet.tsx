@@ -34,6 +34,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 type BorrowerItem = (typeof api.borrowers.listBorrowers._returnType)[number];
+
 import { MortgageDocumentTemplatesEditor } from "../MortgageDocumentTemplatesEditor";
 
 type MortgageUpdateSheetProps = {

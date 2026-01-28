@@ -56,16 +56,17 @@ type OwnershipCheckResult = {
 
 async function getLedgerOwnershipSnapshot(
 	ctx: ActionCtx
-): Promise<Record<string, Array<OwnershipRecord>>> {
+): Promise<Record<string, OwnershipRecord[]>> {
 	const result = await ctx.runAction(api.ledger.getOwnershipSnapshot, {});
 	if (!result.success) {
 		throw new Error(result.error ?? "Failed to load ledger ownership snapshot");
 	}
 
-	const snapshot =
-		(result.ownershipByMortgage ??
-			{}) as Record<string, Array<OwnershipRecord>>;
-	const normalized: Record<string, Array<OwnershipRecord>> = {};
+	const snapshot = (result.ownershipByMortgage ?? {}) as Record<
+		string,
+		OwnershipRecord[]
+	>;
+	const normalized: Record<string, OwnershipRecord[]> = {};
 
 	for (const [mortgageId, entries] of Object.entries(snapshot)) {
 		normalized[mortgageId] = entries.map((entry) => ({
@@ -107,12 +108,11 @@ export const getUserPortfolioLegacy = internalQuery({
 			ownershipPercentage: v.number(),
 		})
 	),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("mortgage_ownership")
 			.withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
-			.collect();
-	},
+			.collect(),
 });
 
 export const checkOwnershipLegacy = internalQuery({
@@ -213,10 +213,10 @@ export const getMortgageOwnership = authenticatedAction({
 	),
 	handler: async (ctx, args) => {
 		if (!isLedgerSourceOfTruth()) {
-			const legacyOwnership: Array<LegacyOwnershipRecord> = await ctx.runQuery(
+			const legacyOwnership: LegacyOwnershipRecord[] = await ctx.runQuery(
 				internal.ownership.getMortgageOwnershipLegacy,
 				{
-				mortgageId: args.mortgageId,
+					mortgageId: args.mortgageId,
 				}
 			);
 			return legacyOwnership;
@@ -251,10 +251,10 @@ export const getUserPortfolio = authenticatedAction({
 	),
 	handler: async (ctx, args) => {
 		if (!isLedgerSourceOfTruth()) {
-			const legacyOwnership: Array<LegacyOwnershipRecord> = await ctx.runQuery(
+			const legacyOwnership: LegacyOwnershipRecord[] = await ctx.runQuery(
 				internal.ownership.getUserPortfolioLegacy,
 				{
-				userId: args.userId,
+					userId: args.userId,
 				}
 			);
 			return legacyOwnership;
@@ -300,11 +300,13 @@ export const checkOwnership = authenticatedAction({
 	),
 	handler: async (ctx, args): Promise<OwnershipCheckResult> => {
 		if (!isLedgerSourceOfTruth()) {
-			const legacyOwnership: LegacyOwnershipRecord | null =
-				await ctx.runQuery(internal.ownership.checkOwnershipLegacy, {
-				mortgageId: args.mortgageId,
-				ownerId: args.ownerId,
-			});
+			const legacyOwnership: LegacyOwnershipRecord | null = await ctx.runQuery(
+				internal.ownership.checkOwnershipLegacy,
+				{
+					mortgageId: args.mortgageId,
+					ownerId: args.ownerId,
+				}
+			);
 			return legacyOwnership;
 		}
 
@@ -337,11 +339,10 @@ export const getInstitutionalPortfolio = authenticatedAction({
 	),
 	handler: async (ctx) => {
 		if (!isLedgerSourceOfTruth()) {
-			const legacyOwnership: Array<LegacyOwnershipRecord> =
-				await ctx.runQuery(
-					internal.ownership.getInstitutionalPortfolioLegacy,
-					{}
-				);
+			const legacyOwnership: LegacyOwnershipRecord[] = await ctx.runQuery(
+				internal.ownership.getInstitutionalPortfolioLegacy,
+				{}
+			);
 			return legacyOwnership.map((record) => ({
 				mortgageId: record.mortgageId,
 				ownerId: "fairlend" as const,
@@ -394,7 +395,7 @@ export const getTotalOwnership = authenticatedAction({
 			const legacySummary: LegacyOwnershipSummary = await ctx.runQuery(
 				internal.ownership.getTotalOwnershipLegacy,
 				{
-				mortgageId: args.mortgageId,
+					mortgageId: args.mortgageId,
 				}
 			);
 			return legacySummary;
@@ -751,7 +752,8 @@ export const transferOwnership = authenticatedMutation({
 		const reference = `transfer:${args.id}:${Date.now()}`;
 		await ctx.scheduler.runAfter(0, internal.ledger.recordOwnershipTransfer, {
 			mortgageId: ownership.mortgageId.toString(),
-			fromOwnerId: oldOwnerId === "fairlend" ? "fairlend" : oldOwnerId.toString(),
+			fromOwnerId:
+				oldOwnerId === "fairlend" ? "fairlend" : oldOwnerId.toString(),
 			toOwnerId:
 				args.newOwnerId === "fairlend"
 					? "fairlend"

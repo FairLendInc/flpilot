@@ -144,7 +144,7 @@ const normalizeContainsValue = (value?: string | null) =>
 	value?.trim().toLowerCase() ?? undefined;
 
 const paginateBorrowers = (
-	items: Array<Doc<"borrowers">>,
+	items: Doc<"borrowers">[],
 	limit: number,
 	cursor?: string | null
 ) => {

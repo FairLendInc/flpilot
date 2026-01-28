@@ -127,9 +127,9 @@ export function InvariantCheckCard({
 													"truncate font-bold",
 													isPass
 														? "text-emerald-600 dark:text-emerald-400"
-													: isChecking
-														? "text-slate-500"
-														: "text-rose-600 dark:text-rose-400"
+														: isChecking
+															? "text-slate-500"
+															: "text-rose-600 dark:text-rose-400"
 												)}
 											>
 												{item.actual}

@@ -11,36 +11,34 @@ I am **not** redefining the whole document—this is **only the MIC section**, b
 
 This section defines how **Formance Ledger** is used to model and operate a **Mortgage Investment Corporation (MIC)** as a first-class financial entity, including:
 
-* MIC investor capital & cap table (capital-share model),
-* cash inflows/outflows between MIC and AUMs (mortgages),
-* fee recognition and settlement (listing, lending, servicing, fund management),
-* monthly distributions to MIC investors at **net-zero cash policy**,
-* interaction boundaries between:
-
-  * MIC ↔ mortgage module,
-  * MIC ↔ marketplace,
-  * MIC ↔ management/admin providers.
+- MIC investor capital & cap table (capital-share model),
+- cash inflows/outflows between MIC and AUMs (mortgages),
+- fee recognition and settlement (listing, lending, servicing, fund management),
+- monthly distributions to MIC investors at **net-zero cash policy**,
+- interaction boundaries between:
+  - MIC ↔ mortgage module,
+  - MIC ↔ marketplace,
+  - MIC ↔ management/admin providers.
 
 **Design invariants**
 
 1. **Ledger is the source of truth**
+   - MIC ownership, entitlements, fees, and payouts are _ledger state_, not derived.
 
-   * MIC ownership, entitlements, fees, and payouts are *ledger state*, not derived.
 2. **Capital-share unit model**
+   - One economic unit defines MIC ownership for distributions & redemptions.
 
-   * One economic unit defines MIC ownership for distributions & redemptions.
 3. **Accrual-basis expense recognition**
+   - All MIC-level and AUM-attached fees accrue when earned/incurred.
 
-   * All MIC-level and AUM-attached fees accrue when earned/incurred.
 4. **Boundary-based accruals**
+   - Ownership and economic state changes force explicit accrual boundaries.
 
-   * Ownership and economic state changes force explicit accrual boundaries.
 5. **Net-zero fund operation**
+   - At distribution time, MIC cash is driven to zero (no retained buffer).
 
-   * At distribution time, MIC cash is driven to zero (no retained buffer).
 6. **MIC is the investor until sale**
-
-   * MIC initially owns 100% of mortgage AUMs and receives all economics until sold.
+   - MIC initially owns 100% of mortgage AUMs and receives all economics until sold.
 
 ---
 
@@ -48,29 +46,25 @@ This section defines how **Formance Ledger** is used to model and operate a **Mo
 
 ### 1.1 Fiat
 
-* **`CAD/2`**
-
-  * Base currency for all MIC cash flows.
+- **`CAD/2`**
+  - Base currency for all MIC cash flows.
 
 ---
 
 ### 1.2 MIC Capital Units (Economic)
 
-* **Asset:** `MICCAP-<MIC_ID>/0`
+- **Asset:** `MICCAP-<MIC_ID>/0`
   Example: `MICCAP-FLMIC/0`
 
-* **Meaning:**
+- **Meaning:**
+  - Represents proportional economic ownership of the MIC.
+  - Used **exclusively** for:
+    - dividend distributions,
+    - capital redemption calculations.
 
-  * Represents proportional economic ownership of the MIC.
-  * Used **exclusively** for:
-
-    * dividend distributions,
-    * capital redemption calculations.
-
-* **Unit model:** **capital-share**
-
-  * Units minted = capital contributed (in cents or chosen scale).
-  * No NAV math required for v1.
+- **Unit model:** **capital-share**
+  - Units minted = capital contributed (in cents or chosen scale).
+  - No NAV math required for v1.
 
 > **Invariant:**
 > All MIC investor cash distributions are proportional to balances of `MICCAP-<MIC_ID>/0`.
@@ -79,22 +73,19 @@ This section defines how **Formance Ledger** is used to model and operate a **Mo
 
 ### 1.3 MIC Governance Units (Non-Economic)
 
-* **Asset:** `MICGOV-<MIC_ID>-PREF/0` (or similar)
+- **Asset:** `MICGOV-<MIC_ID>-PREF/0` (or similar)
 
-* **Meaning:**
+- **Meaning:**
+  - Governance / control rights only.
+  - **Never** participates in:
+    - monthly distributions,
+    - capital redemptions,
+    - fee allocation.
 
-  * Governance / control rights only.
-  * **Never** participates in:
-
-    * monthly distributions,
-    * capital redemptions,
-    * fee allocation.
-
-* **Future use:**
-
-  * MIC sale proceeds,
-  * voting rights,
-  * board control.
+- **Future use:**
+  - MIC sale proceeds,
+  - voting rights,
+  - board control.
 
 ---
 
@@ -107,16 +98,16 @@ mic:<MIC_ID>:cash             (CAD/2) - Capital / Principal
 mic:<MIC_ID>:cash:income      (CAD/2) - Income Collection
 ```
 
-* **Capital Account (`mic:<MIC_ID>:cash`)**:
-  * Inflows: Investor subscriptions, Mortgage principal repayments.
-  * Outflows: Funding new mortgages, Investor capital redemptions.
-  * **Strict Invariant**: `Balance(mic:cash) + Balance(AUM_positions) == Total_Investor_Capital`
-  * **Rule**: NEVER used for distributions.
+- **Capital Account (`mic:<MIC_ID>:cash`)**:
+  - Inflows: Investor subscriptions, Mortgage principal repayments.
+  - Outflows: Funding new mortgages, Investor capital redemptions.
+  - **Strict Invariant**: `Balance(mic:cash) + Balance(AUM_positions) == Total_Investor_Capital`
+  - **Rule**: NEVER used for distributions.
 
-* **Income Account (`mic:<MIC_ID>:cash:income`)**:
-  * Inflows: Mortgage interest payments, Origination/Lending fees.
-  * Outflows: Expense payments (listing, mgmt), Investor distributions.
-  * **Invariant**: Fully distributed at period close (Net-Zero).
+- **Income Account (`mic:<MIC_ID>:cash:income`)**:
+  - Inflows: Mortgage interest payments, Origination/Lending fees.
+  - Outflows: Expense payments (listing, mgmt), Investor distributions.
+  - **Invariant**: Fully distributed at period close (Net-Zero).
 
 > Reserve semantics should be implemented via sub-accounts if needed.
 
@@ -128,13 +119,13 @@ mic:<MIC_ID>:cash:income      (CAD/2) - Income Collection
 mic:<MIC_ID>:capital:investor:<INV_ID>    (MICCAP-<MIC_ID>/0)
 ```
 
-* Holds economic ownership units per investor.
+- Holds economic ownership units per investor.
 
 ```
 mic:<MIC_ID>:capital:treasury             (MICCAP-<MIC_ID>/0)
 ```
 
-* Temporary issuance / redemption source.
+- Temporary issuance / redemption source.
 
 ---
 
@@ -154,9 +145,9 @@ mic:<MIC_ID>:governance:investor:<INV_ID> (MICGOV-<MIC_ID>-PREF/0)
 mic:<MIC_ID>:income:lending_fee_accrued   (CAD/2)
 ```
 
-* 1% of principal.
-* Netted from borrower proceeds at origination.
-* Accrued immediately at origination boundary.
+- 1% of principal.
+- Netted from borrower proceeds at origination.
+- Accrued immediately at origination boundary.
 
 ---
 
@@ -166,8 +157,8 @@ mic:<MIC_ID>:income:lending_fee_accrued   (CAD/2)
 mic:<MIC_ID>:expense:listing_fee_accrued  (CAD/2)
 ```
 
-* 0.5% of principal.
-* Incurred when AUM is listed.
+- 0.5% of principal.
+- Incurred when AUM is listed.
 
 ---
 
@@ -177,12 +168,12 @@ mic:<MIC_ID>:expense:listing_fee_accrued  (CAD/2)
 mic:<MIC_ID>:expense:fund_mgmt_accrued    (CAD/2)
 ```
 
-* Dynamic:
+- Dynamic:
+  - typically 1% of AUM,
+  - may be zero,
+  - may include discretionary performance bonus.
 
-  * typically 1% of AUM,
-  * may be zero,
-  * may include discretionary performance bonus.
-* Accrual timing TBD → **monthly boundary** assumed.
+- Accrual timing TBD → **monthly boundary** assumed.
 
 ---
 
@@ -195,8 +186,8 @@ investors:MIC_<MIC_ID>:mortgage:<MORT_ID>:position   (MORT-<MORT_ID>/0)
 accrued:mortgage:<MORT_ID>:investor:MIC_<MIC_ID>    (CAD/2)
 ```
 
-* These are **standard mortgage module accounts**.
-* MIC is treated as a normal investor from the mortgage ledger’s perspective.
+- These are **standard mortgage module accounts**.
+- MIC is treated as a normal investor from the mortgage ledger’s perspective.
 
 ---
 
@@ -235,8 +226,8 @@ Borrower receives `P - lending_fee`, principal booked at full `P`.
 
 **Ledger pattern (single atomic transaction)**
 
-* `mic:FLMIC:cash → external:borrower:M123:principal` : `CAD P`
-* `external:borrower:M123:principal → mic:FLMIC:income:lending_fee_accrued` : `CAD (1% of P)`
+- `mic:FLMIC:cash → external:borrower:M123:principal` : `CAD P`
+- `external:borrower:M123:principal → mic:FLMIC:income:lending_fee_accrued` : `CAD (1% of P)`
 
 > Net MIC cash outflow = `P - fee`.
 
@@ -244,20 +235,20 @@ Borrower receives `P - lending_fee`, principal booked at full `P`.
 
 ### 4.2 Listing Fee
 
-* Accrued when mortgage is listed.
+- Accrued when mortgage is listed.
 
 ```
 mic:FLMIC:expense:listing_fee_accrued → external:platform   (CAD fee)
 ```
 
-* Settled later from MIC cash.
+- Settled later from MIC cash.
 
 ---
 
 ### 4.3 Interest & Servicing Fee Rule
 
-* **Servicing fee follows the mortgage.**
-* Paid **monthly**, directly from borrower interest.
+- **Servicing fee follows the mortgage.**
+- Paid **monthly**, directly from borrower interest.
 
 | Mortgage owner    | Servicing fee recipient |
 | ----------------- | ----------------------- |
@@ -268,9 +259,9 @@ mic:FLMIC:expense:listing_fee_accrued → external:platform   (CAD fee)
 
 At each accrual boundary:
 
-* Gross interest accrued as usual.
-* Servicing fee carved out **before** investor allocations.
-* Recipient depends on ownership snapshot at boundary.
+- Gross interest accrued as usual.
+- Servicing fee carved out **before** investor allocations.
+- Recipient depends on ownership snapshot at boundary.
 
 ---
 
@@ -280,17 +271,17 @@ At each accrual boundary:
 
 **Invariant:**
 
-> *All interest and servicing fees are fully accrued to the sale timestamp before ownership transfer.*
+> _All interest and servicing fees are fully accrued to the sale timestamp before ownership transfer._
 
 **Flow**
 
 1. Force `accrue_interest_until(T_sale)`
 2. Transfer mortgage share units:
+   - MIC → buyer(s)
 
-   * MIC → buyer(s)
 3. Sale proceeds:
+   - `external:marketplace → mic:<MIC_ID>:cash`
 
-   * `external:marketplace → mic:<MIC_ID>:cash`
 4. MIC ownership percentage updates immediately.
 
 ---
@@ -301,36 +292,32 @@ At each accrual boundary:
 
 Before MIC distribution run:
 
-* All AUM PAD interest payments processed.
-* All mortgage-level accruals complete.
-* No partial ownership periods un-accrued.
+- All AUM PAD interest payments processed.
+- All mortgage-level accruals complete.
+- No partial ownership periods un-accrued.
 
 ---
 
 ### 6.2 Settlement Order (Deterministic)
 
 1. **Mortgage-level settlements**
+   - Borrower interest → mortgage collect.
+   - Servicing fees paid:
+     - to MIC (if MIC owned),
+     - or to management (if sold).
 
-   * Borrower interest → mortgage collect.
-   * Servicing fees paid:
-
-     * to MIC (if MIC owned),
-     * or to management (if sold).
-   * Remaining interest settles accrued investor balances.
-   * MIC’s accrued mortgage interest settles into `mic:<MIC_ID>:cash`.
+   - Remaining interest settles accrued investor balances.
+   - MIC’s accrued mortgage interest settles into `mic:<MIC_ID>:cash`.
 
 2. **MIC-level expenses**
-
-   * Listing fees paid.
-   * Fund management fees accrued & paid.
+   - Listing fees paid.
+   - Fund management fees accrued & paid.
 
 3. **Net-zero invariant check**
-
-   * `distributable = mic_cash_balance`
+   - `distributable = mic_cash_balance`
 
 4. **MIC investor distributions**
-
-   * For each MIC investor `i`:
+   - For each MIC investor `i`:
 
 ```
 mic:<MIC_ID>:cash →
@@ -339,8 +326,7 @@ investors:<INV_ID>:wallet
 ```
 
 5. **Post-condition**
-
-   * `mic:<MIC_ID>:cash == 0`
+   - `mic:<MIC_ID>:cash == 0`
 
 ---
 
@@ -354,10 +340,10 @@ investors:<INV_ID>:wallet
 
 1. Bank confirms deposit.
 2. Ledger:
+   - `external:bank → mic:<MIC_ID>:cash`
+   - Mint `MICCAP` units → investor position.
+   - (Optional) Mint governance units.
 
-   * `external:bank → mic:<MIC_ID>:cash`
-   * Mint `MICCAP` units → investor position.
-   * (Optional) Mint governance units.
 3. MIC cap table updated automatically.
 
 ---
@@ -370,12 +356,12 @@ investors:<INV_ID>:wallet
 
 1. Determine redeemable capital (policy-driven).
 2. Boundary:
+   - Ensure all accruals complete to redemption date.
 
-   * Ensure all accruals complete to redemption date.
 3. Ledger:
+   - Burn investor MICCAP units.
+   - `mic:<MIC_ID>:cash → investors:<INV>:wallet`
 
-   * Burn investor MICCAP units.
-   * `mic:<MIC_ID>:cash → investors:<INV>:wallet`
 4. Wallet → payout rails handled via standard payout state machine.
 
 ---
@@ -388,10 +374,9 @@ investors:<INV_ID>:wallet
 
 1. Origination approval.
 2. Ledger:
-
-   * MIC funds borrower (netted lending fee).
-   * Lending fee accrued.
-   * MIC receives 100% mortgage shares.
+   - MIC funds borrower (netted lending fee).
+   - Lending fee accrued.
+   - MIC receives 100% mortgage shares.
 
 ---
 
@@ -412,22 +397,22 @@ investors:<INV_ID>:wallet
 
 **Missed payment**
 
-* No PAD received.
-* Interest continues to accrue into receivable.
-* No settlement occurs.
+- No PAD received.
+- Interest continues to accrue into receivable.
+- No settlement occurs.
 
 **In default**
 
-* Accrual policy may freeze (policy-driven).
-* Asset remains on books.
+- Accrual policy may freeze (policy-driven).
+- Asset remains on books.
 
 **Recovery**
 
 1. Recovery payment received.
 2. Apply:
+   - missed interest,
+   - principal (if applicable).
 
-   * missed interest,
-   * principal (if applicable).
 3. Resume normal accrual boundaries.
 
 ---
@@ -438,18 +423,17 @@ investors:<INV_ID>:wallet
 
 **Ledger queries**
 
-* MIC distributable cash.
-* MICCAP balances per investor.
-* Outstanding accruals (should be zero post-settlement).
+- MIC distributable cash.
+- MICCAP balances per investor.
+- Outstanding accruals (should be zero post-settlement).
 
 **Output**
 
-* Deterministic CSV:
-
-  * investor_id,
-  * amount,
-  * wallet_account,
-  * reference_period.
+- Deterministic CSV:
+  - investor_id,
+  - amount,
+  - wallet_account,
+  - reference_period.
 
 ---
 
@@ -468,26 +452,23 @@ investors:<INV_ID>:wallet
    ```
 
 3. **Servicing fee locality**
-
-   * Fee always charged at mortgage level.
-   * Recipient determined by ownership snapshot.
+   - Fee always charged at mortgage level.
+   - Recipient determined by ownership snapshot.
 
 4. **Boundary safety**
-
-   * No ownership change without prior accrual.
+   - No ownership change without prior accrual.
 
 ---
 
 ## Open Items (Confirm Before v2)
-We dont have the answer to these yet. design and implement with the expectation that the requiments here will be emergent. 
+
+We don't have the answer to these yet. Design and implement with the expectation that the requirements here will be emergent.
+
 1. Fund management fee accrual cadence:
-   * monthly flat?
-   * daily AUM-weighted?
+   - monthly flat?
+   - daily AUM-weighted?
 2. Performance bonus:
+   - discretionary manual entry or formula-driven?
 
-   * discretionary manual entry or formula-driven?
 3. MIC sale event:
-
-   * do governance units participate differently than MICCAP?
-
-
+   - do governance units participate differently than MICCAP?

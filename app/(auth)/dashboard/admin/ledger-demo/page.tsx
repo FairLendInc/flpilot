@@ -40,14 +40,13 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { logger } from "@/lib/logger";
-
 // Numscript templates - mirroring the server-side definitions
 import {
 	NUMSCRIPT_TEMPLATES,
 	type NumscriptTemplate,
 	type NumscriptVariable,
 } from "@/lib/formance/numscripts";
+import { logger } from "@/lib/logger";
 
 type LedgerInfo = {
 	name: string;
@@ -156,7 +155,7 @@ export default function LedgerDemoPage() {
 				}
 			}
 		} catch (error) {
-		logger.error("Failed to load ledgers", { error });
+			logger.error("Failed to load ledgers", { error });
 		} finally {
 			setIsLoadingLedgers(false);
 		}
@@ -238,8 +237,7 @@ export default function LedgerDemoPage() {
 				await loadLedgers();
 				setSelectedLedger(newLedgerName.trim());
 			} else {
-				const errorMessage =
-					"error" in result ? result.error : "Unknown error";
+				const errorMessage = "error" in result ? result.error : "Unknown error";
 				console.error(`Failed to create ledger: ${errorMessage}`);
 			}
 		} catch (error) {

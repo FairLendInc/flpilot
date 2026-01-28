@@ -544,10 +544,13 @@ describe("/listings/get webhook", () => {
 			result: { listingId: string };
 		};
 
-		const response = await t.fetch(`/listings/get?listingId=${result.listingId}`, {
-			method: "GET",
-			headers: { "x-api-key": "test-webhook-key" },
-		});
+		const response = await t.fetch(
+			`/listings/get?listingId=${result.listingId}`,
+			{
+				method: "GET",
+				headers: { "x-api-key": "test-webhook-key" },
+			}
+		);
 
 		expect(response.status).toBe(200);
 		const body = (await response.json()) as {
@@ -573,10 +576,13 @@ describe("/listings/get webhook", () => {
 			result: { mortgageId: string };
 		};
 
-		const response = await t.fetch(`/listings/get?mortgageId=${result.mortgageId}`, {
-			method: "GET",
-			headers: { "x-api-key": "test-webhook-key" },
-		});
+		const response = await t.fetch(
+			`/listings/get?mortgageId=${result.mortgageId}`,
+			{
+				method: "GET",
+				headers: { "x-api-key": "test-webhook-key" },
+			}
+		);
 
 		expect(response.status).toBe(200);
 	});
@@ -958,7 +964,11 @@ describe("/listings/list webhook", () => {
 			headers: { "x-api-key": "test-webhook-key" },
 		});
 		const body1 = (await page1.json()) as {
-			result: { listings: Doc<"listings">[]; nextCursor?: string; hasMore: boolean };
+			result: {
+				listings: Doc<"listings">[];
+				nextCursor?: string;
+				hasMore: boolean;
+			};
 		};
 		expect(body1.result.listings).toHaveLength(2);
 		expect(body1.result.hasMore).toBe(true);

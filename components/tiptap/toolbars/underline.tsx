@@ -19,19 +19,19 @@ const UnderlineToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						variant="ghost"
-						size="icon"
 						className={cn(
 							"h-8 w-8 p-0 sm:h-9 sm:w-9",
 							editor?.isActive("underline") && "bg-accent",
-							className,
+							className
 						)}
+						disabled={!editor?.can().chain().focus().toggleUnderline().run()}
 						onClick={(e) => {
 							editor?.chain().focus().toggleUnderline().run();
 							onClick?.(e);
 						}}
-						disabled={!editor?.can().chain().focus().toggleUnderline().run()}
 						ref={ref}
+						size="icon"
+						variant="ghost"
 						{...props}
 					>
 						{children ?? <UnderlineIcon className="h-4 w-4" />}
@@ -39,11 +39,11 @@ const UnderlineToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				</TooltipTrigger>
 				<TooltipContent>
 					<span>Underline</span>
-					<span className="ml-1 text-xs text-gray-11">(cmd + u)</span>
+					<span className="ml-1 text-gray-11 text-xs">(cmd + u)</span>
 				</TooltipContent>
 			</Tooltip>
 		);
-	},
+	}
 );
 
 UnderlineToolbar.displayName = "UnderlineToolbar";

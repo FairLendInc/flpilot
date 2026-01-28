@@ -19,19 +19,19 @@ const CodeToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						variant="ghost"
-						size="icon"
 						className={cn(
 							"h-8 w-8 p-0 sm:h-9 sm:w-9",
 							editor?.isActive("code") && "bg-accent",
-							className,
+							className
 						)}
+						disabled={!editor?.can().chain().focus().toggleCode().run()}
 						onClick={(e) => {
 							editor?.chain().focus().toggleCode().run();
 							onClick?.(e);
 						}}
-						disabled={!editor?.can().chain().focus().toggleCode().run()}
 						ref={ref}
+						size="icon"
+						variant="ghost"
 						{...props}
 					>
 						{children ?? <Code2 className="h-4 w-4" />}
@@ -42,7 +42,7 @@ const CodeToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				</TooltipContent>
 			</Tooltip>
 		);
-	},
+	}
 );
 
 CodeToolbar.displayName = "CodeToolbar";

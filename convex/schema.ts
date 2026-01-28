@@ -203,6 +203,99 @@ export default defineSchema({
 					),
 				})
 			),
+			broker: v.optional(
+				v.object({
+					// Company information
+					companyInfo: v.optional(
+						v.object({
+							companyName: v.string(),
+							entityType: v.union(
+								v.literal("sole_proprietorship"),
+								v.literal("partnership"),
+								v.literal("corporation")
+							),
+							registrationNumber: v.string(),
+							registeredAddress: v.object({
+								street: v.string(),
+								city: v.string(),
+								state: v.string(),
+								zip: v.string(),
+								country: v.string(),
+							}),
+							businessPhone: v.string(),
+							businessEmail: v.string(),
+						})
+					),
+					// Licensing information
+					licensing: v.optional(
+						v.object({
+							licenseType: v.union(
+								v.literal("mortgage_broker"),
+								v.literal("investment_broker"),
+								v.literal("mortgage_dealer")
+							),
+							licenseNumber: v.string(),
+							issuer: v.string(),
+							issuedDate: v.string(), // ISO date
+							expiryDate: v.string(), // ISO date
+							jurisdictions: v.array(v.string()), // e.g., ["Ontario", "British Columbia"]
+						})
+					),
+					// Representative information
+					representatives: v.optional(
+						v.array(
+							v.object({
+								firstName: v.string(),
+								lastName: v.string(),
+								role: v.string(),
+								email: v.string(),
+								phone: v.string(),
+								hasAuthority: v.boolean(),
+							})
+						)
+					),
+					// Documents
+					documents: v.optional(
+						v.array(
+							v.object({
+								storageId: v.id("_storage"),
+								label: v.string(),
+								type: v.string(), // e.g., "license", "insurance", "agreement"
+								uploadedAt: v.string(), // ISO timestamp
+							})
+						)
+					),
+					// Timeline of admin requests and broker responses
+					adminRequestTimeline: v.optional(
+						v.array(
+							v.object({
+								id: v.string(), // UUID
+								type: v.union(
+									v.literal("info_request"),
+									v.literal("document_request"),
+									v.literal("clarification")
+								),
+								requestedBy: v.id("users"),
+								requestedAt: v.string(), // ISO timestamp
+								message: v.string(),
+								resolved: v.boolean(),
+								resolvedAt: v.optional(v.string()), // ISO timestamp
+								response: v.optional(v.string()),
+								responseDocuments: v.optional(
+									v.array(
+										v.object({
+											storageId: v.id("_storage"),
+											label: v.string(),
+										})
+									)
+								),
+							})
+						)
+					),
+					// Proposed subdomain (subject to availability check)
+					proposedSubdomain: v.optional(v.string()),
+				})
+			),
 		}),
 		status: v.union(
 			v.literal("draft"),
@@ -221,6 +314,184 @@ export default defineSchema({
 	})
 		.index("by_user", ["userId"])
 		.index("by_status", ["status"]),
+
+	// ============================================================================
+	// Broker Onboarding and Management Tables
+	// ============================================================================
+
+	/**
+	 * Approved broker configurations
+	 * Stores subdomain, branding, commission rates, and status for approved brokers
+	 */
+	brokers: defineTable({
+		// References
+		userId: v.id("users"), // Primary broker user
+		workosOrgId: v.string(), // Broker's WorkOS organization
+		// Subdomain configuration
+		subdomain: v.string(), // e.g., "acmebrokers"
+		// Branding configuration
+		branding: v.object({
+			logoStorageId: v.optional(v.id("_storage")),
+			primaryColor: v.optional(v.string()), // hex color
+			secondaryColor: v.optional(v.string()), // hex color
+			brandName: v.optional(v.string()), // override default company name
+		}),
+		// Commission configuration
+		commission: v.object({
+			ratePercentage: v.number(), // e.g., 2.5 for 2.5%
+			returnAdjustmentPercentage: v.number(), // e.g., 0.5 for 0.5% reduction
+		}),
+		// Status
+		status: v.union(
+			v.literal("active"),
+			v.literal("suspended"),
+			v.literal("revoked")
+		),
+		// Timestamps
+		approvedAt: v.string(), // ISO timestamp
+		createdAt: v.string(),
+		updatedAt: v.string(),
+	})
+		.index("by_user", ["userId"])
+		.index("by_subdomain", ["subdomain"])
+		.index("by_workos_org", ["workosOrgId"])
+		.index("by_status", ["status"]),
+
+	/**
+	 * Broker-client relationships
+	 * Links clients to their managing brokers with filter configurations
+	 */
+	broker_clients: defineTable({
+		// References
+		brokerId: v.id("brokers"),
+		clientId: v.id("users"), // The client user
+		workosOrgId: v.string(), // Client's WorkOS organization
+		// Listing filter configuration (set by broker)
+		filters: v.object({
+			// Broker-provided constraints (set by broker, read-only to client)
+			constraints: v.object({
+				minLTV: v.optional(v.number()),
+				maxLTV: v.optional(v.number()),
+				minLoanAmount: v.optional(v.number()),
+				maxLoanAmount: v.optional(v.number()),
+				minInterestRate: v.optional(v.number()),
+				maxInterestRate: v.optional(v.number()),
+				allowedPropertyTypes: v.optional(v.array(v.string())),
+				allowedLocations: v.optional(v.array(v.string())),
+				allowedRiskProfiles: v.optional(
+					v.array(
+						v.union(
+							v.literal("conservative"),
+							v.literal("balanced"),
+							v.literal("growth")
+						)
+					)
+				),
+			}),
+			// Client-selected values (within constraints)
+			values: v.object({
+				minLTV: v.optional(v.number()),
+				maxLTV: v.optional(v.number()),
+				minLoanAmount: v.optional(v.number()),
+				maxLoanAmount: v.optional(v.number()),
+				minInterestRate: v.optional(v.number()),
+				maxInterestRate: v.optional(v.number()),
+				propertyTypes: v.array(v.string()),
+				locations: v.array(v.string()),
+				riskProfile: v.union(
+					v.literal("conservative"),
+					v.literal("balanced"),
+					v.literal("growth")
+				),
+			}),
+		}),
+		// Return adjustment (applied to client's displayed returns)
+		returnAdjustmentPercentage: v.number(),
+		// Onboarding workflow
+		onboardingStatus: v.union(
+			v.literal("invited"),
+			v.literal("in_progress"),
+			v.literal("pending_approval"),
+			v.literal("approved"),
+			v.literal("rejected")
+		),
+		// Timestamps
+		invitedAt: v.string(),
+		approvedAt: v.optional(v.string()),
+		createdAt: v.string(),
+		updatedAt: v.string(),
+	})
+		.index("by_broker", ["brokerId"])
+		.index("by_client", ["clientId"])
+		.index("by_status", ["onboardingStatus"])
+		.index("by_broker_status", ["brokerId", "onboardingStatus"]),
+
+	/**
+	 * Broker rate history for historical commission/adjustment rates
+	 * Tracks rate changes over time for accurate historical calculations
+	 */
+	broker_rate_history: defineTable({
+		brokerId: v.id("brokers"),
+		type: v.union(v.literal("commission"), v.literal("return_adjustment")),
+		oldRate: v.number(),
+		newRate: v.number(),
+		effectiveAt: v.string(), // ISO timestamp when new rate took effect
+		changedBy: v.id("users"), // Admin who made the change
+		createdAt: v.string(),
+	})
+		.index("by_broker", ["brokerId"])
+		.index("by_broker_type", ["brokerId", "type"])
+		.index("by_effective", ["effectiveAt"]),
+
+	/**
+	 * Broker-client communication timeline
+	 * Tracks all communication between brokers and clients
+	 */
+	communication_timeline: defineTable({
+		// References
+		clientBrokerId: v.id("broker_clients"),
+		sentBy: v.id("users"), // User ID of the sender (broker or client)
+		// Communication type
+		type: v.union(
+			v.literal("info_request"),
+			v.literal("document_request"),
+			v.literal("clarification"),
+			v.literal("announcement")
+		),
+		// Content
+		message: v.string(),
+		// Document attachments
+		documents: v.optional(
+			v.array(
+				v.object({
+					storageId: v.id("_storage"),
+					label: v.string(),
+				})
+			)
+		),
+		// Resolution status (for requests that need responses)
+		resolved: v.boolean(),
+		resolvedAt: v.optional(v.string()), // ISO timestamp
+		response: v.optional(v.string()), // Response message
+		responseDocuments: v.optional(
+			v.array(
+				v.object({
+					storageId: v.id("_storage"),
+					label: v.string(),
+				})
+			)
+		),
+		respondedBy: v.optional(v.id("users")), // User ID of responder
+		// Optional announcement ID for grouping bulk announcements
+		announcementId: v.optional(v.string()), // UUID
+		// Timestamps
+		sentAt: v.string(), // ISO timestamp when message was sent
+		createdAt: v.string(),
+	})
+		.index("by_client", ["clientBrokerId"])
+		.index("by_client_status", ["clientBrokerId", "resolved"])
+		.index("by_sent_by", ["sentBy"])
+		.index("by_announcement", ["announcementId"]),
 
 	// ============================================================================
 	// Mortgage Marketplace Tables

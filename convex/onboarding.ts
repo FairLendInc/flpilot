@@ -121,7 +121,7 @@ function initialStateForPersona(persona: Persona) {
 		return "investor.intro";
 	}
 	if (persona === "broker") {
-		return "broker.placeholder";
+		return "broker.intro";
 	}
 	if (persona === "lawyer") {
 		return "lawyer.placeholder";

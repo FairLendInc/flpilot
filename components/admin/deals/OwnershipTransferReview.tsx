@@ -22,6 +22,7 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -61,6 +62,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // Types
@@ -353,7 +355,10 @@ export function OwnershipTransferReviewContent({
 		try {
 			await onApprove();
 		} catch (error) {
-			console.error("Failed to approve transfer:", error);
+			logger.error("Failed to approve transfer", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			toast.error("Failed to approve transfer");
 		} finally {
 			setIsApproving(false);
 		}
@@ -368,7 +373,10 @@ export function OwnershipTransferReviewContent({
 			setRejectDialogOpen(false);
 			setRejectReason("");
 		} catch (error) {
-			console.error("Failed to reject transfer:", error);
+			logger.error("Failed to reject transfer", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			toast.error("Failed to reject transfer");
 		} finally {
 			setIsRejecting(false);
 		}

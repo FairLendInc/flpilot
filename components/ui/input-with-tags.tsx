@@ -16,6 +16,18 @@ type TagItem = {
   text: string;
 };
 
+function buildTagItems(values: string[], previous: TagItem[]) {
+  const remaining = [...previous];
+  return values.map((text) => {
+    const matchIndex = remaining.findIndex((item) => item.text === text);
+    if (matchIndex >= 0) {
+      const [match] = remaining.splice(matchIndex, 1);
+      return match;
+    }
+    return { id: crypto.randomUUID(), text };
+  });
+}
+
 const Tag = ({ text, onRemove }: TagProps) => {
 return (
   <motion.span
@@ -66,22 +78,12 @@ const InputWithTags = ({
 
   const [inputValue, setInputValue] = useState("");
 
-  const buildTagItems = (values: string[], previous: TagItem[]) => {
-    const remaining = [...previous];
-    return values.map((text) => {
-      const matchIndex = remaining.findIndex((item) => item.text === text);
-      if (matchIndex >= 0) {
-        const [match] = remaining.splice(matchIndex, 1);
-        return match;
-      }
-      return { id: crypto.randomUUID(), text };
-    });
-  };
-
   useEffect(() => {
-    if (value !== undefined) {
-      setInternalTags((prev) => buildTagItems(value, prev));
+    if (value === undefined) {
+      setInternalTags([]);
+      return;
     }
+    setInternalTags((prev) => buildTagItems(value, prev));
   }, [value]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

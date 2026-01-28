@@ -3,26 +3,24 @@
 import type { Editor } from "@tiptap/react";
 import React from "react";
 
-export interface ToolbarContextProps {
+export type ToolbarContextProps = {
 	editor: Editor;
-}
+};
 
 export const ToolbarContext = React.createContext<ToolbarContextProps | null>(
-	null,
+	null
 );
 
-interface ToolbarProviderProps {
+type ToolbarProviderProps = {
 	editor: Editor;
 	children: React.ReactNode;
-}
-
-export const ToolbarProvider = ({ editor, children }: ToolbarProviderProps) => {
-	return (
-		<ToolbarContext.Provider value={{ editor }}>
-			{children}
-		</ToolbarContext.Provider>
-	);
 };
+
+export const ToolbarProvider = ({ editor, children }: ToolbarProviderProps) => (
+	<ToolbarContext.Provider value={{ editor }}>
+		{children}
+	</ToolbarContext.Provider>
+);
 
 export const useToolbar = () => {
 	const context = React.useContext(ToolbarContext);

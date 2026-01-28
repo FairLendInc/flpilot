@@ -165,9 +165,9 @@ export function useMICDemo() {
 					};
 				};
 			};
-			const data = ("data" in result
-				? result.data
-				: undefined) as AccountsResponse | undefined;
+			const data = ("data" in result ? result.data : undefined) as
+				| AccountsResponse
+				| undefined;
 
 			if (result.success && data?.v2AccountsCursorResponse?.cursor?.data) {
 				const formanceAccounts = data.v2AccountsCursorResponse.cursor.data;

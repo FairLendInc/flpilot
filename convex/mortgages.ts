@@ -281,7 +281,7 @@ export const ensureMortgage = async (
  * Legacy wrapper for backward compatibility
  * Callers that don't need the created flag can use this
  */
-const ensureMortgageId = async (
+const _ensureMortgageId = async (
 	ctx: MutationCtx,
 	args: {
 		borrowerId: Id<"borrowers">;
@@ -403,7 +403,7 @@ export const createMortgageInternal = internalMutation({
 		// This records the initial 100% FairLend ownership in Formance
 		// See footguns.md #3 - external API calls must be scheduled actions
 		if (result.created) {
-			const reference = `init:${result.mortgageId}:${Date.now()}`;
+			const reference = `init:${result.mortgageId}`;
 			await ctx.scheduler.runAfter(
 				0,
 				internal.ledger.initializeMortgageOwnership,
@@ -761,7 +761,7 @@ export const createMortgage = authenticatedMutation({
 
 		// Schedule ledger initialization only if mortgage was newly created
 		if (result.created) {
-			const reference = `init:${result.mortgageId}:${Date.now()}`;
+			const reference = `init:${result.mortgageId}`;
 			await ctx.scheduler.runAfter(
 				0,
 				internal.ledger.initializeMortgageOwnership,
