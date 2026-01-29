@@ -932,3 +932,172 @@ export const createClientBrokerRecord = createAuthorizedMutation(["admin"])({
 		return { clientBrokerId };
 	},
 });
+
+// ============================================================================
+// Client Reassignment Mutations (Admin)
+// ============================================================================
+
+/**
+ * Reassign a single client to a different broker
+ * Admin-only mutation for managing client-broker relationships
+ */
+export const reassignBrokerClient = createAuthorizedMutation(["admin"])({
+	args: {
+		clientBrokerId: v.id("broker_clients"),
+		targetBrokerId: v.id("brokers"),
+	},
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
+		const client = await ctx.db.get(args.clientBrokerId);
+
+		if (!client) {
+			throw new Error("Client not found");
+		}
+
+		// Get target broker
+		const targetBroker = await ctx.db.get(args.targetBrokerId);
+
+		if (!targetBroker) {
+			throw new Error("Target broker not found");
+		}
+
+		if (targetBroker.status !== "active") {
+			throw new Error("Cannot reassign to an inactive broker");
+		}
+
+		// Check if client is already with this broker
+		if (client.brokerId === args.targetBrokerId) {
+			return {
+				success: true,
+				clientBrokerId: args.clientBrokerId,
+				message: "Client is already assigned to this broker",
+			};
+		}
+
+		const sourceBrokerId = client.brokerId;
+		const now = new Date().toISOString();
+
+		// Update client's broker
+		await ctx.db.patch(args.clientBrokerId, {
+			brokerId: args.targetBrokerId,
+			updatedAt: now,
+		});
+
+		// TODO: Handle WorkOS membership changes
+		// - Remove from source broker's WorkOS org (if applicable)
+		// - Add to target broker's WorkOS org (if applicable)
+
+		return {
+			success: true,
+			clientBrokerId: args.clientBrokerId,
+			sourceBrokerId,
+			targetBrokerId: args.targetBrokerId,
+			reassignedAt: now,
+		};
+	},
+});
+
+/**
+ * Reassign all clients from one broker to another
+ * Admin-only mutation for bulk client management (e.g., when deactivating a broker)
+ */
+export const reassignAllBrokerClients = createAuthorizedMutation(["admin"])({
+	args: {
+		sourceBrokerId: v.id("brokers"),
+		targetBrokerId: v.id("brokers"),
+	},
+	handler: async (ctx: AuthorizedMutationCtx, args) => {
+		// Validate source and target are different
+		if (args.sourceBrokerId === args.targetBrokerId) {
+			throw new Error("Source and target brokers must be different");
+		}
+
+		// Get source broker
+		const sourceBroker = await ctx.db.get(args.sourceBrokerId);
+
+		if (!sourceBroker) {
+			throw new Error("Source broker not found");
+		}
+
+		// Get target broker
+		const targetBroker = await ctx.db.get(args.targetBrokerId);
+
+		if (!targetBroker) {
+			throw new Error("Target broker not found");
+		}
+
+		if (targetBroker.status !== "active") {
+			throw new Error("Cannot reassign to an inactive broker");
+		}
+
+		// Get all clients for source broker
+		const clients = await ctx.db
+			.query("broker_clients")
+			.withIndex("by_broker", (q) => q.eq("brokerId", args.sourceBrokerId))
+			.collect();
+
+		if (clients.length === 0) {
+			return {
+				success: true,
+				reassignedCount: 0,
+				message: "No clients to reassign",
+			};
+		}
+
+		const now = new Date().toISOString();
+
+		// Update all clients
+		for (const client of clients) {
+			await ctx.db.patch(client._id, {
+				brokerId: args.targetBrokerId,
+				updatedAt: now,
+			});
+		}
+
+		// TODO: Handle WorkOS membership changes in bulk
+		// - Remove all from source broker's WorkOS org
+		// - Add all to target broker's WorkOS org
+
+		return {
+			success: true,
+			reassignedCount: clients.length,
+			sourceBrokerId: args.sourceBrokerId,
+			targetBrokerId: args.targetBrokerId,
+			reassignedAt: now,
+		};
+	},
+});
+
+/**
+ * Get list of clients for a broker (admin view)
+ * Returns all clients with basic info for management purposes
+ */
+export const listBrokerClientsAdmin = createAuthorizedQuery(["admin"])({
+	args: {
+		brokerId: v.id("brokers"),
+	},
+	handler: async (ctx: AuthorizedQueryCtx, args) => {
+		const clients = await ctx.db
+			.query("broker_clients")
+			.withIndex("by_broker", (q) => q.eq("brokerId", args.brokerId))
+			.collect();
+
+		// Enrich with user info
+		const enrichedClients = await Promise.all(
+			clients.map(async (client) => {
+				const user = await ctx.db.get(client.clientId);
+				return {
+					...client,
+					user: user
+						? {
+								firstName: user.first_name,
+								lastName: user.last_name,
+								email: user.email,
+							}
+						: null,
+				};
+			})
+		);
+
+		return enrichedClients;
+	},
+});

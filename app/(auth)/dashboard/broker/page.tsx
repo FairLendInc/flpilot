@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth } from "convex/react";
 import {
 	ArrowUpRight,
 	Building2,
@@ -8,6 +8,7 @@ import {
 	TrendingUp,
 	UserPlus,
 	Users,
+	Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,20 +19,28 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 export default function BrokerDashboardPage() {
 	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+	// const user = useAuthenticatedQuery(api.profile.getUserIdentity);
 	const router = useRouter();
 
-	const broker = useQuery(api.brokers.management.getBrokerByUserId, {});
-	const stats = useQuery(
+	const broker = useAuthenticatedQuery(
+		api.brokers.management.getBrokerByUserId,
+		{}
+	);
+	console.log("Broker", broker);
+	const stats = useAuthenticatedQuery(
 		api.brokers.stats.getBrokerDashboardStats,
 		broker ? { brokerId: broker._id, timeRange: "all" } : "skip"
 	);
 
-	const _isLoading = authLoading || !broker || !stats;
+	// broker is undefined while loading, null if no broker exists
+	const brokerLoading = broker === undefined;
+	const _isLoading = authLoading || brokerLoading || !stats;
 
-	if (authLoading) {
+	if (authLoading || brokerLoading) {
 		return <LoadingState />;
 	}
 
@@ -40,7 +49,8 @@ export default function BrokerDashboardPage() {
 		return null;
 	}
 
-	if (!broker) {
+	// At this point broker is null (no broker exists) or a valid broker object
+	if (broker === null) {
 		return (
 			<div className="flex flex-1 flex-col items-center justify-center p-6">
 				<Building2 className="mb-4 h-16 w-16 text-muted-foreground" />
@@ -137,35 +147,7 @@ export default function BrokerDashboardPage() {
 							<CardTitle>Recent Activity</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<div className="space-y-4">
-								<div className="flex items-center gap-3">
-									<div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-										<UserPlus className="h-4 w-4 text-green-600" />
-									</div>
-									<div className="flex-1">
-										<p className="font-medium text-sm">New client onboarded</p>
-										<p className="text-muted-foreground text-xs">2 hours ago</p>
-									</div>
-								</div>
-								<div className="flex items-center gap-3">
-									<div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-										<Building2 className="h-4 w-4 text-blue-600" />
-									</div>
-									<div className="flex-1">
-										<p className="font-medium text-sm">Deal completed</p>
-										<p className="text-muted-foreground text-xs">5 hours ago</p>
-									</div>
-								</div>
-								<div className="flex items-center gap-3">
-									<div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100">
-										<DollarSign className="h-4 w-4 text-yellow-600" />
-									</div>
-									<div className="flex-1">
-										<p className="font-medium text-sm">Commission earned</p>
-										<p className="text-muted-foreground text-xs">Yesterday</p>
-									</div>
-								</div>
-							</div>
+							<UnderConstructionCard />
 						</CardContent>
 					</Card>
 				</div>
@@ -220,6 +202,21 @@ function LoadingState() {
 					</Card>
 				))}
 			</div>
+		</div>
+	);
+}
+
+function UnderConstructionCard() {
+	return (
+		<div className="flex flex-col items-center justify-center rounded-lg border border-muted-foreground/25 border-dashed bg-muted/30 py-12">
+			<div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+				<Wrench className="h-8 w-8 animate-pulse text-primary" />
+				<div className="absolute inset-0 animate-ping rounded-full bg-primary/5" />
+			</div>
+			<h3 className="mb-1 font-semibold text-foreground">Under Construction</h3>
+			<p className="text-center text-muted-foreground text-sm">
+				Recent activity features are being built. Check back soon!
+			</p>
 		</div>
 	);
 }

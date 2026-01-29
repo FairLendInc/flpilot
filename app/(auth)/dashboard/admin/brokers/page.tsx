@@ -30,7 +30,7 @@ export default function AdminBrokersPage() {
 	// Fetch broker applications and approved brokers
 	const brokerJourneys = useQuery(
 		api.brokers.approval.listPendingBrokerJourneys,
-		{}
+		{ status: "awaiting_admin" }
 	);
 	const approvedBrokers = useQuery(api.brokers.management.listBrokers, {
 		status: "active",
@@ -308,14 +308,16 @@ type Broker = {
 	branding?: {
 		brandName?: string;
 	};
-	companyInfo?: {
-		companyName?: string;
-	};
+	userName?: string | null;
 };
 
 function BrokerCard({ broker }: { broker: Broker }) {
 	const router = useRouter();
 	const approvedDate = new Date(broker.approvedAt).toLocaleDateString();
+
+	// Display name priority: brandName > userName > "Unnamed Broker"
+	const displayName =
+		broker.branding?.brandName || broker.userName || "Unnamed Broker";
 
 	const getStatusBadge = (status: string) => {
 		switch (status) {
@@ -354,11 +356,7 @@ function BrokerCard({ broker }: { broker: Broker }) {
 					<Building2 className="h-5 w-5 text-primary" />
 				</div>
 				<div>
-					<h4 className="font-medium">
-						{broker.branding?.brandName ||
-							broker.companyInfo?.companyName ||
-							"Unnamed Broker"}
-					</h4>
+					<h4 className="font-medium">{displayName}</h4>
 					<p className="text-muted-foreground text-sm">
 						Subdomain: {broker.subdomain}.flpilot.com • Approved: {approvedDate}
 					</p>

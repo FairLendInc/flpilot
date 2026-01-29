@@ -236,12 +236,16 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 			throw new Error("Admin user not found");
 		}
 
+		// Extract company name from journey context to use as brand name
+		const companyName = journey.context.broker?.companyInfo?.companyName;
+
 		// Create broker record
 		const brokerId = await ctx.db.insert("brokers", {
 			userId: journey.userId,
 			workosOrgId: "", // Will be set by WorkOS provisioning action
 			subdomain: args.subdomain.toLowerCase(),
 			branding: {
+				brandName: companyName,
 				primaryColor: "#3b82f6",
 				secondaryColor: "#64748b",
 			},

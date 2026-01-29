@@ -329,6 +329,7 @@ export default defineSchema({
 		workosOrgId: v.string(), // Broker's WorkOS organization
 		// Subdomain configuration
 		subdomain: v.string(), // e.g., "acmebrokers"
+		customDomain: v.optional(v.string()), // e.g., "mortgages.acme.com"
 		// Branding configuration
 		branding: v.object({
 			logoStorageId: v.optional(v.id("_storage")),

@@ -21,11 +21,15 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 
-type Client = NonNullable<
-	NonNullable<
-		ReturnType<typeof api.brokers.stats.getBrokerClientList._returnType>
-	>["clients"][number]
->;
+type Client = {
+	_id: string;
+	_creationTime: number;
+	onboardingStatus: string;
+	invitedAt: string;
+	userName?: string;
+	userEmail?: string;
+	approvedAt?: string;
+};
 
 export default function BrokerClientsPage() {
 	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
@@ -39,9 +43,11 @@ export default function BrokerClientsPage() {
 		broker ? { brokerId: broker._id } : "skip"
 	);
 
-	const isLoading = authLoading || !broker || clients === undefined;
+	// broker is undefined while loading, null if no broker exists
+	const brokerLoading = broker === undefined;
+	const isLoading = authLoading || brokerLoading || clients === undefined;
 
-	if (authLoading) {
+	if (authLoading || brokerLoading) {
 		return <LoadingState />;
 	}
 
@@ -50,7 +56,8 @@ export default function BrokerClientsPage() {
 		return null;
 	}
 
-	if (!broker) {
+	// At this point broker is null (no broker exists) or a valid broker object
+	if (broker === null) {
 		return (
 			<div className="flex flex-1 flex-col items-center justify-center p-6">
 				<Users className="mb-4 h-16 w-16 text-muted-foreground" />
@@ -62,23 +69,27 @@ export default function BrokerClientsPage() {
 		);
 	}
 
-	const filteredClients = clients?.filter((client) => {
-		if (statusFilter !== "all" && client.onboardingStatus !== statusFilter)
-			return false;
-		if (searchQuery) {
-			// Search would need user data - simplified for now
+	const clientList = (clients?.clients ?? []) as unknown as Client[];
+	const filteredClients =
+		clientList.filter((client) => {
+			if (statusFilter !== "all" && client.onboardingStatus !== statusFilter)
+				return false;
+			if (searchQuery) {
+				// Search would need user data - simplified for now
+				return true;
+			}
 			return true;
-		}
-		return true;
-	});
+		}) ?? [];
 
-	const invitedCount =
-		clients?.filter((c) => c.onboardingStatus === "invited").length || 0;
-	const pendingCount =
-		clients?.filter((c) => c.onboardingStatus === "pending_approval").length ||
-		0;
-	const approvedCount =
-		clients?.filter((c) => c.onboardingStatus === "approved").length || 0;
+	const invitedCount = clientList.filter(
+		(c) => c.onboardingStatus === "invited"
+	).length;
+	const pendingCount = clientList.filter(
+		(c) => c.onboardingStatus === "pending_approval"
+	).length;
+	const approvedCount = clientList.filter(
+		(c) => c.onboardingStatus === "approved"
+	).length;
 
 	return (
 		<>
@@ -98,7 +109,7 @@ export default function BrokerClientsPage() {
 							<Users className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="font-bold text-2xl">{clients?.length || 0}</div>
+							<div className="font-bold text-2xl">{clientList.length || 0}</div>
 						</CardContent>
 					</Card>
 
