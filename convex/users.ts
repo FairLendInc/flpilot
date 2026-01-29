@@ -79,6 +79,36 @@ export const updateFromWorkOS = internalMutation({
 	},
 });
 
+/**
+ * Delete a user by their WorkOS ID (idp_id)
+ * Used by the user.deleted webhook
+ */
+export const destroyByWorkosId = internalMutation({
+	args: {
+		workosUserId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const existingUser = await userByExternalId(ctx, args.workosUserId);
+
+		if (!existingUser) {
+			console.log("User not found for deletion:", {
+				workosUserId: args.workosUserId,
+			});
+			return null;
+		}
+
+		await ctx.db.delete(existingUser._id);
+
+		console.log("User deleted:", {
+			userId: existingUser._id,
+			workosUserId: args.workosUserId,
+			email: existingUser.email,
+		});
+
+		return existingUser;
+	},
+});
+
 // Get user's current theme preference
 export const getUserTheme = query({
 	args: {},

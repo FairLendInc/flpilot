@@ -1707,17 +1707,23 @@ http.route({
 				}
 				case "user.deleted": {
 					logger.info("Processing user.deleted event");
-					const res = await ctx.runMutation(internal.users.destroy, {
-						id: data.id,
+					const res = await ctx.runMutation(internal.users.destroyByWorkosId, {
+						workosUserId: data.id,
 					});
 
 					if (!res) {
-						logger.error("Failed to delete user:", {
-							userId: data.id,
+						logger.warn("User not found for deletion (may have been deleted already):", {
+							workosUserId: data.id,
 							email: data.email,
 						});
-						throw new Error(
-							`Failed to delete user: ${data.idp_id} RES: ${res}`
+						// Return success even if user not found - idempotent delete
+						return new Response(
+							JSON.stringify({
+								status: "success",
+								message: "User not found or already deleted",
+								workosUserId: data.id,
+							}),
+							{ status: 200, headers: { "Content-Type": "application/json" } }
 						);
 					}
 
@@ -1727,10 +1733,7 @@ http.route({
 						email: data.email,
 					});
 
-					return new Response(
-						JSON.stringify({ message: "Test user deleted" }),
-						{ status: 200, headers: { "Content-Type": "application/json" } }
-					);
+					break;
 				}
 
 				case "role.created": {
@@ -1877,6 +1880,25 @@ http.route({
 							updated_at: normalizedData.updated_at,
 						}
 					);
+
+					// Auto-link broker if this user is a broker and doesn't have an org yet
+					const linkResult = await ctx.runMutation(
+						internal.brokers.management.linkBrokerWorkosOrgIfNeeded,
+						{
+							workosUserId: normalizedData.user_id,
+							workosOrgId: normalizedData.organization_id,
+						}
+					);
+
+					if (linkResult.linked) {
+						logger.info(
+							"Auto-linked broker to WorkOS organization via membership webhook",
+							{
+								brokerId: linkResult.brokerId,
+								workosOrgId: normalizedData.organization_id,
+							}
+						);
+					}
 
 					logger.info(
 						"Successfully processed organization_membership.created event:",
