@@ -115,7 +115,6 @@ export const createBrokerRecord = createAuthorizedMutation(["admin"])({
 		userId: v.string(),
 		subdomain: v.string(),
 		commissionRate: v.number(),
-		returnAdjustmentPercentage: v.number(),
 	},
 	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const now = new Date().toISOString();
@@ -133,7 +132,6 @@ export const createBrokerRecord = createAuthorizedMutation(["admin"])({
 			},
 			commission: {
 				ratePercentage: args.commissionRate,
-				returnAdjustmentPercentage: args.returnAdjustmentPercentage,
 			},
 			status: "active",
 			approvedAt: now,
@@ -313,13 +311,12 @@ export const reactivateBroker = createAuthorizedMutation(["admin"])({
 
 /**
  * Update broker commission rates
- * Updates the commission and return adjustment rates for a broker
+ * Updates the commission rate for a broker
  */
 export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 	args: {
 		brokerId: v.id("brokers"),
 		commissionRate: v.optional(v.number()),
-		returnAdjustmentPercentage: v.optional(v.number()),
 	},
 	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const broker = await ctx.db.get(args.brokerId);
@@ -353,36 +350,11 @@ export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 			});
 		}
 
-		if (
-			args.returnAdjustmentPercentage !== undefined &&
-			args.returnAdjustmentPercentage !==
-				broker.commission.returnAdjustmentPercentage
-		) {
-			commissionChanges.returnAdjustmentPercentage = {
-				old: broker.commission.returnAdjustmentPercentage,
-				new: args.returnAdjustmentPercentage,
-			};
-
-			// Record return adjustment history
-			await ctx.db.insert("broker_rate_history", {
-				brokerId: args.brokerId,
-				type: "return_adjustment",
-				oldRate: broker.commission.returnAdjustmentPercentage,
-				newRate: args.returnAdjustmentPercentage,
-				effectiveAt: now,
-				changedBy: requireSubjectId(ctx),
-				createdAt: now,
-			});
-		}
-
 		// Update broker commission
 		const updatedCommission = {
 			...broker.commission,
 			...(args.commissionRate !== undefined && {
 				ratePercentage: args.commissionRate,
-			}),
-			...(args.returnAdjustmentPercentage !== undefined && {
-				returnAdjustmentPercentage: args.returnAdjustmentPercentage,
 			}),
 		};
 
@@ -401,14 +373,12 @@ export const updateBrokerCommissionRates = createAuthorizedMutation(["admin"])({
 
 /**
  * Get broker rate history
- * Returns historical changes to commission and return adjustment rates
+ * Returns historical changes to commission rates
  */
 export const getBrokerRateHistory = createAuthorizedQuery(["any"])({
 	args: {
 		brokerId: v.id("brokers"),
-		type: v.optional(
-			v.union(v.literal("commission"), v.literal("return_adjustment"))
-		),
+		type: v.optional(v.literal("commission")),
 	},
 	handler: async (ctx: AuthorizedQueryCtx, args) => {
 		const history = args.type

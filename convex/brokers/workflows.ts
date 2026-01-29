@@ -64,7 +64,6 @@ export const emitBrokerApprovalDecision = createAuthorizedMutation(["admin"])({
 		reason: v.optional(v.string()),
 		subdomain: v.optional(v.string()),
 		commissionRate: v.optional(v.number()),
-		returnAdjustmentPercentage: v.optional(v.number()),
 	},
 	returns: v.object({
 		success: v.boolean(),
@@ -86,7 +85,6 @@ export const emitBrokerApprovalDecision = createAuthorizedMutation(["admin"])({
 					reason: args.reason,
 					subdomain: args.subdomain,
 					commissionRate: args.commissionRate,
-					returnAdjustmentPercentage: args.returnAdjustmentPercentage,
 					decidedAt: Date.now(),
 					decidedBy: subjectId,
 				},

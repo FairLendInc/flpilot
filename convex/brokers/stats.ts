@@ -133,7 +133,6 @@ export const getBrokerCommissionTotal = createAuthorizedQuery(["any"])({
 		return {
 			brokerId: args.brokerId,
 			defaultCommissionRate: broker.commission.ratePercentage,
-			returnAdjustmentPercentage: broker.commission.returnAdjustmentPercentage,
 			totals: {
 				pending: 0,
 				available: 0,

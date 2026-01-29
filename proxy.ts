@@ -259,6 +259,9 @@ function evaluateRedirectRules(
 ): NextResponse | null {
 	const { subdomain, hostname, protocol, isAuthenticated, session } = context;
 	const url = req.nextUrl;
+	if (url.pathname.startsWith("/onboarding")) {
+		return null;
+	}
 	const fullRequestUrl = new URL(
 		`${protocol}//${hostname}${url.pathname}${url.search}`
 	);

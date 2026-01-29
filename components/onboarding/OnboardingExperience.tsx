@@ -2,6 +2,7 @@
 
 import {
 	useAction,
+	useConvexAuth,
 	useMutation,
 } from "convex/react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -148,6 +149,42 @@ const BROKER_STEPS: {
 const ENTITY_TYPES = ["individual", "corporation", "trust", "fund"] as const;
 const RISK_PROFILES = ["conservative", "balanced", "growth"] as const;
 
+const investorProfileSchema = z.object({
+	firstName: z.string().min(1, "First name is required"),
+	middleName: z.string().optional().or(z.literal("")),
+	lastName: z.string().min(1, "Last name is required"),
+	entityType: z.enum(ENTITY_TYPES, { message: "Entity type is required" }),
+	phone: z.string().optional().or(z.literal("")),
+});
+
+const investorPreferencesSchema = z
+	.object({
+		minTicket: z
+			.string()
+			.min(1, "Minimum ticket is required")
+			.refine((value) => Number(value) > 0, {
+				message: "Minimum ticket must be greater than 0",
+			}),
+		maxTicket: z
+			.string()
+			.min(1, "Maximum ticket is required")
+			.refine((value) => Number(value) > 0, {
+				message: "Maximum ticket must be greater than 0",
+			}),
+		riskProfile: z.enum(RISK_PROFILES, { message: "Risk profile is required" }),
+		liquidityHorizonMonths: z
+			.string()
+			.min(1, "Liquidity horizon is required")
+			.refine((value) => Number(value) > 0, {
+				message: "Liquidity horizon must be greater than 0",
+			}),
+		focusRegions: z.string().optional().or(z.literal("")),
+	})
+	.refine((values) => Number(values.maxTicket) >= Number(values.minTicket), {
+		message: "Maximum ticket must be at least the minimum ticket",
+		path: ["maxTicket"],
+	});
+
 const BROKER_ENTITY_TYPES = [
 	"sole_proprietorship",
 	"partnership",
@@ -158,6 +195,26 @@ const BROKER_LICENSE_TYPES = [
 	"investment_broker",
 	"mortgage_dealer",
 ] as const;
+
+const brokerCompanyInfoSchema = z.object({
+	companyName: z.string().min(1, "Company name is required"),
+	entityType: z.enum(BROKER_ENTITY_TYPES, {
+		message: "Entity type is required",
+	}),
+	registrationNumber: z.string().min(1, "Registration number is required"),
+	registeredAddress: z.object({
+		street: z.string().min(1, "Street address is required"),
+		city: z.string().min(1, "City is required"),
+		state: z.string().min(1, "State/Province is required"),
+		zip: z.string().min(1, "Postal/ZIP code is required"),
+		country: z.string().min(1, "Country is required"),
+	}),
+	businessPhone: z.string().min(1, "Business phone is required"),
+	businessEmail: z
+		.string()
+		.min(1, "Business email is required")
+		.email("Business email must be valid"),
+});
 
 const brokerLicensingSchema = z.object({
 	licenseType: z.enum(BROKER_LICENSE_TYPES, {
@@ -170,6 +227,18 @@ const brokerLicensingSchema = z.object({
 	jurisdictions: z
 		.array(z.string().min(1))
 		.min(1, "At least one jurisdiction is required"),
+});
+
+const brokerRepresentativeSchema = z.object({
+	firstName: z.string().min(1, "First name is required"),
+	lastName: z.string().min(1, "Last name is required"),
+	role: z.string().min(1, "Role/title is required"),
+	email: z
+		.string()
+		.min(1, "Email is required")
+		.email("Email must be valid"),
+	phone: z.string().min(1, "Phone is required"),
+	hasAuthority: z.boolean(),
 });
 
 function stateValueToString(
@@ -257,6 +326,7 @@ type BrokerDocument = {
 
 export function OnboardingExperience() {
 	const router = useRouter();
+	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
 	const journey = useAuthenticatedQuery(api.onboarding.getJourney, {});
 	const userProfile = useAuthenticatedQuery(
 		api.profile.getCurrentUserProfile,
@@ -303,8 +373,11 @@ export function OnboardingExperience() {
 	const [uploading, setUploading] = useState(false);
 	const [documentError, setDocumentError] = useState<string | null>(null);
 
-	const currentState = stateValueToString(snapshot.value);
-	const persona = snapshot.context.persona ?? journey?.persona ?? "unselected";
+	const currentState = (journey?.stateValue ??
+		stateValueToString(snapshot.value)) as OnboardingStateValue;
+	const persona = (journey?.persona ??
+		snapshot.context.persona ??
+		"unselected") as "investor" | "broker" | "lawyer" | "unselected";
 	const status = journey?.status ?? snapshot.context.status;
 	const investorContext = journey?.context?.investor ?? {};
 	const brokerContext = journey?.context?.broker ?? {};
@@ -352,7 +425,7 @@ export function OnboardingExperience() {
 				setPendingPersona(null);
 			}
 		},
-		[startJourney]
+		[startJourney, currentState, isAuthenticated, journey, persona]
 	);
 
 	const persistState = useCallback(
@@ -534,15 +607,21 @@ export function OnboardingExperience() {
 			if (!json.storageId) {
 				throw new Error("Upload failed");
 			}
-			const newDoc: BrokerDocument = {
+			// Only include fields the backend validator expects - uploadedAt is added server-side
+			const newDoc = {
 				storageId: json.storageId as Id<"_storage">,
 				label: file.name,
 				type: docType,
-				uploadedAt: new Date().toISOString(),
 			};
 			const existingDocs = (brokerContext?.documents ?? []) as BrokerDocument[];
+			// Strip uploadedAt from existing docs before sending to mutation
+			const docsForMutation = existingDocs.map(({ storageId, label, type }) => ({
+				storageId,
+				label,
+				type,
+			}));
 			await saveBrokerDocuments({
-				documents: [...existingDocs, newDoc],
+				documents: [...docsForMutation, newDoc],
 			});
 		} catch (error: unknown) {
 			const message =
@@ -560,7 +639,15 @@ export function OnboardingExperience() {
 			const filtered = existingDocs.filter(
 				(doc) => doc.storageId !== storageId
 			);
-			await saveBrokerDocuments({ documents: filtered });
+			// Strip uploadedAt from docs before sending to mutation - backend adds it
+			const docsForMutation = filtered.map(
+				({ storageId: sid, label, type }) => ({
+					storageId: sid,
+					label,
+					type,
+				})
+			);
+			await saveBrokerDocuments({ documents: docsForMutation });
 		} catch (error: unknown) {
 			const message =
 				error instanceof Error ? error.message : "Unable to remove document";
@@ -587,6 +674,8 @@ export function OnboardingExperience() {
 
 	// Show loading while provisioning user or ensuring journey
 	if (
+		authLoading ||
+		!isAuthenticated ||
 		journey === undefined ||
 		isEnsuring ||
 		isProvisioning ||
@@ -898,123 +987,168 @@ function InvestorProfileForm({
 	onSubmit: (values: InvestorProfileValues) => Promise<void>;
 	busy: boolean;
 }) {
-	const [formValues, setFormValues] = useState<InvestorProfileValues>(
-		defaultValues ?? {
+	const form = useForm<InvestorProfileValues>({
+		resolver: zodResolver(investorProfileSchema),
+		defaultValues: defaultValues ?? {
 			firstName: "",
 			middleName: "",
 			lastName: "",
 			entityType: "individual",
 			phone: "",
-		}
-	);
+		},
+		mode: "onChange",
+	});
 
 	useEffect(() => {
 		if (defaultValues) {
-			setFormValues(defaultValues);
+			form.reset({
+				...defaultValues,
+				middleName: defaultValues.middleName ?? "",
+				phone: defaultValues.phone ?? "",
+			});
 		}
-	}, [defaultValues]);
+	}, [defaultValues, form]);
 
-	const disabled = !(formValues.firstName && formValues.lastName);
+	const handleSubmit = (values: InvestorProfileValues) => {
+		onSubmit({
+			...values,
+			middleName: values.middleName?.trim() || undefined,
+			phone: values.phone?.trim() || undefined,
+		});
+	};
 
 	return (
 		<Card>
 			<CardHeader>
 				<CardTitle>Investor profile</CardTitle>
 			</CardHeader>
-			<CardContent className="space-y-4">
-				<div className="grid gap-4">
-					<div>
-						<Label htmlFor="firstName">First name</Label>
-						<Input
-							id="firstName"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									firstName: event.target.value,
-								}))
-							}
-							value={formValues.firstName}
-						/>
-					</div>
-					<div className="grid gap-4 md:grid-cols-2">
-						<div>
-							<Label htmlFor="middleName">Middle name (optional)</Label>
-							<Input
-								id="middleName"
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										middleName: event.target.value,
-									}))
-								}
-								value={formValues.middleName ?? ""}
+			<CardContent>
+				<Form {...form}>
+					<form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+						<div className="grid gap-4">
+							<FormField
+								control={form.control}
+								name="firstName"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											First name{" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<div className="grid gap-4 md:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="middleName"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Middle name{" "}
+												<span className="text-muted-foreground text-xs">
+													Optional
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} value={field.value ?? ""} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="lastName"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Last name{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
+						<div className="grid gap-4 md:grid-cols-2">
+							<FormField
+								control={form.control}
+								name="entityType"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											Entity type{" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select entity" />
+												</SelectTrigger>
+												<SelectContent>
+													{ENTITY_TYPES.map((type) => (
+														<SelectItem key={type} value={type}>
+															{type.charAt(0).toUpperCase() + type.slice(1)}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="phone"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											Phone{" "}
+											<span className="text-muted-foreground text-xs">
+												Optional
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input {...field} value={field.value ?? ""} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
 							/>
 						</div>
-						<div>
-							<Label htmlFor="lastName">Last name</Label>
-							<Input
-								id="lastName"
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										lastName: event.target.value,
-									}))
-								}
-								value={formValues.lastName}
-							/>
+						<div className="flex justify-end gap-3">
+							<Button disabled type="button" variant="ghost">
+								<ArrowLeft className="mr-2 size-4" /> Back
+							</Button>
+							<Button
+								disabled={!form.formState.isValid || busy}
+								type="submit"
+							>
+								{busy ? "Saving..." : "Continue"}
+								<ArrowRight className="ml-2 size-4" />
+							</Button>
 						</div>
-					</div>
-				</div>
-				<div className="grid gap-4 md:grid-cols-2">
-					<div>
-						<Label>Entity type</Label>
-						<Select
-							onValueChange={(value) =>
-								setFormValues((prev) => ({
-									...prev,
-									entityType: value as InvestorProfileValues["entityType"],
-								}))
-							}
-							value={formValues.entityType}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select entity" />
-							</SelectTrigger>
-							<SelectContent>
-								{ENTITY_TYPES.map((type) => (
-									<SelectItem key={type} value={type}>
-										{type.charAt(0).toUpperCase() + type.slice(1)}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label htmlFor="phone">Phone (optional)</Label>
-						<Input
-							id="phone"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									phone: event.target.value,
-								}))
-							}
-							value={formValues.phone ?? ""}
-						/>
-					</div>
-				</div>
-				<div className="flex justify-end gap-3">
-					<Button disabled variant="ghost">
-						<ArrowLeft className="mr-2 size-4" /> Back
-					</Button>
-					<Button
-						disabled={disabled || busy}
-						onClick={() => onSubmit(formValues)}
-					>
-						{busy ? "Saving..." : "Continue"}
-						<ArrowRight className="ml-2 size-4" />
-					</Button>
-				</div>
+					</form>
+				</Form>
 			</CardContent>
 		</Card>
 	);
@@ -1029,18 +1163,24 @@ function InvestorPreferencesForm({
 	onSubmit: (values: InvestorPreferencesValues) => Promise<void>;
 	busy: boolean;
 }) {
-	const [formValues, setFormValues] = useState({
-		minTicket: defaultValues?.minTicket?.toString() ?? "",
-		maxTicket: defaultValues?.maxTicket?.toString() ?? "",
-		riskProfile: defaultValues?.riskProfile ?? "balanced",
-		liquidityHorizonMonths:
-			defaultValues?.liquidityHorizonMonths?.toString() ?? "12",
-		focusRegions: (defaultValues?.focusRegions ?? []).join(", "),
+	type InvestorPreferencesFormValues = z.infer<typeof investorPreferencesSchema>;
+
+	const form = useForm<InvestorPreferencesFormValues>({
+		resolver: zodResolver(investorPreferencesSchema),
+		defaultValues: {
+			minTicket: defaultValues?.minTicket?.toString() ?? "",
+			maxTicket: defaultValues?.maxTicket?.toString() ?? "",
+			riskProfile: defaultValues?.riskProfile ?? "balanced",
+			liquidityHorizonMonths:
+				defaultValues?.liquidityHorizonMonths?.toString() ?? "12",
+			focusRegions: (defaultValues?.focusRegions ?? []).join(", "),
+		},
+		mode: "onChange",
 	});
 
 	useEffect(() => {
 		if (defaultValues) {
-			setFormValues({
+			form.reset({
 				minTicket: defaultValues.minTicket.toString(),
 				maxTicket: defaultValues.maxTicket.toString(),
 				riskProfile: defaultValues.riskProfile,
@@ -1048,25 +1188,20 @@ function InvestorPreferencesForm({
 				focusRegions: (defaultValues.focusRegions ?? []).join(", "),
 			});
 		}
-	}, [defaultValues]);
+	}, [defaultValues, form]);
 
-	const canContinue =
-		Number(formValues.minTicket) > 0 &&
-		Number(formValues.maxTicket) >= Number(formValues.minTicket);
-
-	const handleSubmit = () => {
-		const values: InvestorPreferencesValues = {
-			minTicket: Number(formValues.minTicket),
-			maxTicket: Number(formValues.maxTicket),
-			riskProfile:
-				formValues.riskProfile as InvestorPreferencesValues["riskProfile"],
-			liquidityHorizonMonths: Number(formValues.liquidityHorizonMonths),
-			focusRegions: formValues.focusRegions
-				.split(",")
+	const handleSubmit = (values: InvestorPreferencesFormValues) => {
+		onSubmit({
+			minTicket: Number(values.minTicket),
+			maxTicket: Number(values.maxTicket),
+			riskProfile: values.riskProfile,
+			liquidityHorizonMonths: Number(values.liquidityHorizonMonths),
+			focusRegions:
+				values.focusRegions
+				?.split(",")
 				.map((value) => value.trim())
-				.filter(Boolean),
-		};
-		onSubmit(values);
+				.filter(Boolean) ?? [],
+		});
 	};
 
 	return (
@@ -1074,107 +1209,152 @@ function InvestorPreferencesForm({
 			<CardHeader>
 				<CardTitle>Investment preferences</CardTitle>
 			</CardHeader>
-			<CardContent className="space-y-4">
-				<div className="grid gap-4 md:grid-cols-2">
-					<div>
-						<Label htmlFor="minTicket">Minimum ticket (CAD)</Label>
-						<Input
-							id="minTicket"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									minTicket: event.target.value,
-								}))
-							}
-							type="number"
-							value={formValues.minTicket}
+			<CardContent>
+				<Form {...form}>
+					<form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+						<div className="grid gap-4 md:grid-cols-2">
+							<FormField
+								control={form.control}
+								name="minTicket"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											Minimum ticket (CAD){" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												{...field}
+												onChange={(event) => field.onChange(event.target.value)}
+												type="number"
+												value={field.value ?? ""}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="maxTicket"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											Maximum ticket (CAD){" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												{...field}
+												onChange={(event) => field.onChange(event.target.value)}
+												type="number"
+												value={field.value ?? ""}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+						<FormField
+							control={form.control}
+							name="riskProfile"
+							render={({ field }) => (
+								<FormItem className="space-y-2">
+									<FormLabel>
+										Risk profile{" "}
+										<span className="text-muted-foreground text-xs">
+											Required
+										</span>
+									</FormLabel>
+									<FormControl>
+										<Select onValueChange={field.onChange} value={field.value}>
+											<SelectTrigger>
+												<SelectValue placeholder="Select profile" />
+											</SelectTrigger>
+											<SelectContent>
+												{RISK_PROFILES.map((profile) => (
+													<SelectItem key={profile} value={profile}>
+														{profile.charAt(0).toUpperCase() + profile.slice(1)}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
 						/>
-					</div>
-					<div>
-						<Label htmlFor="maxTicket">Maximum ticket (CAD)</Label>
-						<Input
-							id="maxTicket"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									maxTicket: event.target.value,
-								}))
-							}
-							type="number"
-							value={formValues.maxTicket}
+						<div className="grid gap-4 md:grid-cols-2">
+							<FormField
+								control={form.control}
+								name="liquidityHorizonMonths"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											Liquidity horizon (months){" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												{...field}
+												onChange={(event) => field.onChange(event.target.value)}
+												type="number"
+												value={field.value ?? ""}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+						<FormField
+							control={form.control}
+							name="focusRegions"
+							render={({ field }) => (
+								<FormItem className="space-y-2">
+									<FormLabel>
+										Focus regions (comma separated){" "}
+										<span className="text-muted-foreground text-xs">
+											Optional
+										</span>
+									</FormLabel>
+									<FormControl>
+										<Textarea {...field} rows={2} value={field.value ?? ""} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
 						/>
-					</div>
-				</div>
-				<div>
-					<Label>Risk profile</Label>
-					<Select
-						onValueChange={(value) =>
-							setFormValues((prev) => ({
-								...prev,
-								riskProfile: value as (typeof RISK_PROFILES)[number],
-							}))
-						}
-						value={formValues.riskProfile}
-					>
-						<SelectTrigger>
-							<SelectValue placeholder="Select profile" />
-						</SelectTrigger>
-						<SelectContent>
-							{RISK_PROFILES.map((profile) => (
-								<SelectItem key={profile} value={profile}>
-									{profile.charAt(0).toUpperCase() + profile.slice(1)}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-				<div className="grid gap-4 md:grid-cols-2">
-					<div>
-						<Label htmlFor="liquidity">Liquidity horizon (months)</Label>
-						<Input
-							id="liquidity"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									liquidityHorizonMonths: event.target.value,
-								}))
-							}
-							type="number"
-							value={formValues.liquidityHorizonMonths}
-						/>
-					</div>
-				</div>
-				<div>
-					<Label htmlFor="regions">Focus regions (comma separated)</Label>
-					<Textarea
-						id="regions"
-						onChange={(event) =>
-							setFormValues((prev) => ({
-								...prev,
-								focusRegions: event.target.value,
-							}))
-						}
-						rows={2}
-						value={formValues.focusRegions}
-					/>
-				</div>
-				<div className="flex justify-end gap-3">
-					<Button
-						onClick={() => {
-							if (typeof window !== "undefined") {
-								window.history.back();
-							}
-						}}
-						variant="ghost"
-					>
-						<ArrowLeft className="mr-2 size-4" />
-						Back
-					</Button>
-					<Button disabled={!canContinue || busy} onClick={handleSubmit}>
-						{busy ? "Saving..." : "Continue"}
-						<ArrowRight className="ml-2 size-4" />
-					</Button>
-				</div>
+						<div className="flex justify-end gap-3">
+							<Button
+								onClick={() => {
+									if (typeof window !== "undefined") {
+										window.history.back();
+									}
+								}}
+								type="button"
+								variant="ghost"
+							>
+								<ArrowLeft className="mr-2 size-4" />
+								Back
+							</Button>
+							<Button
+								disabled={!form.formState.isValid || busy}
+								type="submit"
+							>
+								{busy ? "Saving..." : "Continue"}
+								<ArrowRight className="ml-2 size-4" />
+							</Button>
+						</div>
+					</form>
+				</Form>
 			</CardContent>
 		</Card>
 	);
@@ -1611,7 +1791,7 @@ function BrokerIntroStep({
 	);
 }
 
-function BrokerCompanyInfoForm({
+export function BrokerCompanyInfoForm({
 	defaultValues,
 	onSubmit,
 	busy,
@@ -1620,8 +1800,10 @@ function BrokerCompanyInfoForm({
 	onSubmit: (values: BrokerCompanyInfoValues) => Promise<void>;
 	busy: boolean;
 }) {
-	const [formValues, setFormValues] = useState<BrokerCompanyInfoValues>(
-		defaultValues ?? {
+	const form = useForm<BrokerCompanyInfoValues>({
+		resolver: zodResolver(brokerCompanyInfoSchema),
+		mode: "onChange",
+		defaultValues: defaultValues ?? {
 			companyName: "",
 			entityType: "corporation",
 			registrationNumber: "",
@@ -1634,203 +1816,205 @@ function BrokerCompanyInfoForm({
 			},
 			businessPhone: "",
 			businessEmail: "",
-		}
-	);
+		},
+	});
 
 	useEffect(() => {
 		if (defaultValues) {
-			setFormValues(defaultValues);
+			form.reset(defaultValues);
 		}
-	}, [defaultValues]);
+	}, [defaultValues, form]);
 
-	const disabled = !(
-		formValues.companyName &&
-		formValues.registrationNumber &&
-		formValues.registeredAddress.street &&
-		formValues.registeredAddress.city &&
-		formValues.registeredAddress.state &&
-		formValues.registeredAddress.zip &&
-		formValues.businessPhone &&
-		formValues.businessEmail
-	);
+	const handleSubmit = (values: BrokerCompanyInfoValues) => {
+		onSubmit(values);
+	};
 
 	return (
 		<Card>
 			<CardHeader>
 				<CardTitle>Company Information</CardTitle>
 			</CardHeader>
-			<CardContent className="space-y-4">
-				<div className="grid gap-4">
-					<div>
-						<Label htmlFor="companyName">Company name</Label>
-						<Input
-							id="companyName"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									companyName: event.target.value,
-								}))
-							}
-							value={formValues.companyName}
-						/>
-					</div>
-					<div>
-						<Label>Entity type</Label>
-						<Select
-							onValueChange={(value) =>
-								setFormValues((prev) => ({
-									...prev,
-									entityType: value as BrokerCompanyInfoValues["entityType"],
-								}))
-							}
-							value={formValues.entityType}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select entity type" />
-							</SelectTrigger>
-							<SelectContent>
-								{BROKER_ENTITY_TYPES.map((type) => (
-									<SelectItem key={type} value={type}>
-										{String(type)
-											.split("_")
-											.map(
-												(word) => word.charAt(0).toUpperCase() + word.slice(1)
-											)
-											.join(" ")}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label htmlFor="registrationNumber">Registration number</Label>
-						<Input
-							id="registrationNumber"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									registrationNumber: event.target.value,
-								}))
-							}
-							value={formValues.registrationNumber}
-						/>
-					</div>
-				</div>
-
-				<div>
-					<Label>Registered address</Label>
-					<div className="mt-2 grid gap-3">
-						<Input
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									registeredAddress: {
-										...prev.registeredAddress,
-										street: event.target.value,
-									},
-								}))
-							}
-							placeholder="Street address"
-							value={formValues.registeredAddress.street}
-						/>
-						<div className="grid gap-3 md:grid-cols-2">
-							<Input
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										registeredAddress: {
-											...prev.registeredAddress,
-											city: event.target.value,
-										},
-									}))
-								}
-								placeholder="City"
-								value={formValues.registeredAddress.city}
-							/>
-							<Input
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										registeredAddress: {
-											...prev.registeredAddress,
-											state: event.target.value,
-										},
-									}))
-								}
-								placeholder="State/Province"
-								value={formValues.registeredAddress.state}
-							/>
-						</div>
-						<div className="grid gap-3 md:grid-cols-2">
-							<Input
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										registeredAddress: {
-											...prev.registeredAddress,
-											zip: event.target.value,
-										},
-									}))
-								}
-								placeholder="Postal/ZIP code"
-								value={formValues.registeredAddress.zip}
-							/>
-							<Input
-								onChange={(event) =>
-									setFormValues((prev) => ({
-										...prev,
-										registeredAddress: {
-											...prev.registeredAddress,
-											country: event.target.value,
-										},
-									}))
-								}
-								placeholder="Country"
-								value={formValues.registeredAddress.country}
-							/>
-						</div>
-					</div>
-				</div>
-
-				<div className="grid gap-4 md:grid-cols-2">
-					<div>
-						<Label htmlFor="businessPhone">Business phone</Label>
-						<Input
-							id="businessPhone"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									businessPhone: event.target.value,
-								}))
-							}
-							value={formValues.businessPhone}
-						/>
-					</div>
-					<div>
-						<Label htmlFor="businessEmail">Business email</Label>
-						<Input
-							id="businessEmail"
-							onChange={(event) =>
-								setFormValues((prev) => ({
-									...prev,
-									businessEmail: event.target.value,
-								}))
-							}
-							type="email"
-							value={formValues.businessEmail}
-						/>
-					</div>
-				</div>
-
-				<div className="flex justify-end gap-3">
-					<Button
-						disabled={disabled || busy}
-						onClick={() => onSubmit(formValues)}
+			<CardContent className="space-y-6">
+				<Form {...form}>
+					<form
+						className="space-y-6"
+						onSubmit={form.handleSubmit(handleSubmit)}
 					>
-						{busy ? "Saving..." : "Continue"}
-						<ArrowRight className="ml-2 size-4" />
-					</Button>
-				</div>
+						<div className="grid gap-4">
+							<FormField
+								control={form.control}
+								name="companyName"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>Company name *</FormLabel>
+										<FormControl>
+											<Input placeholder="Company name" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="entityType"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>Entity type *</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select entity type" />
+												</SelectTrigger>
+												<SelectContent>
+													{BROKER_ENTITY_TYPES.map((type) => (
+														<SelectItem key={type} value={type}>
+															{String(type)
+																.split("_")
+																.map(
+																	(word) =>
+																		word.charAt(0).toUpperCase() +
+																		word.slice(1)
+																)
+																.join(" ")}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="registrationNumber"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>Registration number *</FormLabel>
+										<FormControl>
+											<Input placeholder="Registration number" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+
+						<div className="space-y-3">
+							<p className="text-sm font-medium">Registered address</p>
+							<div className="grid gap-3">
+								<FormField
+									control={form.control}
+									name="registeredAddress.street"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>Street address *</FormLabel>
+											<FormControl>
+												<Input placeholder="Street address" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<div className="grid gap-3 md:grid-cols-2">
+									<FormField
+										control={form.control}
+										name="registeredAddress.city"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel>City *</FormLabel>
+												<FormControl>
+													<Input placeholder="City" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="registeredAddress.state"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel>State/Province *</FormLabel>
+												<FormControl>
+													<Input placeholder="State/Province" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<div className="grid gap-3 md:grid-cols-2">
+									<FormField
+										control={form.control}
+										name="registeredAddress.zip"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel>Postal/ZIP code *</FormLabel>
+												<FormControl>
+													<Input placeholder="Postal/ZIP code" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="registeredAddress.country"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel>Country *</FormLabel>
+												<FormControl>
+													<Input placeholder="Country" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div className="grid gap-4 md:grid-cols-2">
+							<FormField
+								control={form.control}
+								name="businessPhone"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>Business phone *</FormLabel>
+										<FormControl>
+											<Input placeholder="Business phone" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="businessEmail"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>Business email *</FormLabel>
+										<FormControl>
+											<Input type="email" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+
+						<div className="flex justify-end gap-3">
+							<Button disabled={busy} type="submit">
+								{busy ? "Saving..." : "Continue"}
+								<ArrowRight className="ml-2 size-4" />
+							</Button>
+						</div>
+					</form>
+				</Form>
 			</CardContent>
 		</Card>
 	);
@@ -1864,24 +2048,6 @@ function BrokerLicensingForm({
 			form.reset(defaultValues);
 		}
 	}, [defaultValues, form]);
-
-	const jurisdictions = form.watch("jurisdictions");
-
-	const handleAddJurisdiction = () => {
-		const next = jurisdictionInput.trim();
-		if (!next) {
-			return;
-		}
-		form.setValue("jurisdictions", [...jurisdictions, next], {
-			shouldValidate: true,
-		});
-		setJurisdictionInput("");
-	};
-
-	const handleRemoveJurisdiction = (index: number) => {
-		const next = jurisdictions.filter((_, i) => i !== index);
-		form.setValue("jurisdictions", next, { shouldValidate: true });
-	};
 
 	const handleSubmit = (values: BrokerLicensingValues) => {
 		onSubmit(values);
@@ -1995,53 +2161,68 @@ function BrokerLicensingForm({
 						<FormField
 							control={form.control}
 							name="jurisdictions"
-							render={() => (
-								<FormItem className="space-y-2">
-									<FormLabel>Jurisdictions *</FormLabel>
-									<FormControl>
-										<div className="flex flex-col gap-3">
-											<div className="flex gap-2">
-												<Input
-													onChange={(event) =>
-														setJurisdictionInput(event.target.value)
-													}
-													onKeyDown={(event) => {
-														if (event.key === "Enter") {
-															event.preventDefault();
-															handleAddJurisdiction();
+							render={({ field }) => {
+								const jurisdictions = field.value ?? [];
+								const handleAddJurisdiction = () => {
+									const next = jurisdictionInput.trim();
+									if (!next) {
+										return;
+									}
+									field.onChange([...jurisdictions, next]);
+									setJurisdictionInput("");
+								};
+								const handleRemoveJurisdiction = (index: number) => {
+									field.onChange(jurisdictions.filter((_, i) => i !== index));
+								};
+
+								return (
+									<FormItem className="space-y-2">
+										<FormLabel>Jurisdictions *</FormLabel>
+										<FormControl>
+											<div className="flex flex-col gap-3">
+												<div className="flex gap-2">
+													<Input
+														onChange={(event) =>
+															setJurisdictionInput(event.target.value)
 														}
-													}}
-													placeholder="Add a province or territory"
-													value={jurisdictionInput}
-												/>
-												<Button
-													onClick={handleAddJurisdiction}
-													type="button"
-													variant="secondary"
-												>
-													Add
-												</Button>
-											</div>
-											{jurisdictions.length > 0 ? (
-												<div className="flex flex-wrap gap-2">
-													{jurisdictions.map((jurisdiction, index) => (
-														<Badge
-															className="cursor-pointer"
-															key={`${jurisdiction}-${index}`}
-															onClick={() => handleRemoveJurisdiction(index)}
-															variant="secondary"
-														>
-															{jurisdiction}
-															<span className="ml-1">×</span>
-														</Badge>
-													))}
+														onKeyDown={(event) => {
+															if (event.key === "Enter") {
+																event.preventDefault();
+																handleAddJurisdiction();
+															}
+														}}
+														placeholder="Add a province or territory"
+														value={jurisdictionInput}
+													/>
+													<Button
+														onClick={handleAddJurisdiction}
+														type="button"
+														variant="secondary"
+													>
+														Add
+													</Button>
 												</div>
-											) : null}
-										</div>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
+												{jurisdictions.length > 0 ? (
+													<div className="flex flex-wrap gap-2">
+														{jurisdictions.map((jurisdiction, index) => (
+															<Badge
+																className="cursor-pointer"
+																key={`${jurisdiction}-${index}`}
+																onClick={() => handleRemoveJurisdiction(index)}
+																variant="secondary"
+															>
+																{jurisdiction}
+																<span className="ml-1">×</span>
+															</Badge>
+														))}
+													</div>
+												) : null}
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								);
+							}}
 						/>
 
 						<div className="flex justify-end gap-3">
@@ -2070,35 +2251,37 @@ function BrokerRepresentativesForm({
 		BrokerRepresentativeValues[]
 	>(defaultValues ?? []);
 
-	const [newRep, setNewRep] = useState<BrokerRepresentativeValues>({
-		firstName: "",
-		lastName: "",
-		role: "",
-		email: "",
-		phone: "",
-		hasAuthority: false,
+	useEffect(() => {
+		if (defaultValues) {
+			setRepresentatives(defaultValues);
+		}
+	}, [defaultValues]);
+
+	const form = useForm<BrokerRepresentativeValues>({
+		resolver: zodResolver(brokerRepresentativeSchema),
+		defaultValues: {
+			firstName: "",
+			lastName: "",
+			role: "",
+			email: "",
+			phone: "",
+			hasAuthority: false,
+		},
+		mode: "onChange",
 	});
 
 	const disabled = representatives.length === 0;
 
-	const handleAddRepresentative = () => {
-		if (
-			newRep.firstName &&
-			newRep.lastName &&
-			newRep.role &&
-			newRep.email &&
-			newRep.phone
-		) {
-			setRepresentatives((prev) => [...prev, newRep]);
-			setNewRep({
-				firstName: "",
-				lastName: "",
-				role: "",
-				email: "",
-				phone: "",
-				hasAuthority: false,
-			});
-		}
+	const handleAddRepresentative = (values: BrokerRepresentativeValues) => {
+		setRepresentatives((prev) => [...prev, values]);
+		form.reset({
+			firstName: "",
+			lastName: "",
+			role: "",
+			email: "",
+			phone: "",
+			hasAuthority: false,
+		});
 	};
 
 	const handleRemoveRepresentative = (index: number) => {
@@ -2112,8 +2295,8 @@ function BrokerRepresentativesForm({
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<p className="text-muted-foreground text-sm">
-					Add all key team members who will be working with your clients. At
-					least one representative is required.
+					Add the team members who will be working with your clients. You can
+					skip this for now and add representatives later.
 				</p>
 
 				{representatives.length > 0 && (
@@ -2150,116 +2333,158 @@ function BrokerRepresentativesForm({
 					</div>
 				)}
 
-				<div className="rounded border p-4">
-					<p className="mb-3 font-medium text-sm">Add new representative</p>
-					<div className="grid gap-4">
-						<div className="grid gap-4 md:grid-cols-2">
-							<div>
-								<Label htmlFor="repFirstName">First name</Label>
-								<Input
-									id="repFirstName"
-									onChange={(event) =>
-										setNewRep((prev) => ({
-											...prev,
-											firstName: event.target.value,
-										}))
-									}
-									value={newRep.firstName}
+				<Form {...form}>
+					<form
+						className="rounded border p-4"
+						onSubmit={form.handleSubmit(handleAddRepresentative)}
+					>
+						<p className="mb-3 font-medium text-sm">Add new representative</p>
+						<div className="grid gap-4">
+							<div className="grid gap-4 md:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="firstName"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												First name{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="lastName"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Last name{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
 								/>
 							</div>
-							<div>
-								<Label htmlFor="repLastName">Last name</Label>
-								<Input
-									id="repLastName"
-									onChange={(event) =>
-										setNewRep((prev) => ({
-											...prev,
-											lastName: event.target.value,
-										}))
-									}
-									value={newRep.lastName}
-								/>
-							</div>
-						</div>
-						<div>
-							<Label htmlFor="repRole">Role/title</Label>
-							<Input
-								id="repRole"
-								onChange={(event) =>
-									setNewRep((prev) => ({
-										...prev,
-										role: event.target.value,
-									}))
-								}
-								placeholder="e.g., Senior Mortgage Broker"
-								value={newRep.role}
+							<FormField
+								control={form.control}
+								name="role"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											Role/title{" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												{...field}
+												placeholder="e.g., Senior Mortgage Broker"
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
 							/>
+							<div className="grid gap-4 md:grid-cols-3">
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Email{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} type="email" />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="phone"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Phone{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="hasAuthority"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Authorized signer{" "}
+												<span className="text-muted-foreground text-xs">
+													Optional
+												</span>
+											</FormLabel>
+											<FormControl>
+												<div className="flex h-9 items-center gap-2">
+													<input
+														checked={Boolean(field.value)}
+														id="repAuthority"
+														onChange={(event) => field.onChange(event.target.checked)}
+														type="checkbox"
+													/>
+													<Label className="cursor-pointer" htmlFor="repAuthority">
+														Yes
+													</Label>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<Button
+								disabled={!form.formState.isValid}
+								type="submit"
+								variant="secondary"
+							>
+								Add representative
+							</Button>
 						</div>
-						<div className="grid gap-4 md:grid-cols-3">
-							<div>
-								<Label htmlFor="repEmail">Email</Label>
-								<Input
-									id="repEmail"
-									onChange={(event) =>
-										setNewRep((prev) => ({
-											...prev,
-											email: event.target.value,
-										}))
-									}
-									type="email"
-									value={newRep.email}
-								/>
-							</div>
-							<div>
-								<Label htmlFor="repPhone">Phone</Label>
-								<Input
-									id="repPhone"
-									onChange={(event) =>
-										setNewRep((prev) => ({
-											...prev,
-											phone: event.target.value,
-										}))
-									}
-									value={newRep.phone}
-								/>
-							</div>
-							<div className="flex items-center pt-6">
-								<input
-									checked={newRep.hasAuthority}
-									className="mr-2"
-									id="repAuthority"
-									onChange={(event) =>
-										setNewRep((prev) => ({
-											...prev,
-											hasAuthority: event.target.checked,
-										}))
-									}
-									type="checkbox"
-								/>
-								<Label className="cursor-pointer" htmlFor="repAuthority">
-									Authorized signer
-								</Label>
-							</div>
-						</div>
-						<Button
-							disabled={
-								!(
-									newRep.firstName &&
-									newRep.lastName &&
-									newRep.role &&
-									newRep.email &&
-									newRep.phone
-								)
-							}
-							onClick={handleAddRepresentative}
-							variant="secondary"
-						>
-							Add representative
-						</Button>
-					</div>
-				</div>
+					</form>
+				</Form>
 
 				<div className="flex justify-end gap-3">
+					<Button
+						disabled={busy}
+						onClick={() => onSubmit(representatives)}
+						type="button"
+						variant="ghost"
+					>
+						Skip for now
+					</Button>
 					<Button
 						disabled={disabled || busy}
 						onClick={() => onSubmit(representatives)}

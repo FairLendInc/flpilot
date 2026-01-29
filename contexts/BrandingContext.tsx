@@ -20,7 +20,6 @@ export type BrandingContextType = {
 	// Commission configuration
 	commission: {
 		ratePercentage: number;
-		returnAdjustmentPercentage: number;
 	};
 
 	// Actions
@@ -35,7 +34,6 @@ const defaultContext: BrandingContextType = {
 	branding: {},
 	commission: {
 		ratePercentage: 0,
-		returnAdjustmentPercentage: 0,
 	},
 	setBranding: () => {
 		// Default no-op implementation

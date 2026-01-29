@@ -47,8 +47,6 @@ export default function BrokerApplicationDetailPage() {
 	const [followUpMessage, setFollowUpMessage] = useState("");
 	const [subdomain, setSubdomain] = useState("");
 	const [commissionRate, setCommissionRate] = useState("2.5");
-	const [returnAdjustmentPercentage, setReturnAdjustmentPercentage] =
-		useState("0.5");
 
 	const journey = useQuery(api.brokers.approval.reviewBrokerJourney, {
 		journeyId,
@@ -83,9 +81,6 @@ export default function BrokerApplicationDetailPage() {
 				journeyId,
 				subdomain: subdomain || brokerData?.proposedSubdomain || "",
 				commissionRate: Number.parseFloat(commissionRate),
-				returnAdjustmentPercentage: Number.parseFloat(
-					returnAdjustmentPercentage
-				),
 			});
 			toast.success("Broker approved successfully");
 			setApproveDialogOpen(false);
@@ -241,41 +236,21 @@ export default function BrokerApplicationDetailPage() {
 											{subdomain || brokerData?.proposedSubdomain}.flpilot.com
 										</p>
 									</div>
-									<div className="grid grid-cols-2 gap-4">
-										<div>
-											<label
-												className="font-medium text-sm"
-												htmlFor="commissionRate"
-											>
-												Commission Rate (%)
-											</label>
-											<input
-												className="mt-2 w-full rounded-md border px-3 py-2"
-												id="commissionRate"
-												onChange={(e) => setCommissionRate(e.target.value)}
-												step="0.1"
-												type="number"
-												value={commissionRate}
-											/>
-										</div>
-										<div>
-											<label
-												className="font-medium text-sm"
-												htmlFor="returnAdjustment"
-											>
-												Return Adjustment (%)
-											</label>
-											<input
-												className="mt-2 w-full rounded-md border px-3 py-2"
-												id="returnAdjustment"
-												onChange={(e) =>
-													setReturnAdjustmentPercentage(e.target.value)
-												}
-												step="0.1"
-												type="number"
-												value={returnAdjustmentPercentage}
-											/>
-										</div>
+									<div>
+										<label
+											className="font-medium text-sm"
+											htmlFor="commissionRate"
+										>
+											Commission Rate (%)
+										</label>
+										<input
+											className="mt-2 w-full rounded-md border px-3 py-2"
+											id="commissionRate"
+											onChange={(e) => setCommissionRate(e.target.value)}
+											step="0.1"
+											type="number"
+											value={commissionRate}
+										/>
 									</div>
 								</div>
 								<DialogFooter>

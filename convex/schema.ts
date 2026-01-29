@@ -339,7 +339,6 @@ export default defineSchema({
 		// Commission configuration
 		commission: v.object({
 			ratePercentage: v.number(), // e.g., 2.5 for 2.5%
-			returnAdjustmentPercentage: v.number(), // e.g., 0.5 for 0.5% reduction
 		}),
 		// Status
 		status: v.union(
@@ -405,8 +404,6 @@ export default defineSchema({
 				),
 			}),
 		}),
-		// Return adjustment (applied to client's displayed returns)
-		returnAdjustmentPercentage: v.number(),
 		// Onboarding workflow
 		onboardingStatus: v.union(
 			v.literal("invited"),
@@ -432,7 +429,7 @@ export default defineSchema({
 	 */
 	broker_rate_history: defineTable({
 		brokerId: v.id("brokers"),
-		type: v.union(v.literal("commission"), v.literal("return_adjustment")),
+		type: v.literal("commission"),
 		oldRate: v.number(),
 		newRate: v.number(),
 		effectiveAt: v.string(), // ISO timestamp when new rate took effect

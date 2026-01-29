@@ -398,7 +398,6 @@ export const createClientOnboarding = createAuthorizedMutation([
 				),
 			}),
 		}),
-		returnAdjustmentPercentage: v.number(),
 	},
 	handler: async (ctx: AuthorizedMutationCtx, args) => {
 		const subjectId = requireSubjectId(ctx);
@@ -464,7 +463,6 @@ export const createClientOnboarding = createAuthorizedMutation([
 			clientId,
 			workosOrgId: "", // Will be filled by WorkOS provisioning action
 			filters: args.filters,
-			returnAdjustmentPercentage: args.returnAdjustmentPercentage,
 			onboardingStatus: "invited",
 			invitedAt: now,
 			approvedAt: undefined,
@@ -917,7 +915,6 @@ export const createClientBrokerRecord = createAuthorizedMutation(["admin"])({
 				),
 			}),
 		}),
-		returnAdjustmentPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
 		const now = new Date().toISOString();
@@ -926,7 +923,6 @@ export const createClientBrokerRecord = createAuthorizedMutation(["admin"])({
 			clientId: args.clientId,
 			workosOrgId: args.workosOrgId,
 			filters: args.filters,
-			returnAdjustmentPercentage: args.returnAdjustmentPercentage,
 			onboardingStatus: "invited",
 			invitedAt: now,
 			createdAt: now,
