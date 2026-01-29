@@ -28,6 +28,29 @@ qdrant_storage/*
 /.next/
 /out/
 
+#agents 
+.agent/
+.agent/*
+.cursor/
+.cursor/**
+.gemini/
+.factory/
+.kilocode/
+.qoder/
+.shared/
+.zed/
+.opencode/
+.claude/
+openspec/
+openspec/changes/
+openspec/changes/*
+openspec/changes/**
+/openspec/
+.opencode/**
+QODER.md
+.claude/**
+openspec/**
+
 # production
 /build
 # /convex/_generated
