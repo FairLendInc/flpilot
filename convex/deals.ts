@@ -1811,83 +1811,106 @@ export const checkPendingDocsDeals = internalMutation({
 		});
 
 		for (const deal of deals) {
-			// 2. Check if all documents are signed
-			const documents = await ctx.db
-				.query("deal_documents")
-				.withIndex("by_deal", (q) => q.eq("dealId", deal._id))
-				.collect();
-
-			if (documents.length === 0) continue;
-
-			const allSigned = documents.every((doc) => doc.status === "signed");
-
-			if (allSigned) {
-				logger.info(
-					"All documents signed for deal, transitioning to pending_transfer",
-					{ dealId: deal._id }
-				);
-
-				// 3. Transition state
-				if (!deal.stateMachineState) {
-					logger.error("Deal has no state machine state", { dealId: deal._id });
-					continue;
-				}
-
-				const machineState = JSON.parse(deal.stateMachineState);
-				const actor = createActor(dealMachine, {
-					input: machineState.context, // XState v5 requires input even with snapshot
-					snapshot: machineState,
-				});
-
-				// Send DOCUMENTS_COMPLETE event (system-triggered, use investor as triggeredBy)
-				const event: DealEventWithAdmin = {
-					type: "DOCUMENTS_COMPLETE",
-					adminId: deal.investorId,
-					notes:
-						"Automatically transitioned by system after all documents signed",
-				};
-
-				actor.start();
-				actor.send(event);
-
-				const newSnapshot = actor.getSnapshot();
-				const newContext = newSnapshot.context;
-
-				if (newContext.currentState !== "pending_transfer") {
-					logger.warn("Failed to transition to pending_transfer", {
-						dealId: deal._id,
-						currentState: newContext.currentState,
-					});
-					actor.stop();
-					continue;
-				}
-
-				await ctx.db.patch(deal._id, {
-					stateMachineState: JSON.stringify(newSnapshot),
-					currentState: newContext.currentState,
-					updatedAt: Date.now(),
-					stateHistory: newContext.stateHistory,
-				});
-
-				actor.stop();
-
-				// Create alert for investor
-				await ctx.db.insert("alerts", {
-					userId: deal.investorId,
-					type: "deal_state_changed",
-					severity: "info",
-					title: "Documents Signed",
-					message:
-						"All documents have been signed. Please proceed with fund transfer.",
-					relatedDealId: deal._id,
-					relatedListingId: deal.listingId,
-					read: false,
-					createdAt: Date.now(),
-				});
-			}
+			await checkDealDocsCompletionHandler(ctx, deal._id);
 		}
 	},
 });
+
+/**
+ * Check if a single deal has all documents signed and transition state
+ * Called when a document is signed or by cron
+ */
+export const checkDealDocsCompletion = internalMutation({
+	args: { dealId: v.id("deals") },
+	handler: async (ctx, args) => {
+		await checkDealDocsCompletionHandler(ctx, args.dealId);
+	},
+});
+
+// Helper to share logic between cron and event-triggered check
+async function checkDealDocsCompletionHandler(
+	ctx: MutationCtx,
+	dealId: Id<"deals">
+) {
+	const deal = await ctx.db.get(dealId);
+	console.log("Checking deal docs completion for deal", dealId);
+	console.log("Deal state:", deal);
+	if (!deal || deal.currentState !== "pending_docs") return;
+
+	// 2. Check if all documents are signed
+	const documents = await ctx.db
+		.query("deal_documents")
+		.withIndex("by_deal", (q) => q.eq("dealId", dealId))
+		.collect();
+
+	if (documents.length === 0) return;
+
+	const allSigned = documents.every((doc) => doc.status === "signed");
+
+	if (allSigned) {
+		logger.info(
+			"All documents signed for deal, transitioning to pending_transfer",
+			{ dealId }
+		);
+
+		// 3. Transition state
+		if (!deal.stateMachineState) {
+			logger.error("Deal has no state machine state", { dealId });
+			return;
+		}
+
+		const machineState = JSON.parse(deal.stateMachineState);
+		const actor = createActor(dealMachine, {
+			input: machineState.context, // XState v5 requires input even with snapshot
+			snapshot: machineState,
+		});
+
+		// Send DOCUMENTS_COMPLETE event (system-triggered, use investor as triggeredBy)
+		const event: DealEventWithAdmin = {
+			type: "DOCUMENTS_COMPLETE",
+			adminId: deal.investorId,
+			notes: "Automatically transitioned by system after all documents signed",
+		};
+
+		actor.start();
+		actor.send(event);
+
+		const newSnapshot = actor.getSnapshot();
+		const newContext = newSnapshot.context;
+
+		if (newContext.currentState !== "pending_transfer") {
+			logger.warn("Failed to transition to pending_transfer", {
+				dealId,
+				currentState: newContext.currentState,
+			});
+			actor.stop();
+			return;
+		}
+
+		await ctx.db.patch(dealId, {
+			stateMachineState: JSON.stringify(newSnapshot),
+			currentState: newContext.currentState,
+			updatedAt: Date.now(),
+			stateHistory: newContext.stateHistory,
+		});
+
+		actor.stop();
+
+		// Create alert for investor
+		await ctx.db.insert("alerts", {
+			userId: deal.investorId,
+			type: "deal_state_changed",
+			severity: "info",
+			title: "Documents Signed",
+			message:
+				"All documents have been signed. Please proceed with fund transfer.",
+			relatedDealId: dealId,
+			relatedListingId: deal.listingId,
+			read: false,
+			createdAt: Date.now(),
+		});
+	}
+}
 
 /**
  * Internal query to get deal for action validation
@@ -1950,15 +1973,27 @@ export const recordFundTransferUpload = investorLawyerAdminMutation({
 		fileType: v.string(),
 	},
 	handler: async (ctx, args) => {
+		console.log("recordFundTransferUpload", args);
 		const { role, email, subject } = ctx as typeof ctx & AuthContextFields;
 		if (!subject) {
 			throw new Error("Not authenticated");
 		}
 
-		const deal = await ctx.db.get(args.dealId);
+		let deal = await ctx.db.get(args.dealId);
 		if (!deal) {
 			throw new Error("Deal not found");
 		}
+
+		// Attempt to recover state if stuck in pending_docs with all docs signed
+		console.log("Current state:", deal.currentState);
+		if (deal.currentState === "pending_docs") {
+			console.log("Attempting to recover state from pending_docs");
+			await checkDealDocsCompletionHandler(ctx, args.dealId);
+			// Refetch deal to check if state transitioned
+			const updatedDeal = await ctx.db.get(args.dealId);
+			if (updatedDeal) deal = updatedDeal;
+		}
+
 		if (deal.currentState !== "pending_transfer") {
 			throw new Error("Uploads only allowed in pending_transfer state");
 		}

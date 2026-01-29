@@ -276,4 +276,103 @@ describe("checkPendingDocsDeals integration", () => {
 		const updatedDeal = await adminT.query(api.deals.getDeal, { dealId });
 		expect(updatedDeal?.currentState).toBe("pending_transfer");
 	});
+	test("transitions immediately when last document is signed via action", async () => {
+		const t = createTest();
+		const { dealId } = await createDeal(t);
+		const adminT = await getAdminTest(t);
+
+		// Move deal to pending_docs
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "CONFIRM_LAWYER" },
+		});
+		await adminT.mutation(api.deals.transitionDealState, {
+			dealId,
+			event: { type: "COMPLETE_DOCS" },
+		});
+
+		// Create a pending document directly
+		const docId = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("deal_documents", {
+					dealId,
+					documensoDocumentId: "doc-1",
+					templateId: "tpl-1",
+					templateName: "Doc 1",
+					status: "pending",
+					signatories: [
+						{ role: "investor", name: "Investor", email: "investor@test.com" },
+					],
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
+				})
+		);
+
+		// Update document status via mutation (should trigger immediate check)
+		await adminT.mutation(api.deal_documents.updateDocumentStatus, {
+			documentId: docId,
+			status: "signed",
+		});
+
+		// Verify state transition happened properly
+		const updatedDeal = await adminT.query(api.deals.getDeal, { dealId });
+		expect(updatedDeal?.currentState).toBe("pending_transfer");
+		test("lazily transitions when upload attempted and docs signed", async () => {
+			const t = createTest();
+			const { dealId, investorIdpId } = await createDeal(t);
+			const adminT = await getAdminTest(t);
+			const investorT = t.withIdentity({
+				subject: investorIdpId,
+				role: "investor",
+			});
+
+			// Move deal to pending_docs
+			await adminT.mutation(api.deals.transitionDealState, {
+				dealId,
+				event: { type: "CONFIRM_LAWYER" },
+			});
+			await adminT.mutation(api.deals.transitionDealState, {
+				dealId,
+				event: { type: "COMPLETE_DOCS" },
+			});
+
+			// Create a SIGNED document directly but don't check for completion yet
+			// This simulates the "stuck" state
+			await t.run(async (ctx) => {
+				await ctx.db.insert("deal_documents", {
+					dealId,
+					documensoDocumentId: "doc-1",
+					templateId: "tpl-1",
+					templateName: "Doc 1",
+					status: "signed",
+					signatories: [
+						{ role: "investor", name: "Investor", email: "investor@test.com" },
+					],
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
+				});
+			});
+
+			// Attempt to upload file - this should trigger the transition and succeed
+			// We need a storage ID first
+			const storageId = await t.run(
+				async (ctx) =>
+					await ctx.storage.store(
+						new Blob(["fake content"], { type: "application/pdf" })
+					)
+			);
+
+			await investorT.mutation(api.deals.recordFundTransferUpload, {
+				dealId,
+				storageId,
+				fileName: "receipt.pdf",
+				fileType: "application/pdf",
+			});
+
+			// Verify state transition happened properly
+			const updatedDeal = await adminT.query(api.deals.getDeal, { dealId });
+			expect(updatedDeal?.currentState).toBe("pending_transfer");
+			expect(updatedDeal?.currentUpload).toBeDefined();
+		});
+	});
 });
