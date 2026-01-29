@@ -197,10 +197,14 @@ export default function DSMPortalPage({
     if (deal) {
       useDealStore.getState().setDeal(deal)
     }
+
+    if (dealId) {
+      useDealStore.getState().setDealId(dealId)
+    }
     
     // Mark as initialized only after attempting to set both
     initializedRef.current = true
-  }, [initialDocuments, initialUsers, deal, setDocuments, setAvailableUsers])
+  }, [initialDocuments, initialUsers, deal, dealId, setDocuments, setAvailableUsers])
   
   return (
     <ErrorBoundary>
