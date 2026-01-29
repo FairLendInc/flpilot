@@ -257,8 +257,7 @@ function BrokerCard({ broker }: { broker: Broker }) {
 					<h4 className="font-medium">{brandName}</h4>
 					<p className="text-muted-foreground text-sm">
 						{broker.subdomain}.flpilot.com • Commission:{" "}
-						{broker.commission?.ratePercentage || 0}% • Adjust:{" "}
-						{broker.commission?.returnAdjustmentPercentage || 0}%
+						{broker.commission?.ratePercentage || 0}%
 					</p>
 					<p className="text-muted-foreground text-xs">
 						Approved: {new Date(broker.approvedAt).toLocaleDateString()}

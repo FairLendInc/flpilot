@@ -22,6 +22,10 @@ export function OnboardingGate() {
 			return;
 		}
 
+		if (!isAuthenticated) {
+			return;
+		}
+
 		// Check WorkOS role first - WorkOS is the source of truth for auth
 		// Role is passed from server component where RBAC claims are available
 
@@ -50,8 +54,8 @@ export function OnboardingGate() {
 			return;
 		}
 
-		// Wait for journey data to load
-		if (isAuthenticated && journey === undefined) {
+		// Wait for journey and profile data to load
+		if (journey === undefined || profile === undefined) {
 			return;
 		}
 
@@ -66,7 +70,15 @@ export function OnboardingGate() {
 		if (requiresOnboarding) {
 			router.replace("/onboarding");
 		}
-	}, [authLoading, isAuthenticated, journey, pathname, router, userRole]);
+	}, [
+		authLoading,
+		isAuthenticated,
+		journey,
+		pathname,
+		profile,
+		router,
+		userRole,
+	]);
 
 	return null;
 }

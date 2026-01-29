@@ -142,17 +142,6 @@ export default function BrokerSettingsPage() {
 										Managed by FairLend
 									</p>
 								</div>
-								<div className="space-y-2">
-									<Label>Return Adjustment</Label>
-									<Input
-										disabled
-										readOnly
-										value={broker?.commission?.returnAdjustmentPercentage || 0}
-									/>
-									<p className="text-muted-foreground text-sm">
-										Managed by FairLend
-									</p>
-								</div>
 							</CardContent>
 						</Card>
 					</TabsContent>

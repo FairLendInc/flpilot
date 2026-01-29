@@ -163,19 +163,6 @@ export default function ClientDetailPage() {
 								</CardContent>
 							</Card>
 
-							<Card>
-								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-									<CardTitle className="font-medium text-sm">
-										Adjustment
-									</CardTitle>
-									<DollarSign className="h-4 w-4 text-muted-foreground" />
-								</CardHeader>
-								<CardContent>
-									<div className="font-bold text-lg">
-										{client.returnAdjustmentPercentage}%
-									</div>
-								</CardContent>
-							</Card>
 						</div>
 
 						{client.onboardingStatus === "pending_approval" && (

@@ -12,7 +12,7 @@ export const getBrokerExists = internalQuery({
 	},
 });
 
-export const getReturnAdjustmentRateHistory = internalQuery({
+export const getCommissionRateHistory = internalQuery({
 	args: {
 		brokerId: v.id("brokers"),
 	},
@@ -26,7 +26,7 @@ export const getReturnAdjustmentRateHistory = internalQuery({
 		const entries = await ctx.db
 			.query("broker_rate_history")
 			.withIndex("by_broker_type", (q) =>
-				q.eq("brokerId", args.brokerId).eq("type", "return_adjustment")
+				q.eq("brokerId", args.brokerId).eq("type", "commission")
 			)
 			.collect();
 
@@ -43,7 +43,6 @@ export const getBrokerCommission = internalQuery({
 	},
 	returns: v.object({
 		ratePercentage: v.number(),
-		returnAdjustmentPercentage: v.number(),
 	}),
 	handler: async (ctx, args) => {
 		const broker = await ctx.db.get(args.brokerId);

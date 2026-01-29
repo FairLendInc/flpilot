@@ -211,7 +211,6 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 		journeyId: v.id("onboarding_journeys"),
 		subdomain: v.string(),
 		commissionRate: v.number(),
-		returnAdjustmentPercentage: v.number(),
 	},
 	handler: async (ctx, args) => {
 		const journey = await ctx.db.get(args.journeyId);
@@ -225,6 +224,17 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 		}
 
 		const now = new Date().toISOString();
+		const workosUserId = requireSubjectId(ctx);
+
+		// Look up the Convex user record by WorkOS ID
+		const adminUser = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", workosUserId))
+			.unique();
+
+		if (!adminUser) {
+			throw new Error("Admin user not found");
+		}
 
 		// Create broker record
 		const brokerId = await ctx.db.insert("brokers", {
@@ -237,7 +247,6 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 			},
 			commission: {
 				ratePercentage: args.commissionRate,
-				returnAdjustmentPercentage: args.returnAdjustmentPercentage,
 			},
 			status: "active",
 			approvedAt: now,
@@ -245,21 +254,15 @@ export const approveBrokerOnboarding = createAuthorizedMutation(["admin"])({
 			updatedAt: now,
 		});
 
-		// Update journey status
-		const brokerContext = journey.context.broker;
+		// Update journey status - use adminDecision field (not context.broker)
 		await ctx.db.patch(args.journeyId, {
 			status: "approved",
 			stateValue: "broker.approved",
 			lastTouchedAt: now,
-			context: {
-				...journey.context,
-				broker: {
-					...(brokerContext ?? {}),
-					brokerId: brokerId.toString(),
-					approvedBy: requireSubjectId(ctx),
-					approvedAt: now,
-					subdomain: args.subdomain.toLowerCase(),
-				} as BrokerContext,
+			adminDecision: {
+				decidedBy: adminUser._id,
+				decidedAt: now,
+				notes: `Approved with subdomain: ${args.subdomain.toLowerCase()}, broker ID: ${brokerId}`,
 			},
 		});
 
@@ -288,21 +291,27 @@ export const rejectBrokerOnboarding = createAuthorizedMutation(["admin"])({
 		}
 
 		const now = new Date().toISOString();
+		const workosUserId = requireSubjectId(ctx);
 
-		// Update journey status
-		const brokerContext = journey.context.broker;
+		// Look up the Convex user record by WorkOS ID
+		const adminUser = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", workosUserId))
+			.unique();
+
+		if (!adminUser) {
+			throw new Error("Admin user not found");
+		}
+
+		// Update journey status - use adminDecision field (not context.broker)
 		await ctx.db.patch(args.journeyId, {
 			status: "rejected",
 			stateValue: "broker.rejected",
 			lastTouchedAt: now,
-			context: {
-				...journey.context,
-				broker: {
-					...(brokerContext ?? {}),
-					rejectedBy: requireSubjectId(ctx),
-					rejectedAt: now,
-					rejectionReason: args.reason,
-				} as BrokerContext,
+			adminDecision: {
+				decidedBy: adminUser._id,
+				decidedAt: now,
+				notes: args.reason,
 			},
 		});
 

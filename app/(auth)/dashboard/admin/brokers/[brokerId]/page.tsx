@@ -185,14 +185,6 @@ export default function BrokerDetailPage() {
 										</p>
 									</div>
 									<div>
-										<Label className="text-muted-foreground">
-											Return Adjustment
-										</Label>
-										<p className="font-medium">
-											{broker.commission?.returnAdjustmentPercentage || 0}%
-										</p>
-									</div>
-									<div>
 										<Label className="text-muted-foreground">Approved At</Label>
 										<p className="font-medium">
 											{new Date(broker.approvedAt).toLocaleDateString()}

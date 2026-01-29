@@ -38,6 +38,10 @@ async function AuthCheck() {
 	const shouldRedirect = user?.role === "member" || !user?.role;
 
 	return (
-		<RedirectGuard redirectTo="/profile" shouldRedirect={shouldRedirect} />
+		<RedirectGuard
+			redirectTo="/profile"
+			shouldRedirect={shouldRedirect}
+			skipPaths={["/onboarding"]}
+		/>
 	);
 }
