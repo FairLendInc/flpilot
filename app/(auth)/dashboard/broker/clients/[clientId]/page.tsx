@@ -4,7 +4,6 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import {
 	ArrowLeft,
 	CheckCircle,
-	DollarSign,
 	Mail,
 	MessageSquare,
 	User,
@@ -162,7 +161,6 @@ export default function ClientDetailPage() {
 									</div>
 								</CardContent>
 							</Card>
-
 						</div>
 
 						{client.onboardingStatus === "pending_approval" && (

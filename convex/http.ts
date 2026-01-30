@@ -1712,10 +1712,13 @@ http.route({
 					});
 
 					if (!res) {
-						logger.warn("User not found for deletion (may have been deleted already):", {
-							workosUserId: data.id,
-							email: data.email,
-						});
+						logger.warn(
+							"User not found for deletion (may have been deleted already):",
+							{
+								workosUserId: data.id,
+								email: data.email,
+							}
+						);
 						// Return success even if user not found - idempotent delete
 						return new Response(
 							JSON.stringify({

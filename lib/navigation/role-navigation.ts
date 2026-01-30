@@ -123,6 +123,33 @@ export const ROLE_NAVIGATION: Record<UserRole, NavItem[]> = {
 			],
 		},
 		{
+			title: "Ledger View",
+			url: "/dashboard/admin/ledger",
+			icon: Database,
+			items: [
+				{
+					title: "Accounts",
+					url: "/dashboard/admin/ledger/accounts",
+					icon: LayoutDashboard,
+				},
+				{
+					title: "Transactions",
+					url: "/dashboard/admin/ledger/transactions",
+					icon: FileText,
+				},
+				{
+					title: "Investors",
+					url: "/dashboard/admin/ledger/investors",
+					icon: Users,
+				},
+				{
+					title: "Mortgages",
+					url: "/dashboard/admin/ledger/mortgages",
+					icon: Home,
+				},
+			],
+		},
+		{
 			title: "Settings",
 			url: "/dashboard/settings",
 			icon: Settings,
