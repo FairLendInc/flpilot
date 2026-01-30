@@ -69,10 +69,13 @@ export const provisionBrokerOrganization = internalAction({
 				membershipId: membership.id,
 			});
 
-			await ctx.runMutation(internal.brokers.management.updateBrokerOrgIdInternal, {
-				brokerUserId: args.brokerUserId,
-				workosOrgId: org.id,
-			});
+			await ctx.runMutation(
+				internal.brokers.management.updateBrokerOrgIdInternal,
+				{
+					brokerUserId: args.brokerUserId,
+					workosOrgId: org.id,
+				}
+			);
 
 			return {
 				workosOrgId: org.id,
@@ -680,7 +683,9 @@ export const deleteBrokerOrganization = internalAction({
  * Admin action to provision a WorkOS organization for a broker
  * Creates a new WorkOS organization and assigns the broker user as admin
  */
-export const provisionWorkOSOrganizationAdmin = createAuthorizedAction(["admin"])({
+export const provisionWorkOSOrganizationAdmin = createAuthorizedAction([
+	"admin",
+])({
 	args: {
 		brokerId: v.id("brokers"),
 		organizationName: v.optional(v.string()),
@@ -735,9 +740,7 @@ export const provisionWorkOSOrganizationAdmin = createAuthorizedAction(["admin"]
 
 			// Determine organization name
 			const orgName =
-				args.organizationName ||
-				broker.branding?.brandName ||
-				broker.subdomain;
+				args.organizationName || broker.branding?.brandName || broker.subdomain;
 
 			// Call the internal provisioning action
 			const result: { workosOrgId: string; brokerUserId: string } =
@@ -769,7 +772,8 @@ export const provisionWorkOSOrganizationAdmin = createAuthorizedAction(["admin"]
 
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : "Unknown error occurred",
+				error:
+					error instanceof Error ? error.message : "Unknown error occurred",
 			};
 		}
 	},
@@ -779,74 +783,81 @@ export const provisionWorkOSOrganizationAdmin = createAuthorizedAction(["admin"]
  * Admin action to update/switch a broker's WorkOS organization ID
  * This allows admins to manually assign a different WorkOS org to a broker
  */
-export const updateBrokerWorkOSOrganization = createAuthorizedAction(["admin"])({
-	args: {
-		brokerId: v.id("brokers"),
-		workosOrgId: v.string(),
-	},
-	handler: async (
-		ctx: AuthorizedActionCtx,
-		args: { brokerId: Id<"brokers">; workosOrgId: string }
-	): Promise<{
-		success: boolean;
-		previousOrgId?: string;
-		newOrgId?: string;
-		error?: string;
-	}> => {
-		try {
-			// Validate org ID format (WorkOS org IDs start with "org_")
-			if (!args.workosOrgId.startsWith("org_")) {
+export const updateBrokerWorkOSOrganization = createAuthorizedAction(["admin"])(
+	{
+		args: {
+			brokerId: v.id("brokers"),
+			workosOrgId: v.string(),
+		},
+		handler: async (
+			ctx: AuthorizedActionCtx,
+			args: { brokerId: Id<"brokers">; workosOrgId: string }
+		): Promise<{
+			success: boolean;
+			previousOrgId?: string;
+			newOrgId?: string;
+			error?: string;
+		}> => {
+			try {
+				// Validate org ID format (WorkOS org IDs start with "org_")
+				if (!args.workosOrgId.startsWith("org_")) {
+					return {
+						success: false,
+						error:
+							"Invalid WorkOS organization ID format. Must start with 'org_'",
+					};
+				}
+
+				// Get broker record
+				const broker = await ctx.runQuery(
+					api.brokers.management.getBrokerById,
+					{
+						brokerId: args.brokerId,
+					}
+				);
+
+				if (!broker) {
+					return {
+						success: false,
+						error: "Broker not found",
+					};
+				}
+
+				const previousOrgId = broker.workosOrgId || undefined;
+
+				// Update the broker's WorkOS org ID
+				await ctx.runMutation(api.brokers.management.updateBrokerOrgId, {
+					brokerId: args.brokerId,
+					workosOrgId: args.workosOrgId,
+				});
+
+				console.log("Admin updated broker WorkOS organization:", {
+					brokerId: args.brokerId,
+					previousOrgId,
+					newOrgId: args.workosOrgId,
+				});
+
+				return {
+					success: true,
+					previousOrgId,
+					newOrgId: args.workosOrgId,
+				};
+			} catch (error) {
+				console.error("Failed to update broker WorkOS organization:", {
+					brokerId: args.brokerId,
+					workosOrgId: args.workosOrgId,
+					error: error instanceof Error ? error.message : String(error),
+				});
+
 				return {
 					success: false,
-					error: "Invalid WorkOS organization ID format. Must start with 'org_'",
+					error:
+						error instanceof Error ? error.message : "Unknown error occurred",
 				};
 			}
-
-			// Get broker record
-			const broker = await ctx.runQuery(api.brokers.management.getBrokerById, {
-				brokerId: args.brokerId,
-			});
-
-			if (!broker) {
-				return {
-					success: false,
-					error: "Broker not found",
-				};
-			}
-
-			const previousOrgId = broker.workosOrgId || undefined;
-
-			// Update the broker's WorkOS org ID
-			await ctx.runMutation(api.brokers.management.updateBrokerOrgId, {
-				brokerId: args.brokerId,
-				workosOrgId: args.workosOrgId,
-			});
-
-			console.log("Admin updated broker WorkOS organization:", {
-				brokerId: args.brokerId,
-				previousOrgId,
-				newOrgId: args.workosOrgId,
-			});
-
-			return {
-				success: true,
-				previousOrgId,
-				newOrgId: args.workosOrgId,
-			};
-		} catch (error) {
-			console.error("Failed to update broker WorkOS organization:", {
-				brokerId: args.brokerId,
-				workosOrgId: args.workosOrgId,
-				error: error instanceof Error ? error.message : String(error),
-			});
-
-			return {
-				success: false,
-				error: error instanceof Error ? error.message : "Unknown error occurred",
-			};
-		}
-	},
-});
+		},
+	}
+);
 
 /**
  * Verify broker's WorkOS status by fetching their actual memberships from WorkOS
@@ -998,7 +1009,8 @@ export const verifyBrokerWorkOSStatus = createAuthorizedAction(["admin"])({
 				workosData: { memberships: [] },
 				isSynced: false,
 				suggestedOrgId: null,
-				error: error instanceof Error ? error.message : "Unknown error occurred",
+				error:
+					error instanceof Error ? error.message : "Unknown error occurred",
 			};
 		}
 	},

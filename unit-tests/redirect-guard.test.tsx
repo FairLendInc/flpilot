@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
+import { usePathname, useRouter } from "next/navigation";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { RedirectGuard } from "@/components/auth/redirect-guard";
-import { usePathname, useRouter } from "next/navigation";
 
 vi.mock("next/navigation", () => ({
 	usePathname: vi.fn(),
@@ -23,8 +23,8 @@ describe("RedirectGuard", () => {
 
 		render(
 			<RedirectGuard
-				shouldRedirect={true}
 				redirectTo="/profile"
+				shouldRedirect={true}
 				skipPaths={["/onboarding"]}
 			/>
 		);
@@ -37,8 +37,8 @@ describe("RedirectGuard", () => {
 
 		render(
 			<RedirectGuard
-				shouldRedirect={true}
 				redirectTo="/profile"
+				shouldRedirect={true}
 				skipPaths={["/onboarding"]}
 			/>
 		);

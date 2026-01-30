@@ -35,7 +35,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -71,7 +77,7 @@ export default function BrokerDetailPage() {
 
 	// Queries
 	const broker = useQuery(api.brokers.management.getBrokerWithApplicationData, {
-		brokerId: brokerId,
+		brokerId,
 	});
 
 	const stats = useQuery(api.brokers.stats.getBrokerDashboardStats, {
@@ -93,20 +99,36 @@ export default function BrokerDetailPage() {
 
 	// Mutations
 	const updateProfile = useMutation(api.brokers.management.updateBrokerProfile);
-	const updateSubdomain = useMutation(api.brokers.management.updateBrokerSubdomain);
-	const updateCustomDomain = useMutation(api.brokers.management.updateBrokerCustomDomain);
-	const updateCommission = useMutation(api.brokers.management.updateBrokerCommissionRates);
+	const updateSubdomain = useMutation(
+		api.brokers.management.updateBrokerSubdomain
+	);
+	const updateCustomDomain = useMutation(
+		api.brokers.management.updateBrokerCustomDomain
+	);
+	const updateCommission = useMutation(
+		api.brokers.management.updateBrokerCommissionRates
+	);
 	const suspendBroker = useMutation(api.brokers.management.suspendBroker);
 	const reactivateBroker = useMutation(api.brokers.management.reactivateBroker);
 	const revokeBroker = useMutation(api.brokers.management.revokeBroker);
-	const deleteBroker = useMutation(api.brokers.management.deleteBrokerWithCleanup);
+	const deleteBroker = useMutation(
+		api.brokers.management.deleteBrokerWithCleanup
+	);
 	const reassignClient = useMutation(api.brokers.clients.reassignBrokerClient);
-	const reassignAllClients = useMutation(api.brokers.clients.reassignAllBrokerClients);
+	const reassignAllClients = useMutation(
+		api.brokers.clients.reassignAllBrokerClients
+	);
 
 	// Actions (WorkOS)
-	const provisionWorkOSOrg = useAction(api.brokers.workos.provisionWorkOSOrganizationAdmin);
-	const updateWorkOSOrg = useAction(api.brokers.workos.updateBrokerWorkOSOrganization);
-	const verifyWorkOSStatus = useAction(api.brokers.workos.verifyBrokerWorkOSStatus);
+	const provisionWorkOSOrg = useAction(
+		api.brokers.workos.provisionWorkOSOrganizationAdmin
+	);
+	const updateWorkOSOrg = useAction(
+		api.brokers.workos.updateBrokerWorkOSOrganization
+	);
+	const verifyWorkOSStatus = useAction(
+		api.brokers.workos.verifyBrokerWorkOSStatus
+	);
 
 	// Dialog states
 	const [profileDialogOpen, setProfileDialogOpen] = useState(false);
@@ -136,7 +158,8 @@ export default function BrokerDetailPage() {
 	const [isProvisioningOrg, setIsProvisioningOrg] = useState(false);
 	const [isUpdatingOrg, setIsUpdatingOrg] = useState(false);
 	const [copiedOrgId, setCopiedOrgId] = useState(false);
-	const [assignExistingDialogOpen, setAssignExistingDialogOpen] = useState(false);
+	const [assignExistingDialogOpen, setAssignExistingDialogOpen] =
+		useState(false);
 	const [isVerifyingStatus, setIsVerifyingStatus] = useState(false);
 	const [isSyncingFromWorkOS, setIsSyncingFromWorkOS] = useState(false);
 	const [verificationResult, setVerificationResult] = useState<{
@@ -184,8 +207,8 @@ export default function BrokerDetailPage() {
 	}
 
 	const displayBrandName = broker.branding?.brandName || broker.subdomain;
-	const portalUrl = broker.customDomain 
-		? `https://${broker.customDomain}` 
+	const portalUrl = broker.customDomain
+		? `https://${broker.customDomain}`
 		: getPortalUrl(broker.subdomain);
 	const applicationData = broker.applicationData;
 
@@ -283,7 +306,7 @@ export default function BrokerDetailPage() {
 								{/* Broker Personal Info */}
 								<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 									<div className="space-y-1">
-										<Label className="text-muted-foreground flex items-center gap-1">
+										<Label className="flex items-center gap-1 text-muted-foreground">
 											<User className="h-3 w-3" />
 											Broker Name
 										</Label>
@@ -296,7 +319,7 @@ export default function BrokerDetailPage() {
 										</p>
 									</div>
 									<div className="space-y-1">
-										<Label className="text-muted-foreground flex items-center gap-1">
+										<Label className="flex items-center gap-1 text-muted-foreground">
 											<Mail className="h-3 w-3" />
 											Email
 										</Label>
@@ -305,7 +328,7 @@ export default function BrokerDetailPage() {
 										</p>
 									</div>
 									<div className="space-y-1">
-										<Label className="text-muted-foreground flex items-center gap-1">
+										<Label className="flex items-center gap-1 text-muted-foreground">
 											<Phone className="h-3 w-3" />
 											Phone
 										</Label>
@@ -328,21 +351,23 @@ export default function BrokerDetailPage() {
 								{/* Business Contact */}
 								<div className="grid gap-4 md:grid-cols-2">
 									<div className="space-y-1">
-										<Label className="text-muted-foreground flex items-center gap-1">
+										<Label className="flex items-center gap-1 text-muted-foreground">
 											<Mail className="h-3 w-3" />
 											Business Email
 										</Label>
 										<p className="font-medium">
-											{applicationData?.companyInfo?.businessEmail || "Not provided"}
+											{applicationData?.companyInfo?.businessEmail ||
+												"Not provided"}
 										</p>
 									</div>
 									<div className="space-y-1">
-										<Label className="text-muted-foreground flex items-center gap-1">
+										<Label className="flex items-center gap-1 text-muted-foreground">
 											<Phone className="h-3 w-3" />
 											Business Phone
 										</Label>
 										<p className="font-medium">
-											{applicationData?.companyInfo?.businessPhone || "Not provided"}
+											{applicationData?.companyInfo?.businessPhone ||
+												"Not provided"}
 										</p>
 									</div>
 								</div>
@@ -431,7 +456,7 @@ export default function BrokerDetailPage() {
 												</p>
 											</div>
 											<div className="space-y-1">
-												<Label className="text-muted-foreground flex items-center gap-1">
+												<Label className="flex items-center gap-1 text-muted-foreground">
 													<Mail className="h-3 w-3" />
 													Business Email
 												</Label>
@@ -440,7 +465,7 @@ export default function BrokerDetailPage() {
 												</p>
 											</div>
 											<div className="space-y-1">
-												<Label className="text-muted-foreground flex items-center gap-1">
+												<Label className="flex items-center gap-1 text-muted-foreground">
 													<Phone className="h-3 w-3" />
 													Business Phone
 												</Label>
@@ -451,7 +476,7 @@ export default function BrokerDetailPage() {
 										</div>
 										<Separator />
 										<div className="space-y-1">
-											<Label className="text-muted-foreground flex items-center gap-1">
+											<Label className="flex items-center gap-1 text-muted-foreground">
 												<MapPin className="h-3 w-3" />
 												Registered Address
 											</Label>
@@ -709,11 +734,16 @@ export default function BrokerDetailPage() {
 										</p>
 									</div>
 									<div className="space-y-1">
-										<Label className="text-muted-foreground">Primary Color</Label>
+										<Label className="text-muted-foreground">
+											Primary Color
+										</Label>
 										<div className="flex items-center gap-2">
 											<div
 												className="h-6 w-6 rounded border"
-												style={{ backgroundColor: broker.branding?.primaryColor || "#3b82f6" }}
+												style={{
+													backgroundColor:
+														broker.branding?.primaryColor || "#3b82f6",
+												}}
 											/>
 											<p className="font-medium font-mono text-sm">
 												{broker.branding?.primaryColor || "#3b82f6"}
@@ -721,11 +751,16 @@ export default function BrokerDetailPage() {
 										</div>
 									</div>
 									<div className="space-y-1">
-										<Label className="text-muted-foreground">Secondary Color</Label>
+										<Label className="text-muted-foreground">
+											Secondary Color
+										</Label>
 										<div className="flex items-center gap-2">
 											<div
 												className="h-6 w-6 rounded border"
-												style={{ backgroundColor: broker.branding?.secondaryColor || "#64748b" }}
+												style={{
+													backgroundColor:
+														broker.branding?.secondaryColor || "#64748b",
+												}}
 											/>
 											<p className="font-medium font-mono text-sm">
 												{broker.branding?.secondaryColor || "#64748b"}
@@ -733,15 +768,22 @@ export default function BrokerDetailPage() {
 										</div>
 									</div>
 								</div>
-								<Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+								<Dialog
+									onOpenChange={setProfileDialogOpen}
+									open={profileDialogOpen}
+								>
 									<DialogTrigger asChild>
 										<Button
-											variant="outline"
 											onClick={() => {
 												setBrandName(broker.branding?.brandName || "");
-												setPrimaryColor(broker.branding?.primaryColor || "#3b82f6");
-												setSecondaryColor(broker.branding?.secondaryColor || "#64748b");
+												setPrimaryColor(
+													broker.branding?.primaryColor || "#3b82f6"
+												);
+												setSecondaryColor(
+													broker.branding?.secondaryColor || "#64748b"
+												);
 											}}
+											variant="outline"
 										>
 											Edit Profile
 										</Button>
@@ -758,26 +800,26 @@ export default function BrokerDetailPage() {
 												<Label htmlFor="brandName">Brand Name</Label>
 												<Input
 													id="brandName"
-													value={brandName}
 													onChange={(e) => setBrandName(e.target.value)}
 													placeholder="Enter brand name"
+													value={brandName}
 												/>
 											</div>
 											<div className="space-y-2">
 												<Label htmlFor="primaryColor">Primary Color</Label>
 												<div className="flex gap-2">
 													<Input
+														className="h-10 w-20 p-1"
 														id="primaryColor"
+														onChange={(e) => setPrimaryColor(e.target.value)}
 														type="color"
 														value={primaryColor}
-														onChange={(e) => setPrimaryColor(e.target.value)}
-														className="h-10 w-20 p-1"
 													/>
 													<Input
-														value={primaryColor}
+														className="flex-1 font-mono"
 														onChange={(e) => setPrimaryColor(e.target.value)}
 														placeholder="#3b82f6"
-														className="flex-1 font-mono"
+														value={primaryColor}
 													/>
 												</div>
 											</div>
@@ -785,23 +827,26 @@ export default function BrokerDetailPage() {
 												<Label htmlFor="secondaryColor">Secondary Color</Label>
 												<div className="flex gap-2">
 													<Input
+														className="h-10 w-20 p-1"
 														id="secondaryColor"
+														onChange={(e) => setSecondaryColor(e.target.value)}
 														type="color"
 														value={secondaryColor}
-														onChange={(e) => setSecondaryColor(e.target.value)}
-														className="h-10 w-20 p-1"
 													/>
 													<Input
-														value={secondaryColor}
+														className="flex-1 font-mono"
 														onChange={(e) => setSecondaryColor(e.target.value)}
 														placeholder="#64748b"
-														className="flex-1 font-mono"
+														value={secondaryColor}
 													/>
 												</div>
 											</div>
 										</div>
 										<DialogFooter>
-											<Button variant="outline" onClick={() => setProfileDialogOpen(false)}>
+											<Button
+												onClick={() => setProfileDialogOpen(false)}
+												variant="outline"
+											>
 												Cancel
 											</Button>
 											<Button
@@ -817,7 +862,7 @@ export default function BrokerDetailPage() {
 														});
 														toast.success("Profile updated successfully");
 														setProfileDialogOpen(false);
-													} catch (err) {
+													} catch (_err) {
 														toast.error("Failed to update profile");
 													}
 												}}
@@ -843,18 +888,25 @@ export default function BrokerDetailPage() {
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="space-y-1">
-									<Label className="text-muted-foreground">Current Commission Rate</Label>
+									<Label className="text-muted-foreground">
+										Current Commission Rate
+									</Label>
 									<p className="font-bold text-2xl">
 										{broker.commission?.ratePercentage || 0}%
 									</p>
 								</div>
-								<Dialog open={commissionDialogOpen} onOpenChange={setCommissionDialogOpen}>
+								<Dialog
+									onOpenChange={setCommissionDialogOpen}
+									open={commissionDialogOpen}
+								>
 									<DialogTrigger asChild>
 										<Button
-											variant="outline"
 											onClick={() => {
-												setNewCommissionRate(String(broker.commission?.ratePercentage || 0));
+												setNewCommissionRate(
+													String(broker.commission?.ratePercentage || 0)
+												);
 											}}
+											variant="outline"
 										>
 											Edit Commission Rate
 										</Button>
@@ -868,20 +920,25 @@ export default function BrokerDetailPage() {
 										</DialogHeader>
 										<div className="space-y-4 py-4">
 											<div className="space-y-2">
-												<Label htmlFor="commissionRate">Commission Rate (%)</Label>
+												<Label htmlFor="commissionRate">
+													Commission Rate (%)
+												</Label>
 												<Input
 													id="commissionRate"
-													type="number"
-													step="0.1"
-													min="0"
 													max="100"
-													value={newCommissionRate}
+													min="0"
 													onChange={(e) => setNewCommissionRate(e.target.value)}
+													step="0.1"
+													type="number"
+													value={newCommissionRate}
 												/>
 											</div>
 										</div>
 										<DialogFooter>
-											<Button variant="outline" onClick={() => setCommissionDialogOpen(false)}>
+											<Button
+												onClick={() => setCommissionDialogOpen(false)}
+												variant="outline"
+											>
 												Cancel
 											</Button>
 											<Button
@@ -889,11 +946,12 @@ export default function BrokerDetailPage() {
 													try {
 														await updateCommission({
 															brokerId,
-															commissionRate: Number.parseFloat(newCommissionRate),
+															commissionRate:
+																Number.parseFloat(newCommissionRate),
 														});
 														toast.success("Commission rate updated");
 														setCommissionDialogOpen(false);
-													} catch (err) {
+													} catch (_err) {
 														toast.error("Failed to update commission rate");
 													}
 												}}
@@ -921,15 +979,22 @@ export default function BrokerDetailPage() {
 								{/* Subdomain Section */}
 								<div className="space-y-4">
 									<div className="space-y-1">
-										<Label className="text-muted-foreground">Subdomain URL</Label>
+										<Label className="text-muted-foreground">
+											Subdomain URL
+										</Label>
 										<div className="flex items-center justify-between">
-											<p className="font-medium">{broker.subdomain}.{BASE_DOMAIN}</p>
-											<Dialog open={subdomainDialogOpen} onOpenChange={setSubdomainDialogOpen}>
+											<p className="font-medium">
+												{broker.subdomain}.{BASE_DOMAIN}
+											</p>
+											<Dialog
+												onOpenChange={setSubdomainDialogOpen}
+												open={subdomainDialogOpen}
+											>
 												<DialogTrigger asChild>
 													<Button
-														variant="outline"
-														size="sm"
 														onClick={() => setNewSubdomain(broker.subdomain)}
+														size="sm"
+														variant="outline"
 													>
 														Change Subdomain
 													</Button>
@@ -938,7 +1003,8 @@ export default function BrokerDetailPage() {
 													<DialogHeader>
 														<DialogTitle>Change Subdomain</DialogTitle>
 														<DialogDescription>
-															Warning: This will change the broker's default portal URL. Make sure to notify the broker.
+															Warning: This will change the broker's default
+															portal URL. Make sure to notify the broker.
 														</DialogDescription>
 													</DialogHeader>
 													<div className="space-y-4 py-4">
@@ -947,20 +1013,30 @@ export default function BrokerDetailPage() {
 															<div className="flex items-center gap-2">
 																<Input
 																	id="subdomain"
-																	value={newSubdomain}
-																	onChange={(e) => setNewSubdomain(e.target.value.toLowerCase())}
+																	onChange={(e) =>
+																		setNewSubdomain(
+																			e.target.value.toLowerCase()
+																		)
+																	}
 																	placeholder="broker-subdomain"
+																	value={newSubdomain}
 																/>
-																<span className="text-muted-foreground">.{BASE_DOMAIN}</span>
+																<span className="text-muted-foreground">
+																	.{BASE_DOMAIN}
+																</span>
 															</div>
 														</div>
 														<div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-															<AlertTriangle className="mb-1 inline h-4 w-4" /> Changing the subdomain will affect the broker's portal URL.
-															All existing links will stop working.
+															<AlertTriangle className="mb-1 inline h-4 w-4" />{" "}
+															Changing the subdomain will affect the broker's
+															portal URL. All existing links will stop working.
 														</div>
 													</div>
 													<DialogFooter>
-														<Button variant="outline" onClick={() => setSubdomainDialogOpen(false)}>
+														<Button
+															onClick={() => setSubdomainDialogOpen(false)}
+															variant="outline"
+														>
 															Cancel
 														</Button>
 														<Button
@@ -970,10 +1046,16 @@ export default function BrokerDetailPage() {
 																		brokerId,
 																		subdomain: newSubdomain,
 																	});
-																	toast.success("Subdomain updated successfully");
+																	toast.success(
+																		"Subdomain updated successfully"
+																	);
 																	setSubdomainDialogOpen(false);
 																} catch (err) {
-																	toast.error(err instanceof Error ? err.message : "Failed to update subdomain");
+																	toast.error(
+																		err instanceof Error
+																			? err.message
+																			: "Failed to update subdomain"
+																	);
 																}
 															}}
 														>
@@ -991,17 +1073,24 @@ export default function BrokerDetailPage() {
 								{/* Custom Domain Section */}
 								<div className="space-y-4">
 									<div className="space-y-1">
-										<Label className="text-muted-foreground">Custom Domain</Label>
+										<Label className="text-muted-foreground">
+											Custom Domain
+										</Label>
 										<div className="flex items-center justify-between">
 											<p className="font-medium">
 												{broker.customDomain || "Not configured"}
 											</p>
-											<Dialog open={customDomainDialogOpen} onOpenChange={setCustomDomainDialogOpen}>
+											<Dialog
+												onOpenChange={setCustomDomainDialogOpen}
+												open={customDomainDialogOpen}
+											>
 												<DialogTrigger asChild>
 													<Button
-														variant="outline"
+														onClick={() =>
+															setNewCustomDomain(broker.customDomain || "")
+														}
 														size="sm"
-														onClick={() => setNewCustomDomain(broker.customDomain || "")}
+														variant="outline"
 													>
 														{broker.customDomain ? "Edit Domain" : "Add Domain"}
 													</Button>
@@ -1010,8 +1099,8 @@ export default function BrokerDetailPage() {
 													<DialogHeader>
 														<DialogTitle>Custom Domain</DialogTitle>
 														<DialogDescription>
-															Configure a custom domain for this broker (e.g. mortgages.broker.com).
-															Requires DNS configuration.
+															Configure a custom domain for this broker (e.g.
+															mortgages.broker.com). Requires DNS configuration.
 														</DialogDescription>
 													</DialogHeader>
 													<div className="space-y-4 py-4">
@@ -1019,21 +1108,35 @@ export default function BrokerDetailPage() {
 															<Label htmlFor="customDomain">Domain Name</Label>
 															<Input
 																id="customDomain"
-																value={newCustomDomain}
-																onChange={(e) => setNewCustomDomain(e.target.value.toLowerCase())}
+																onChange={(e) =>
+																	setNewCustomDomain(
+																		e.target.value.toLowerCase()
+																	)
+																}
 																placeholder="e.g. mortgages.broker.com"
+																value={newCustomDomain}
 															/>
 															<p className="text-muted-foreground text-xs">
 																Leave empty to remove the custom domain.
 															</p>
 														</div>
 														<div className="rounded-lg border bg-muted p-3 text-sm">
-															<p className="font-medium mb-1">DNS Configuration Required</p>
-															<p>To use a custom domain, you must configure a CNAME record pointing to <strong>{BASE_DOMAIN}</strong> (or A record to 76.76.21.21).</p>
+															<p className="mb-1 font-medium">
+																DNS Configuration Required
+															</p>
+															<p>
+																To use a custom domain, you must configure a
+																CNAME record pointing to{" "}
+																<strong>{BASE_DOMAIN}</strong> (or A record to
+																76.76.21.21).
+															</p>
 														</div>
 													</div>
 													<DialogFooter>
-														<Button variant="outline" onClick={() => setCustomDomainDialogOpen(false)}>
+														<Button
+															onClick={() => setCustomDomainDialogOpen(false)}
+															variant="outline"
+														>
 															Cancel
 														</Button>
 														<Button
@@ -1043,10 +1146,16 @@ export default function BrokerDetailPage() {
 																		brokerId,
 																		customDomain: newCustomDomain || undefined,
 																	});
-																	toast.success("Custom domain updated successfully");
+																	toast.success(
+																		"Custom domain updated successfully"
+																	);
 																	setCustomDomainDialogOpen(false);
 																} catch (err) {
-																	toast.error(err instanceof Error ? err.message : "Failed to update custom domain");
+																	toast.error(
+																		err instanceof Error
+																			? err.message
+																			: "Failed to update custom domain"
+																	);
 																}
 															}}
 														>
@@ -1076,12 +1185,15 @@ export default function BrokerDetailPage() {
 								<div className="flex items-center justify-between">
 									<div>
 										<p className="font-medium">Total Clients</p>
-										<p className="text-muted-foreground text-2xl font-bold">
+										<p className="font-bold text-2xl text-muted-foreground">
 											{brokerClients?.length || 0}
 										</p>
 									</div>
 									{(brokerClients?.length || 0) > 0 && (
-										<Dialog open={reassignAllDialogOpen} onOpenChange={setReassignAllDialogOpen}>
+										<Dialog
+											onOpenChange={setReassignAllDialogOpen}
+											open={reassignAllDialogOpen}
+										>
 											<DialogTrigger asChild>
 												<Button variant="outline">Reassign All Clients</Button>
 											</DialogTrigger>
@@ -1089,15 +1201,16 @@ export default function BrokerDetailPage() {
 												<DialogHeader>
 													<DialogTitle>Reassign All Clients</DialogTitle>
 													<DialogDescription>
-														Move all {brokerClients?.length} clients to another broker
+														Move all {brokerClients?.length} clients to another
+														broker
 													</DialogDescription>
 												</DialogHeader>
 												<div className="space-y-4 py-4">
 													<div className="space-y-2">
 														<Label>Target Broker</Label>
 														<Select
-															value={reassignTargetBrokerId}
 															onValueChange={setReassignTargetBrokerId}
+															value={reassignTargetBrokerId}
 														>
 															<SelectTrigger>
 																<SelectValue placeholder="Select a broker" />
@@ -1115,7 +1228,10 @@ export default function BrokerDetailPage() {
 													</div>
 												</div>
 												<DialogFooter>
-													<Button variant="outline" onClick={() => setReassignAllDialogOpen(false)}>
+													<Button
+														onClick={() => setReassignAllDialogOpen(false)}
+														variant="outline"
+													>
 														Cancel
 													</Button>
 													<Button
@@ -1124,12 +1240,15 @@ export default function BrokerDetailPage() {
 															try {
 																await reassignAllClients({
 																	sourceBrokerId: brokerId,
-																	targetBrokerId: reassignTargetBrokerId as Id<"brokers">,
+																	targetBrokerId:
+																		reassignTargetBrokerId as Id<"brokers">,
 																});
-																toast.success("All clients reassigned successfully");
+																toast.success(
+																	"All clients reassigned successfully"
+																);
 																setReassignAllDialogOpen(false);
 																setReassignTargetBrokerId("");
-															} catch (err) {
+															} catch (_err) {
 																toast.error("Failed to reassign clients");
 															}
 														}}
@@ -1145,8 +1264,8 @@ export default function BrokerDetailPage() {
 									<div className="space-y-2">
 										{brokerClients.map((client) => (
 											<div
-												key={client._id}
 												className="flex items-center justify-between rounded-lg border p-3"
+												key={client._id}
 											>
 												<div>
 													<p className="font-medium">
@@ -1164,7 +1283,7 @@ export default function BrokerDetailPage() {
 																targetBrokerId: targetId as Id<"brokers">,
 															});
 															toast.success("Client reassigned");
-														} catch (err) {
+														} catch (_err) {
 															toast.error("Failed to reassign client");
 														}
 													}}
@@ -1186,7 +1305,9 @@ export default function BrokerDetailPage() {
 										))}
 									</div>
 								) : (
-									<p className="text-muted-foreground">No clients assigned to this broker.</p>
+									<p className="text-muted-foreground">
+										No clients assigned to this broker.
+									</p>
 								)}
 							</CardContent>
 						</Card>
@@ -1199,7 +1320,8 @@ export default function BrokerDetailPage() {
 									WorkOS Organization
 								</CardTitle>
 								<CardDescription>
-									WorkOS integration details for authentication and authorization
+									WorkOS integration details for authentication and
+									authorization
 								</CardDescription>
 							</CardHeader>
 							<CardContent className="space-y-4">
@@ -1207,16 +1329,19 @@ export default function BrokerDetailPage() {
 									<div className="space-y-1">
 										<Label className="text-muted-foreground">Status</Label>
 										<div className="flex items-center gap-2">
-											<Badge variant={broker.workosOrgId ? "default" : "secondary"}>
+											<Badge
+												variant={broker.workosOrgId ? "default" : "secondary"}
+											>
 												{broker.workosOrgId ? "Provisioned" : "Not Provisioned"}
 											</Badge>
 											{verificationResult && !verificationResult.isSynced && (
-												<Badge variant="destructive">
-													Out of Sync
-												</Badge>
+												<Badge variant="destructive">Out of Sync</Badge>
 											)}
-											{verificationResult && verificationResult.isSynced && (
-												<Badge variant="outline" className="border-green-500 text-green-600">
+											{verificationResult?.isSynced && (
+												<Badge
+													className="border-green-500 text-green-600"
+													variant="outline"
+												>
 													<CheckCircle2 className="mr-1 h-3 w-3" />
 													Synced
 												</Badge>
@@ -1225,7 +1350,9 @@ export default function BrokerDetailPage() {
 									</div>
 								</div>
 								<div className="space-y-1">
-									<Label className="text-muted-foreground">Local Organization ID</Label>
+									<Label className="text-muted-foreground">
+										Local Organization ID
+									</Label>
 									{broker.workosOrgId ? (
 										<div className="space-y-2">
 											<div className="flex items-center gap-2">
@@ -1233,8 +1360,6 @@ export default function BrokerDetailPage() {
 													{broker.workosOrgId}
 												</code>
 												<Button
-													variant="ghost"
-													size="icon"
 													className="h-8 w-8"
 													onClick={() => {
 														navigator.clipboard.writeText(broker.workosOrgId);
@@ -1242,6 +1367,8 @@ export default function BrokerDetailPage() {
 														setTimeout(() => setCopiedOrgId(false), 2000);
 														toast.success("Copied to clipboard");
 													}}
+													size="icon"
+													variant="ghost"
 												>
 													{copiedOrgId ? (
 														<Check className="h-4 w-4 text-green-500" />
@@ -1250,16 +1377,22 @@ export default function BrokerDetailPage() {
 													)}
 												</Button>
 											</div>
-											{(broker as any).workosOrgName && (
-												<div className="flex items-center gap-2 text-sm text-muted-foreground">
+											{(broker as { workosOrgName?: string }).workosOrgName && (
+												<div className="flex items-center gap-2 text-muted-foreground text-sm">
 													<Building2 className="h-3 w-3" />
-													<span>{(broker as any).workosOrgName}</span>
+													<span>
+														{
+															(broker as { workosOrgName?: string })
+																.workosOrgName
+														}
+													</span>
 												</div>
 											)}
 										</div>
 									) : (
 										<p className="text-muted-foreground text-sm italic">
-											No WorkOS organization has been provisioned for this broker.
+											No WorkOS organization has been provisioned for this
+											broker.
 										</p>
 									)}
 								</div>
@@ -1267,10 +1400,10 @@ export default function BrokerDetailPage() {
 								{/* Broker Role */}
 								<div className="space-y-1">
 									<Label className="text-muted-foreground">Broker Role</Label>
-									{(broker as any).workosRole ? (
+									{(broker as { workosRole?: string }).workosRole ? (
 										<div className="flex items-center gap-2">
-											<Badge variant="outline" className="font-mono">
-												{(broker as any).workosRole}
+											<Badge className="font-mono" variant="outline">
+												{(broker as { workosRole?: string }).workosRole}
 											</Badge>
 										</div>
 									) : (
@@ -1285,8 +1418,6 @@ export default function BrokerDetailPage() {
 								<div className="space-y-3">
 									<div className="flex items-center gap-2">
 										<Button
-											variant="outline"
-											size="sm"
 											disabled={isVerifyingStatus}
 											onClick={async () => {
 												setIsVerifyingStatus(true);
@@ -1297,17 +1428,27 @@ export default function BrokerDetailPage() {
 														if (result.isSynced) {
 															toast.success("WorkOS status verified - in sync");
 														} else {
-															toast.info("WorkOS status verified - out of sync");
+															toast.info(
+																"WorkOS status verified - out of sync"
+															);
 														}
 													} else {
-														toast.error(result.error || "Failed to verify status");
+														toast.error(
+															result.error || "Failed to verify status"
+														);
 													}
 												} catch (err) {
-													toast.error(err instanceof Error ? err.message : "Failed to verify status");
+													toast.error(
+														err instanceof Error
+															? err.message
+															: "Failed to verify status"
+													);
 												} finally {
 													setIsVerifyingStatus(false);
 												}
 											}}
+											size="sm"
+											variant="outline"
 										>
 											{isVerifyingStatus ? (
 												<>
@@ -1325,116 +1466,146 @@ export default function BrokerDetailPage() {
 
 									{/* Verification Results */}
 									{verificationResult && (
-										<div className="rounded-lg border bg-muted/50 p-3 space-y-3">
+										<div className="space-y-3 rounded-lg border bg-muted/50 p-3">
 											<div className="flex items-center justify-between">
-												<Label className="text-sm font-medium">WorkOS Verification Results</Label>
+												<Label className="font-medium text-sm">
+													WorkOS Verification Results
+												</Label>
 												<Button
-													variant="ghost"
-													size="sm"
 													className="h-6 px-2 text-xs"
 													onClick={() => setVerificationResult(null)}
+													size="sm"
+													variant="ghost"
 												>
 													Clear
 												</Button>
 											</div>
-											
+
 											{verificationResult.error ? (
-												<div className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+												<div className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 text-sm">
 													{verificationResult.error}
 												</div>
 											) : (
 												<>
 													<div className="space-y-2">
-														<Label className="text-xs text-muted-foreground">
-															Memberships Found in WorkOS ({verificationResult.workosData.memberships.length})
+														<Label className="text-muted-foreground text-xs">
+															Memberships Found in WorkOS (
+															{verificationResult.workosData.memberships.length}
+															)
 														</Label>
-														{verificationResult.workosData.memberships.length === 0 ? (
-															<p className="text-sm text-muted-foreground italic">
-																No organization memberships found in WorkOS for this user.
+														{verificationResult.workosData.memberships
+															.length === 0 ? (
+															<p className="text-muted-foreground text-sm italic">
+																No organization memberships found in WorkOS for
+																this user.
 															</p>
 														) : (
 															<div className="space-y-2">
-																{verificationResult.workosData.memberships.map((membership) => (
-																	<div
-																		key={membership.id}
-																		className="rounded border bg-background p-2 text-sm"
-																	>
-																		<div className="flex items-center justify-between">
-																			<code className="font-mono text-xs">
-																				{membership.organizationId}
-																			</code>
-																			<Badge variant="outline" className="text-xs">
-																				{membership.status}
-																			</Badge>
+																{verificationResult.workosData.memberships.map(
+																	(membership) => (
+																		<div
+																			className="rounded border bg-background p-2 text-sm"
+																			key={membership.id}
+																		>
+																			<div className="flex items-center justify-between">
+																				<code className="font-mono text-xs">
+																					{membership.organizationId}
+																				</code>
+																				<Badge
+																					className="text-xs"
+																					variant="outline"
+																				>
+																					{membership.status}
+																				</Badge>
+																			</div>
+																			{membership.organizationName && (
+																				<p className="mt-1 text-muted-foreground text-xs">
+																					{membership.organizationName}
+																				</p>
+																			)}
+																			{membership.role && (
+																				<p className="mt-1 text-xs">
+																					Role:{" "}
+																					<span className="font-medium">
+																						{membership.role}
+																					</span>
+																				</p>
+																			)}
 																		</div>
-																		{membership.organizationName && (
-																			<p className="text-xs text-muted-foreground mt-1">
-																				{membership.organizationName}
-																			</p>
-																		)}
-																		{membership.role && (
-																			<p className="text-xs mt-1">
-																				Role: <span className="font-medium">{membership.role}</span>
-																			</p>
-																		)}
-																	</div>
-																))}
+																	)
+																)}
 															</div>
 														)}
 													</div>
 
 													{/* Sync suggestion */}
-													{verificationResult.suggestedOrgId && !broker.workosOrgId && (
-														<div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
-															<p className="text-sm text-blue-800">
-																<CheckCircle2 className="inline mr-1 h-4 w-4" />
-																Found a WorkOS organization for this user that can be linked.
-															</p>
-															<Button
-																size="sm"
-																disabled={isSyncingFromWorkOS}
-																onClick={async () => {
-																	setIsSyncingFromWorkOS(true);
-																	try {
-																		const result = await updateWorkOSOrg({
-																			brokerId,
-																			workosOrgId: verificationResult.suggestedOrgId!,
-																		});
-																		if (result.success) {
-																			toast.success("Synced organization from WorkOS");
-																			setVerificationResult(null);
-																		} else {
-																			toast.error(result.error || "Failed to sync");
+													{verificationResult.suggestedOrgId &&
+														!broker.workosOrgId && (
+															<div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+																<p className="text-blue-800 text-sm">
+																	<CheckCircle2 className="mr-1 inline h-4 w-4" />
+																	Found a WorkOS organization for this user that
+																	can be linked.
+																</p>
+																<Button
+																	disabled={isSyncingFromWorkOS}
+																	onClick={async () => {
+																		setIsSyncingFromWorkOS(true);
+																		try {
+																			const result = await updateWorkOSOrg({
+																				brokerId,
+																				workosOrgId:
+																					verificationResult.suggestedOrgId ??
+																					undefined,
+																			});
+																			if (result.success) {
+																				toast.success(
+																					"WorkOS organization provisioned successfully"
+																				);
+																				setProvisionOrgDialogOpen(false);
+																				setNewOrgName("");
+																			} else {
+																				toast.error(
+																					result.error ||
+																						"Failed to provision organization"
+																				);
+																			}
+																		} catch (err) {
+																			toast.error(
+																				err instanceof Error
+																					? err.message
+																					: "Failed to provision organization"
+																			);
+																		} finally {
+																			setIsProvisioningOrg(false);
 																		}
-																	} catch (err) {
-																		toast.error(err instanceof Error ? err.message : "Failed to sync");
-																	} finally {
-																		setIsSyncingFromWorkOS(false);
-																	}
-																}}
-															>
-																{isSyncingFromWorkOS ? (
-																	<>
-																		<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-																		Syncing...
-																	</>
-																) : (
-																	<>
-																		<Link2 className="mr-2 h-4 w-4" />
-																		Sync from WorkOS
-																	</>
-																)}
-															</Button>
-														</div>
-													)}
+																	}}
+																	size="sm"
+																>
+																	{isProvisioningOrg ? (
+																		<>
+																			<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+																			Provisioning...
+																		</>
+																	) : (
+																		<>
+																			<Plus className="mr-2 h-4 w-4" />
+																			Provision New
+																		</>
+																	)}
+																</Button>
+															</div>
+														)}
 
 													{/* Out of sync warning */}
-													{!verificationResult.isSynced && broker.workosOrgId && (
-														<div className="rounded-lg border border-yellow-200 bg-yellow-50 p-2 text-sm text-yellow-800">
-															<AlertTriangle className="inline mr-1 h-4 w-4" />
-															Local organization ID does not match any WorkOS membership.
-														</div>
-													)}
+													{!verificationResult.isSynced &&
+														broker.workosOrgId && (
+															<div className="rounded-lg border border-yellow-200 bg-yellow-50 p-2 text-sm text-yellow-800">
+																<AlertTriangle className="mr-1 inline h-4 w-4" />
+																Local organization ID does not match any WorkOS
+																membership.
+															</div>
+														)}
 												</>
 											)}
 										</div>
@@ -1446,11 +1617,16 @@ export default function BrokerDetailPage() {
 								<div className="flex flex-wrap gap-2">
 									{/* Provision New - only when not provisioned */}
 									{!broker.workosOrgId && (
-										<Dialog open={provisionOrgDialogOpen} onOpenChange={setProvisionOrgDialogOpen}>
+										<Dialog
+											onOpenChange={setProvisionOrgDialogOpen}
+											open={provisionOrgDialogOpen}
+										>
 											<DialogTrigger asChild>
 												<Button
 													onClick={() => {
-														setNewOrgName(broker.branding?.brandName || broker.subdomain);
+														setNewOrgName(
+															broker.branding?.brandName || broker.subdomain
+														);
 													}}
 												>
 													<Plus className="mr-2 h-4 w-4" />
@@ -1459,10 +1635,13 @@ export default function BrokerDetailPage() {
 											</DialogTrigger>
 											<DialogContent>
 												<DialogHeader>
-													<DialogTitle>Provision WorkOS Organization</DialogTitle>
+													<DialogTitle>
+														Provision WorkOS Organization
+													</DialogTitle>
 													<DialogDescription>
-														Create a new WorkOS organization for this broker. This will enable
-														authentication and authorization features.
+														Create a new WorkOS organization for this broker.
+														This will enable authentication and authorization
+														features.
 													</DialogDescription>
 												</DialogHeader>
 												<div className="space-y-4 py-4">
@@ -1470,17 +1649,21 @@ export default function BrokerDetailPage() {
 														<Label htmlFor="orgName">Organization Name</Label>
 														<Input
 															id="orgName"
-															value={newOrgName}
 															onChange={(e) => setNewOrgName(e.target.value)}
 															placeholder="Enter organization name"
+															value={newOrgName}
 														/>
 														<p className="text-muted-foreground text-xs">
-															Defaults to the broker's brand name or subdomain if left empty.
+															Defaults to the broker's brand name or subdomain
+															if left empty.
 														</p>
 													</div>
 												</div>
 												<DialogFooter>
-													<Button variant="outline" onClick={() => setProvisionOrgDialogOpen(false)}>
+													<Button
+														onClick={() => setProvisionOrgDialogOpen(false)}
+														variant="outline"
+													>
 														Cancel
 													</Button>
 													<Button
@@ -1493,14 +1676,23 @@ export default function BrokerDetailPage() {
 																	organizationName: newOrgName || undefined,
 																});
 																if (result.success) {
-																	toast.success("WorkOS organization provisioned successfully");
+																	toast.success(
+																		"WorkOS organization provisioned successfully"
+																	);
 																	setProvisionOrgDialogOpen(false);
 																	setNewOrgName("");
 																} else {
-																	toast.error(result.error || "Failed to provision organization");
+																	toast.error(
+																		result.error ||
+																			"Failed to provision organization"
+																	);
 																}
 															} catch (err) {
-																toast.error(err instanceof Error ? err.message : "Failed to provision organization");
+																toast.error(
+																	err instanceof Error
+																		? err.message
+																		: "Failed to provision organization"
+																);
 															} finally {
 																setIsProvisioningOrg(false);
 															}
@@ -1522,7 +1714,10 @@ export default function BrokerDetailPage() {
 
 									{/* Assign Existing - only when not provisioned */}
 									{!broker.workosOrgId && (
-										<Dialog open={assignExistingDialogOpen} onOpenChange={setAssignExistingDialogOpen}>
+										<Dialog
+											onOpenChange={setAssignExistingDialogOpen}
+											open={assignExistingDialogOpen}
+										>
 											<DialogTrigger asChild>
 												<Button variant="outline">
 													<Link2 className="mr-2 h-4 w-4" />
@@ -1531,37 +1726,52 @@ export default function BrokerDetailPage() {
 											</DialogTrigger>
 											<DialogContent>
 												<DialogHeader>
-													<DialogTitle>Assign Existing WorkOS Organization</DialogTitle>
+													<DialogTitle>
+														Assign Existing WorkOS Organization
+													</DialogTitle>
 													<DialogDescription>
-														Link this broker to an existing WorkOS organization. Use this if the
-														organization already exists in WorkOS but is not linked here.
+														Link this broker to an existing WorkOS organization.
+														Use this if the organization already exists in
+														WorkOS but is not linked here.
 													</DialogDescription>
 												</DialogHeader>
 												<div className="space-y-4 py-4">
-													<div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-														<CheckCircle2 className="mb-1 inline h-4 w-4" /> Use "Verify Status" first
-														to check if this user already has WorkOS memberships that can be auto-linked.
+													<div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-800 text-sm">
+														<CheckCircle2 className="mb-1 inline h-4 w-4" /> Use
+														"Verify Status" first to check if this user already
+														has WorkOS memberships that can be auto-linked.
 													</div>
 													<div className="space-y-2">
-														<Label htmlFor="assignOrgId">WorkOS Organization ID</Label>
+														<Label htmlFor="assignOrgId">
+															WorkOS Organization ID
+														</Label>
 														<Input
-															id="assignOrgId"
-															value={newWorkosOrgId}
-															onChange={(e) => setNewWorkosOrgId(e.target.value)}
-															placeholder="org_xxxxxxxx"
 															className="font-mono"
+															id="assignOrgId"
+															onChange={(e) =>
+																setNewWorkosOrgId(e.target.value)
+															}
+															placeholder="org_xxxxxxxx"
+															value={newWorkosOrgId}
 														/>
 														<p className="text-muted-foreground text-xs">
-															Enter the WorkOS organization ID (starts with "org_").
+															Enter the WorkOS organization ID (starts with
+															"org_").
 														</p>
 													</div>
 												</div>
 												<DialogFooter>
-													<Button variant="outline" onClick={() => setAssignExistingDialogOpen(false)}>
+													<Button
+														onClick={() => setAssignExistingDialogOpen(false)}
+														variant="outline"
+													>
 														Cancel
 													</Button>
 													<Button
-														disabled={isUpdatingOrg || !newWorkosOrgId.startsWith("org_")}
+														disabled={
+															isUpdatingOrg ||
+															!newWorkosOrgId.startsWith("org_")
+														}
 														onClick={async () => {
 															setIsUpdatingOrg(true);
 															try {
@@ -1570,15 +1780,24 @@ export default function BrokerDetailPage() {
 																	workosOrgId: newWorkosOrgId,
 																});
 																if (result.success) {
-																	toast.success("WorkOS organization assigned successfully");
+																	toast.success(
+																		"WorkOS organization assigned successfully"
+																	);
 																	setAssignExistingDialogOpen(false);
 																	setNewWorkosOrgId("");
 																	setVerificationResult(null);
 																} else {
-																	toast.error(result.error || "Failed to assign organization");
+																	toast.error(
+																		result.error ||
+																			"Failed to assign organization"
+																	);
 																}
 															} catch (err) {
-																toast.error(err instanceof Error ? err.message : "Failed to assign organization");
+																toast.error(
+																	err instanceof Error
+																		? err.message
+																		: "Failed to assign organization"
+																);
 															} finally {
 																setIsUpdatingOrg(false);
 															}
@@ -1600,7 +1819,10 @@ export default function BrokerDetailPage() {
 
 									{/* Change Organization - only when already provisioned */}
 									{broker.workosOrgId && (
-										<Dialog open={changeOrgDialogOpen} onOpenChange={setChangeOrgDialogOpen}>
+										<Dialog
+											onOpenChange={setChangeOrgDialogOpen}
+											open={changeOrgDialogOpen}
+										>
 											<DialogTrigger asChild>
 												<Button variant="outline">
 													<Settings className="mr-2 h-4 w-4" />
@@ -1611,42 +1833,51 @@ export default function BrokerDetailPage() {
 												<DialogHeader>
 													<DialogTitle>Change WorkOS Organization</DialogTitle>
 													<DialogDescription>
-														Update the WorkOS organization ID for this broker. Use this to assign
-														an existing WorkOS organization or correct an incorrect ID.
+														Update the WorkOS organization ID for this broker.
+														Use this to assign an existing WorkOS organization
+														or correct an incorrect ID.
 													</DialogDescription>
 												</DialogHeader>
 												<div className="space-y-4 py-4">
-													<div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-														<AlertTriangle className="mb-1 inline h-4 w-4" /> Changing the WorkOS
-														organization may affect the broker's authentication. Make sure you
-														know what you're doing.
-													</div>
 													<div className="space-y-2">
-														<Label htmlFor="newOrgId">New Organization ID</Label>
+														<Label htmlFor="newOrgId">
+															New Organization ID
+														</Label>
 														<Input
-															id="newOrgId"
-															value={newWorkosOrgId}
-															onChange={(e) => setNewWorkosOrgId(e.target.value)}
-															placeholder="org_xxxxxxxx"
 															className="font-mono"
+															id="newOrgId"
+															onChange={(e) =>
+																setNewWorkosOrgId(e.target.value)
+															}
+															placeholder="org_xxxxxxxx"
+															value={newWorkosOrgId}
 														/>
 														<p className="text-muted-foreground text-xs">
-															Enter the WorkOS organization ID (starts with "org_").
+															Enter the WorkOS organization ID (starts with
+															"org_").
 														</p>
 													</div>
 													<div className="space-y-1">
-														<Label className="text-muted-foreground text-xs">Current Organization ID</Label>
+														<Label className="text-muted-foreground text-xs">
+															Current Organization ID
+														</Label>
 														<code className="block rounded bg-muted px-2 py-1 font-mono text-xs">
 															{broker.workosOrgId}
 														</code>
 													</div>
 												</div>
 												<DialogFooter>
-													<Button variant="outline" onClick={() => setChangeOrgDialogOpen(false)}>
+													<Button
+														onClick={() => setChangeOrgDialogOpen(false)}
+														variant="outline"
+													>
 														Cancel
 													</Button>
 													<Button
-														disabled={isUpdatingOrg || !newWorkosOrgId.startsWith("org_")}
+														disabled={
+															isUpdatingOrg ||
+															!newWorkosOrgId.startsWith("org_")
+														}
 														onClick={async () => {
 															setIsUpdatingOrg(true);
 															try {
@@ -1655,15 +1886,24 @@ export default function BrokerDetailPage() {
 																	workosOrgId: newWorkosOrgId,
 																});
 																if (result.success) {
-																	toast.success("WorkOS organization updated successfully");
+																	toast.success(
+																		"WorkOS organization updated successfully"
+																	);
 																	setChangeOrgDialogOpen(false);
 																	setNewWorkosOrgId("");
 																	setVerificationResult(null);
 																} else {
-																	toast.error(result.error || "Failed to update organization");
+																	toast.error(
+																		result.error ||
+																			"Failed to update organization"
+																	);
 																}
 															} catch (err) {
-																toast.error(err instanceof Error ? err.message : "Failed to update organization");
+																toast.error(
+																	err instanceof Error
+																		? err.message
+																		: "Failed to update organization"
+																);
 															} finally {
 																setIsUpdatingOrg(false);
 															}
@@ -1702,7 +1942,9 @@ export default function BrokerDetailPage() {
 								<div className="flex items-center justify-between rounded-lg border p-4">
 									<div>
 										<p className="font-medium">
-											{broker.status === "suspended" ? "Reactivate Broker" : "Suspend Broker"}
+											{broker.status === "suspended"
+												? "Reactivate Broker"
+												: "Suspend Broker"}
 										</p>
 										<p className="text-muted-foreground text-sm">
 											{broker.status === "suspended"
@@ -1712,23 +1954,29 @@ export default function BrokerDetailPage() {
 									</div>
 									{broker.status === "suspended" ? (
 										<Button
-											variant="outline"
 											onClick={async () => {
 												try {
 													await reactivateBroker({ brokerId });
 													toast.success("Broker reactivated");
-												} catch (err) {
+												} catch (_err) {
 													toast.error("Failed to reactivate broker");
 												}
 											}}
+											variant="outline"
 										>
 											<Play className="mr-2 h-4 w-4" />
 											Reactivate
 										</Button>
 									) : (
-										<Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+										<Dialog
+											onOpenChange={setSuspendDialogOpen}
+											open={suspendDialogOpen}
+										>
 											<DialogTrigger asChild>
-												<Button variant="outline" disabled={broker.status === "revoked"}>
+												<Button
+													disabled={broker.status === "revoked"}
+													variant="outline"
+												>
 													<Pause className="mr-2 h-4 w-4" />
 													Suspend
 												</Button>
@@ -1737,38 +1985,46 @@ export default function BrokerDetailPage() {
 												<DialogHeader>
 													<DialogTitle>Suspend Broker</DialogTitle>
 													<DialogDescription>
-														This will temporarily disable the broker's access to their portal.
-														You can reactivate them later.
+														This will temporarily disable the broker's access to
+														their portal. You can reactivate them later.
 													</DialogDescription>
 												</DialogHeader>
 												<div className="space-y-4 py-4">
 													<div className="space-y-2">
-														<Label htmlFor="suspendReason">Reason for suspension</Label>
+														<Label htmlFor="suspendReason">
+															Reason for suspension
+														</Label>
 														<Textarea
 															id="suspendReason"
-															value={suspendReason}
 															onChange={(e) => setSuspendReason(e.target.value)}
 															placeholder="Enter reason for suspension..."
+															value={suspendReason}
 														/>
 													</div>
 												</div>
 												<DialogFooter>
-													<Button variant="outline" onClick={() => setSuspendDialogOpen(false)}>
+													<Button
+														onClick={() => setSuspendDialogOpen(false)}
+														variant="outline"
+													>
 														Cancel
 													</Button>
 													<Button
-														variant="destructive"
 														disabled={!suspendReason.trim()}
 														onClick={async () => {
 															try {
-																await suspendBroker({ brokerId, reason: suspendReason });
+																await suspendBroker({
+																	brokerId,
+																	reason: suspendReason,
+																});
 																toast.success("Broker suspended");
 																setSuspendDialogOpen(false);
 																setSuspendReason("");
-															} catch (err) {
+															} catch (_err) {
 																toast.error("Failed to suspend broker");
 															}
 														}}
+														variant="destructive"
 													>
 														Suspend Broker
 													</Button>
@@ -1786,11 +2042,14 @@ export default function BrokerDetailPage() {
 											Permanently disable broker access. This cannot be undone.
 										</p>
 									</div>
-									<Dialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
+									<Dialog
+										onOpenChange={setRevokeDialogOpen}
+										open={revokeDialogOpen}
+									>
 										<DialogTrigger asChild>
 											<Button
-												variant="destructive"
 												disabled={broker.status === "revoked"}
+												variant="destructive"
 											>
 												<XCircle className="mr-2 h-4 w-4" />
 												{broker.status === "revoked" ? "Revoked" : "Revoke"}
@@ -1800,41 +2059,51 @@ export default function BrokerDetailPage() {
 											<DialogHeader>
 												<DialogTitle>Revoke Broker Access</DialogTitle>
 												<DialogDescription>
-													This action is permanent and cannot be undone. The broker will lose all access.
+													This action is permanent and cannot be undone. The
+													broker will lose all access.
 												</DialogDescription>
 											</DialogHeader>
 											<div className="space-y-4 py-4">
-												<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-													<AlertTriangle className="mb-1 inline h-4 w-4" /> This action is irreversible.
-													The broker will be permanently locked out.
+												<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800 text-sm">
+													<AlertTriangle className="mb-1 inline h-4 w-4" /> This
+													action is irreversible. The broker will be permanently
+													locked out.
 												</div>
 												<div className="space-y-2">
-													<Label htmlFor="revokeReason">Reason for revocation</Label>
+													<Label htmlFor="revokeReason">
+														Reason for revocation
+													</Label>
 													<Textarea
 														id="revokeReason"
-														value={revokeReason}
 														onChange={(e) => setRevokeReason(e.target.value)}
 														placeholder="Enter reason for revocation..."
+														value={revokeReason}
 													/>
 												</div>
 											</div>
 											<DialogFooter>
-												<Button variant="outline" onClick={() => setRevokeDialogOpen(false)}>
+												<Button
+													onClick={() => setRevokeDialogOpen(false)}
+													variant="outline"
+												>
 													Cancel
 												</Button>
 												<Button
-													variant="destructive"
 													disabled={!revokeReason.trim()}
 													onClick={async () => {
 														try {
-															await revokeBroker({ brokerId, reason: revokeReason });
+															await revokeBroker({
+																brokerId,
+																reason: revokeReason,
+															});
 															toast.success("Broker access revoked");
 															setRevokeDialogOpen(false);
 															setRevokeReason("");
-														} catch (err) {
+														} catch (_err) {
 															toast.error("Failed to revoke broker");
 														}
 													}}
+													variant="destructive"
 												>
 													Revoke Access
 												</Button>
@@ -1848,10 +2117,14 @@ export default function BrokerDetailPage() {
 									<div>
 										<p className="font-medium text-red-800">Delete Broker</p>
 										<p className="text-red-600 text-sm">
-											Permanently delete this broker. Clients will be reassigned to FAIRLEND.
+											Permanently delete this broker. Clients will be reassigned
+											to FAIRLEND.
 										</p>
 									</div>
-									<Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+									<Dialog
+										onOpenChange={setDeleteDialogOpen}
+										open={deleteDialogOpen}
+									>
 										<DialogTrigger asChild>
 											<Button variant="destructive">
 												<Trash2 className="mr-2 h-4 w-4" />
@@ -1862,39 +2135,48 @@ export default function BrokerDetailPage() {
 											<DialogHeader>
 												<DialogTitle>Delete Broker</DialogTitle>
 												<DialogDescription>
-													This will permanently delete the broker and reassign all clients to FAIRLEND.
+													This will permanently delete the broker and reassign
+													all clients to FAIRLEND.
 												</DialogDescription>
 											</DialogHeader>
 											<div className="space-y-4 py-4">
-												<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-													<AlertTriangle className="mb-1 inline h-4 w-4" /> This action is permanent and cannot be undone.
+												<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800 text-sm">
+													<AlertTriangle className="mb-1 inline h-4 w-4" /> This
+													action is permanent and cannot be undone.
 												</div>
 												<div className="space-y-2">
 													<p className="text-sm">
-														<strong>Clients to reassign:</strong> {brokerClients?.length || 0}
+														<strong>Clients to reassign:</strong>{" "}
+														{brokerClients?.length || 0}
 													</p>
 													<p className="text-sm">
-														<strong>WorkOS org will be deleted:</strong> {broker.workosOrgId ? "Yes" : "N/A"}
+														<strong>WorkOS org will be deleted:</strong>{" "}
+														{broker.workosOrgId ? "Yes" : "N/A"}
 													</p>
 												</div>
 												<div className="space-y-2">
 													<Label htmlFor="deleteConfirm">
-														Type <strong>{broker.subdomain}</strong> to confirm deletion
+														Type <strong>{broker.subdomain}</strong> to confirm
+														deletion
 													</Label>
 													<Input
 														id="deleteConfirm"
-														value={deleteConfirmation}
-														onChange={(e) => setDeleteConfirmation(e.target.value)}
+														onChange={(e) =>
+															setDeleteConfirmation(e.target.value)
+														}
 														placeholder={broker.subdomain}
+														value={deleteConfirmation}
 													/>
 												</div>
 											</div>
 											<DialogFooter>
-												<Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+												<Button
+													onClick={() => setDeleteDialogOpen(false)}
+													variant="outline"
+												>
 													Cancel
 												</Button>
 												<Button
-													variant="destructive"
 													disabled={deleteConfirmation !== broker.subdomain}
 													onClick={async () => {
 														try {
@@ -1905,9 +2187,14 @@ export default function BrokerDetailPage() {
 															toast.success("Broker deleted successfully");
 															router.push("/dashboard/admin/brokers/managed");
 														} catch (err) {
-															toast.error(err instanceof Error ? err.message : "Failed to delete broker");
+															toast.error(
+																err instanceof Error
+																	? err.message
+																	: "Failed to delete broker"
+															);
 														}
 													}}
+													variant="destructive"
 												>
 													Delete Broker
 												</Button>

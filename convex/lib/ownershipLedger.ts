@@ -12,7 +12,9 @@
  * - `investor:{userId}:inventory` - Investor share holdings
  *
  * ## Asset Structure
- * - `M{mortgageId}/SHARE` - Share tokens for each mortgage (100 total = 100%)
+ * - `M{hash}` - Share tokens for each mortgage (100 total = 100%)
+ *   - Hash is a deterministic 8-char uppercase hex derived from mortgage ID
+ *   - Format complies with Formance pattern: [A-Z][A-Z0-9]{0,16}(\/\d{1,6})?
  *
  * ## Critical Invariants
  * - Total shares per mortgage MUST equal 100
@@ -38,9 +40,26 @@ export const TOTAL_SHARE_UNITS = 100 * SHARE_UNIT_SCALE;
 
 /**
  * Generate the share asset name for a mortgage
+ *
+ * Formance requires asset names to match pattern: [A-Z][A-Z0-9]{0,16}(\/\d{1,6})?
+ * We use a deterministic hash of the mortgage ID to create a short, uppercase identifier.
+ *
+ * @example mortgageId "pn7f5gkwsk831e7f32arv9zwj97tw4j7" -> "M5B8F2A1C"
  */
 export function getMortgageShareAsset(mortgageId: string): string {
-	return `M${mortgageId}/SHARE`;
+	// Create a simple hash from the mortgage ID (deterministic)
+	let hash = 0;
+	for (let i = 0; i < mortgageId.length; i += 1) {
+		const char = mortgageId.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash &= hash; // Convert to 32-bit integer
+	}
+
+	// Convert hash to uppercase hex (8 chars max)
+	const hexHash = Math.abs(hash).toString(16).toUpperCase().slice(0, 8);
+
+	// Format: M + 8-char hash
+	return `M${hexHash}`;
 }
 
 /**

@@ -76,8 +76,21 @@ export const DEFAULT_LEDGER = "flpilot";
 export const ASSETS = {
 	/** Canadian Dollar with 2 decimal precision */
 	CAD: "CAD",
-	/** Mortgage share token pattern - use getMortgageShareAsset(mortgageId) */
-	MORTGAGE_SHARE: (mortgageId: string) => `M${mortgageId}/SHARE`,
+	/**
+	 * Mortgage share token pattern - use getMortgageShareAsset(mortgageId)
+	 * Formance requires: [A-Z][A-Z0-9]{0,16}(\/\d{1,6})?
+	 */
+	MORTGAGE_SHARE: (mortgageId: string) => {
+		// Create a simple hash from the mortgage ID (deterministic)
+		let hash = 0;
+		for (let i = 0; i < mortgageId.length; i += 1) {
+			const char = mortgageId.charCodeAt(i);
+			hash = (hash << 5) - hash + char;
+			hash &= hash;
+		}
+		const hexHash = Math.abs(hash).toString(16).toUpperCase().slice(0, 8);
+		return `M${hexHash}`;
+	},
 } as const;
 
 /**

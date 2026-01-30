@@ -286,3 +286,22 @@ export const getUserById = internalQuery({
 	args: { userId: v.id("users") },
 	handler: async (ctx, { userId }) => await ctx.db.get(userId),
 });
+
+/**
+ * List all users for admin purposes
+ * Used by the Ledger View admin dashboard
+ */
+export const listAllUsers = adminQuery({
+	args: {},
+	handler: async (ctx) => {
+		const users = await ctx.db.query("users").collect();
+		return users.map((user) => ({
+			_id: user._id,
+			idp_id: user.idp_id,
+			email: user.email,
+			first_name: user.first_name,
+			last_name: user.last_name,
+			created_at: user.created_at,
+		}));
+	},
+});

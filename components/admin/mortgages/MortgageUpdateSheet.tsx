@@ -36,6 +36,7 @@ import { useAuthenticatedQuery } from "@/convex/lib/client";
 type BorrowerItem = (typeof api.borrowers.listBorrowers._returnType)[number];
 
 import { MortgageDocumentTemplatesEditor } from "../MortgageDocumentTemplatesEditor";
+import { MortgageOwnershipTab } from "./MortgageOwnershipTab";
 
 type MortgageUpdateSheetProps = {
 	open: boolean;
@@ -340,11 +341,12 @@ export function MortgageUpdateSheet({
 				<ScrollArea className="min-h-0 flex-1">
 					<div className="px-4">
 						<Tabs className="mt-4" defaultValue="loan">
-							<TabsList className="grid w-full grid-cols-4">
+							<TabsList className="grid w-full grid-cols-5">
 								<TabsTrigger value="loan">Loan Details</TabsTrigger>
 								<TabsTrigger value="property">Property Info</TabsTrigger>
 								<TabsTrigger value="media">Media</TabsTrigger>
 								<TabsTrigger value="templates">Templates</TabsTrigger>
+								<TabsTrigger value="ownership">Ownership</TabsTrigger>
 							</TabsList>
 
 							<TabsContent className="mt-4 space-y-4" value="loan">
@@ -1241,6 +1243,21 @@ export function MortgageUpdateSheet({
 									<div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
 										<p className="text-muted-foreground">
 											Please save the mortgage first to add document templates.
+										</p>
+									</div>
+								)}
+							</TabsContent>
+
+							<TabsContent className="mt-4 space-y-6" value="ownership">
+								{mortgageId ? (
+									<MortgageOwnershipTab
+										mortgageAddress={addressDisplay}
+										mortgageId={mortgageId}
+									/>
+								) : (
+									<div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+										<p className="text-muted-foreground">
+											Please save the mortgage first to view ownership.
 										</p>
 									</div>
 								)}

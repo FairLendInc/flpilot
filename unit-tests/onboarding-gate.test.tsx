@@ -1,9 +1,9 @@
 import { render } from "@testing-library/react";
+import { useConvexAuth } from "convex/react";
+import { usePathname, useRouter } from "next/navigation";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
-import { useConvexAuth } from "convex/react";
-import { usePathname, useRouter } from "next/navigation";
 
 vi.mock("@/convex/lib/client", () => ({
 	useAuthenticatedQuery: vi.fn(),
