@@ -1,9 +1,12 @@
+
+
 import React, { useEffect } from "react"
 
 import { useDealStore } from "../store/dealStore"
 import type { Document, User } from "./dealLogic"
 import { FairLendRole } from "./dealLogic"
 import type { StoryContext, StoryFn } from "@storybook/react"
+import { createMockDealStoreState } from "../mocks/dealStore.mock"
 
 // Define the type for the initial state we might want to inject
 interface MockState {
@@ -15,36 +18,47 @@ interface MockState {
 }
 
 export const StoreDecorator = (Story: StoryFn, context: StoryContext) => {
-  const { setUserRole, setDeal, setDocuments, setAvailableUsers, setCurrentUser } = useDealStore()
+  const { setState } = useDealStore
+  const store = useDealStore()
 
   // Extract mock state from story parameters if available
   const mockState = context.parameters?.mockState as MockState | undefined
 
   useEffect(() => {
-    // Reset or initialize store state for the story
+    // Start with the default mock state
+    const defaultMocks = createMockDealStoreState()
+    
+    // Override with story-specific mocks
+    const mergedState: any = { ...defaultMocks }
+
     if (mockState?.userRole) {
-      setUserRole(mockState.userRole)
+      mergedState.userRole = mockState.userRole
     }
 
     if (mockState?.documents) {
-      setDocuments(mockState.documents)
+      mergedState.documents = mockState.documents
     }
 
     if (mockState?.users) {
-      setAvailableUsers(mockState.users)
+      mergedState.availableUsers = mockState.users
     }
 
     if (mockState?.currentUser) {
-      setCurrentUser(mockState.currentUser)
+      mergedState.currentUser = mockState.currentUser
     }
 
     if (mockState?.dealStatus) {
-      const currentDeal = useDealStore.getState().deal
-      if (currentDeal) {
-        setDeal({ ...currentDeal, status: mockState.dealStatus })
+      if (store.deal) {
+         mergedState.deal = { ...store.deal, status: mockState.dealStatus }
       }
     }
-  }, [mockState, setUserRole, setDeal, setDocuments, setAvailableUsers, setCurrentUser])
+    
+    // Apply state directly to store
+    // usage of setState to merge state
+    useDealStore.setState(mergedState)
+
+  }, [mockState, setState])
 
   return Story(context.args, context)
 }
+

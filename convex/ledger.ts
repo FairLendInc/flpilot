@@ -41,6 +41,7 @@ function getFormanceClient(): SDK {
 
 		// Construct token URL from server URL
 		const tokenURL = `${serverURL}/api/auth/oauth/token`;
+		console.log("Formance client initialized TokenURL: ", tokenURL);
 
 		formanceClient = new SDK({
 			serverURL,
@@ -51,6 +52,7 @@ function getFormanceClient(): SDK {
 			},
 		});
 	}
+	console.log("Formance client initialized", formanceClient);
 	return formanceClient;
 }
 
@@ -220,6 +222,7 @@ export const listAccounts = action({
 				data: sanitizeResponse(result),
 			};
 		} catch (error) {
+			console.log("error in listAccounts", error);
 			return handleActionError("listAccounts", error);
 		}
 	},
@@ -307,18 +310,27 @@ export const listTransactions = action({
 	}),
 	handler: async (_, args) => {
 		try {
+			console.log("Listing transactiosn");
 			const sdk = getFormanceClient();
+			console.log("Formance client initialized!!!", sdk);
+			// const versions = await sdk.getVersions();
+			// console.log("versions", versions);
+
+			// console.log("Formance client initialized!!!", sdk);
+			console.log("args", args);
 			const result = await sdk.ledger.v2.listTransactions({
 				ledger: args.ledgerName,
 				pageSize: args.pageSize ?? 100,
 				cursor: args.cursor,
 			});
+			console.log("result", result);
 
 			return {
 				success: true,
 				data: sanitizeResponse(result),
 			};
 		} catch (error) {
+			console.log("error in listTransactions", error);
 			return handleActionError("listTransactions", error);
 		}
 	},
@@ -562,7 +574,7 @@ export const getLedgerStats = action({
 // Ownership-Specific Ledger Operations
 // ============================================================================
 
-const DEFAULT_LEDGER = "flpilot";
+const DEFAULT_LEDGER = "flmarketplace";
 
 /**
  * Generate the share asset name for a mortgage

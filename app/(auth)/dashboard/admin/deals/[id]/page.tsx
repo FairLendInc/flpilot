@@ -35,6 +35,7 @@ import { use, useState } from "react";
 import { toast } from "sonner";
 import { OwnershipTransferReview } from "@/components/admin/deals/OwnershipTransferReview";
 import { FundTransferUploadCard } from "@/components/deals/FundTransferUploadCard";
+import { FundVerificationCard } from "@/components/deals/FundVerificationCard";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -356,6 +357,14 @@ export default function DealDetailPage({
 								)}
 							</CardContent>
 						</Card>
+
+						{/* Fund Verification - shown when in pending_verification state */}
+						<FundVerificationCard
+							currentState={deal.currentState}
+							currentUpload={deal.currentUpload}
+							dealId={deal._id}
+							dealValue={deal.dealValue}
+						/>
 
 						{/* Ownership Transfer Review - shown when in pending_ownership_review state */}
 						{deal.currentState && isOwnershipReviewState(deal.currentState) && (
