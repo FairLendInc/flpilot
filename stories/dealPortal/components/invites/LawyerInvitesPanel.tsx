@@ -26,19 +26,8 @@ export function LawyerInvitesPanel({user}: {user: any}) {
   const [resendErrorByInviteId, setResendErrorByInviteId] = React.useState<Record<string, string>>({})
 
   // Mock invites query
-  const [invites, setInvites] = useState<any[]>([
-    {
-      id: "invite-1",
-      inviteEmail: "lawyer@example.com",
-      status: "SENT",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lsoName: "John Doe",
-      lsoMemberId: "123456",
-      lsoEmail: "lawyer@example.com",
-      lsoPhone: "555-1234",
-    }
-  ])
+  // TODO: Implement backend query for invites
+  const [invites, setInvites] = useState<any[]>([])
   const [isLoadingInvites, setIsLoadingInvites] = useState(false)
   const [invitesError, setInvitesError] = useState<Error | null>(null)
 
@@ -54,9 +43,9 @@ export function LawyerInvitesPanel({user}: {user: any}) {
   // Optional state indicators drawn from deal data and profile lookup
   const emailVerified: boolean | undefined = deal?.lawyerVerifiedEmail
   
-  // Mock profile check
+  // TODO: Implement profile check
   const profileCheck = {
-    data: { hasProfile: true }
+    data: { hasProfile: !!deal?.lawyerId } // Simplified check based on assigned lawyer existence
   }
 
   // Mock mutations

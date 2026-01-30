@@ -2043,7 +2043,7 @@ export const recordFundTransferUpload = investorLawyerAdminMutation({
 			uploadHistory.push(currentUpload);
 		}
 
-		// 4. Update deal
+		// 4. Update deal with upload info
 		await ctx.db.patch(args.dealId, {
 			currentUpload: newUpload,
 			uploadHistory,
@@ -2053,6 +2053,78 @@ export const recordFundTransferUpload = investorLawyerAdminMutation({
 		logger.info("Fund transfer proof uploaded", {
 			dealId: args.dealId,
 			uploadedBy: subject,
+		});
+
+		// 5. Transition state from pending_transfer to pending_verification
+		if (!deal.stateMachineState) {
+			logger.warn(
+				"Deal has no state machine state, skipping state transition",
+				{ dealId: args.dealId }
+			);
+			return;
+		}
+
+		if (!user) {
+			logger.warn("User not found, skipping state transition", {
+				dealId: args.dealId,
+				subject,
+			});
+			return;
+		}
+
+		const machineState = JSON.parse(deal.stateMachineState);
+		const actor = createActor(dealMachine, {
+			input: machineState.context,
+			snapshot: machineState,
+		});
+
+		const event: DealEventWithAdmin = {
+			type: "VERIFY_FUNDS",
+			adminId: user._id,
+			notes: "Fund transfer proof uploaded, awaiting verification",
+		};
+
+		actor.start();
+		actor.send(event);
+
+		const newSnapshot = actor.getSnapshot();
+		const newContext = newSnapshot.context;
+
+		// Validate transition occurred
+		if (newContext.currentState !== "pending_verification") {
+			logger.warn("State transition to pending_verification failed", {
+				dealId: args.dealId,
+				currentState: newContext.currentState,
+			});
+			actor.stop();
+			return;
+		}
+
+		// Update deal with new state (stateHistory from context ensures sync)
+		await ctx.db.patch(args.dealId, {
+			stateMachineState: JSON.stringify(newSnapshot),
+			currentState: newContext.currentState,
+			stateHistory: newContext.stateHistory,
+		});
+
+		actor.stop();
+
+		logger.info("Deal transitioned to pending_verification after fund upload", {
+			dealId: args.dealId,
+		});
+
+		// 6. Create alert for admin about pending verification
+		await ctx.db.insert("alerts", {
+			userId: user._id,
+			type: "deal_state_changed",
+			severity: "info",
+			title: "Fund Transfer Uploaded",
+			message:
+				"Fund transfer proof has been uploaded and is ready for verification.",
+			relatedDealId: args.dealId,
+			relatedListingId: deal.listingId,
+			read: false,
+			createdAt: Date.now(),
 		});
 	},
 });

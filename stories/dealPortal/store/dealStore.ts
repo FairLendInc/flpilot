@@ -14,7 +14,7 @@ import {
   ActionTypeEnum
 } from '../utils/dealLogic'
 
-interface DealStoreState {
+export interface DealStoreState {
   // Deal context
   dealId: string
   setDealId: (id: string) => void
@@ -117,7 +117,7 @@ interface DealStoreState {
 
 export const useDealStore = create<DealStoreState>((set, get) => ({
   // Initial State
-  dealId: "DEAL-123", // Default ID
+  dealId: "", // Default ID
   setDealId: (id) => set({ dealId: id }),
   deal: {}, // Empty default
   setDeal: (deal) => set({ deal }),
@@ -127,27 +127,22 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
   isLoadingDocuments: false,
   documentsError: null,
   refreshDocuments: () => {
+    // This should now be handled by reactively updating props or a real fetcher
     set({ isLoadingDocuments: true, documentsError: null })
-    setTimeout(() => set({ isLoadingDocuments: false }), 1000)
   },
 
-  currentUser: { 
-    id: 'user-1', 
-    email: 'user@example.com', 
-    name: 'John Doe', 
-    role: FairLendRole.BUYER 
-  },
+  currentUser: null,
   setCurrentUser: (user) => set({ currentUser: user }),  
   availableUsers: [],
   setAvailableUsers: (users) => set({ availableUsers: users }),
-  userRole: FairLendRole.BUYER,
+  userRole: FairLendRole.NONE,
   setUserRole: (role) => set({ userRole: role }),
 
   isLawyerConfirmed: false,
   setLawyerConfirmed: (confirmed) => set({ isLawyerConfirmed: confirmed }),
 
-  dealStatus: "In Progress",
-  dealData: { lawyerUserId: 'user-1' },
+  dealStatus: "",
+  dealData: {},
 
   activeTab: 'documents',
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -176,14 +171,7 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
   mfaCode: '',
   setMfaCode: (code) => set({ mfaCode: code }),
 
-  messages: [
-    {
-      id: 1,
-      sender: "Admin",
-      message: "Hello, I've uploaded the initial documents for review.",
-      timestamp: "10:30 AM",
-    },
-  ],
+  messages: [],
   events: [],
   uploadState: {},
 
@@ -246,25 +234,30 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
 
     // Group steps for visualization - use signingSteps from documents if available
     const firstDocWithSteps = groupDocs.find(d => d.signingSteps && d.signingSteps.length > 0)
-    const groupSteps = firstDocWithSteps?.signingSteps?.map(step => ({
-      action: step.role === FairLendRole.LAWYER ? ActionTypeEnum.APPROVE : ActionTypeEnum.ESIGN,
-      assignedTo: {
-        email: step.email,
-        name: step.name || step.email
-      },
-      assignedToRole: step.role
-    })) ?? groupDocs.map(d => ({
-      action: d.requiredAction,
-      assignedTo: {
-        email: d.assignedTo || "",
-        name: d.assignedTo || "Unknown"
-      },
-      assignedToRole: d.assignedToRole
-    }))
+    const sortedSigningSteps = firstDocWithSteps?.signingSteps 
+      ? [...firstDocWithSteps.signingSteps].sort((a, b) => a.order - b.order)
+      : []
+    const groupSteps = sortedSigningSteps.length > 0
+      ? sortedSigningSteps.map(step => ({
+          action: String(step.role) === "LAWYER" ? ActionTypeEnum.APPROVE : ActionTypeEnum.ESIGN,
+          assignedTo: {
+            email: step.email,
+            name: step.name || step.email
+          },
+          assignedToRole: step.role
+        }))
+      : groupDocs.map(d => ({
+          action: d.requiredAction,
+          assignedTo: {
+            email: d.assignedTo || "",
+            name: d.assignedTo || "Unknown"
+          },
+          assignedToRole: d.assignedToRole
+        }))
 
     // Find first incomplete step index based on signing status
-    const firstIncompleteIndex = firstDocWithSteps?.signingSteps
-      ? firstDocWithSteps.signingSteps.findIndex(s => s.status !== "SIGNED")
+    const firstIncompleteIndex = sortedSigningSteps.length > 0
+      ? sortedSigningSteps.findIndex(s => s.status !== "SIGNED")
       : groupSteps.findIndex(s =>
           groupDocs.find(d => d.requiredAction === s.action && d.assignedTo === s.assignedTo.email && !d.isComplete)
         )
@@ -326,26 +319,19 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
   },
 
   confirmLawyerRepresentation: async (dealId) => {
-    console.log('Confirming lawyer representation for deal:', dealId)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // console.log('Confirming lawyer representation for deal:', dealId)
+    // Needs real implementation via convex mutation
     set({ isLawyerConfirmed: true })
   },
 
   completeDocumentAction: (docId, action, role) => {
-    console.log('Completing document action:', { docId, action, role })
-    // Mock implementation: update document status
-    set((state) => ({
-      documents: state.documents.map(d => 
-        d.id === docId ? { ...d, isComplete: true, status: 'completed' } : d
-      )
-    }))
+    // console.log('Completing document action:', { docId, action, role })
+    // Should trigger mutation
   },
 
   getDocumentVersions: (docId) => {
-    // Mock implementation
-    return [
-      { id: 'v1', label: 'Version 1', signedBy: 'John Doe', timestamp: new Date().toISOString() }
-    ]
+    // Needs real implementation
+    return []
   },
 
   // Document Viewer Helpers
@@ -355,13 +341,10 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
   getSelectedDocumentWithFileData: () => {
     const { selectedDocument } = get()
     if (!selectedDocument) return null
-    // Mock file data if missing
     return {
       ...selectedDocument,
-      fileData: selectedDocument.fileData || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
       fileName: selectedDocument.name + '.pdf',
       fileType: 'application/pdf',
-      fileSize: 1024 * 1024
     }
   },
 
