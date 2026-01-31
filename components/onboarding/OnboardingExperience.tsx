@@ -22,6 +22,7 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Form,
 	FormControl,
@@ -64,7 +65,7 @@ const PERSONA_OPTIONS = [
 	{
 		id: "lawyer" as const,
 		title: "Lawyer",
-		description: "Support closings and holdback reviews (coming soon).",
+		description: "Complete legal onboarding to review closings and holdbacks.",
 	},
 ];
 
@@ -89,7 +90,7 @@ const INVESTOR_STEPS: {
 		description: "Share how you like to invest",
 	},
 	{
-		id: "investor.kycStub",
+		id: "investor.kyc_stub",
 		label: "KYC",
 		description: "Acknowledge upcoming compliance",
 	},
@@ -141,6 +142,46 @@ const BROKER_STEPS: {
 		description: "Confirm and submit",
 	},
 ];
+
+const LAWYER_STEPS: {
+	id: OnboardingStateValue;
+	label: string;
+	description: string;
+}[] = [
+	{
+		id: "lawyer.intro",
+		label: "Welcome",
+		description: "Learn how legal onboarding works",
+	},
+	{
+		id: "lawyer.profile",
+		label: "Profile",
+		description: "Confirm your legal details",
+	},
+	{
+		id: "lawyer.identity_verification",
+		label: "ID Verification",
+		description: "Verify your government ID",
+	},
+	{
+		id: "lawyer.lso_verification",
+		label: "LSO Check",
+		description: "Match your LSO number",
+	},
+	{
+		id: "lawyer.review",
+		label: "Review",
+		description: "Confirm and submit",
+	},
+];
+
+function getNextLawyerStep(currentState: OnboardingStateValue) {
+	const currentIndex = LAWYER_STEPS.findIndex(
+		(step) => step.id === currentState
+	);
+	if (currentIndex < 0) return currentState;
+	return LAWYER_STEPS[currentIndex + 1]?.id ?? currentState;
+}
 
 const ENTITY_TYPES = ["individual", "corporation", "trust", "fund"] as const;
 const RISK_PROFILES = ["conservative", "balanced", "growth"] as const;
@@ -234,6 +275,17 @@ const brokerRepresentativeSchema = z.object({
 	hasAuthority: z.boolean(),
 });
 
+const lawyerProfileSchema = z.object({
+	firstName: z.string().min(1, "First name is required"),
+	middleName: z.string().optional().or(z.literal("")),
+	lastName: z.string().min(1, "Last name is required"),
+	lsoNumber: z.string().min(1, "LSO number is required"),
+	firmName: z.string().min(1, "Firm name is required"),
+	email: z.string().min(1, "Email is required").email("Email must be valid"),
+	phone: z.string().min(1, "Phone is required"),
+	jurisdiction: z.string().min(1, "Jurisdiction is required"),
+});
+
 function stateValueToString(
 	value: string | Record<string, unknown>
 ): OnboardingStateValue {
@@ -317,6 +369,26 @@ type BrokerDocument = {
 	uploadedAt?: string;
 };
 
+// Lawyer types
+type LawyerProfileValues = {
+	firstName: string;
+	middleName?: string;
+	lastName: string;
+	lsoNumber: string;
+	firmName: string;
+	email: string;
+	phone: string;
+	jurisdiction: string;
+};
+
+type LawyerIdentityStatus =
+	| "not_started"
+	| "pending"
+	| "verified"
+	| "mismatch"
+	| "failed";
+type LawyerLsoStatus = "not_started" | "verified" | "failed";
+
 export function OnboardingExperience() {
 	const router = useRouter();
 	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
@@ -333,6 +405,15 @@ export function OnboardingExperience() {
 		api.onboarding.submitInvestorJourney
 	);
 	const generateUploadUrl = useAction(api.onboarding.generateDocumentUploadUrl);
+	const saveLawyerProfile = useMutation(api.onboarding.saveLawyerProfile);
+	const advanceLawyerStep = useMutation(api.onboarding.advanceLawyerStep);
+	const runLawyerIdentityVerification = useMutation(
+		api.onboarding.runLawyerIdentityVerification
+	);
+	const runLawyerLsoVerification = useMutation(
+		api.onboarding.runLawyerLsoVerification
+	);
+	const submitLawyerJourney = useMutation(api.onboarding.submitLawyerJourney);
 
 	// Broker mutations
 	const advanceBrokerIntro = useMutation(
@@ -374,6 +455,7 @@ export function OnboardingExperience() {
 	const status = journey?.status ?? snapshot.context.status;
 	const investorContext = journey?.context?.investor ?? {};
 	const brokerContext = journey?.context?.broker ?? {};
+	const lawyerContext = journey?.context?.lawyer ?? {};
 
 	// Wait for user to be provisioned before ensuring journey
 	const isUserProvisioned = userProfile?.user !== null;
@@ -449,7 +531,7 @@ export function OnboardingExperience() {
 	};
 
 	const handleSubmitPreferences = async (values: InvestorPreferencesValues) => {
-		await persistState("investor.kycStub", { preferences: values });
+		await persistState("investor.kyc_stub", { preferences: values });
 	};
 
 	const handleIntroContinue = async () => {
@@ -669,6 +751,106 @@ export function OnboardingExperience() {
 		}
 	};
 
+	const handleLawyerIntroContinue = async () => {
+		const nextState = getNextLawyerStep("lawyer.intro");
+		setSavingState(nextState);
+		try {
+			await advanceLawyerStep({ stateValue: nextState });
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to continue";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
+	};
+
+	const handleLawyerProfileSubmit = async (values: LawyerProfileValues) => {
+		const nextState = getNextLawyerStep("lawyer.profile");
+		setSavingState(nextState);
+		try {
+			await saveLawyerProfile({
+				stateValue: nextState,
+				profile: values,
+			});
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to save profile";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
+	};
+
+	const handleLawyerIdentityVerification = async (
+		simulateMismatch: boolean
+	) => {
+		setSavingState("lawyer.identity_verification");
+		try {
+			await runLawyerIdentityVerification({ simulateMismatch });
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to verify identity";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
+	};
+
+	const handleLawyerContinueToLso = async () => {
+		const nextState = getNextLawyerStep("lawyer.identity_verification");
+		setSavingState(nextState);
+		try {
+			await advanceLawyerStep({ stateValue: nextState });
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to continue";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
+	};
+
+	const handleLawyerLsoVerification = async () => {
+		setSavingState("lawyer.lso_verification");
+		try {
+			await runLawyerLsoVerification({});
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to verify LSO number";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
+	};
+
+	const handleLawyerContinueToReview = async () => {
+		const nextState = getNextLawyerStep("lawyer.lso_verification");
+		setSavingState(nextState);
+		try {
+			await advanceLawyerStep({ stateValue: nextState });
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to continue";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
+	};
+
+	const handleLawyerSubmitReview = async () => {
+		setSavingState("lawyer.pending_admin");
+		try {
+			await submitLawyerJourney({});
+		} catch (error: unknown) {
+			const message =
+				error instanceof Error ? error.message : "Unable to submit onboarding";
+			toast.error(message);
+		} finally {
+			setSavingState(null);
+		}
+	};
+
 	// Show loading while provisioning user or ensuring journey
 	if (
 		authLoading ||
@@ -687,6 +869,7 @@ export function OnboardingExperience() {
 
 	const showInvestorFlow = currentState.startsWith("investor.");
 	const _showBrokerFlow = currentState.startsWith("broker.");
+	const showLawyerFlow = currentState.startsWith("lawyer.");
 	const awaitingAdmin = status === "awaiting_admin";
 	const rejected = status === "rejected";
 
@@ -730,12 +913,19 @@ export function OnboardingExperience() {
 						{persona === "broker" && (
 							<BrokerProgress currentState={currentState} status={status} />
 						)}
+						{persona === "lawyer" && (
+							<LawyerProgress currentState={currentState} status={status} />
+						)}
 					</CardContent>
 				</Card>
 			)}
 
 			{persona === "investor" && awaitingAdmin && <PendingAdminState />}
 			{persona === "investor" && rejected && (
+				<RejectedState decision={journey?.adminDecision} />
+			)}
+			{persona === "lawyer" && awaitingAdmin && <PendingAdminState />}
+			{persona === "lawyer" && rejected && (
 				<RejectedState decision={journey?.adminDecision} />
 			)}
 
@@ -756,10 +946,18 @@ export function OnboardingExperience() {
 					uploading={uploading}
 				/>
 			)}
-			{persona === "lawyer" && !awaitingAdmin && !rejected && (
-				<PlaceholderState
-					description="Legal onboarding is almost here. We'll email you as soon as reviewers are ready."
-					title="Lawyer onboarding coming soon"
+			{showLawyerFlow && !awaitingAdmin && !rejected && (
+				<LawyerFlowRouter
+					currentState={currentState}
+					lawyer={lawyerContext}
+					onIdentityVerify={handleLawyerIdentityVerification}
+					onIntroContinue={handleLawyerIntroContinue}
+					onLsoContinue={handleLawyerContinueToReview}
+					onLsoVerify={handleLawyerLsoVerification}
+					onProfileSubmit={handleLawyerProfileSubmit}
+					onSubmitReview={handleLawyerSubmitReview}
+					onVerifyContinue={handleLawyerContinueToLso}
+					savingState={savingState}
 				/>
 			)}
 
@@ -897,7 +1095,7 @@ function InvestorFlowRouter({
 		case "investor.preferences":
 			return (
 				<InvestorPreferencesForm
-					busy={savingState === "investor.kycStub"}
+					busy={savingState === "investor.kyc_stub"}
 					defaultValues={
 						investor?.preferences
 							? {
@@ -909,7 +1107,7 @@ function InvestorFlowRouter({
 					onSubmit={onPreferencesSubmit}
 				/>
 			);
-		case "investor.kycStub":
+		case "investor.kyc_stub":
 			return (
 				<InvestorKycStub
 					busy={savingState === "investor.documentsStub"}
@@ -1653,6 +1851,612 @@ function InvestorProgress({
 				);
 			})}
 		</div>
+	);
+}
+
+function LawyerProgress({
+	currentState,
+	status,
+}: {
+	currentState: OnboardingStateValue;
+	status: JourneyDoc["status"];
+}) {
+	const activeIndex = LAWYER_STEPS.findIndex(
+		(step) => step.id === currentState
+	);
+
+	const allCompleted =
+		status === "awaiting_admin" ||
+		status === "approved" ||
+		status === "rejected";
+	return (
+		<div className="grid gap-3 md:grid-cols-3">
+			{LAWYER_STEPS.map((step, index) => {
+				const completed = allCompleted || index < activeIndex;
+				const isActive = !allCompleted && index === activeIndex;
+				return (
+					<div
+						className={cn(
+							"rounded border p-3 text-sm",
+							completed && "border-primary bg-primary/5",
+							isActive && "border-primary"
+						)}
+						key={step.id}
+					>
+						<p className="font-medium">
+							{step.label}
+							{completed ? (
+								<CheckCircle2 className="ml-2 inline size-4 text-primary" />
+							) : null}
+						</p>
+						<p className="text-muted-foreground text-xs">{step.description}</p>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+// ============================================================================
+// LAWYER ONBOARDING COMPONENTS
+// ============================================================================
+
+type LawyerFlowRouterProps = {
+	currentState: OnboardingStateValue;
+	lawyer: NonNullable<JourneyDoc["context"]>["lawyer"];
+	savingState: OnboardingStateValue | null;
+	onIntroContinue: () => Promise<void>;
+	onProfileSubmit: (values: LawyerProfileValues) => Promise<void>;
+	onIdentityVerify: (simulateMismatch: boolean) => Promise<void>;
+	onVerifyContinue: () => Promise<void>;
+	onLsoVerify: () => Promise<void>;
+	onLsoContinue: () => Promise<void>;
+	onSubmitReview: () => Promise<void>;
+};
+
+function LawyerFlowRouter({
+	currentState,
+	lawyer,
+	savingState,
+	onIntroContinue,
+	onProfileSubmit,
+	onIdentityVerify,
+	onVerifyContinue,
+	onLsoVerify,
+	onLsoContinue,
+	onSubmitReview,
+}: LawyerFlowRouterProps) {
+	switch (currentState) {
+		case "lawyer.intro":
+			return (
+				<LawyerIntroStep
+					busy={savingState === "lawyer.profile"}
+					onContinue={onIntroContinue}
+				/>
+			);
+		case "lawyer.profile":
+			return (
+				<LawyerProfileForm
+					busy={savingState === "lawyer.identity_verification"}
+					defaultValues={lawyer?.profile}
+					onSubmit={onProfileSubmit}
+				/>
+			);
+		case "lawyer.identity_verification":
+			return (
+				<LawyerIdentityVerificationStep
+					busy={savingState === "lawyer.identity_verification"}
+					extractedName={lawyer?.identityVerification?.extractedName}
+					onContinue={onVerifyContinue}
+					onVerify={onIdentityVerify}
+					profile={lawyer?.profile}
+					status={
+						(lawyer?.identityVerification?.status ??
+							"not_started") as LawyerIdentityStatus
+					}
+				/>
+			);
+		case "lawyer.lso_verification":
+			return (
+				<LawyerLsoVerificationStep
+					busy={savingState === "lawyer.lso_verification"}
+					matchedRecord={lawyer?.lsoVerification?.matchedRecord}
+					onContinue={onLsoContinue}
+					onVerify={onLsoVerify}
+					status={
+						(lawyer?.lsoVerification?.status ??
+							"not_started") as LawyerLsoStatus
+					}
+				/>
+			);
+		case "lawyer.review":
+			return (
+				<LawyerReviewStep
+					busy={savingState === "lawyer.pending_admin"}
+					lawyer={lawyer}
+					onSubmit={onSubmitReview}
+				/>
+			);
+		default:
+			return null;
+	}
+}
+
+function LawyerIntroStep({
+	busy,
+	onContinue,
+}: {
+	busy: boolean;
+	onContinue: () => void;
+}) {
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Welcome, legal partners</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				<p className="text-muted-foreground">
+					We verify legal professionals before granting access to review
+					ownership transfers and closing documentation. This onboarding takes a
+					few minutes and saves your progress automatically.
+				</p>
+				<ul className="list-disc space-y-2 pl-5 text-muted-foreground text-sm">
+					<li>Confirm your lawyer profile and LSO credentials</li>
+					<li>Complete a mock ID verification step</li>
+					<li>Submit for admin review</li>
+				</ul>
+				<div className="flex items-center justify-end">
+					<Button disabled={busy} onClick={onContinue}>
+						{busy ? "Saving..." : "Begin"}
+						<ArrowRight className="ml-2 size-4" />
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
+function LawyerProfileForm({
+	defaultValues,
+	onSubmit,
+	busy,
+}: {
+	defaultValues?: LawyerProfileValues;
+	onSubmit: (values: LawyerProfileValues) => Promise<void>;
+	busy: boolean;
+}) {
+	const form = useForm<LawyerProfileValues>({
+		resolver: zodResolver(lawyerProfileSchema),
+		defaultValues: defaultValues ?? {
+			firstName: "",
+			middleName: "",
+			lastName: "",
+			lsoNumber: "",
+			firmName: "",
+			email: "",
+			phone: "",
+			jurisdiction: "ON",
+		},
+		mode: "onChange",
+	});
+
+	useEffect(() => {
+		if (defaultValues) {
+			form.reset({
+				...defaultValues,
+				middleName: defaultValues.middleName ?? "",
+			});
+		}
+	}, [defaultValues, form]);
+
+	const handleSubmit = (values: LawyerProfileValues) => {
+		onSubmit({
+			...values,
+			middleName: values.middleName?.trim() || undefined,
+		});
+	};
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Lawyer profile</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<Form {...form}>
+					<form
+						className="space-y-6"
+						onSubmit={form.handleSubmit(handleSubmit)}
+					>
+						<div className="grid gap-4">
+							<FormField
+								control={form.control}
+								name="firstName"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											First name{" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<div className="grid gap-4 md:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="middleName"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Middle name{" "}
+												<span className="text-muted-foreground text-xs">
+													Optional
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} value={field.value ?? ""} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="lastName"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Last name{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<div className="grid gap-4 md:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="lsoNumber"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												LSO number{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="firmName"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Firm name{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<div className="grid gap-4 md:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Email{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} type="email" />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="phone"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel>
+												Phone{" "}
+												<span className="text-muted-foreground text-xs">
+													Required
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<FormField
+								control={form.control}
+								name="jurisdiction"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<FormLabel>
+											Jurisdiction{" "}
+											<span className="text-muted-foreground text-xs">
+												Required
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input {...field} placeholder="Ontario" />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+						<div className="flex justify-end">
+							<Button disabled={busy} type="submit">
+								{busy ? "Saving..." : "Continue"}
+								<ArrowRight className="ml-2 size-4" />
+							</Button>
+						</div>
+					</form>
+				</Form>
+			</CardContent>
+		</Card>
+	);
+}
+
+function LawyerIdentityVerificationStep({
+	status,
+	profile,
+	extractedName,
+	busy,
+	onVerify,
+	onContinue,
+}: {
+	status: LawyerIdentityStatus;
+	profile?: LawyerProfileValues;
+	extractedName?: {
+		firstName: string;
+		lastName: string;
+		middleName?: string;
+	};
+	busy: boolean;
+	onVerify: (simulateMismatch: boolean) => Promise<void>;
+	onContinue: () => Promise<void>;
+}) {
+	const [simulateMismatch, setSimulateMismatch] = useState(false);
+	const isVerified = status === "verified";
+	const isMismatch = status === "mismatch";
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Mock identity verification</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				<p className="text-muted-foreground text-sm">
+					This step simulates Persona ID verification. We'll compare the
+					extracted name to your profile using strict matching.
+				</p>
+				{profile ? (
+					<div className="rounded border bg-muted/40 p-3 text-sm">
+						<p className="font-medium">Profile name</p>
+						<p>
+							{profile.firstName} {profile.middleName ?? ""} {profile.lastName}
+						</p>
+					</div>
+				) : null}
+				{extractedName ? (
+					<div className="rounded border bg-muted/40 p-3 text-sm">
+						<p className="font-medium">Extracted name</p>
+						<p>
+							{extractedName.firstName} {extractedName.middleName ?? ""}{" "}
+							{extractedName.lastName}
+						</p>
+					</div>
+				) : null}
+				<div className="flex items-start gap-2">
+					<Checkbox
+						checked={simulateMismatch}
+						id="simulate-mismatch"
+						onCheckedChange={(checked) => setSimulateMismatch(checked === true)}
+					/>
+					<Label
+						className="cursor-pointer font-normal text-sm leading-tight"
+						htmlFor="simulate-mismatch"
+					>
+						Simulate a name mismatch (testing only)
+					</Label>
+				</div>
+				<div className="flex flex-wrap items-center gap-3">
+					<Button
+						disabled={busy}
+						onClick={() => onVerify(simulateMismatch)}
+						variant="secondary"
+					>
+						{busy ? "Checking..." : "Run mock verification"}
+					</Button>
+					{isVerified ? (
+						<span className="text-primary text-sm">
+							<CheckCircle2 className="mr-2 inline size-4" />
+							Verified
+						</span>
+					) : null}
+					{isMismatch ? (
+						<span className="text-destructive text-sm">
+							<AlertTriangle className="mr-2 inline size-4" />
+							Name mismatch
+						</span>
+					) : null}
+				</div>
+				<div className="flex justify-end">
+					<Button disabled={!isVerified} onClick={onContinue}>
+						Continue to LSO check
+						<ArrowRight className="ml-2 size-4" />
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
+function LawyerLsoVerificationStep({
+	status,
+	matchedRecord,
+	busy,
+	onVerify,
+	onContinue,
+}: {
+	status: LawyerLsoStatus;
+	matchedRecord?: {
+		lsoNumber: string;
+		firstName: string;
+		lastName: string;
+		firmName?: string;
+		jurisdiction?: string;
+		status?: string;
+	};
+	busy: boolean;
+	onVerify: () => Promise<void>;
+	onContinue: () => Promise<void>;
+}) {
+	const isVerified = status === "verified";
+	const isFailed = status === "failed";
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>LSO registry check</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				<p className="text-muted-foreground text-sm">
+					We match your LSO number and legal name against the local registry
+					dataset.
+				</p>
+				{matchedRecord ? (
+					<div className="rounded border bg-muted/40 p-3 text-sm">
+						<p className="font-medium">Registry record</p>
+						<p>
+							{matchedRecord.firstName} {matchedRecord.lastName} (
+							{matchedRecord.lsoNumber})
+						</p>
+						<p className="text-muted-foreground text-xs">
+							{matchedRecord.firmName ?? "Firm not listed"} ·{" "}
+							{matchedRecord.status ?? "status unknown"}
+						</p>
+					</div>
+				) : null}
+				<div className="flex flex-wrap items-center gap-3">
+					<Button disabled={busy} onClick={onVerify} variant="secondary">
+						{busy ? "Checking..." : "Run LSO verification"}
+					</Button>
+					{isVerified ? (
+						<span className="text-primary text-sm">
+							<CheckCircle2 className="mr-2 inline size-4" />
+							Verified
+						</span>
+					) : null}
+					{isFailed ? (
+						<span className="text-destructive text-sm">
+							<AlertTriangle className="mr-2 inline size-4" />
+							No match found
+						</span>
+					) : null}
+				</div>
+				<div className="flex justify-end">
+					<Button disabled={!isVerified} onClick={onContinue}>
+						Continue to review
+						<ArrowRight className="ml-2 size-4" />
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
+function LawyerReviewStep({
+	lawyer,
+	busy,
+	onSubmit,
+}: {
+	lawyer: NonNullable<JourneyDoc["context"]>["lawyer"];
+	busy: boolean;
+	onSubmit: () => Promise<void>;
+}) {
+	const profile = lawyer?.profile;
+	const identityStatus = (lawyer?.identityVerification?.status ??
+		"not_started") as LawyerIdentityStatus;
+	const lsoStatus = (lawyer?.lsoVerification?.status ??
+		"not_started") as LawyerLsoStatus;
+	const canSubmit = identityStatus === "verified" && lsoStatus === "verified";
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Review and submit</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				{profile ? (
+					<div className="rounded border p-4">
+						<p className="font-medium text-sm">Profile</p>
+						<p className="text-muted-foreground text-sm">
+							{profile.firstName} {profile.middleName ?? ""} {profile.lastName}
+						</p>
+						<p className="text-muted-foreground text-sm">
+							LSO: {profile.lsoNumber} · {profile.firmName}
+						</p>
+						<p className="text-muted-foreground text-sm">
+							{profile.email} · {profile.phone}
+						</p>
+					</div>
+				) : null}
+				<div className="grid gap-3 md:grid-cols-2">
+					<div className="rounded border p-3 text-sm">
+						<p className="font-medium">Identity verification</p>
+						<p className="text-muted-foreground text-xs">{identityStatus}</p>
+					</div>
+					<div className="rounded border p-3 text-sm">
+						<p className="font-medium">LSO verification</p>
+						<p className="text-muted-foreground text-xs">{lsoStatus}</p>
+					</div>
+				</div>
+				<Button disabled={!canSubmit || busy} onClick={onSubmit}>
+					{busy ? "Submitting..." : "Submit for review"}
+				</Button>
+				{!canSubmit ? (
+					<p className="text-muted-foreground text-xs">
+						Complete identity and LSO verification before submitting.
+					</p>
+				) : null}
+			</CardContent>
+		</Card>
 	);
 }
 

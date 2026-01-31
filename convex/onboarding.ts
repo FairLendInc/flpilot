@@ -4,6 +4,10 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, mutation, query } from "./_generated/server";
+import { getIdentityVerificationProvider } from "./lawyers/identityProvider";
+import { getNameMatchStrategy } from "./lawyers/nameMatch";
+import { getLawyerRegistryStore, normalizeRegistryRecord } from "./lawyers/registryStore";
+import type { LawyerProfile, NameFields } from "./lawyers/types";
 
 const PERSONA_OPTIONS = ["broker", "investor", "lawyer"] as const;
 const INVESTOR_ENTITY_TYPES = [
@@ -15,11 +19,26 @@ const INVESTOR_ENTITY_TYPES = [
 const INVESTOR_RISK_PROFILES = ["conservative", "balanced", "growth"] as const;
 const INVESTOR_STATE_VALUES = new Set([
 	"investor.intro",
+	"investor.broker_selection",
 	"investor.profile",
 	"investor.preferences",
-	"investor.kycStub",
+	"investor.kyc_documents",
+	"investor.kyc_stub",
 	"investor.documentsStub",
 	"investor.review",
+	"investor.pending_admin",
+	"investor.rejected",
+	"investor.approved",
+]);
+
+const LAWYER_STATE_VALUES = new Set([
+	"lawyer.intro",
+	"lawyer.profile",
+	"lawyer.identity_verification",
+	"lawyer.lso_verification",
+	"lawyer.review",
+	"lawyer.pending_admin",
+	"lawyer.rejected",
 ]);
 
 type Persona = (typeof PERSONA_OPTIONS)[number];
@@ -58,6 +77,18 @@ const investorDocumentValidator = v.object({
 	storageId: v.id("_storage"),
 	label: v.string(),
 });
+
+const lawyerProfileValidator = v.object({
+	firstName: v.string(),
+	middleName: v.optional(v.string()),
+	lastName: v.string(),
+	lsoNumber: v.string(),
+	firmName: v.string(),
+	email: v.string(),
+	phone: v.string(),
+	jurisdiction: v.string(),
+});
+
 
 const investorContextPatchValidator = v.object({
 	profile: v.optional(investorProfileValidator),
@@ -116,6 +147,15 @@ function resolveInvestorContext(journey: OnboardingJourney) {
 	};
 }
 
+function resolveLawyerContext(journey: OnboardingJourney) {
+	return {
+		...journey.context,
+		lawyer: {
+			...(journey.context?.lawyer ?? {}),
+		},
+	};
+}
+
 function initialStateForPersona(persona: Persona) {
 	if (persona === "investor") {
 		return "investor.intro";
@@ -124,7 +164,7 @@ function initialStateForPersona(persona: Persona) {
 		return "broker.intro";
 	}
 	if (persona === "lawyer") {
-		return "lawyer.placeholder";
+		return "lawyer.intro";
 	}
 	return "personaSelection";
 }
@@ -250,7 +290,11 @@ export const startJourney = mutation({
 				? {
 						investor: journey.context?.investor ?? {},
 					}
-				: {};
+				: args.persona === "lawyer"
+					? {
+							lawyer: journey.context?.lawyer ?? {},
+						}
+					: {};
 		await ctx.db.patch(journey._id, {
 			persona: args.persona,
 			stateValue: nextState,
@@ -299,6 +343,157 @@ export const saveInvestorStep = mutation({
 	},
 });
 
+export const saveLawyerProfile = mutation({
+	args: v.object({
+		stateValue: v.string(),
+		profile: lawyerProfileValidator,
+	}),
+	handler: async (ctx, args) => {
+		const { user } = await getIdentityAndUser(ctx);
+		const journey = await getJourneyForUser(ctx, user._id);
+		if (!journey) {
+			throw new Error("Onboarding journey not found");
+		}
+		assertDraft(journey);
+		assertPersona(journey, "lawyer");
+		if (!LAWYER_STATE_VALUES.has(args.stateValue)) {
+			throw new Error("Invalid lawyer state transition");
+		}
+		const context = resolveLawyerContext(journey);
+		context.lawyer.profile = args.profile;
+		await ctx.db.patch(journey._id, {
+			context,
+			stateValue: args.stateValue,
+			lastTouchedAt: new Date().toISOString(),
+		});
+		return await ctx.db.get(journey._id);
+	},
+});
+
+export const advanceLawyerStep = mutation({
+	args: v.object({
+		stateValue: v.string(),
+	}),
+	handler: async (ctx, args) => {
+		const { user } = await getIdentityAndUser(ctx);
+		const journey = await getJourneyForUser(ctx, user._id);
+		if (!journey) {
+			throw new Error("Onboarding journey not found");
+		}
+		assertDraft(journey);
+		assertPersona(journey, "lawyer");
+		if (!LAWYER_STATE_VALUES.has(args.stateValue)) {
+			throw new Error("Invalid lawyer state transition");
+		}
+		await ctx.db.patch(journey._id, {
+			stateValue: args.stateValue,
+			lastTouchedAt: new Date().toISOString(),
+		});
+		return await ctx.db.get(journey._id);
+	},
+});
+
+export const runLawyerIdentityVerification = mutation({
+	args: v.object({
+		simulateMismatch: v.optional(v.boolean()),
+	}),
+	handler: async (ctx, args) => {
+		const { user } = await getIdentityAndUser(ctx);
+		const journey = await getJourneyForUser(ctx, user._id);
+		if (!journey) {
+			throw new Error("Onboarding journey not found");
+		}
+		assertDraft(journey);
+		assertPersona(journey, "lawyer");
+		const profile = journey.context?.lawyer?.profile as LawyerProfile | undefined;
+		if (!profile) {
+			throw new Error("Lawyer profile information missing");
+		}
+		const provider = getIdentityVerificationProvider();
+		const inquiry = await provider.createInquiry(profile, {
+			simulateMismatch: args.simulateMismatch,
+		});
+		const matcher = getNameMatchStrategy();
+		const profileName: NameFields = {
+			firstName: profile.firstName,
+			lastName: profile.lastName,
+			middleName: profile.middleName,
+		};
+		const matched = matcher.matches(profileName, inquiry.extractedName);
+		const status = matched ? "verified" : "mismatch";
+		const context = resolveLawyerContext(journey);
+		context.lawyer.profile = profile;
+		context.lawyer.identityVerification = {
+			status,
+			inquiryId: inquiry.inquiryId,
+			provider: inquiry.provider,
+			extractedName: inquiry.extractedName,
+			checkedAt: new Date().toISOString(),
+		};
+		await ctx.db.patch(journey._id, {
+			context,
+			stateValue: "lawyer.identity_verification",
+			lastTouchedAt: new Date().toISOString(),
+		});
+		return await ctx.db.get(journey._id);
+	},
+});
+
+export const runLawyerLsoVerification = mutation({
+	args: v.object({}),
+	handler: async (ctx) => {
+		const { user } = await getIdentityAndUser(ctx);
+		const journey = await getJourneyForUser(ctx, user._id);
+		if (!journey) {
+			throw new Error("Onboarding journey not found");
+		}
+		assertDraft(journey);
+		assertPersona(journey, "lawyer");
+		const profile = journey.context?.lawyer?.profile as LawyerProfile | undefined;
+		if (!profile) {
+			throw new Error("Lawyer profile information missing");
+		}
+		const registryStore = getLawyerRegistryStore();
+		const matcher = getNameMatchStrategy();
+		const record = await registryStore.findByLsoNumber(profile.lsoNumber);
+		let status: "verified" | "failed" = "failed";
+		let matchedRecord = undefined as
+			| ReturnType<typeof normalizeRegistryRecord>
+			| undefined;
+		if (record) {
+			const normalized = normalizeRegistryRecord(record);
+			const matched = matcher.matches(
+				{
+					firstName: profile.firstName,
+					lastName: profile.lastName,
+					middleName: profile.middleName,
+				},
+				{
+					firstName: normalized.firstName,
+					lastName: normalized.lastName,
+				}
+			);
+			if (matched) {
+				status = "verified";
+			}
+			matchedRecord = normalized;
+		}
+		const context = resolveLawyerContext(journey);
+		context.lawyer.profile = profile;
+		context.lawyer.lsoVerification = {
+			status,
+			checkedAt: new Date().toISOString(),
+			matchedRecord,
+		};
+		await ctx.db.patch(journey._id, {
+			context,
+			stateValue: "lawyer.lso_verification",
+			lastTouchedAt: new Date().toISOString(),
+		});
+		return await ctx.db.get(journey._id);
+	},
+});
+
 export const submitInvestorJourney = mutation({
 	args: v.object({
 		finalNotes: v.optional(v.string()),
@@ -340,6 +535,43 @@ export const submitInvestorJourney = mutation({
 						...investor.kycPlaceholder,
 						notes: args.finalNotes ?? investor.kycPlaceholder?.notes,
 					},
+				},
+			},
+		});
+		return await ctx.db.get(journey._id);
+	},
+});
+
+export const submitLawyerJourney = mutation({
+	args: v.object({
+		finalNotes: v.optional(v.string()),
+	}),
+	handler: async (ctx, args) => {
+		const { user } = await getIdentityAndUser(ctx);
+		const journey = await getJourneyForUser(ctx, user._id);
+		if (!journey) {
+			throw new Error("Onboarding journey not found");
+		}
+		assertDraft(journey);
+		assertPersona(journey, "lawyer");
+		const lawyer = journey.context?.lawyer;
+		if (!lawyer?.profile) {
+			throw new Error("Lawyer profile information missing");
+		}
+		if (lawyer.identityVerification?.status !== "verified") {
+			throw new Error("Identity verification must be completed");
+		}
+		if (lawyer.lsoVerification?.status !== "verified") {
+			throw new Error("LSO verification must be completed");
+		}
+		await ctx.db.patch(journey._id, {
+			status: "awaiting_admin" as JourneyStatus,
+			stateValue: "lawyer.pending_admin",
+			lastTouchedAt: new Date().toISOString(),
+			context: {
+				...journey.context,
+				lawyer: {
+					...lawyer,
 				},
 			},
 		});
@@ -447,6 +679,7 @@ export const approveJourney = mutation({
 				decidedBy: admin._id,
 				decidedAt: new Date().toISOString(),
 				notes: args.notes,
+				decisionSource: "admin",
 			},
 			lastTouchedAt: new Date().toISOString(),
 		});
@@ -489,6 +722,7 @@ export const rejectJourney = mutation({
 				decidedBy: admin._id,
 				decidedAt: new Date().toISOString(),
 				notes: args.reason,
+				decisionSource: "admin",
 			},
 			lastTouchedAt: new Date().toISOString(),
 		});
