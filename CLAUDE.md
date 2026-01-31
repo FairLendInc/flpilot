@@ -556,13 +556,57 @@ function handleClick(id: string) {
 }
 ```
 
+#### Ledger View Admin Dashboard
+
+The Ledger View provides admin visibility into Formance Ledger state at `/dashboard/admin/ledger/`.
+
+**Routes:**
+- `/dashboard/admin/ledger` - Redirects to accounts
+- `/dashboard/admin/ledger/accounts` - Account overview grouped by namespace
+- `/dashboard/admin/ledger/transactions` - Transaction history with postings
+- `/dashboard/admin/ledger/investors` - Investor account provisioning status
+- `/dashboard/admin/ledger/mortgages` - Mortgage ownership cap tables
+
+**Key Components:**
+- `LedgerContext.tsx` - Global ledger selection state (`useLedger()` hook)
+- `LedgerSelector.tsx` - Dropdown for switching between ledgers
+- `AccountsTable.tsx` - Accounts grouped by namespace (fairlend, investor, mortgage, system)
+- `TransactionCard.tsx` - Single transaction display with postings visualization
+- `InvestorAccountStatus.tsx` - Shows provisioning status with action buttons
+- `MortgageOwnershipRow.tsx` - Ownership cap table with mint capability
+
+**Utility Functions (`lib/ledger/utils.ts`):**
+```typescript
+getNamespace(address)       // Extract namespace from "investor:abc:inventory" → "investor"
+formatBalance(amount, asset) // Format "10000" + "CAD" → "$100.00"
+getAccountIcon(namespace)   // Get lucide icon for namespace
+getAccountColor(namespace)  // Get Tailwind color classes
+parseOwnerId(address)       // Extract owner ID from address
+groupAccountsByNamespace(accounts) // Group accounts by their namespace
+```
+
+**Account Namespaces:**
+- `fairlend` - Platform accounts (inventory, fees)
+- `investor` - Investor inventory accounts (`investor:{userId}:inventory`)
+- `mortgage` - Mortgage share accounts (`mortgage:{mortgageId}:shares`)
+- `system` - System accounts (`@world`, `@fees`)
+
+**Convex Actions:**
+- `api.ledger.listLedgers` - List available ledgers
+- `api.ledger.listAccounts` - List accounts with optional volumes
+- `api.ledger.listTransactions` - List transactions with postings
+- `api.ledger.provisionInvestorAccounts` - Create investor accounts
+- `api.ledger.executeNumscript` - Execute Numscript for minting
+
 ### Project Structure
 
 ```
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
 │   └── (auth)/            # Authenticated route groups
+│       └── dashboard/admin/ledger/  # Ledger View admin pages
 ├── components/            # React components
+│   └── admin/ledger/      # Ledger View components
 ├── convex/               # Convex backend (schema + functions)
 │   ├── schema.ts         # Database schema with 6 tables
 │   ├── mortgages.ts      # Mortgage operations
@@ -570,10 +614,13 @@ function handleClick(id: string) {
 │   ├── ownership.ts      # Ownership cap table (100% invariant)
 │   ├── listings.ts       # Marketplace listings
 │   ├── comparables.ts    # Appraisal comparables
-│   └── payments.ts       # Payment history
+│   ├── payments.ts       # Payment history
+│   └── ledger.ts         # Formance Ledger API actions
 ├── lib/                  # Shared utilities and configurations
+│   └── ledger/utils.ts   # Ledger formatting and parsing utilities
 ├── hooks/                # Custom React hooks
 ├── stories/              # Storybook stories
+│   └── admin/ledger/     # Ledger View component stories
 ├── unit-tests/           # Unit test files
 ├── e2e/                  # Playwright E2E tests
 ├── docs/                 # Project documentation
