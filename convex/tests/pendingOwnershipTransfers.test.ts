@@ -622,7 +622,7 @@ describe("getOwnershipPreview", () => {
 		await moveDealToOwnershipReview(t, dealId);
 
 		const adminT = await getAdminTest(t);
-		const transfer = await adminT.query(
+		const _transfer = await adminT.query(
 			api.pendingOwnershipTransfers.getPendingTransferByDeal,
 			{ dealId }
 		);
@@ -647,7 +647,7 @@ describe("getOwnershipPreview", () => {
 		const { dealId, mortgageId, investorId } = await createDeal(t);
 
 		// Create a custom pending transfer for 50%
-		const transferId = await t.run(
+		const _transferId = await t.run(
 			async (ctx) =>
 				await ctx.runMutation(
 					internal.pendingOwnershipTransfers.createPendingTransferInternal,

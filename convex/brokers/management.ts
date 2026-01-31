@@ -5,6 +5,11 @@ import { internalMutation } from "../_generated/server";
 import type { AuthorizedMutationCtx, AuthorizedQueryCtx } from "../lib/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "../lib/server";
 
+// Top-level regex constants for better performance
+const SUBDOMAIN_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+const DOMAIN_REGEX =
+	/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/;
+
 function requireSubjectId(ctx: unknown): Id<"users"> {
 	const subject = (ctx as { subject?: string | null }).subject;
 	if (!subject) {
@@ -688,7 +693,7 @@ function validateSubdomainFormat(subdomain: string): {
 	}
 
 	// Check format (alphanumeric and hyphens only)
-	if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(normalized)) {
+	if (!SUBDOMAIN_REGEX.test(normalized)) {
 		errors.push(
 			"Subdomain must start and end with a letter or number, and contain only letters, numbers, and hyphens"
 		);
@@ -826,11 +831,7 @@ export const updateBrokerCustomDomain = createAuthorizedMutation(["admin"])({
 		const domain = args.customDomain.toLowerCase().trim();
 
 		// Basic domain validation
-		if (
-			!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/.test(
-				domain
-			)
-		) {
+		if (!DOMAIN_REGEX.test(domain)) {
 			throw new Error("Invalid domain format");
 		}
 
