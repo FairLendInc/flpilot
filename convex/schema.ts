@@ -152,6 +152,17 @@ export default defineSchema({
 		context: v.object({
 			investor: v.optional(
 				v.object({
+					// Broker selection step
+					brokerSelection: v.optional(
+						v.object({
+							brokerId: v.optional(v.id("brokers")),
+							brokerCode: v.optional(v.string()),
+							selectedAt: v.string(), // ISO timestamp
+						})
+					),
+					// Step configuration version for this journey
+					configVersion: v.optional(v.number()),
+					// Profile step
 					profile: v.optional(
 						v.object({
 							firstName: v.optional(v.string()),
@@ -170,6 +181,7 @@ export default defineSchema({
 							legalName: v.optional(v.string()),
 						})
 					),
+					// Preferences step
 					preferences: v.optional(
 						v.object({
 							minTicket: v.number(),
@@ -183,6 +195,29 @@ export default defineSchema({
 							focusRegions: v.optional(v.array(v.string())),
 						})
 					),
+					// KYC step (differentiated by broker type)
+					kyc: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("in_progress"),
+								v.literal("submitted"),
+								v.literal("acknowledged") // For external broker stub
+							),
+							documents: v.optional(
+								v.array(
+									v.object({
+										storageId: v.id("_storage"),
+										documentType: v.string(), // e.g., "id_verification", "proof_of_address"
+										uploadedAt: v.string(),
+									})
+								)
+							),
+							acknowledgedAt: v.optional(v.string()),
+							notes: v.optional(v.string()),
+						})
+					),
+					// Legacy KYC placeholder (for backward compatibility)
 					kycPlaceholder: v.optional(
 						v.object({
 							status: v.union(
@@ -193,6 +228,7 @@ export default defineSchema({
 							notes: v.optional(v.string()),
 						})
 					),
+					// Documents step (optional uploads)
 					documents: v.optional(
 						v.array(
 							v.object({
@@ -296,6 +332,71 @@ export default defineSchema({
 					proposedSubdomain: v.optional(v.string()),
 				})
 			),
+			lawyer: v.optional(
+				v.object({
+					profile: v.optional(
+						v.object({
+							firstName: v.string(),
+							middleName: v.optional(v.string()),
+							lastName: v.string(),
+							lsoNumber: v.string(),
+							firmName: v.string(),
+							email: v.string(),
+							phone: v.string(),
+							jurisdiction: v.string(),
+						})
+					),
+					identityVerification: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("pending"),
+								v.literal("verified"),
+								v.literal("mismatch"),
+								v.literal("failed")
+							),
+							provider: v.optional(v.string()),
+							inquiryId: v.optional(v.string()),
+							extractedName: v.optional(
+								v.object({
+									firstName: v.string(),
+									middleName: v.optional(v.string()),
+									lastName: v.string(),
+								})
+							),
+							checkedAt: v.optional(v.string()),
+						})
+					),
+					lsoVerification: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("verified"),
+								v.literal("failed")
+							),
+							checkedAt: v.optional(v.string()),
+							matchedRecord: v.optional(
+								v.object({
+									lsoNumber: v.string(),
+									firstName: v.string(),
+									lastName: v.string(),
+									firmName: v.optional(v.string()),
+									jurisdiction: v.optional(v.string()),
+									status: v.optional(v.string()),
+								})
+							),
+						})
+					),
+					documents: v.optional(
+						v.array(
+							v.object({
+								storageId: v.id("_storage"),
+								label: v.string(),
+							})
+						)
+					),
+				})
+			),
 		}),
 		status: v.union(
 			v.literal("draft"),
@@ -308,6 +409,9 @@ export default defineSchema({
 				decidedBy: v.id("users"),
 				decidedAt: v.string(),
 				notes: v.optional(v.string()),
+				decisionSource: v.optional(
+					v.union(v.literal("admin"), v.literal("system"))
+				),
 			})
 		),
 		lastTouchedAt: v.string(),
@@ -991,6 +1095,64 @@ export default defineSchema({
 		.index("by_deal", ["dealId"])
 		.index("by_status", ["status"])
 		.index("by_mortgage", ["mortgageId"]),
+
+	// ============================================================================
+	// Investor Onboarding Tables
+	// ============================================================================
+
+	/**
+	 * Broker codes for investor onboarding
+	 * Maps unique codes to brokers for self-directed investor onboarding
+	 */
+	broker_codes: defineTable({
+		// The actual code (e.g., "ABC123") - stored uppercase for case-insensitive lookup
+		code: v.string(),
+		// Reference to the broker
+		brokerId: v.id("brokers"),
+		// Optional description (e.g., "Spring 2024 Campaign")
+		description: v.optional(v.string()),
+		// Expiration date (optional)
+		expiresAt: v.optional(v.string()), // ISO timestamp
+		// Usage tracking
+		maxUses: v.optional(v.number()), // null = unlimited
+		useCount: v.number(),
+		// Status
+		isActive: v.boolean(),
+		// Timestamps
+		createdAt: v.string(), // ISO timestamp
+		createdBy: v.id("users"),
+		updatedAt: v.string(),
+	})
+		.index("by_code", ["code"])
+		.index("by_broker", ["brokerId"])
+		.index("by_active_code", ["isActive", "code"]),
+
+	/**
+	 * Investor onboarding step configurations
+	 * Defines step order and settings for different broker types
+	 */
+	investor_onboarding_configs: defineTable({
+		// Configuration identifier: "fairlend", "external_broker", or specific brokerId
+		configId: v.string(),
+		// Step order (array of step IDs)
+		stepOrder: v.array(v.string()),
+		// Step-specific settings
+		stepSettings: v.record(
+			v.string(), // stepId
+			v.object({
+				isRequired: v.boolean(),
+				allowSkip: v.boolean(),
+				customFields: v.optional(v.record(v.string(), v.any())),
+			})
+		),
+		// Configuration version for migration handling
+		version: v.number(),
+		// Timestamps
+		createdAt: v.string(),
+		updatedAt: v.string(),
+	})
+		.index("by_config_id", ["configId"])
+		.index("by_version", ["configId", "version"]),
 
 	/**
 	 * Audit events - durable storage for events before external emission
