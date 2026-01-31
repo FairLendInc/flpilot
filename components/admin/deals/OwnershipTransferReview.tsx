@@ -26,6 +26,11 @@ import {
 	TrendingDown,
 	User,
 	X,
+	Building,
+	FileText,
+	DollarSign,
+	Calendar,
+	MapPin,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -69,6 +74,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { getMortgageShareAsset } from "@/lib/ledger/utils";
 import { logger } from "@/lib/logger";
 
 // ============================================================================
@@ -79,6 +85,7 @@ type OwnershipTransferReviewProps = {
 	dealId: Id<"deals">;
 	onApproved?: () => void;
 	onRejected?: () => void;
+	dealData?: any;
 };
 
 type OwnershipEntry = {
@@ -102,9 +109,260 @@ type LedgerState = {
 	destinationAccount: LedgerAccountState;
 };
 
+type OwnershipPreview = {
+	currentOwnership: OwnershipEntry[];
+	afterOwnership: OwnershipEntry[];
+	ledgerState: LedgerState;
+};
+
+function formatUserName(
+	user:
+		| {
+				first_name?: string;
+				last_name?: string;
+				email: string;
+		  }
+		| null
+		| undefined
+): string | null {
+	if (!user) return null;
+	const name = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+	return name || user.email || null;
+}
+
 // ============================================================================
 // Sub-components
 // ============================================================================
+
+/**
+ * Deal Overview Card - displays key deal information
+ */
+function DealOverviewCard({ dealData }: { dealData: any }) {
+	const mortgage = dealData?.mortgage;
+	const deal = dealData?.deal;
+
+	if (!mortgage || !deal) return null;
+
+	return (
+		<Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+			<CardHeader>
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+						<FileText className="h-5 w-5 text-primary" />
+					</div>
+					<div>
+						<CardTitle>Deal Overview</CardTitle>
+						<CardDescription>
+							ID: {deal._id} • Created {new Date(deal.createdAt).toLocaleDateString()}
+						</CardDescription>
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				{/* Mortgage Details */}
+				<div className="grid gap-4 md:grid-cols-3">
+					<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
+						<DollarSign className="h-5 w-5 text-primary mt-0.5" />
+						<div>
+							<p className="text-muted-foreground text-xs">Loan Amount</p>
+							<p className="font-semibold">
+								${mortgage.loanAmount?.toLocaleString() ?? "N/A"}
+							</p>
+						</div>
+					</div>
+					<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
+						<Calendar className="h-5 w-5 text-primary mt-0.5" />
+						<div>
+							<p className="text-muted-foreground text-xs">Interest Rate</p>
+							<p className="font-semibold">
+								{mortgage.interestRate?.toFixed(2) ?? "N/A"}% APR
+							</p>
+						</div>
+					</div>
+					<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
+						<Calendar className="h-5 w-5 text-primary mt-0.5" />
+						<div>
+							<p className="text-muted-foreground text-xs">LTV Ratio</p>
+							<p className="font-semibold">
+								{mortgage.ltv?.toFixed(1) ?? "N/A"}%
+							</p>
+						</div>
+					</div>
+				</div>
+
+				{/* Property Details */}
+				<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
+					<MapPin className="h-5 w-5 text-primary mt-0.5" />
+					<div>
+						<p className="text-muted-foreground text-xs">Property Address</p>
+						<p className="font-medium">
+							{mortgage.address?.street}
+							<br />
+							{mortgage.address?.city}, {mortgage.address?.state} {mortgage.address?.zip}
+						</p>
+						<div className="text-muted-foreground text-sm mt-1">
+							{mortgage.propertyType} • Appraisal: ${mortgage.appraisalMarketValue?.toLocaleString() ?? "N/A"}
+						</div>
+					</div>
+				</div>
+
+				{/* Deal Value */}
+				{deal.dealValue && (
+					<div className="flex items-start gap-3 rounded-lg bg-primary/5 p-3 border border-primary/20">
+						<Database className="h-5 w-5 text-primary mt-0.5" />
+						<div>
+							<p className="text-muted-foreground text-xs">Deal Value</p>
+							<p className="font-bold text-lg text-primary">
+								${deal.dealValue.toLocaleString()}
+							</p>
+							<p className="text-muted-foreground text-xs">
+								Purchase: {deal.purchasePercentage ?? 100}%
+							</p>
+						</div>
+					</div>
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
+/**
+ * Parties Section - displays all participants in the deal
+ */
+function PartiesSection({ dealData }: { dealData: any }) {
+	const mortgage = dealData?.mortgage;
+	const deal = dealData?.deal;
+	const investor = dealData?.investor;
+	const borrower = dealData?.borrower;
+
+	if (!mortgage || !deal) return null;
+
+	const formatPhoneNumber = (phone: string | undefined) => {
+		if (!phone) return "N/A";
+		const cleaned = phone.replace(/\D/g, "");
+		if (cleaned.length === 10) {
+			return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+		}
+		return phone;
+	};
+
+	return (
+		<Card>
+			<CardHeader>
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+						<Building2 className="h-5 w-5 text-primary" />
+					</div>
+					<div>
+						<CardTitle>Deal Participants</CardTitle>
+						<CardDescription>All parties involved in this transaction</CardDescription>
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent>
+				<div className="grid gap-4 md:grid-cols-2">
+					{/* Investor Section */}
+					<div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/10">
+						<div className="flex items-center gap-2 mb-3">
+							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
+								<User className="h-4 w-4" />
+							</div>
+							<h4 className="font-semibold text-blue-900 dark:text-blue-100">Investor</h4>
+						</div>
+						{investor ? (
+							<div className="space-y-1 text-sm">
+								<p className="font-medium">
+									{investor.first_name} {investor.last_name}
+								</p>
+								<p className="text-blue-700 dark:text-blue-300">{investor.email}</p>
+								{investor.phone && (
+									<p className="text-blue-700 dark:text-blue-300">
+										{formatPhoneNumber(investor.phone)}
+									</p>
+								)}
+								<p className="text-muted-foreground text-xs mt-2">
+									ID: {investor._id}
+								</p>
+							</div>
+						) : (
+							<p className="text-muted-foreground text-sm">Investor details not available</p>
+						)}
+					</div>
+
+					{/* Borrower Section */}
+					<div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/10">
+						<div className="flex items-center gap-2 mb-3">
+							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-white">
+								<Building className="h-4 w-4" />
+							</div>
+							<h4 className="font-semibold text-amber-900 dark:text-amber-100">Borrower</h4>
+						</div>
+						{borrower ? (
+							<div className="space-y-1 text-sm">
+								<p className="font-medium">{borrower.name}</p>
+								<p className="text-amber-700 dark:text-amber-300">{borrower.email}</p>
+								{borrower.phone && (
+									<p className="text-amber-700 dark:text-amber-300">
+										{formatPhoneNumber(borrower.phone)}
+									</p>
+								)}
+								{borrower.rotessaCustomerId && (
+									<p className="text-muted-foreground text-xs mt-2">
+										Rotessa ID: {borrower.rotessaCustomerId}
+									</p>
+								)}
+							</div>
+						) : (
+							<p className="text-muted-foreground text-sm">Borrower details not available</p>
+						)}
+					</div>
+
+					{/* Lawyer Section */}
+					{deal.lawyerEmail && (
+						<div className="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/10">
+							<div className="flex items-center gap-2 mb-3">
+								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 text-white">
+									<FileText className="h-4 w-4" />
+								</div>
+								<h4 className="font-semibold text-purple-900 dark:text-purple-100">Lawyer</h4>
+							</div>
+							<div className="space-y-1 text-sm">
+								<p className="font-medium">{deal.lawyerName || "Not specified"}</p>
+								<p className="text-purple-700 dark:text-purple-300">{deal.lawyerEmail}</p>
+								{deal.lawyerLSONumber && (
+									<p className="text-muted-foreground text-xs mt-2">
+										LSO #: {deal.lawyerLSONumber}
+									</p>
+								)}
+							</div>
+						</div>
+					)}
+
+					{/* Broker Section */}
+					{deal.brokerEmail && (
+						<div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/10">
+							<div className="flex items-center gap-2 mb-3">
+								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white">
+									<Building2 className="h-4 w-4" />
+								</div>
+								<h4 className="font-semibold text-green-900 dark:text-green-100">Broker</h4>
+							</div>
+							<div className="space-y-1 text-sm">
+								<p className="font-medium">{deal.brokerName || "Not specified"}</p>
+								<p className="text-green-700 dark:text-green-300">{deal.brokerEmail}</p>
+								{deal.brokerId && (
+									<p className="text-muted-foreground text-xs mt-2">
+										ID: {deal.brokerId}
+									</p>
+								)}
+							</div>
+						</div>
+					)}
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
 
 function OwnershipBar({
 	ownership,
@@ -414,26 +672,46 @@ export function OwnershipTransferReview({
 	dealId,
 	onApproved,
 	onRejected,
+	dealData,
 }: OwnershipTransferReviewProps) {
 	const { user, loading: authLoading } = useAuth();
 
 	// Mutations
 	const transitionDeal = useMutation(api.deals.transitionDealState);
-	const fetchOwnershipPreview = useAction(
-		api.pendingOwnershipTransfers.getOwnershipPreview
+	const approvePendingTransfer = useMutation(
+		api.pendingOwnershipTransfers.approvePendingTransfer
 	);
+	const fetchOwnershipSnapshot = useAction(api.ledger.getOwnershipSnapshot);
 
 	// Queries
 	const pendingTransfer = useQuery(
 		api.pendingOwnershipTransfers.getPendingTransferByDeal,
 		authLoading || !user ? "skip" : { dealId }
 	);
+	const fromOwnerUser = useQuery(
+		api.users.getUserByIdAdmin,
+		authLoading ||
+			!user ||
+			!pendingTransfer ||
+			pendingTransfer.fromOwnerId === "fairlend"
+			? "skip"
+			: { userId: pendingTransfer.fromOwnerId }
+	);
+	const toOwnerUser = useQuery(
+		api.users.getUserByIdAdmin,
+		authLoading || !user || !pendingTransfer
+			? "skip"
+			: { userId: pendingTransfer.toOwnerId }
+	);
 
 	const [ownershipPreview, setOwnershipPreview] = useState<
-		| typeof api.pendingOwnershipTransfers.getOwnershipPreview._returnType
-		| null
-		| undefined
+		OwnershipPreview | null | undefined
 	>(undefined);
+	const [ownershipError, setOwnershipError] = useState<string | null>(null);
+	const dealInvestorId = dealData?.investor?._id;
+	const dealInvestorName = formatUserName(dealData?.investor);
+	const fromOwnerDisplayName = formatUserName(fromOwnerUser);
+	const toOwnerDisplayName = formatUserName(toOwnerUser);
 
 	useEffect(() => {
 		if (authLoading || !user || !pendingTransfer?._id) {
@@ -442,23 +720,169 @@ export function OwnershipTransferReview({
 
 		let cancelled = false;
 		setOwnershipPreview(undefined);
+		setOwnershipError(null);
 
-		fetchOwnershipPreview({ dealId })
-			.then((data) => {
-				if (!cancelled) {
-					setOwnershipPreview(data);
+		const resolveOwnerName = (ownerId: string) => {
+			if (ownerId === "fairlend") return "FairLend";
+			if (dealInvestorId === ownerId && dealInvestorName) {
+				return dealInvestorName;
+			}
+			if (toOwnerUser?._id === ownerId && toOwnerDisplayName) {
+				return toOwnerDisplayName;
+			}
+			if (fromOwnerUser?._id === ownerId && fromOwnerDisplayName) {
+				return fromOwnerDisplayName;
+			}
+			return `Investor ${ownerId.slice(0, 8)}...`;
+		};
+
+		fetchOwnershipSnapshot({})
+			.then((result) => {
+				if (cancelled) {
+					return;
 				}
-			})
-			.catch(() => {
-				if (!cancelled) {
+
+				if (!result.success || !result.ownershipByMortgage) {
 					setOwnershipPreview(null);
+					setOwnershipError(
+						result.error ?? "Failed to load mortgage ownership from ledger."
+					);
+					return;
+				}
+
+				const mortgageIdString = pendingTransfer.mortgageId.toString();
+				const assetIdentifier = getMortgageShareAsset(mortgageIdString);
+				const hashKey = assetIdentifier.slice(1);
+				const ownershipEntries = result.ownershipByMortgage[hashKey] ?? [];
+
+				if (ownershipEntries.length === 0) {
+					setOwnershipPreview(null);
+					setOwnershipError(
+						"Mortgage ownership has not been minted in the ledger yet. Mint ownership in Admin > Ledger > Mortgages before approving transfers."
+					);
+					return;
+				}
+
+				const currentOwnership: OwnershipEntry[] = ownershipEntries
+					.map((entry) => ({
+						ownerId:
+							entry.ownerId === "fairlend"
+								? "fairlend"
+								: (entry.ownerId as Id<"users">),
+						percentage: entry.percentage,
+						ownerName: resolveOwnerName(entry.ownerId),
+					}))
+					.sort((a, b) => b.percentage - a.percentage);
+
+				const ownershipMap = new Map<
+					"fairlend" | Id<"users">,
+					{ percentage: number; ownerName: string }
+				>();
+
+				currentOwnership.forEach((owner) => {
+					let newPercentage = owner.percentage;
+					if (owner.ownerId === pendingTransfer.fromOwnerId) {
+						newPercentage -= pendingTransfer.percentage;
+					}
+					if (owner.ownerId === pendingTransfer.toOwnerId) {
+						newPercentage += pendingTransfer.percentage;
+					}
+					if (newPercentage > 0) {
+						ownershipMap.set(owner.ownerId, {
+							percentage: newPercentage,
+							ownerName: owner.ownerName,
+						});
+					}
+				});
+
+				if (!ownershipMap.has(pendingTransfer.toOwnerId)) {
+					ownershipMap.set(pendingTransfer.toOwnerId, {
+						percentage: pendingTransfer.percentage,
+						ownerName: resolveOwnerName(pendingTransfer.toOwnerId),
+					});
+				}
+
+				const afterOwnership: OwnershipEntry[] = Array.from(
+					ownershipMap.entries()
+				)
+					.map(([ownerId, data]) => ({ ownerId, ...data }))
+					.sort((a, b) => b.percentage - a.percentage);
+
+				const sourceCurrentBalance =
+					currentOwnership.find(
+						(entry) => entry.ownerId === pendingTransfer.fromOwnerId
+					)?.percentage ?? 0;
+				const destCurrentBalance =
+					currentOwnership.find(
+						(entry) => entry.ownerId === pendingTransfer.toOwnerId
+					)?.percentage ?? 0;
+
+				const sourceAccountAddress =
+					pendingTransfer.fromOwnerId === "fairlend"
+						? "fairlend:inventory"
+						: `investor:${pendingTransfer.fromOwnerId}:inventory`;
+				const destinationAccountAddress =
+					pendingTransfer.toOwnerId === "fairlend"
+						? "fairlend:inventory"
+						: `investor:${pendingTransfer.toOwnerId}:inventory`;
+
+				const ledgerState: LedgerState = {
+					assetIdentifier,
+					sourceAccount: {
+						address: sourceAccountAddress,
+						ownerName: resolveOwnerName(pendingTransfer.fromOwnerId),
+						ownerId: pendingTransfer.fromOwnerId,
+						currentBalance: sourceCurrentBalance,
+						projectedBalance:
+							sourceCurrentBalance - pendingTransfer.percentage,
+						balanceChange: -pendingTransfer.percentage,
+					},
+					destinationAccount: {
+						address: destinationAccountAddress,
+						ownerName: resolveOwnerName(pendingTransfer.toOwnerId),
+						ownerId: pendingTransfer.toOwnerId,
+						currentBalance: destCurrentBalance,
+						projectedBalance:
+							destCurrentBalance + pendingTransfer.percentage,
+						balanceChange: pendingTransfer.percentage,
+					},
+				};
+
+				setOwnershipPreview({
+					currentOwnership,
+					afterOwnership,
+					ledgerState,
+				});
+			})
+			.catch((error) => {
+				if (!cancelled) {
+					logger.error("Failed to fetch ownership snapshot", {
+						error: error instanceof Error ? error.message : String(error),
+					});
+					setOwnershipPreview(null);
+					setOwnershipError("Failed to load mortgage ownership from ledger.");
 				}
 			});
 
 		return () => {
 			cancelled = true;
 		};
-	}, [authLoading, dealId, fetchOwnershipPreview, pendingTransfer?._id, user]);
+	}, [
+		authLoading,
+		dealInvestorId,
+		dealInvestorName,
+		fetchOwnershipSnapshot,
+		fromOwnerDisplayName,
+		fromOwnerUser?._id,
+		pendingTransfer?.fromOwnerId,
+		pendingTransfer?.mortgageId,
+		pendingTransfer?.percentage,
+		pendingTransfer?.toOwnerId,
+		pendingTransfer?._id,
+		toOwnerDisplayName,
+		toOwnerUser?._id,
+		user,
+	]);
 
 	// Loading state
 	if (
@@ -485,11 +909,32 @@ export function OwnershipTransferReview({
 	}
 
 	// Not found or null
-	if (pendingTransfer === null || ownershipPreview === null) {
+	if (pendingTransfer === null) {
 		return null;
 	}
 
+	if (ownershipPreview === null) {
+		return (
+			<Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+						<AlertTriangle className="h-5 w-5" />
+						Ownership Data Unavailable
+					</CardTitle>
+					<CardDescription className="text-amber-700 dark:text-amber-300">
+						{ownershipError ??
+							"Unable to load ownership data from the ledger. Please check ledger setup and try again."}
+					</CardDescription>
+				</CardHeader>
+			</Card>
+		);
+	}
+
 	const handleApprove = async () => {
+		await approvePendingTransfer({
+			transferId: pendingTransfer._id,
+			notes: "Approved via admin review",
+		});
 		await transitionDeal({
 			dealId,
 			event: { type: "CONFIRM_TRANSFER", notes: "Approved via admin review" },
@@ -513,6 +958,7 @@ export function OwnershipTransferReview({
 			onReject={handleReject}
 			pendingTransfer={pendingTransfer}
 			ledgerState={ownershipPreview.ledgerState}
+			dealData={dealData}
 		/>
 	);
 }
@@ -530,6 +976,7 @@ export type OwnershipTransferReviewContentProps = {
 	onApprove: () => Promise<void>;
 	onReject: (reason: string) => Promise<void>;
 	ledgerState: LedgerState;
+	dealData?: any; // Comprehensive deal information including mortgage, borrower, etc.
 };
 
 export function OwnershipTransferReviewContent({
@@ -539,6 +986,7 @@ export function OwnershipTransferReviewContent({
 	onApprove,
 	onReject,
 	ledgerState,
+	dealData,
 }: OwnershipTransferReviewContentProps) {
 	const [isApproving, setIsApproving] = useState(false);
 	const [isRejecting, setIsRejecting] = useState(false);
@@ -582,13 +1030,17 @@ export function OwnershipTransferReviewContent({
 		return null;
 	}
 
-	const fromOwnerName =
-		currentOwnership.find((o) => o.ownerId === pendingTransfer.fromOwnerId)
-			?.ownerName ?? "Unknown";
-
-	const toOwnerName =
-		afterOwnership.find((o) => o.ownerId === pendingTransfer.toOwnerId)
-			?.ownerName ?? "Unknown";
+	// Use ledger state for accurate source/destination names
+	const fromOwnerName = ledgerState.sourceAccount.ownerName;
+	const toOwnerName = ledgerState.destinationAccount.ownerName;
+	const approvalBlockedReason =
+		ledgerState.sourceAccount.currentBalance < pendingTransfer.percentage
+			? `Insufficient balance for transfer. Source has ${ledgerState.sourceAccount.currentBalance.toFixed(
+					2
+				)}%, attempting to transfer ${pendingTransfer.percentage.toFixed(2)}%.`
+			: null;
+	const approveDisabled =
+		Boolean(approvalBlockedReason) || isRejecting || isApproving;
 
 	return (
 		<Card className="overflow-hidden">
@@ -616,6 +1068,12 @@ export function OwnershipTransferReviewContent({
 			</CardHeader>
 
 			<CardContent className="space-y-6 pt-6">
+				{/* Deal Overview */}
+				{dealData && <DealOverviewCard dealData={dealData} />}
+
+				{/* Parties Section */}
+				{dealData && <PartiesSection dealData={dealData} />}
+
 				{/* Rejection warning if previously rejected */}
 				{(pendingTransfer.rejectionCount ?? 0) > 0 && (
 					<div className="flex items-start gap-3 rounded-lg border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
@@ -629,6 +1087,21 @@ export function OwnershipTransferReviewContent({
 									Last reason: {pendingTransfer.reviewNotes}
 								</p>
 							)}
+						</div>
+					</div>
+				)}
+
+				{/* Approval blocked warning */}
+				{approvalBlockedReason && (
+					<div className="flex items-start gap-3 rounded-lg border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+						<AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
+						<div>
+							<p className="font-medium text-red-800 text-sm dark:text-red-200">
+								Approval blocked
+							</p>
+							<p className="mt-1 text-red-700 text-sm dark:text-red-300">
+								{approvalBlockedReason}
+							</p>
 						</div>
 					</div>
 				)}
@@ -730,7 +1203,7 @@ export function OwnershipTransferReviewContent({
 						<AlertDialogTrigger asChild>
 							<Button
 								className="flex-1 bg-green-600 hover:bg-green-700"
-								disabled={isRejecting}
+								disabled={approveDisabled}
 							>
 								<Check className="mr-2 h-4 w-4" />
 								Approve Transfer
@@ -751,7 +1224,7 @@ export function OwnershipTransferReviewContent({
 								</AlertDialogCancel>
 								<AlertDialogAction
 									className="bg-green-600 hover:bg-green-700"
-									disabled={isApproving}
+									disabled={approveDisabled}
 									onClick={handleApproveClick}
 								>
 									{isApproving ? (
