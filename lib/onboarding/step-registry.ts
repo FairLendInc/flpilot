@@ -1,36 +1,36 @@
 /**
  * Validation result for step data
  */
-export interface ValidationResult {
+export type ValidationResult = {
 	valid: boolean;
 	errors?: Record<string, string>;
-}
+};
 
 /**
  * Result from persisting step data
  */
-export interface PersistResult<T = unknown> {
+export type PersistResult<T = unknown> = {
 	success: boolean;
 	data?: T;
 	error?: string;
-}
+};
 
 /**
  * Context passed to step persistence function
  */
-export interface PersistContext {
+export type PersistContext = {
 	journeyId: string;
 	userId: string;
 	stepId: string;
 	// Abstract persistence function - implementation agnostic
 	persistFn: (stepId: string, data: unknown) => Promise<void>;
-}
+};
 
 /**
  * Step definition interface
  * All onboarding steps must implement this interface
  */
-export interface OnboardingStep<TData = unknown> {
+export type OnboardingStep<TData = unknown> = {
 	/** Unique step identifier */
 	id: string;
 	/** Display name for the step */
@@ -64,23 +64,23 @@ export interface OnboardingStep<TData = unknown> {
 	 * Used for conditional steps (e.g., KYC for FairLend only)
 	 */
 	shouldShow?: (context: JourneyContext) => boolean;
-}
+};
 
 /**
  * Journey context passed to steps for conditional logic
  */
-export interface JourneyContext {
+export type JourneyContext = {
 	persona: "broker" | "investor" | "lawyer";
 	brokerId?: string;
 	brokerCode?: string;
 	configVersion: number;
 	stepData: Record<string, unknown>;
-}
+};
 
 /**
  * Step configuration for a specific broker type or journey type
  */
-export interface StepConfiguration {
+export type StepConfiguration = {
 	/** Configuration identifier (e.g., "fairlend", "external_broker") */
 	configId: string;
 	/** Ordered list of step IDs */
@@ -89,25 +89,25 @@ export interface StepConfiguration {
 	stepSettings: Record<string, StepSettings>;
 	/** Configuration version for migration handling */
 	version: number;
-}
+};
 
 /**
  * Settings for an individual step
  */
-export interface StepSettings {
+export type StepSettings = {
 	isRequired: boolean;
 	allowSkip: boolean;
 	/** Custom fields specific to this step configuration */
 	customFields?: Record<string, unknown>;
-}
+};
 
 /**
  * Step registry - central registry for all onboarding steps
  * Implements the swappable step architecture
  */
 export class StepRegistry {
-	private steps = new Map<string, OnboardingStep>();
-	private configurations = new Map<string, StepConfiguration>();
+	private readonly steps = new Map<string, OnboardingStep>();
+	private readonly configurations = new Map<string, StepConfiguration>();
 
 	/**
 	 * Register a step definition
@@ -123,7 +123,9 @@ export class StepRegistry {
 	 * Register multiple steps at once
 	 */
 	registerSteps(steps: OnboardingStep[]): void {
-		steps.forEach((step) => this.registerStep(step));
+		for (const step of steps) {
+			this.registerStep(step);
+		}
 	}
 
 	/**
@@ -284,13 +286,13 @@ export function createDefaultStepConfiguration(
 	const { version = 1, defaultSettings = {} } = options;
 
 	const stepSettings: Record<string, StepSettings> = {};
-	stepOrder.forEach((stepId) => {
+	for (const stepId of stepOrder) {
 		stepSettings[stepId] = {
 			isRequired: true,
 			allowSkip: false,
 			...defaultSettings,
 		};
-	});
+	}
 
 	return {
 		configId,

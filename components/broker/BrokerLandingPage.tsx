@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Id } from "@/convex/_generated/dataModel";
 
-interface BrokerLandingPageProps {
+type BrokerLandingPageProps = {
 	broker: {
 		_id: Id<"brokers">;
 		brandName: string;
@@ -20,7 +20,7 @@ interface BrokerLandingPageProps {
 		contactPhone?: string;
 	};
 	brokerCode?: string;
-}
+};
 
 export function BrokerLandingPage({
 	broker,

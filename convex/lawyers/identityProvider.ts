@@ -21,7 +21,9 @@ function createMockInquiryId() {
 	return `mock_inq_${Date.now()}_${rand}`;
 }
 
-export class MockPersonaIdentityProvider implements IdentityVerificationProvider {
+export class MockPersonaIdentityProvider
+	implements IdentityVerificationProvider
+{
 	async createInquiry(
 		profile: LawyerProfile,
 		options?: { simulateMismatch?: boolean }

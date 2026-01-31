@@ -13,8 +13,7 @@ export class StrictNameMatchStrategy implements NameMatchStrategy {
 		return (
 			normalizeNamePart(left.firstName) ===
 				normalizeNamePart(right.firstName) &&
-			normalizeNamePart(left.lastName) ===
-				normalizeNamePart(right.lastName)
+			normalizeNamePart(left.lastName) === normalizeNamePart(right.lastName)
 		);
 	}
 }

@@ -15,8 +15,8 @@ export default function ClientOnboardingPage() {
 				</CardHeader>
 				<CardContent>
 					<p className="text-muted-foreground">
-						The client onboarding portal is currently under development.
-						Please contact your broker for onboarding assistance.
+						The client onboarding portal is currently under development. Please
+						contact your broker for onboarding assistance.
 					</p>
 				</CardContent>
 			</Card>

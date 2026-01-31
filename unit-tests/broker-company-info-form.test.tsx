@@ -16,7 +16,7 @@ const EMAIL_REGEX = /business email/i;
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrokerCompanyInfoForm } from "@/components/onboarding/OnboardingExperience";
+import { BrokerCompanyInfoForm } from "@/components/onboarding/flows/broker/BrokerFlow";
 
 describe("BrokerCompanyInfoForm", () => {
 	it("shows required errors when submitting empty form", async () => {
