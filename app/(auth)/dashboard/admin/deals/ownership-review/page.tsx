@@ -45,6 +45,9 @@ import { useAuthenticatedQuery } from "@/convex/lib/client";
 type PendingTransfer =
 	(typeof api.pendingOwnershipTransfers.getPendingTransfersForReview._returnType)[number];
 
+// Helper type for transfers that have been reviewed
+type ReviewedExceptionalTransfer = PendingTransfer & { reviewedAt: number };
+
 export default function OwnershipReviewPage() {
 	const router = useRouter();
 
@@ -77,13 +80,15 @@ export default function OwnershipReviewPage() {
 		pendingTransfers?.filter(
 			(t: PendingTransfer) => (t.rejectionCount ?? 0) >= 2
 		).length ?? 0;
-	const reviewedTransfers = pendingTransfers.filter(
-		(transfer) => typeof transfer.reviewedAt === "number"
-	);
+	const reviewedTransfers: ReviewedExceptionalTransfer[] =
+		pendingTransfers.filter(
+			(transfer): transfer is ReviewedExceptionalTransfer =>
+				typeof transfer.reviewedAt === "number"
+		);
 	const avgReviewTimeMs =
 		reviewedTransfers.length > 0
 			? reviewedTransfers.reduce(
-					(sum: number, transfer: PendingTransfer) =>
+					(sum: number, transfer: ReviewedExceptionalTransfer) =>
 						sum + (transfer.reviewedAt - transfer.createdAt),
 					0
 				) / reviewedTransfers.length

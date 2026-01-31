@@ -87,25 +87,25 @@ export default function BrokerDashboardPage() {
 						icon={Users}
 						title="Total Clients"
 						trend="+2 this month"
-						value={stats?.clientCount || 0}
+						value={stats?.clients.total || 0}
 					/>
 					<KPICard
 						icon={DollarSign}
 						title="Assets Under Management"
 						trend="+5.2%"
-						value={`$${((stats?.aum || 0) / 1000000).toFixed(1)}M`}
+						value={`$${((stats?.assets.totalAUM || 0) / 1000000).toFixed(1)}M`}
 					/>
 					<KPICard
 						icon={Building2}
 						title="Total Deals"
 						trend="12 active"
-						value={stats?.dealCount || 0}
+						value={stats?.deals.dealCount || 0}
 					/>
 					<KPICard
 						icon={TrendingUp}
 						title="Commissions YTD"
 						trend="On track"
-						value={`$${((stats?.totalCommissions || 0) / 1000).toFixed(0)}K`}
+						value={`$${((stats?.commissions.totalEarned || 0) / 1000).toFixed(0)}K`}
 					/>
 				</div>
 

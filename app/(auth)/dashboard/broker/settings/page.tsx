@@ -24,7 +24,7 @@ export default function BrokerSettingsPage() {
 		api.brokers.management.updateBrokerConfiguration
 	);
 
-	const [brandName, setBrandName] = useState(broker?.branding?.brandName || "");
+	const [brandName, setBrandName] = useState(broker?.subdomain || "");
 
 	const _isLoading = authLoading || !broker;
 
@@ -42,11 +42,15 @@ export default function BrokerSettingsPage() {
 	}
 
 	const handleSave = async () => {
+		if (!broker) {
+			toast.error("Broker not found");
+			return;
+		}
 		try {
 			await updateBroker({
+				brokerId: broker._id,
 				branding: {
-					...broker?.branding,
-					brandName,
+					...broker.branding,
 				},
 			});
 			toast.success("Settings saved");

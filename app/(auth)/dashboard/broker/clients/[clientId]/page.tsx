@@ -32,9 +32,12 @@ export default function ClientDetailPage() {
 	const clientId = params.clientId as Id<"broker_clients">;
 	const [message, setMessage] = useState("");
 
-	const client = useQuery(api.brokers.clients.getClientDetail, {
+	const clientQuery = useQuery(api.brokers.clients.getClientDetail, {
 		clientBrokerId: clientId,
 	});
+
+	// Destructure the nested result (query returns { client, broker, clientUser })
+	const { client, broker, clientUser } = clientQuery ?? { client: null, broker: null, clientUser: null };
 
 	const approveMutation = useMutation(api.brokers.clients.approveClient);
 	const rejectMutation = useMutation(api.brokers.clients.rejectClient);
@@ -76,7 +79,7 @@ export default function ClientDetailPage() {
 
 	const handleReject = async () => {
 		try {
-			await rejectMutation({ clientBrokerId: clientId });
+			await rejectMutation({ clientBrokerId: clientId, reason: "Rejected by broker" });
 			toast.success("Client rejected");
 		} catch (_error) {
 			toast.error("Failed to reject client");
@@ -91,7 +94,7 @@ export default function ClientDetailPage() {
 		try {
 			await sendRequestMutation({
 				clientBrokerId: clientId,
-				type: "info_request",
+				requestType: "info_request",
 				message,
 			});
 			toast.success("Request sent");
