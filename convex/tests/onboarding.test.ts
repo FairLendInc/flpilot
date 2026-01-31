@@ -198,11 +198,16 @@ describe("Onboarding journeys", () => {
 			api.onboarding.runLawyerLsoVerification,
 			{}
 		);
-		expect(lsoResult?.context?.lawyer?.lsoVerification?.status).toBe("verified");
+		expect(lsoResult?.context?.lawyer?.lsoVerification?.status).toBe(
+			"verified"
+		);
 
-		const submitted = await member.mutation(api.onboarding.submitLawyerJourney, {
-			finalNotes: "ready",
-		});
+		const submitted = await member.mutation(
+			api.onboarding.submitLawyerJourney,
+			{
+				finalNotes: "ready",
+			}
+		);
 		expect(submitted?.status).toBe("awaiting_admin");
 		expect(submitted?.stateValue).toBe("lawyer.pending_admin");
 	});

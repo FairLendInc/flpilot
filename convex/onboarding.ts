@@ -6,7 +6,10 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, mutation, query } from "./_generated/server";
 import { getIdentityVerificationProvider } from "./lawyers/identityProvider";
 import { getNameMatchStrategy } from "./lawyers/nameMatch";
-import { getLawyerRegistryStore, normalizeRegistryRecord } from "./lawyers/registryStore";
+import {
+	getLawyerRegistryStore,
+	normalizeRegistryRecord,
+} from "./lawyers/registryStore";
 import type { LawyerProfile, NameFields } from "./lawyers/types";
 
 const PERSONA_OPTIONS = ["broker", "investor", "lawyer"] as const;
@@ -88,7 +91,6 @@ const lawyerProfileValidator = v.object({
 	phone: v.string(),
 	jurisdiction: v.string(),
 });
-
 
 const investorContextPatchValidator = v.object({
 	profile: v.optional(investorProfileValidator),
@@ -405,7 +407,9 @@ export const runLawyerIdentityVerification = mutation({
 		}
 		assertDraft(journey);
 		assertPersona(journey, "lawyer");
-		const profile = journey.context?.lawyer?.profile as LawyerProfile | undefined;
+		const profile = journey.context?.lawyer?.profile as
+			| LawyerProfile
+			| undefined;
 		if (!profile) {
 			throw new Error("Lawyer profile information missing");
 		}
@@ -449,7 +453,9 @@ export const runLawyerLsoVerification = mutation({
 		}
 		assertDraft(journey);
 		assertPersona(journey, "lawyer");
-		const profile = journey.context?.lawyer?.profile as LawyerProfile | undefined;
+		const profile = journey.context?.lawyer?.profile as
+			| LawyerProfile
+			| undefined;
 		if (!profile) {
 			throw new Error("Lawyer profile information missing");
 		}
@@ -546,7 +552,7 @@ export const submitLawyerJourney = mutation({
 	args: v.object({
 		finalNotes: v.optional(v.string()),
 	}),
-	handler: async (ctx, args) => {
+	handler: async (ctx, _args) => {
 		const { user } = await getIdentityAndUser(ctx);
 		const journey = await getJourneyForUser(ctx, user._id);
 		if (!journey) {

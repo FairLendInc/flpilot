@@ -1,7 +1,13 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { Building2, CheckCircle2, User } from "lucide-react";
+import {
+	ArrowRight,
+	Building2,
+	CheckCircle2,
+	Shield,
+	User,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/convex/_generated/api";
+
+// Design System: FairLend Investor Onboarding
+// Style: Glassmorphism with dark tech theme
+// Colors: Primary #F59E0B, Secondary #FBBF24, CTA #8B5CF6, Background #0F172A, Text #F8FAFC
 
 type BrokerSelectionStepProps = {
 	busy: boolean;
@@ -33,7 +43,6 @@ export function BrokerSelectionStep({
 	const [validationError, setValidationError] = useState<string | null>(null);
 	const [validating, setValidating] = useState(false);
 
-	// Use a state to trigger the query
 	const [codeToValidate, setCodeToValidate] = useState<string | null>(null);
 
 	const validationResult = useQuery(
@@ -41,7 +50,6 @@ export function BrokerSelectionStep({
 		codeToValidate ? { code: codeToValidate } : "skip"
 	);
 
-	// Handle validation result
 	if (validating && validationResult) {
 		if (validationResult.valid) {
 			setValidatedBroker(validationResult.broker);
@@ -67,9 +75,6 @@ export function BrokerSelectionStep({
 	};
 
 	const handleContinue = async () => {
-		// If no code entered, proceed with FairLend (no broker code)
-		// If code entered and validated, proceed with that broker
-		// If code entered but not validated, show error
 		if (brokerCode.trim() && !validatedBroker) {
 			setValidationError(
 				"Please enter a valid broker code or leave empty for FairLend"
@@ -81,16 +86,29 @@ export function BrokerSelectionStep({
 	};
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Choose Your Broker</CardTitle>
+		<Card className="border-[#F59E0B]/20 bg-[#0F172A] shadow-xl">
+			<CardHeader className="border-[#F59E0B]/10 border-b">
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/20">
+						<Shield className="h-5 w-5 text-[#8B5CF6]" />
+					</div>
+					<div>
+						<CardTitle className="text-[#F8FAFC]">Choose Your Broker</CardTitle>
+						<p className="text-[#F8FAFC]/60 text-sm">
+							Select who you will invest with
+						</p>
+					</div>
+				</div>
 			</CardHeader>
-			<CardContent className="space-y-6">
+			<CardContent className="space-y-6 pt-6">
 				<div className="space-y-4">
 					<div>
-						<Label htmlFor="brokerCode">Broker Code (Optional)</Label>
+						<Label className="text-[#F8FAFC]" htmlFor="brokerCode">
+							Broker Code (Optional)
+						</Label>
 						<div className="mt-1.5 flex gap-2">
 							<Input
+								className="border-[#F59E0B]/30 bg-[#0F172A] text-[#F8FAFC] placeholder:text-[#F8FAFC]/40 focus:border-[#F59E0B] focus:ring-[#F59E0B]/20"
 								disabled={busy || validating}
 								id="brokerCode"
 								onBlur={handleValidateCode}
@@ -109,37 +127,40 @@ export function BrokerSelectionStep({
 								value={brokerCode}
 							/>
 							<Button
+								className="border-[#F59E0B] text-[#F59E0B] hover:bg-[#F59E0B]/10"
 								disabled={!brokerCode.trim() || validating || busy}
 								onClick={handleValidateCode}
 								type="button"
-								variant="secondary"
+								variant="outline"
 							>
-								{validating ? <Spinner className="size-4" /> : "Validate"}
+								{validating ? <Spinner className="h-4 w-4" /> : "Validate"}
 							</Button>
 						</div>
-						<p className="mt-1.5 text-muted-foreground text-xs">
-							Leave empty to join under FairLend Direct
+						<p className="mt-1.5 text-[#F8FAFC]/50 text-xs">
+							Leave empty to invest directly with FairLend
 						</p>
 					</div>
 
 					{validationError && (
-						<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-destructive text-sm">
+						<div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-red-400 text-sm">
 							{validationError}
 						</div>
 					)}
 
 					{validatedBroker && (
-						<div className="rounded-lg border border-primary/50 bg-primary/5 p-4">
+						<div className="rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 p-4">
 							<div className="flex items-start gap-3">
-								<div className="rounded-full bg-primary/10 p-2">
-									<Building2 className="size-5 text-primary" />
+								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/20">
+									<Building2 className="h-5 w-5 text-[#8B5CF6]" />
 								</div>
 								<div className="flex-1">
 									<div className="flex items-center gap-2">
-										<h4 className="font-medium">{validatedBroker.brandName}</h4>
-										<CheckCircle2 className="size-4 text-green-500" />
+										<h4 className="font-medium text-[#F8FAFC]">
+											{validatedBroker.brandName}
+										</h4>
+										<CheckCircle2 className="h-4 w-4 text-green-400" />
 									</div>
-									<p className="text-muted-foreground text-sm">
+									<p className="text-[#F8FAFC]/60 text-sm">
 										{validatedBroker.subdomain}.flpilot.com
 									</p>
 								</div>
@@ -148,16 +169,18 @@ export function BrokerSelectionStep({
 					)}
 
 					{!(brokerCode.trim() || validatedBroker) && (
-						<div className="rounded-lg border bg-muted/50 p-4">
+						<div className="rounded-lg border border-[#F59E0B]/20 bg-[#F59E0B]/5 p-4">
 							<div className="flex items-start gap-3">
-								<div className="rounded-full bg-primary/10 p-2">
-									<User className="size-5 text-primary" />
+								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F59E0B]/20">
+									<User className="h-5 w-5 text-[#F59E0B]" />
 								</div>
 								<div>
-									<h4 className="font-medium">FairLend Direct</h4>
-									<p className="text-muted-foreground text-sm">
-										Invest directly with FairLend. You will have access to all
-										available listings and will work with our team directly.
+									<h4 className="font-medium text-[#F8FAFC]">
+										FairLend Direct
+									</h4>
+									<p className="text-[#F8FAFC]/60 text-sm">
+										Invest directly with FairLend. Access all available listings
+										and work with our team directly.
 									</p>
 								</div>
 							</div>
@@ -167,6 +190,7 @@ export function BrokerSelectionStep({
 
 				<div className="flex justify-end">
 					<Button
+						className="bg-[#8B5CF6] text-white hover:bg-[#8B5CF6]/90"
 						disabled={busy || validating}
 						onClick={handleContinue}
 						size="lg"
@@ -174,11 +198,14 @@ export function BrokerSelectionStep({
 					>
 						{busy ? (
 							<>
-								<Spinner className="mr-2 size-4" />
+								<Spinner className="mr-2 h-4 w-4" />
 								Saving...
 							</>
 						) : (
-							"Continue"
+							<>
+								Continue
+								<ArrowRight className="ml-2 h-4 w-4" />
+							</>
 						)}
 					</Button>
 				</div>
