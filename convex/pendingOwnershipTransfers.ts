@@ -13,9 +13,8 @@
  */
 
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
 import { getMortgageShareAsset } from "../lib/ledger/utils";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
@@ -28,19 +27,12 @@ import {
 import { ENTITY_TYPES, OWNERSHIP_EVENT_TYPES } from "./lib/events/types";
 import { isLedgerSourceOfTruth } from "./lib/ownershipConfig";
 import {
-	OWNERSHIP_ACCOUNTS,
 	DEFAULT_LEDGER,
-	toShareUnits,
 	fromShareUnits,
+	OWNERSHIP_ACCOUNTS,
 } from "./lib/ownershipLedger";
 
 type OwnershipRecord = {
-	mortgageId: Id<"mortgages">;
-	ownerId: "fairlend" | Id<"users">;
-	ownershipPercentage: number;
-};
-
-type LegacyOwnershipRecord = {
 	mortgageId: Id<"mortgages">;
 	ownerId: "fairlend" | Id<"users">;
 	ownershipPercentage: number;
@@ -64,7 +56,7 @@ type PendingTransferRecord = {
 
 // OwnershipPreview type is defined inline in the function return type
 
-async function getLedgerOwnershipSnapshot(
+async function _getLedgerOwnershipSnapshot(
 	ctx: ActionCtx
 ): Promise<Record<string, OwnershipRecord[]>> {
 	const result = await ctx.runAction(api.ledger.getOwnershipSnapshot, {});
@@ -544,7 +536,10 @@ export const getOwnershipPreview = adminAction({
 			}),
 		}),
 	}),
-	handler: async (ctx, args): Promise<{
+	handler: async (
+		ctx,
+		args
+	): Promise<{
 		transfer: {
 			_id: Id<"pending_ownership_transfers">;
 			fromOwnerId: "fairlend" | Id<"users">;
@@ -646,7 +641,7 @@ export const getOwnershipPreview = adminAction({
 			result: { success: boolean; data?: unknown; error?: string },
 			asset: string
 		): number => {
-			if (!result.success || !result.data) return 0;
+			if (!(result.success && result.data)) return 0;
 			const balances = result.data as Record<string, Record<string, bigint>>;
 			const assetBalances = balances[Object.keys(balances)[0]] || {};
 			const balance = assetBalances[asset];
@@ -654,19 +649,29 @@ export const getOwnershipPreview = adminAction({
 		};
 
 		// Try to fetch balances from ledger
-		const sourceCurrentBalance = parseBalance(sourceBalanceResult, assetIdentifier);
+		const sourceCurrentBalance = parseBalance(
+			sourceBalanceResult,
+			assetIdentifier
+		);
 		const destCurrentBalance = parseBalance(destBalanceResult, assetIdentifier);
 
 		// Check if ledger is unavailable or accounts are not provisioned
 		// Use explicit type guard to narrow the union type
-		const hasError = (result: { success: boolean; data?: unknown; error?: string }): result is { success: false; error: string } => {
-			return !result.success && typeof result.error === 'string';
-		};
+		const hasError = (result: {
+			success: boolean;
+			data?: unknown;
+			error?: string;
+		}): result is { success: false; error: string } =>
+			!result.success && typeof result.error === "string";
 
-		const ledgerUnavailable = hasError(sourceBalanceResult) && sourceBalanceResult.error.includes("LEDGER_NOT_FOUND");
-		const accountsNotProvisioned = 
-			(hasError(sourceBalanceResult) && sourceBalanceResult.error.includes("ACCOUNT_NOT_FOUND")) ||
-			(hasError(destBalanceResult) && destBalanceResult.error.includes("ACCOUNT_NOT_FOUND"));
+		const ledgerUnavailable =
+			hasError(sourceBalanceResult) &&
+			sourceBalanceResult.error.includes("LEDGER_NOT_FOUND");
+		const accountsNotProvisioned =
+			(hasError(sourceBalanceResult) &&
+				sourceBalanceResult.error.includes("ACCOUNT_NOT_FOUND")) ||
+			(hasError(destBalanceResult) &&
+				destBalanceResult.error.includes("ACCOUNT_NOT_FOUND"));
 
 		if (ledgerUnavailable) {
 			throw new Error(
@@ -693,7 +698,7 @@ export const getOwnershipPreview = adminAction({
 
 		// VALIDATION: Check for negative projected balances (should never happen with above validation)
 		if (sourceProjectedBalance < 0 || destProjectedBalance < 0) {
-		 throw new Error(
+			throw new Error(
 				`Invalid transfer: would result in negative balance. Source: ${sourceProjectedBalance.toFixed(2)}%, Dest: ${destProjectedBalance.toFixed(2)}%`
 			);
 		}
@@ -716,10 +721,7 @@ export const getOwnershipPreview = adminAction({
 		}
 
 		// Add destination owner if they have a balance (and they're different from source)
-		if (
-			destCurrentBalance > 0 &&
-			transfer.toOwnerId !== transfer.fromOwnerId
-		) {
+		if (destCurrentBalance > 0 && transfer.toOwnerId !== transfer.fromOwnerId) {
 			currentOwnership.push({
 				ownerId: transfer.toOwnerId,
 				percentage: destCurrentBalance,
@@ -748,9 +750,12 @@ export const getOwnershipPreview = adminAction({
 		}> = [];
 
 		// Start with current ownership and apply the transfer
-		const ownershipMap = new Map<"fairlend" | Id<"users">, { percentage: number; ownerName: string }>();
+		const ownershipMap = new Map<
+			"fairlend" | Id<"users">,
+			{ percentage: number; ownerName: string }
+		>();
 
-		currentOwnership.forEach((owner) => {
+		for (const owner of currentOwnership) {
 			let newPercentage = owner.percentage;
 
 			// Adjust source balance
@@ -770,7 +775,7 @@ export const getOwnershipPreview = adminAction({
 					ownerName: owner.ownerName,
 				});
 			}
-		});
+		}
 
 		// CRITICAL: Ensure destination owner is included even if they had 0% before
 		if (!ownershipMap.has(transfer.toOwnerId)) {
@@ -791,7 +796,9 @@ export const getOwnershipPreview = adminAction({
 		const totalAfter = afterOwnership.reduce((sum, o) => sum + o.percentage, 0);
 		if (Math.abs(totalAfter - 100) > 0.01) {
 			// Adjust FairLend's percentage to maintain 100% invariant
-			const fairlendEntry = afterOwnership.find((o) => o.ownerId === "fairlend");
+			const fairlendEntry = afterOwnership.find(
+				(o) => o.ownerId === "fairlend"
+			);
 			if (fairlendEntry) {
 				fairlendEntry.percentage += 100 - totalAfter;
 			}

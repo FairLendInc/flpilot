@@ -13,24 +13,23 @@ import { format } from "date-fns";
 import {
 	AlertTriangle,
 	ArrowRight,
+	Building,
 	Building2,
+	Calendar,
 	Check,
-	CheckCircle2,
 	ChevronDown,
 	ChevronRight,
 	ClipboardCheck,
 	Copy,
 	Database,
+	DollarSign,
+	FileText,
 	Loader2,
-	TrendingUp,
+	MapPin,
 	TrendingDown,
+	TrendingUp,
 	User,
 	X,
-	Building,
-	FileText,
-	DollarSign,
-	Calendar,
-	MapPin,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -47,7 +46,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
 	Card,
 	CardContent,
@@ -55,6 +53,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
 	Dialog,
 	DialogContent,
@@ -81,11 +84,52 @@ import { logger } from "@/lib/logger";
 // Types
 // ============================================================================
 
+type DealData = {
+	mortgage?: {
+		loanAmount?: number;
+		interestRate?: number;
+		ltv?: number;
+		address?: {
+			street?: string;
+			city?: string;
+			state?: string;
+			zip?: string;
+		};
+		propertyType?: string;
+		appraisalMarketValue?: number;
+	};
+	deal?: {
+		_id: Id<"deals">;
+		createdAt: number;
+		dealValue?: number;
+		purchasePercentage?: number;
+		lawyerEmail?: string;
+		lawyerName?: string;
+		lawyerLSONumber?: string;
+		brokerEmail?: string;
+		brokerName?: string;
+		brokerId?: string;
+	};
+	investor?: {
+		_id: Id<"users">;
+		first_name?: string;
+		last_name?: string;
+		email?: string;
+		phone?: string;
+	};
+	borrower?: {
+		name?: string;
+		email?: string;
+		phone?: string;
+		rotessaCustomerId?: string;
+	};
+};
+
 type OwnershipTransferReviewProps = {
 	dealId: Id<"deals">;
 	onApproved?: () => void;
 	onRejected?: () => void;
-	dealData?: any;
+	dealData?: DealData;
 };
 
 type OwnershipEntry = {
@@ -137,11 +181,11 @@ function formatUserName(
 /**
  * Deal Overview Card - displays key deal information
  */
-function DealOverviewCard({ dealData }: { dealData: any }) {
+function DealOverviewCard({ dealData }: { dealData: DealData }) {
 	const mortgage = dealData?.mortgage;
 	const deal = dealData?.deal;
 
-	if (!mortgage || !deal) return null;
+	if (!(mortgage && deal)) return null;
 
 	return (
 		<Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -153,7 +197,8 @@ function DealOverviewCard({ dealData }: { dealData: any }) {
 					<div>
 						<CardTitle>Deal Overview</CardTitle>
 						<CardDescription>
-							ID: {deal._id} • Created {new Date(deal.createdAt).toLocaleDateString()}
+							ID: {deal._id} • Created{" "}
+							{new Date(deal.createdAt).toLocaleDateString()}
 						</CardDescription>
 					</div>
 				</div>
@@ -162,7 +207,7 @@ function DealOverviewCard({ dealData }: { dealData: any }) {
 				{/* Mortgage Details */}
 				<div className="grid gap-4 md:grid-cols-3">
 					<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
-						<DollarSign className="h-5 w-5 text-primary mt-0.5" />
+						<DollarSign className="mt-0.5 h-5 w-5 text-primary" />
 						<div>
 							<p className="text-muted-foreground text-xs">Loan Amount</p>
 							<p className="font-semibold">
@@ -171,7 +216,7 @@ function DealOverviewCard({ dealData }: { dealData: any }) {
 						</div>
 					</div>
 					<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
-						<Calendar className="h-5 w-5 text-primary mt-0.5" />
+						<Calendar className="mt-0.5 h-5 w-5 text-primary" />
 						<div>
 							<p className="text-muted-foreground text-xs">Interest Rate</p>
 							<p className="font-semibold">
@@ -180,7 +225,7 @@ function DealOverviewCard({ dealData }: { dealData: any }) {
 						</div>
 					</div>
 					<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
-						<Calendar className="h-5 w-5 text-primary mt-0.5" />
+						<Calendar className="mt-0.5 h-5 w-5 text-primary" />
 						<div>
 							<p className="text-muted-foreground text-xs">LTV Ratio</p>
 							<p className="font-semibold">
@@ -192,24 +237,26 @@ function DealOverviewCard({ dealData }: { dealData: any }) {
 
 				{/* Property Details */}
 				<div className="flex items-start gap-3 rounded-lg bg-background/50 p-3">
-					<MapPin className="h-5 w-5 text-primary mt-0.5" />
+					<MapPin className="mt-0.5 h-5 w-5 text-primary" />
 					<div>
 						<p className="text-muted-foreground text-xs">Property Address</p>
 						<p className="font-medium">
 							{mortgage.address?.street}
 							<br />
-							{mortgage.address?.city}, {mortgage.address?.state} {mortgage.address?.zip}
+							{mortgage.address?.city}, {mortgage.address?.state}{" "}
+							{mortgage.address?.zip}
 						</p>
-						<div className="text-muted-foreground text-sm mt-1">
-							{mortgage.propertyType} • Appraisal: ${mortgage.appraisalMarketValue?.toLocaleString() ?? "N/A"}
+						<div className="mt-1 text-muted-foreground text-sm">
+							{mortgage.propertyType} • Appraisal: $
+							{mortgage.appraisalMarketValue?.toLocaleString() ?? "N/A"}
 						</div>
 					</div>
 				</div>
 
 				{/* Deal Value */}
 				{deal.dealValue && (
-					<div className="flex items-start gap-3 rounded-lg bg-primary/5 p-3 border border-primary/20">
-						<Database className="h-5 w-5 text-primary mt-0.5" />
+					<div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+						<Database className="mt-0.5 h-5 w-5 text-primary" />
 						<div>
 							<p className="text-muted-foreground text-xs">Deal Value</p>
 							<p className="font-bold text-lg text-primary">
@@ -229,13 +276,13 @@ function DealOverviewCard({ dealData }: { dealData: any }) {
 /**
  * Parties Section - displays all participants in the deal
  */
-function PartiesSection({ dealData }: { dealData: any }) {
+function PartiesSection({ dealData }: { dealData: DealData }) {
 	const mortgage = dealData?.mortgage;
 	const deal = dealData?.deal;
 	const investor = dealData?.investor;
 	const borrower = dealData?.borrower;
 
-	if (!mortgage || !deal) return null;
+	if (!(mortgage && deal)) return null;
 
 	const formatPhoneNumber = (phone: string | undefined) => {
 		if (!phone) return "N/A";
@@ -255,7 +302,9 @@ function PartiesSection({ dealData }: { dealData: any }) {
 					</div>
 					<div>
 						<CardTitle>Deal Participants</CardTitle>
-						<CardDescription>All parties involved in this transaction</CardDescription>
+						<CardDescription>
+							All parties involved in this transaction
+						</CardDescription>
 					</div>
 				</div>
 			</CardHeader>
@@ -263,74 +312,92 @@ function PartiesSection({ dealData }: { dealData: any }) {
 				<div className="grid gap-4 md:grid-cols-2">
 					{/* Investor Section */}
 					<div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/10">
-						<div className="flex items-center gap-2 mb-3">
+						<div className="mb-3 flex items-center gap-2">
 							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
 								<User className="h-4 w-4" />
 							</div>
-							<h4 className="font-semibold text-blue-900 dark:text-blue-100">Investor</h4>
+							<h4 className="font-semibold text-blue-900 dark:text-blue-100">
+								Investor
+							</h4>
 						</div>
 						{investor ? (
 							<div className="space-y-1 text-sm">
 								<p className="font-medium">
 									{investor.first_name} {investor.last_name}
 								</p>
-								<p className="text-blue-700 dark:text-blue-300">{investor.email}</p>
+								<p className="text-blue-700 dark:text-blue-300">
+									{investor.email}
+								</p>
 								{investor.phone && (
 									<p className="text-blue-700 dark:text-blue-300">
 										{formatPhoneNumber(investor.phone)}
 									</p>
 								)}
-								<p className="text-muted-foreground text-xs mt-2">
+								<p className="mt-2 text-muted-foreground text-xs">
 									ID: {investor._id}
 								</p>
 							</div>
 						) : (
-							<p className="text-muted-foreground text-sm">Investor details not available</p>
+							<p className="text-muted-foreground text-sm">
+								Investor details not available
+							</p>
 						)}
 					</div>
 
 					{/* Borrower Section */}
 					<div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/10">
-						<div className="flex items-center gap-2 mb-3">
+						<div className="mb-3 flex items-center gap-2">
 							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-white">
 								<Building className="h-4 w-4" />
 							</div>
-							<h4 className="font-semibold text-amber-900 dark:text-amber-100">Borrower</h4>
+							<h4 className="font-semibold text-amber-900 dark:text-amber-100">
+								Borrower
+							</h4>
 						</div>
 						{borrower ? (
 							<div className="space-y-1 text-sm">
 								<p className="font-medium">{borrower.name}</p>
-								<p className="text-amber-700 dark:text-amber-300">{borrower.email}</p>
+								<p className="text-amber-700 dark:text-amber-300">
+									{borrower.email}
+								</p>
 								{borrower.phone && (
 									<p className="text-amber-700 dark:text-amber-300">
 										{formatPhoneNumber(borrower.phone)}
 									</p>
 								)}
 								{borrower.rotessaCustomerId && (
-									<p className="text-muted-foreground text-xs mt-2">
+									<p className="mt-2 text-muted-foreground text-xs">
 										Rotessa ID: {borrower.rotessaCustomerId}
 									</p>
 								)}
 							</div>
 						) : (
-							<p className="text-muted-foreground text-sm">Borrower details not available</p>
+							<p className="text-muted-foreground text-sm">
+								Borrower details not available
+							</p>
 						)}
 					</div>
 
 					{/* Lawyer Section */}
 					{deal.lawyerEmail && (
 						<div className="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/10">
-							<div className="flex items-center gap-2 mb-3">
+							<div className="mb-3 flex items-center gap-2">
 								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 text-white">
 									<FileText className="h-4 w-4" />
 								</div>
-								<h4 className="font-semibold text-purple-900 dark:text-purple-100">Lawyer</h4>
+								<h4 className="font-semibold text-purple-900 dark:text-purple-100">
+									Lawyer
+								</h4>
 							</div>
 							<div className="space-y-1 text-sm">
-								<p className="font-medium">{deal.lawyerName || "Not specified"}</p>
-								<p className="text-purple-700 dark:text-purple-300">{deal.lawyerEmail}</p>
+								<p className="font-medium">
+									{deal.lawyerName || "Not specified"}
+								</p>
+								<p className="text-purple-700 dark:text-purple-300">
+									{deal.lawyerEmail}
+								</p>
 								{deal.lawyerLSONumber && (
-									<p className="text-muted-foreground text-xs mt-2">
+									<p className="mt-2 text-muted-foreground text-xs">
 										LSO #: {deal.lawyerLSONumber}
 									</p>
 								)}
@@ -341,17 +408,23 @@ function PartiesSection({ dealData }: { dealData: any }) {
 					{/* Broker Section */}
 					{deal.brokerEmail && (
 						<div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/10">
-							<div className="flex items-center gap-2 mb-3">
+							<div className="mb-3 flex items-center gap-2">
 								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white">
 									<Building2 className="h-4 w-4" />
 								</div>
-								<h4 className="font-semibold text-green-900 dark:text-green-100">Broker</h4>
+								<h4 className="font-semibold text-green-900 dark:text-green-100">
+									Broker
+								</h4>
 							</div>
 							<div className="space-y-1 text-sm">
-								<p className="font-medium">{deal.brokerName || "Not specified"}</p>
-								<p className="text-green-700 dark:text-green-300">{deal.brokerEmail}</p>
+								<p className="font-medium">
+									{deal.brokerName || "Not specified"}
+								</p>
+								<p className="text-green-700 dark:text-green-300">
+									{deal.brokerEmail}
+								</p>
 								{deal.brokerId && (
-									<p className="text-muted-foreground text-xs mt-2">
+									<p className="mt-2 text-muted-foreground text-xs">
 										ID: {deal.brokerId}
 									</p>
 								)}
@@ -503,37 +576,44 @@ function LedgerStateCard({ ledgerState }: { ledgerState: LedgerState }) {
 	};
 
 	return (
-		<Collapsible className="border rounded-lg">
+		<Collapsible className="rounded-lg border">
 			<CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-lg bg-muted/50 px-4 py-3 hover:bg-muted">
 				<div className="flex items-center gap-3">
 					<Database className="h-5 w-5 text-primary" />
 					<div>
 						<p className="font-medium">Ledger State</p>
 						<p className="text-muted-foreground text-xs">
-							Asset: <code className="bg-muted px-1 rounded">{ledgerState.assetIdentifier}</code>
+							Asset:{" "}
+							<code className="rounded bg-muted px-1">
+								{ledgerState.assetIdentifier}
+							</code>
 						</p>
 					</div>
 				</div>
 				<ChevronDown className="h-5 w-5 transition-transform" />
 			</CollapsibleTrigger>
-			<CollapsibleContent className="border-t p-4 space-y-6">
+			<CollapsibleContent className="space-y-6 border-t p-4">
 				{/* Asset Overview */}
 				<div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
 					<div>
 						<p className="text-muted-foreground text-sm">Share Asset</p>
-						<div className="flex items-center gap-2 mt-1">
-							<code className="bg-background border px-2 py-1 rounded font-mono text-sm">
+						<div className="mt-1 flex items-center gap-2">
+							<code className="rounded border bg-background px-2 py-1 font-mono text-sm">
 								{ledgerState.assetIdentifier}
 							</code>
 							<Button
-								variant="ghost"
-								size="icon"
 								className="h-7 w-7"
-								onClick={() => copyToClipboard(ledgerState.assetIdentifier, setCopyCopied)}
+								onClick={() =>
+									copyToClipboard(ledgerState.assetIdentifier, setCopyCopied)
+								}
+								size="icon"
+								variant="ghost"
 							>
 								<Copy className="h-3.5 w-3.5" />
 							</Button>
-							{copyCopied && <span className="text-muted-foreground text-xs">Copied!</span>}
+							{copyCopied && (
+								<span className="text-muted-foreground text-xs">Copied!</span>
+							)}
 						</div>
 					</div>
 					<div>
@@ -545,39 +625,57 @@ function LedgerStateCard({ ledgerState }: { ledgerState: LedgerState }) {
 				</div>
 
 				{/* Source Account */}
-				<div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/10 p-4">
-					<div className="flex items-center justify-between mb-3">
+				<div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/10">
+					<div className="mb-3 flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							<TrendingDown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
 							<div>
 								<p className="font-semibold text-sm">Source Account</p>
-								<p className="text-muted-foreground text-xs">{ledgerState.sourceAccount.ownerName}</p>
+								<p className="text-muted-foreground text-xs">
+									{ledgerState.sourceAccount.ownerName}
+								</p>
 							</div>
 						</div>
-						<Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300">
+						<Badge
+							className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300"
+							variant="outline"
+						>
 							Debit
 						</Badge>
 					</div>
 					<div className="space-y-2 text-sm">
 						<div>
 							<p className="text-muted-foreground">Account Address</p>
-							<div className="font-mono bg-background/50 border rounded px-2 py-1 mt-1 flex items-center justify-between">
-								<code className="text-xs">{ledgerState.sourceAccount.address}</code>
+							<div className="mt-1 flex items-center justify-between rounded border bg-background/50 px-2 py-1 font-mono">
+								<code className="text-xs">
+									{ledgerState.sourceAccount.address}
+								</code>
 								<Button
-									variant="ghost"
-									size="icon"
 									className="h-6 w-6"
-									onClick={() => copyToClipboard(ledgerState.sourceAccount.address, setCopiedSource)}
+									onClick={() =>
+										copyToClipboard(
+											ledgerState.sourceAccount.address,
+											setCopiedSource
+										)
+									}
+									size="icon"
+									variant="ghost"
 								>
 									<Copy className="h-3 w-3" />
 								</Button>
 							</div>
-							{copiedSource && <span className="text-muted-foreground text-xs ml-2">Copied!</span>}
+							{copiedSource && (
+								<span className="ml-2 text-muted-foreground text-xs">
+									Copied!
+								</span>
+							)}
 						</div>
-						<div className="grid grid-cols-3 gap-3 mt-3">
+						<div className="mt-3 grid grid-cols-3 gap-3">
 							<div>
 								<p className="text-muted-foreground text-xs">Before</p>
-								<p className="font-medium">{ledgerState.sourceAccount.currentBalance.toFixed(2)}%</p>
+								<p className="font-medium">
+									{ledgerState.sourceAccount.currentBalance.toFixed(2)}%
+								</p>
 							</div>
 							<div>
 								<p className="text-muted-foreground text-xs">Change</p>
@@ -588,46 +686,66 @@ function LedgerStateCard({ ledgerState }: { ledgerState: LedgerState }) {
 							</div>
 							<div>
 								<p className="text-muted-foreground text-xs">After</p>
-								<p className="font-medium">{ledgerState.sourceAccount.projectedBalance.toFixed(2)}%</p>
+								<p className="font-medium">
+									{ledgerState.sourceAccount.projectedBalance.toFixed(2)}%
+								</p>
 							</div>
 						</div>
 					</div>
 				</div>
 
 				{/* Destination Account */}
-				<div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/10 p-4">
-					<div className="flex items-center justify-between mb-3">
+				<div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/10">
+					<div className="mb-3 flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							<TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
 							<div>
 								<p className="font-semibold text-sm">Destination Account</p>
-								<p className="text-muted-foreground text-xs">{ledgerState.destinationAccount.ownerName}</p>
+								<p className="text-muted-foreground text-xs">
+									{ledgerState.destinationAccount.ownerName}
+								</p>
 							</div>
 						</div>
-						<Badge variant="outline" className="border-green-300 text-green-700 dark:border-green-700 dark:text-green-300">
+						<Badge
+							className="border-green-300 text-green-700 dark:border-green-700 dark:text-green-300"
+							variant="outline"
+						>
 							Credit
 						</Badge>
 					</div>
 					<div className="space-y-2 text-sm">
 						<div>
 							<p className="text-muted-foreground">Account Address</p>
-							<div className="font-mono bg-background/50 border rounded px-2 py-1 mt-1 flex items-center justify-between">
-								<code className="text-xs">{ledgerState.destinationAccount.address}</code>
+							<div className="mt-1 flex items-center justify-between rounded border bg-background/50 px-2 py-1 font-mono">
+								<code className="text-xs">
+									{ledgerState.destinationAccount.address}
+								</code>
 								<Button
-									variant="ghost"
-									size="icon"
 									className="h-6 w-6"
-									onClick={() => copyToClipboard(ledgerState.destinationAccount.address, setCopiedDest)}
+									onClick={() =>
+										copyToClipboard(
+											ledgerState.destinationAccount.address,
+											setCopiedDest
+										)
+									}
+									size="icon"
+									variant="ghost"
 								>
 									<Copy className="h-3 w-3" />
 								</Button>
 							</div>
-							{copiedDest && <span className="text-muted-foreground text-xs ml-2">Copied!</span>}
+							{copiedDest && (
+								<span className="ml-2 text-muted-foreground text-xs">
+									Copied!
+								</span>
+							)}
 						</div>
-						<div className="grid grid-cols-3 gap-3 mt-3">
+						<div className="mt-3 grid grid-cols-3 gap-3">
 							<div>
 								<p className="text-muted-foreground text-xs">Before</p>
-								<p className="font-medium">{ledgerState.destinationAccount.currentBalance.toFixed(2)}%</p>
+								<p className="font-medium">
+									{ledgerState.destinationAccount.currentBalance.toFixed(2)}%
+								</p>
 							</div>
 							<div>
 								<p className="text-muted-foreground text-xs">Change</p>
@@ -637,7 +755,9 @@ function LedgerStateCard({ ledgerState }: { ledgerState: LedgerState }) {
 							</div>
 							<div>
 								<p className="text-muted-foreground text-xs">After</p>
-								<p className="font-medium">{ledgerState.destinationAccount.projectedBalance.toFixed(2)}%</p>
+								<p className="font-medium">
+									{ledgerState.destinationAccount.projectedBalance.toFixed(2)}%
+								</p>
 							</div>
 						</div>
 					</div>
@@ -647,12 +767,18 @@ function LedgerStateCard({ ledgerState }: { ledgerState: LedgerState }) {
 				<div className="flex items-center justify-center gap-4 rounded-lg bg-muted/50 p-3 text-sm">
 					<div className="flex items-center gap-2">
 						<div className="h-2 w-2 rounded-full bg-amber-500" />
-						<span>Source: -{ledgerState.destinationAccount.balanceChange.toFixed(2)}%</span>
+						<span>
+							Source: -{ledgerState.destinationAccount.balanceChange.toFixed(2)}
+							%
+						</span>
 					</div>
 					<ArrowRight className="h-4 w-4 text-muted-foreground" />
 					<div className="flex items-center gap-2">
 						<div className="h-2 w-2 rounded-full bg-green-500" />
-						<span>Destination: +{ledgerState.destinationAccount.balanceChange.toFixed(2)}%</span>
+						<span>
+							Destination: +
+							{ledgerState.destinationAccount.balanceChange.toFixed(2)}%
+						</span>
 					</div>
 				</div>
 			</CollapsibleContent>
@@ -742,7 +868,7 @@ export function OwnershipTransferReview({
 					return;
 				}
 
-				if (!result.success || !result.ownershipByMortgage) {
+				if (!(result.success && result.ownershipByMortgage)) {
 					setOwnershipPreview(null);
 					setOwnershipError(
 						result.error ?? "Failed to load mortgage ownership from ledger."
@@ -779,7 +905,7 @@ export function OwnershipTransferReview({
 					{ percentage: number; ownerName: string }
 				>();
 
-				currentOwnership.forEach((owner) => {
+				for (const owner of currentOwnership) {
 					let newPercentage = owner.percentage;
 					if (owner.ownerId === pendingTransfer.fromOwnerId) {
 						newPercentage -= pendingTransfer.percentage;
@@ -793,7 +919,7 @@ export function OwnershipTransferReview({
 							ownerName: owner.ownerName,
 						});
 					}
-				});
+				}
 
 				if (!ownershipMap.has(pendingTransfer.toOwnerId)) {
 					ownershipMap.set(pendingTransfer.toOwnerId, {
@@ -833,8 +959,7 @@ export function OwnershipTransferReview({
 						ownerName: resolveOwnerName(pendingTransfer.fromOwnerId),
 						ownerId: pendingTransfer.fromOwnerId,
 						currentBalance: sourceCurrentBalance,
-						projectedBalance:
-							sourceCurrentBalance - pendingTransfer.percentage,
+						projectedBalance: sourceCurrentBalance - pendingTransfer.percentage,
 						balanceChange: -pendingTransfer.percentage,
 					},
 					destinationAccount: {
@@ -842,8 +967,7 @@ export function OwnershipTransferReview({
 						ownerName: resolveOwnerName(pendingTransfer.toOwnerId),
 						ownerId: pendingTransfer.toOwnerId,
 						currentBalance: destCurrentBalance,
-						projectedBalance:
-							destCurrentBalance + pendingTransfer.percentage,
+						projectedBalance: destCurrentBalance + pendingTransfer.percentage,
 						balanceChange: pendingTransfer.percentage,
 					},
 				};
@@ -954,11 +1078,11 @@ export function OwnershipTransferReview({
 		<OwnershipTransferReviewContent
 			afterOwnership={ownershipPreview.afterOwnership}
 			currentOwnership={ownershipPreview.currentOwnership}
+			dealData={dealData}
+			ledgerState={ownershipPreview.ledgerState}
 			onApprove={handleApprove}
 			onReject={handleReject}
 			pendingTransfer={pendingTransfer}
-			ledgerState={ownershipPreview.ledgerState}
-			dealData={dealData}
 		/>
 	);
 }
@@ -976,7 +1100,7 @@ export type OwnershipTransferReviewContentProps = {
 	onApprove: () => Promise<void>;
 	onReject: (reason: string) => Promise<void>;
 	ledgerState: LedgerState;
-	dealData?: any; // Comprehensive deal information including mortgage, borrower, etc.
+	dealData?: DealData;
 };
 
 export function OwnershipTransferReviewContent({

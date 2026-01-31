@@ -8,13 +8,13 @@ import {
 	Calendar,
 	CheckCircle2,
 	ClipboardCheck,
+	DollarSign,
 	FileText,
 	Home,
 	Landmark,
+	Percent,
 	Scale,
 	UserCheck,
-	Percent,
-	DollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -143,7 +143,7 @@ function PendingOwnershipReviewState({
 
 	// Admin view - show comprehensive ownership review
 	return (
-		<div className="container max-w-6xl py-8 space-y-6">
+		<div className="container max-w-6xl space-y-6 py-8">
 			<div className="mb-6">
 				<h1 className="flex items-center gap-2 font-bold text-2xl">
 					<ClipboardCheck className="h-6 w-6 text-primary" />
@@ -154,8 +154,8 @@ function PendingOwnershipReviewState({
 				</p>
 			</div>
 			<OwnershipTransferReview
-				dealId={dealId}
 				dealData={dealData.data}
+				dealId={dealId}
 				onApproved={() => {
 					toast.success("Transfer approved successfully");
 				}}
@@ -234,7 +234,7 @@ function DealCompleteState({
 	return (
 		<div className="relative min-h-screen bg-gradient-to-b from-teal-50 via-white to-white">
 			<div className="pointer-events-none absolute inset-0">
-				<div className="absolute -top-24 right-0 h-64 w-64 rounded-full bg-teal-200/40 blur-3xl" />
+				<div className="-top-24 absolute right-0 h-64 w-64 rounded-full bg-teal-200/40 blur-3xl" />
 				<div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
 				<div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(13,148,136,0.18),_transparent_55%)]" />
 			</div>
@@ -248,24 +248,30 @@ function DealCompleteState({
 									<CheckCircle2 className="h-6 w-6" />
 								</div>
 								<div>
-									<p className="text-sm uppercase tracking-[0.18em] text-teal-700">
+									<p className="text-sm text-teal-700 uppercase tracking-[0.18em]">
 										Deal Complete
 									</p>
-									<h1 className="text-2xl font-semibold text-slate-900 md:text-3xl">
+									<h1 className="font-semibold text-2xl text-slate-900 md:text-3xl">
 										Congratulations to everyone involved
 									</h1>
 								</div>
 							</div>
-							<p className="max-w-2xl text-sm leading-relaxed text-slate-600">
+							<p className="max-w-2xl text-slate-600 text-sm leading-relaxed">
 								Your investment has officially closed. The mortgage ownership
 								transfer is complete and your portfolio is updated with this
 								property.
 							</p>
 							<div className="flex flex-wrap items-center gap-3">
-								<Badge className="bg-teal-100 text-teal-800" variant="secondary">
+								<Badge
+									className="bg-teal-100 text-teal-800"
+									variant="secondary"
+								>
 									Closed {formatDate(deal.completedAt)}
 								</Badge>
-								<Badge className="bg-slate-100 text-slate-700" variant="secondary">
+								<Badge
+									className="bg-slate-100 text-slate-700"
+									variant="secondary"
+								>
 									Deal ID: {deal._id}
 								</Badge>
 							</div>
@@ -312,14 +318,16 @@ function DealCompleteState({
 										: "Address unavailable"}
 								</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-3 text-sm text-slate-700">
-								<div className="flex items-center justify-between">
+							<CardContent className="space-y-4 text-slate-700 text-sm">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Property Type</span>
-									<span>{mortgage?.propertyType ?? "N/A"}</span>
+									<span className="font-medium">
+										{mortgage?.propertyType ?? "N/A"}
+									</span>
 								</div>
-								<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Mortgage ID</span>
-									<span className="font-mono text-xs">
+									<span className="break-all font-mono text-slate-600 text-xs">
 										{mortgage?._id ?? "N/A"}
 									</span>
 								</div>
@@ -336,7 +344,7 @@ function DealCompleteState({
 									Loan and rate information
 								</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-3 text-sm text-slate-700">
+							<CardContent className="space-y-3 text-slate-700 text-sm">
 								<div className="flex items-center justify-between">
 									<span className="text-slate-500">Loan Amount</span>
 									<span>{formatCurrency(mortgage?.loanAmount)}</span>
@@ -366,7 +374,7 @@ function DealCompleteState({
 									Primary stakeholders
 								</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-3 text-sm text-slate-700">
+							<CardContent className="space-y-3 text-slate-700 text-sm">
 								<div className="flex items-center justify-between">
 									<span className="text-slate-500">Investor</span>
 									<span>
@@ -393,7 +401,7 @@ function DealCompleteState({
 									Closing counsel details
 								</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-3 text-sm text-slate-700">
+							<CardContent className="space-y-3 text-slate-700 text-sm">
 								<div className="flex items-center justify-between">
 									<span className="text-slate-500">Lawyer Name</span>
 									<span>{lockRequest?.lawyerName ?? "N/A"}</span>
@@ -419,30 +427,42 @@ function DealCompleteState({
 									Everything recorded for this transaction
 								</CardDescription>
 							</CardHeader>
-							<CardContent className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-								<div className="flex items-center justify-between">
+							<CardContent className="grid gap-4 text-slate-700 text-sm md:grid-cols-2">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Deal ID</span>
-									<span className="font-mono text-xs">{deal._id}</span>
+									<span className="break-all font-mono text-slate-600 text-xs">
+										{deal._id}
+									</span>
 								</div>
-								<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Listing ID</span>
-									<span className="font-mono text-xs">{deal.listingId}</span>
+									<span className="break-all font-mono text-slate-600 text-xs">
+										{deal.listingId}
+									</span>
 								</div>
-								<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Mortgage ID</span>
-									<span className="font-mono text-xs">{deal.mortgageId}</span>
+									<span className="break-all font-mono text-slate-600 text-xs">
+										{deal.mortgageId}
+									</span>
 								</div>
-								<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Investor ID</span>
-									<span className="font-mono text-xs">{deal.investorId}</span>
+									<span className="break-all font-mono text-slate-600 text-xs">
+										{deal.investorId}
+									</span>
 								</div>
-								<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Deal Value</span>
-									<span>{formatCurrency(deal.dealValue)}</span>
+									<span className="font-medium">
+										{formatCurrency(deal.dealValue)}
+									</span>
 								</div>
-								<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1">
 									<span className="text-slate-500">Closing Date</span>
-									<span>{formatDate(deal.completedAt)}</span>
+									<span className="font-medium">
+										{formatDate(deal.completedAt)}
+									</span>
 								</div>
 							</CardContent>
 						</Card>
@@ -459,10 +479,13 @@ function DealCompleteState({
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<ol className="relative border-l border-teal-200 pl-6 text-sm text-slate-700">
+							<ol className="relative border-teal-200 border-l pl-6 text-slate-700 text-sm">
 								{timelineEntries.map((entry, index) => (
-									<li className="pb-6 last:pb-0" key={`${entry.label}-${index}`}>
-										<span className="absolute -left-2.5 mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-teal-500 bg-white">
+									<li
+										className="pb-6 last:pb-0"
+										key={`${entry.label}-${index}`}
+									>
+										<span className="-left-2.5 absolute mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-teal-500 bg-white">
 											<span className="h-2 w-2 rounded-full bg-teal-500" />
 										</span>
 										<div className="flex flex-col gap-1">
@@ -473,7 +496,7 @@ function DealCompleteState({
 												>
 													{entry.label}
 												</Badge>
-												<span className="text-xs text-slate-500">
+												<span className="text-slate-500 text-xs">
 													{formatDateTime(entry.date)}
 												</span>
 											</div>
@@ -491,11 +514,11 @@ function DealCompleteState({
 				<Card className="border-teal-200 bg-teal-600 text-white">
 					<CardContent className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
 						<div className="space-y-2">
-							<div className="flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-teal-100">
+							<div className="flex items-center gap-2 text-sm text-teal-100 uppercase tracking-[0.2em]">
 								<Percent className="h-4 w-4" />
 								Next Steps
 							</div>
-							<p className="text-xl font-semibold">
+							<p className="font-semibold text-xl">
 								Your ownership is now live in your portfolio.
 							</p>
 							<p className="text-sm text-teal-100">
@@ -503,13 +526,8 @@ function DealCompleteState({
 								opportunities from your dashboard.
 							</p>
 						</div>
-						<Button
-							asChild
-							className="bg-white text-teal-700 hover:bg-teal-50"
-						>
-							<Link href="/dashboard/investor/portfolio">
-								Go to Portfolio
-							</Link>
+						<Button asChild className="bg-white text-teal-700 hover:bg-teal-50">
+							<Link href="/dashboard/investor/portfolio">Go to Portfolio</Link>
 						</Button>
 					</CardContent>
 				</Card>
