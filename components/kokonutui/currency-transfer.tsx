@@ -43,10 +43,9 @@ const draw = {
 		transition: {
 			pathLength: {
 				delay: i * 0.2,
-				type: "spring",
 				duration: 1.5,
 				bounce: 0.2,
-				ease: [0.22, 1, 0.36, 1],
+				ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
 			},
 			opacity: { delay: i * 0.2, duration: 0.3 },
 		},

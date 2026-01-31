@@ -17,10 +17,10 @@ describe("ownership ledger helpers", () => {
 	it("parses investor inventories from balances", () => {
 		const shareAsset = getMortgageShareAsset("mortgage-1");
 		const balances = {
-			[OWNERSHIP_ACCOUNTS.fairlendInventory]: { [shareAsset]: 7500n },
-			"investor:user-1:inventory": { [shareAsset]: 2500n },
-			"investor:user-2:inventory": { [shareAsset]: 0n },
-			"random:account": { [shareAsset]: 5000n },
+			[OWNERSHIP_ACCOUNTS.fairlendInventory]: { [shareAsset]: BigInt(7500) },
+			"investor:user-1:inventory": { [shareAsset]: BigInt(2500) },
+			"investor:user-2:inventory": { [shareAsset]: BigInt(0) },
+			"random:account": { [shareAsset]: BigInt(5000) },
 		};
 
 		const ownership = parseOwnershipBalances(

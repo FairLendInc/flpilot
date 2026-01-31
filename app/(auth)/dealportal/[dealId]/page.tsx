@@ -141,6 +141,15 @@ function PendingOwnershipReviewState({
 		return <DealPortalLoading />;
 	}
 
+	const normalizedDealData =
+		dealData.data === null || dealData.data === undefined
+			? undefined
+			: {
+					...dealData.data,
+					mortgage: dealData.data.mortgage ?? undefined,
+					investor: dealData.data.investor ?? undefined,
+				};
+
 	// Admin view - show comprehensive ownership review
 	return (
 		<div className="container max-w-6xl space-y-6 py-8">
@@ -154,7 +163,7 @@ function PendingOwnershipReviewState({
 				</p>
 			</div>
 			<OwnershipTransferReview
-				dealData={dealData.data}
+				dealData={normalizedDealData}
 				dealId={dealId}
 				onApproved={() => {
 					toast.success("Transfer approved successfully");

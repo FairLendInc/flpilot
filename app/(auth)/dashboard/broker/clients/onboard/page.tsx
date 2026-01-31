@@ -20,6 +20,7 @@ export default function ClientOnboardPage() {
 	const router = useRouter();
 	const [activeTab, setActiveTab] = useState("invite");
 	const [email, setEmail] = useState("");
+	const [clientName, setClientName] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const createClient = useMutation(api.brokers.clients.createClientOnboarding);
@@ -47,6 +48,7 @@ export default function ClientOnboardPage() {
 		try {
 			await createClient({
 				clientEmail: email,
+				clientName: clientName || "New Client",
 				filters: {
 					constraints: {},
 					values: {
@@ -58,6 +60,7 @@ export default function ClientOnboardPage() {
 			});
 			toast.success("Invitation sent successfully!");
 			setEmail("");
+			setClientName("");
 			router.push("/dashboard/broker/clients");
 		} catch (error) {
 			toast.error("Failed to send invitation");
@@ -106,6 +109,16 @@ export default function ClientOnboardPage() {
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="space-y-2">
+									<Label htmlFor="clientName">Client Name</Label>
+									<Input
+										id="clientName"
+										onChange={(e) => setClientName(e.target.value)}
+										placeholder="John Doe"
+										type="text"
+										value={clientName}
+									/>
+								</div>
+								<div className="space-y-2">
 									<Label htmlFor="email">Client Email Address</Label>
 									<Input
 										id="email"
@@ -121,7 +134,7 @@ export default function ClientOnboardPage() {
 								</div>
 								<Button
 									className="w-full"
-									disabled={!email?.includes("@")}
+									disabled={!email?.includes("@") || !clientName?.trim()}
 									onClick={() => setActiveTab("filters")}
 								>
 									Continue to Filter Configuration
@@ -170,17 +183,27 @@ export default function ClientOnboardPage() {
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="rounded-lg border p-4">
+									<h4 className="font-medium">Client Name</h4>
+									<p className="text-muted-foreground">
+										{clientName || "Not provided"}
+									</p>
+								</div>
+								<div className="rounded-lg border p-4">
 									<h4 className="font-medium">Client Email</h4>
 									<p className="text-muted-foreground">
 										{email || "Not provided"}
 									</p>
 								</div>
-
 								<div className="rounded-lg border p-4">
 									<h4 className="font-medium">Filter Configuration</h4>
 									<p className="text-muted-foreground">
-										Default filters will be applied
+										Default constraints:
 									</p>
+									<ul className="ml-4 mt-1 list-disc text-muted-foreground">
+										<li>Property Types: All</li>
+										<li>Locations: All</li>
+										<li>Risk Profile: Balanced</li>
+									</ul>
 								</div>
 
 								<div className="flex gap-4">
@@ -191,7 +214,7 @@ export default function ClientOnboardPage() {
 										Back
 									</Button>
 									<Button
-										disabled={isSubmitting || !email}
+										disabled={isSubmitting || !email || !clientName?.trim()}
 										onClick={handleSendInvite}
 									>
 										<UserPlus className="mr-2 h-4 w-4" />

@@ -111,12 +111,15 @@ send [$asset 100] (
 				},
 			});
 
+			const resultData = "data" in result ? result.data : undefined;
+			const resultError = "error" in result ? result.error : undefined;
+
 			// DEBUG: Log full result
 			console.log("[MintOwnershipDialog] executeNumscript result", {
 				success: result.success,
-				hasData: !!result.data,
-				data: result.data,
-				error: result.error,
+				hasData: !!resultData,
+				data: resultData,
+				error: resultError,
 			});
 
 			if (result.success) {

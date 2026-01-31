@@ -1537,9 +1537,7 @@ function InvestorReviewStep({
 					) : (
 						<ul className="list-disc pl-5 text-muted-foreground text-sm">
 							{investor?.documents?.map((doc) => (
-								<li key={doc.storageId || `${doc.label}-${doc.type}`}>
-									{doc.label}
-								</li>
+								<li key={doc.storageId ?? doc.label}>{doc.label}</li>
 							))}
 						</ul>
 					)}

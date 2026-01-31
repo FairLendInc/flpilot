@@ -22,7 +22,7 @@ describe("useImageUpload", () => {
 		const file = new File(["data"], "test.png", { type: "image/png" });
 		const event = {
 			target: { files: [file] },
-		} as ChangeEvent<HTMLInputElement>;
+		} as unknown as ChangeEvent<HTMLInputElement>;
 
 		await expect(
 			result.current.handleFileChange(event)
