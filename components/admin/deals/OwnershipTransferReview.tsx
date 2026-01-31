@@ -13,11 +13,17 @@ import { format } from "date-fns";
 import {
 	AlertTriangle,
 	ArrowRight,
+	Building2,
 	Check,
 	CheckCircle2,
+	ChevronDown,
 	ChevronRight,
 	ClipboardCheck,
+	Copy,
+	Database,
 	Loader2,
+	TrendingUp,
+	TrendingDown,
 	User,
 	X,
 } from "lucide-react";
@@ -36,6 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
 	Card,
 	CardContent,
@@ -78,6 +85,21 @@ type OwnershipEntry = {
 	ownerId: "fairlend" | Id<"users">;
 	percentage: number;
 	ownerName: string;
+};
+
+type LedgerAccountState = {
+	address: string;
+	ownerName: string;
+	ownerId: "fairlend" | Id<"users">;
+	currentBalance: number;
+	projectedBalance: number;
+	balanceChange: number;
+};
+
+type LedgerState = {
+	assetIdentifier: string;
+	sourceAccount: LedgerAccountState;
+	destinationAccount: LedgerAccountState;
 };
 
 // ============================================================================
@@ -210,6 +232,176 @@ function TransferArrow({
 	);
 }
 
+// Ledger State Card Component
+function LedgerStateCard({ ledgerState }: { ledgerState: LedgerState }) {
+	const [copiedSource, setCopiedSource] = useState(false);
+	const [copiedDest, setCopiedDest] = useState(false);
+	const [copyCopied, setCopyCopied] = useState(false);
+
+	const copyToClipboard = (text: string, setCopied: (val: boolean) => void) => {
+		navigator.clipboard.writeText(text);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
+
+	return (
+		<Collapsible className="border rounded-lg">
+			<CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-lg bg-muted/50 px-4 py-3 hover:bg-muted">
+				<div className="flex items-center gap-3">
+					<Database className="h-5 w-5 text-primary" />
+					<div>
+						<p className="font-medium">Ledger State</p>
+						<p className="text-muted-foreground text-xs">
+							Asset: <code className="bg-muted px-1 rounded">{ledgerState.assetIdentifier}</code>
+						</p>
+					</div>
+				</div>
+				<ChevronDown className="h-5 w-5 transition-transform" />
+			</CollapsibleTrigger>
+			<CollapsibleContent className="border-t p-4 space-y-6">
+				{/* Asset Overview */}
+				<div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+					<div>
+						<p className="text-muted-foreground text-sm">Share Asset</p>
+						<div className="flex items-center gap-2 mt-1">
+							<code className="bg-background border px-2 py-1 rounded font-mono text-sm">
+								{ledgerState.assetIdentifier}
+							</code>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-7 w-7"
+								onClick={() => copyToClipboard(ledgerState.assetIdentifier, setCopyCopied)}
+							>
+								<Copy className="h-3.5 w-3.5" />
+							</Button>
+							{copyCopied && <span className="text-muted-foreground text-xs">Copied!</span>}
+						</div>
+					</div>
+					<div>
+						<p className="text-muted-foreground text-sm">Transfer Amount</p>
+						<p className="font-semibold">
+							{ledgerState.destinationAccount.balanceChange.toFixed(2)}%
+						</p>
+					</div>
+				</div>
+
+				{/* Source Account */}
+				<div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/10 p-4">
+					<div className="flex items-center justify-between mb-3">
+						<div className="flex items-center gap-2">
+							<TrendingDown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+							<div>
+								<p className="font-semibold text-sm">Source Account</p>
+								<p className="text-muted-foreground text-xs">{ledgerState.sourceAccount.ownerName}</p>
+							</div>
+						</div>
+						<Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300">
+							Debit
+						</Badge>
+					</div>
+					<div className="space-y-2 text-sm">
+						<div>
+							<p className="text-muted-foreground">Account Address</p>
+							<div className="font-mono bg-background/50 border rounded px-2 py-1 mt-1 flex items-center justify-between">
+								<code className="text-xs">{ledgerState.sourceAccount.address}</code>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-6 w-6"
+									onClick={() => copyToClipboard(ledgerState.sourceAccount.address, setCopiedSource)}
+								>
+									<Copy className="h-3 w-3" />
+								</Button>
+							</div>
+							{copiedSource && <span className="text-muted-foreground text-xs ml-2">Copied!</span>}
+						</div>
+						<div className="grid grid-cols-3 gap-3 mt-3">
+							<div>
+								<p className="text-muted-foreground text-xs">Before</p>
+								<p className="font-medium">{ledgerState.sourceAccount.currentBalance.toFixed(2)}%</p>
+							</div>
+							<div>
+								<p className="text-muted-foreground text-xs">Change</p>
+								<p className="font-medium text-red-600">
+									{ledgerState.sourceAccount.balanceChange >= 0 ? "+" : ""}
+									{ledgerState.sourceAccount.balanceChange.toFixed(2)}%
+								</p>
+							</div>
+							<div>
+								<p className="text-muted-foreground text-xs">After</p>
+								<p className="font-medium">{ledgerState.sourceAccount.projectedBalance.toFixed(2)}%</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{/* Destination Account */}
+				<div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/10 p-4">
+					<div className="flex items-center justify-between mb-3">
+						<div className="flex items-center gap-2">
+							<TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+							<div>
+								<p className="font-semibold text-sm">Destination Account</p>
+								<p className="text-muted-foreground text-xs">{ledgerState.destinationAccount.ownerName}</p>
+							</div>
+						</div>
+						<Badge variant="outline" className="border-green-300 text-green-700 dark:border-green-700 dark:text-green-300">
+							Credit
+						</Badge>
+					</div>
+					<div className="space-y-2 text-sm">
+						<div>
+							<p className="text-muted-foreground">Account Address</p>
+							<div className="font-mono bg-background/50 border rounded px-2 py-1 mt-1 flex items-center justify-between">
+								<code className="text-xs">{ledgerState.destinationAccount.address}</code>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-6 w-6"
+									onClick={() => copyToClipboard(ledgerState.destinationAccount.address, setCopiedDest)}
+								>
+									<Copy className="h-3 w-3" />
+								</Button>
+							</div>
+							{copiedDest && <span className="text-muted-foreground text-xs ml-2">Copied!</span>}
+						</div>
+						<div className="grid grid-cols-3 gap-3 mt-3">
+							<div>
+								<p className="text-muted-foreground text-xs">Before</p>
+								<p className="font-medium">{ledgerState.destinationAccount.currentBalance.toFixed(2)}%</p>
+							</div>
+							<div>
+								<p className="text-muted-foreground text-xs">Change</p>
+								<p className="font-medium text-green-600">
+									+{ledgerState.destinationAccount.balanceChange.toFixed(2)}%
+								</p>
+							</div>
+							<div>
+								<p className="text-muted-foreground text-xs">After</p>
+								<p className="font-medium">{ledgerState.destinationAccount.projectedBalance.toFixed(2)}%</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{/* Summary */}
+				<div className="flex items-center justify-center gap-4 rounded-lg bg-muted/50 p-3 text-sm">
+					<div className="flex items-center gap-2">
+						<div className="h-2 w-2 rounded-full bg-amber-500" />
+						<span>Source: -{ledgerState.destinationAccount.balanceChange.toFixed(2)}%</span>
+					</div>
+					<ArrowRight className="h-4 w-4 text-muted-foreground" />
+					<div className="flex items-center gap-2">
+						<div className="h-2 w-2 rounded-full bg-green-500" />
+						<span>Destination: +{ledgerState.destinationAccount.balanceChange.toFixed(2)}%</span>
+					</div>
+				</div>
+			</CollapsibleContent>
+		</Collapsible>
+	);
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -251,7 +443,7 @@ export function OwnershipTransferReview({
 		let cancelled = false;
 		setOwnershipPreview(undefined);
 
-		fetchOwnershipPreview({ transferId: pendingTransfer._id })
+		fetchOwnershipPreview({ dealId })
 			.then((data) => {
 				if (!cancelled) {
 					setOwnershipPreview(data);
@@ -266,7 +458,7 @@ export function OwnershipTransferReview({
 		return () => {
 			cancelled = true;
 		};
-	}, [authLoading, fetchOwnershipPreview, pendingTransfer?._id, user]);
+	}, [authLoading, dealId, fetchOwnershipPreview, pendingTransfer?._id, user]);
 
 	// Loading state
 	if (
@@ -320,6 +512,7 @@ export function OwnershipTransferReview({
 			onApprove={handleApprove}
 			onReject={handleReject}
 			pendingTransfer={pendingTransfer}
+			ledgerState={ownershipPreview.ledgerState}
 		/>
 	);
 }
@@ -336,6 +529,7 @@ export type OwnershipTransferReviewContentProps = {
 	afterOwnership: OwnershipEntry[];
 	onApprove: () => Promise<void>;
 	onReject: (reason: string) => Promise<void>;
+	ledgerState: LedgerState;
 };
 
 export function OwnershipTransferReviewContent({
@@ -344,6 +538,7 @@ export function OwnershipTransferReviewContent({
 	afterOwnership,
 	onApprove,
 	onReject,
+	ledgerState,
 }: OwnershipTransferReviewContentProps) {
 	const [isApproving, setIsApproving] = useState(false);
 	const [isRejecting, setIsRejecting] = useState(false);
@@ -384,39 +579,7 @@ export function OwnershipTransferReviewContent({
 
 	// Transfer already processed
 	if (pendingTransfer.status !== "pending") {
-		return (
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						{pendingTransfer.status === "approved" ? (
-							<>
-								<CheckCircle2 className="h-5 w-5 text-green-500" />
-								Transfer Approved
-							</>
-						) : (
-							<>
-								<X className="h-5 w-5 text-red-500" />
-								Transfer Rejected
-							</>
-						)}
-					</CardTitle>
-					<CardDescription>
-						{pendingTransfer.reviewedAt &&
-							`Processed on ${format(new Date(pendingTransfer.reviewedAt), "PPP 'at' p")}`}
-					</CardDescription>
-				</CardHeader>
-				{pendingTransfer.reviewNotes && (
-					<CardContent>
-						<div className="rounded-lg bg-muted p-3">
-							<p className="text-muted-foreground text-sm">
-								<span className="font-medium">Notes:</span>{" "}
-								{pendingTransfer.reviewNotes}
-							</p>
-						</div>
-					</CardContent>
-				)}
-			</Card>
-		);
+		return null;
 	}
 
 	const fromOwnerName =
@@ -429,7 +592,7 @@ export function OwnershipTransferReviewContent({
 
 	return (
 		<Card className="overflow-hidden">
-			<CardHeader className="bg-linear-to-r from-primary/5 to-primary/10">
+			<CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
@@ -476,6 +639,9 @@ export function OwnershipTransferReviewContent({
 					percentage={pendingTransfer.percentage}
 					to={toOwnerName}
 				/>
+
+				{/* Ledger State Card */}
+				<LedgerStateCard ledgerState={ledgerState} />
 
 				{/* Cap table comparison */}
 				<div className="grid gap-6 md:grid-cols-2">

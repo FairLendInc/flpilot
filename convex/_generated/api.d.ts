@@ -20,6 +20,7 @@ import type * as brokers_commissions_actions from "../brokers/commissions_action
 import type * as brokers_commissions_internal from "../brokers/commissions_internal.js";
 import type * as brokers_communication from "../brokers/communication.js";
 import type * as brokers_documents from "../brokers/documents.js";
+import type * as brokers_management from "../brokers/management.js";
 import type * as brokers_onboarding from "../brokers/onboarding.js";
 import type * as brokers_stats from "../brokers/stats.js";
 import type * as brokers_validation from "../brokers/validation.js";
@@ -91,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   "brokers/commissions_internal": typeof brokers_commissions_internal;
   "brokers/communication": typeof brokers_communication;
   "brokers/documents": typeof brokers_documents;
+  "brokers/management": typeof brokers_management;
   "brokers/onboarding": typeof brokers_onboarding;
   "brokers/stats": typeof brokers_stats;
   "brokers/validation": typeof brokers_validation;

@@ -629,7 +629,7 @@ describe("getOwnershipPreview", () => {
 
 		const preview = await adminT.action(
 			api.pendingOwnershipTransfers.getOwnershipPreview,
-			{ transferId: requireTransferId(transfer) }
+			{ dealId }
 		);
 
 		// Before: FairLend 100%
@@ -664,7 +664,7 @@ describe("getOwnershipPreview", () => {
 		const adminT = await getAdminTest(t);
 		const preview = await adminT.action(
 			api.pendingOwnershipTransfers.getOwnershipPreview,
-			{ transferId }
+			{ dealId }
 		);
 
 		// Before: FairLend 100%
