@@ -34,11 +34,11 @@ const baseArgs = {
 			jurisdiction: "ON",
 		},
 		identityVerification: {
-			status: "verified",
+			status: "verified" as const,
 			extractedName: { firstName: "Alex", lastName: "Wong" },
 		},
 		lsoVerification: {
-			status: "verified",
+			status: "verified" as const,
 			matchedRecord: {
 				lsoNumber: "L12345",
 				firstName: "Alex",

@@ -155,7 +155,7 @@ export type BrokerDocument = {
 	storageId: Id<"_storage">;
 	label: string;
 	type: string;
-	uploadedAt?: string;
+	uploadedAt: string;
 };
 
 export type BrokerFlowRouterProps = {

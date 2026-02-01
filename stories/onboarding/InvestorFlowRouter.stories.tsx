@@ -33,12 +33,12 @@ const baseArgs = {
 		profile: {
 			firstName: "Avery",
 			lastName: "Nguyen",
-			entityType: "individual",
+			entityType: "individual" as const,
 		},
 		preferences: {
 			minTicket: 100000,
 			maxTicket: 500000,
-			riskProfile: "balanced",
+			riskProfile: "balanced" as const,
 			liquidityHorizonMonths: 18,
 			focusRegions: ["ON", "BC"],
 		},

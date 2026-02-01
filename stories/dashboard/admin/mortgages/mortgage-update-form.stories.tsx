@@ -38,6 +38,28 @@ const meta = {
 					"Sheet component for admin users to update mortgage details. Only admin users can access this functionality. This component is used in the admin mortgages management page.",
 			},
 		},
+		convex: {
+			authenticatedQueries: {
+				"borrowers:listBorrowers": [
+					{
+						_id: "borrower_1",
+						name: "Harbor Ridge Holdings",
+						email: "borrower@example.com",
+					},
+				],
+				"mortgages:getMortgage": {
+					loanAmount: 825000,
+					interestRate: 7.25,
+					ltv: 65,
+					address: {
+						street: "44 Wellington St W",
+						city: "Toronto",
+						state: "ON",
+						zip: "M5J 1E3",
+					},
+				},
+			},
+		},
 	},
 	tags: ["autodocs"],
 	argTypes: {

@@ -1,7 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import type { JourneyDoc } from "../machine";
 import { OnboardingCard } from "./OnboardingCard";
 
 export function PendingAdminState() {
@@ -22,7 +21,12 @@ export function PendingAdminState() {
 export function RejectedState({
 	decision,
 }: {
-	decision?: JourneyDoc["adminDecision"];
+	decision?: {
+		decidedAt?: string;
+		decidedBy?: string;
+		decisionSource?: "admin" | "system";
+		notes?: string;
+	};
 }) {
 	return (
 		<OnboardingCard className="border-destructive/50">
