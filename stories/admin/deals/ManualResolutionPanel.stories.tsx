@@ -10,11 +10,58 @@ import type { Meta, StoryObj } from "@storybook/react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ManualResolutionPanel } from "@/components/admin/deals/ManualResolutionPanel";
 
+const mockAlert = {
+	_id: "alert_1",
+	userId: "user_1",
+	relatedDealId: "deal_1",
+	type: "ownership_transfer_rejected",
+	severity: "warning",
+	message: "Ownership transfer rejected by admin review.",
+	createdAt: Date.now() - 1000 * 60 * 30,
+} as any;
+
+const mockDealDetails = {
+	deal: {
+		_id: "deal_1",
+		mortgageId: "mortgage_1",
+		currentState: "pending_ownership_review",
+	},
+	mortgage: {
+		address: {
+			street: "123 King St",
+			city: "Toronto",
+			state: "ON",
+			zip: "M5V 2T6",
+		},
+	},
+} as any;
+
+const mockInvestor = {
+	first_name: "Jordan",
+	last_name: "Lee",
+	email: "jordan.lee@example.com",
+} as any;
+
 const meta: Meta<typeof ManualResolutionPanel> = {
 	title: "Dashboard/Admin/Deals/Manual Resolution Panel",
 	component: ManualResolutionPanel,
 	parameters: {
 		layout: "padded",
+		convex: {
+			queries: {
+				"alerts:getAllUserAlerts": [mockAlert],
+				"pendingOwnershipTransfers:getPendingTransferByDeal": {
+					_id: "ptr_1",
+				},
+			},
+			authenticatedQueries: {
+				"deals:getDealWithDetails": mockDealDetails,
+				"users:getUserByIdAdmin": mockInvestor,
+			},
+		},
+		auth: {
+			user: { id: "admin", email: "admin@example.com" },
+		},
 	},
 };
 
@@ -81,5 +128,4 @@ export const MinimalInfo: Story = {
 		onResolved: () => {},
 	},
 };
-
 

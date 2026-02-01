@@ -28,6 +28,7 @@ const documents: BrokerDocument[] = [
 		storageId: "doc_1" as BrokerDocument["storageId"],
 		label: "License.pdf",
 		type: "license",
+		uploadedAt: "2024-01-01T12:00:00Z",
 	},
 ];
 
@@ -36,7 +37,7 @@ const baseArgs = {
 	broker: {
 		companyInfo: {
 			companyName: "Northwind Brokers",
-			entityType: "corporation",
+			entityType: "corporation" as const,
 			registrationNumber: "REG-99881",
 			registeredAddress: {
 				street: "123 King St",
@@ -49,7 +50,7 @@ const baseArgs = {
 			businessEmail: "ops@northwind.example",
 		},
 		licensing: {
-			licenseType: "mortgage_broker",
+			licenseType: "mortgage_broker" as const,
 			licenseNumber: "MB-2231",
 			issuer: "FSRA",
 			issuedDate: "2024-01-10",
