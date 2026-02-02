@@ -440,13 +440,13 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 				},
 				priorEncumbrance: mortgage.priorEncumbrance ?? null,
 				asIfAppraisal: mortgage.asIfAppraisal ?? null,
-				asIfAppraisalImages: (mortgage.asIfAppraisal?.imageStorageIds ?? []).map(
-					(storageId) => ({
-						storageId,
-						previewUrl: undefined,
-						url: undefined,
-					})
-				),
+				asIfAppraisalImages: (
+					mortgage.asIfAppraisal?.imageStorageIds ?? []
+				).map((storageId) => ({
+					storageId,
+					previewUrl: undefined,
+					url: undefined,
+				})),
 				images: (mortgage.images ?? []).map((img) => ({
 					storageId: img.storageId,
 					alt: img.alt ?? "",

@@ -2,9 +2,9 @@
 
 import { WorkOS } from "@workos-inc/node";
 import { v } from "convex/values";
-import { env, isTestEnv } from "./lib/env";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
+import { env, isTestEnv } from "./lib/env";
 
 type WorkOsDomain = {
 	id?: string;

@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { checkRbac } from "../lib/authhelper";
-import { isTestEnv } from "./lib/env";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -12,6 +11,7 @@ import {
 	normalizeRegistryRecord,
 } from "./lawyers/registryStore";
 import type { LawyerProfile, NameFields } from "./lawyers/types";
+import { isTestEnv } from "./lib/env";
 
 const PERSONA_OPTIONS = ["broker", "investor", "lawyer"] as const;
 const INVESTOR_ENTITY_TYPES = [
@@ -653,8 +653,7 @@ export const approveJourney = mutation({
 						? "lawyer"
 						: "member";
 
-		const skipRoleSync =
-			isTestEnv;
+		const skipRoleSync = isTestEnv;
 
 		// Determine which organization to assign the role to
 		// Only require organization if we need to assign a role (not in test and not member role)

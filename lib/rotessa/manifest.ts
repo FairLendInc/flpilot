@@ -239,9 +239,7 @@ export const ROTESSA_MANIFEST = {
 					},
 				},
 			},
-			notes: [
-				"Docs list PATCH /customers, but examples use /customers/{id}.",
-			],
+			notes: ["Docs list PATCH /customers, but examples use /customers/{id}."],
 		},
 		updateViaPost: {
 			method: "POST",

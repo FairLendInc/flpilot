@@ -1,5 +1,5 @@
-import type { LawyerProfile, NameFields } from "./types";
 import { env } from "../lib/env";
+import type { LawyerProfile, NameFields } from "./types";
 
 export type IdentityInquiryStatus = "pending" | "completed";
 

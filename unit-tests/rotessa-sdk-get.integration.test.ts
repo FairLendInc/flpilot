@@ -18,20 +18,29 @@ function createMockResponse(status: number, body: unknown): MockResponse {
 }
 
 function expectNullableString(value: unknown) {
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(value === null || typeof value === "string").toBe(true);
 }
 
 function expectNullableNumber(value: unknown) {
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(value === null || typeof value === "number").toBe(true);
 }
 
 function expectCustomerListItemShape(value: any) {
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value).toBe("object");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.id).toBe("number");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.name).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.email).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.active).toBe("boolean");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.created_at).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.updated_at).toBe("string");
 	expectNullableString(value.custom_identifier);
 	expectNullableString(value.customer_type);
@@ -42,22 +51,35 @@ function expectCustomerListItemShape(value: any) {
 }
 
 function expectFinancialTransactionShape(value: any) {
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value).toBe("object");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.id).toBe("number");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.amount).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.process_date).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.status).toBe("string");
 	expectNullableString(value.status_reason);
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.transaction_schedule_id).toBe("number");
 }
 
 function expectTransactionScheduleShape(value: any) {
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value).toBe("object");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.id).toBe("number");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.amount).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.frequency).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.process_date).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.created_at).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.updated_at).toBe("string");
 	expectNullableString(value.comment);
 	expectNullableNumber(value.installments);
@@ -83,10 +105,13 @@ function expectCustomerDetailShape(value: any) {
 	expectNullableString(value.bank_account_type);
 
 	if (value.address !== null) {
+		// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 		expect(typeof value.address).toBe("object");
 	}
 
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(Array.isArray(value.transaction_schedules)).toBe(true);
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(Array.isArray(value.financial_transactions)).toBe(true);
 
 	for (const schedule of value.transaction_schedules) {
@@ -98,13 +123,20 @@ function expectCustomerDetailShape(value: any) {
 }
 
 function expectTransactionReportItemShape(value: any) {
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value).toBe("object");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.id).toBe("number");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.customer_id).toBe("number");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.transaction_schedule_id).toBe("number");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.amount).toBe("string");
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.status).toBe("string");
 	expectNullableString(value.status_reason);
+	// biome-ignore lint/suspicious/noMisplacedAssertion: validation helper
 	expect(typeof value.process_date).toBe("string");
 	expectNullableString(value.settlement_date);
 	expectNullableString(value.earliest_approval_date);

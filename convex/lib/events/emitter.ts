@@ -8,8 +8,8 @@
  */
 
 import { logger } from "../../../lib/logger";
-import type { AuditEventRecord } from "./types";
 import { env } from "../env";
+import type { AuditEventRecord } from "./types";
 
 /**
  * Event emission result

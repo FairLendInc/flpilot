@@ -15,10 +15,11 @@ import {
 } from "@heroui/react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { ImagePlus, Trash2, Upload, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { DocumentTypeSelector } from "@/components/ui/document-type-selector";
 import {
@@ -29,11 +30,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { ListingCreationPayload } from "@/convex/listings";
+import { cn } from "@/lib/utils";
 import { FormErrorSummary } from "./FormErrorSummary";
 import {
 	type ListingDocumentType,
@@ -113,8 +113,8 @@ export default function ListingCreationForm() {
 		(state) => state.setListingVisibility
 	);
 	const addImage = useListingCreationStore((state) => state.addImage);
-	const updateImage = useListingCreationStore((state) => state.updateImage);
-	const removeImage = useListingCreationStore((state) => state.removeImage);
+	const _updateImage = useListingCreationStore((state) => state.updateImage);
+	const _removeImage = useListingCreationStore((state) => state.removeImage);
 	const addDocument = useListingCreationStore((state) => state.addDocument);
 	const updateDocument = useListingCreationStore(
 		(state) => state.updateDocument
@@ -164,7 +164,7 @@ export default function ListingCreationForm() {
 		shouldLookup ? { email: emailForLookup } : "skip"
 	);
 
-	const handleImageUpload = async (files: FileList | null) => {
+	const _handleImageUpload = async (files: FileList | null) => {
 		if (!files || files.length === 0) return;
 		setIsUploadingMedia(true);
 		try {
@@ -958,10 +958,13 @@ export default function ListingCreationForm() {
 								<div className="mb-4">
 									{comp.previewUrl ? (
 										<div className="relative aspect-video overflow-hidden rounded-md">
+											{/* biome-ignore lint/performance/noImgElement: Dynamic image from blob URL */}
 											<img
 												alt={`Comparable property ${index + 1}`}
 												className="h-full w-full object-cover"
+												height={360}
 												src={comp.previewUrl}
+												width={640}
 											/>
 											<button
 												aria-label="Remove image"
@@ -975,7 +978,7 @@ export default function ListingCreationForm() {
 									) : (
 										<button
 											aria-label="Upload comparable property image"
-											className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-border bg-surface-3/50 transition-colors hover:border-primary/50 hover:bg-surface-3"
+											className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-md border-2 border-border border-dashed bg-surface-3/50 transition-colors hover:border-primary/50 hover:bg-surface-3"
 											disabled={uploadingComparableIndex === index}
 											onClick={() =>
 												comparableImageInputRefs.current[index]?.click()
@@ -1345,7 +1348,9 @@ export default function ListingCreationForm() {
 												<Label>Projected Completion Date</Label>
 												<DatePicker
 													className="w-full"
-													date={formatDate(asIfAppraisal.projectedCompletionDate)}
+													date={formatDate(
+														asIfAppraisal.projectedCompletionDate
+													)}
 													onDateChange={(date) =>
 														setAsIfAppraisalField(
 															"projectedCompletionDate",
@@ -1402,12 +1407,15 @@ export default function ListingCreationForm() {
 															key={image.storageId}
 														>
 															{/* biome-ignore lint/a11y/useAltText: decorative preview */}
+															{/* biome-ignore lint/performance/noImgElement: Dynamic image from blob URL */}
 															<img
 																className="h-full w-full object-cover"
+																height={200}
 																src={
 																	image.previewUrl ||
 																	`/api/storage/${image.storageId}`
 																}
+																width={200}
 															/>
 															<button
 																className="absolute top-1 right-1 rounded-full bg-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
@@ -1483,76 +1491,6 @@ export default function ListingCreationForm() {
 					</div>
 
 					<div className="space-y-3">
-						<div className="flex items-center justify-between">
-							<h3 className="font-medium text-foreground">Property Images</h3>
-							<Button
-								className={"text-foreground"}
-								isDisabled={isUploadingMedia}
-								onPress={() => imageInputRef.current?.click()}
-								size="sm"
-								variant="ghost"
-							>
-								<Upload aria-hidden="true" className="h-4 w-4" />
-								Upload image
-							</Button>
-						</div>
-						<input
-							accept="image/*"
-							className="hidden"
-							multiple
-							onChange={(event) => handleImageUpload(event.target.files)}
-							ref={imageInputRef}
-							type="file"
-						/>
-						{errors.images && (
-							<p className="text-danger text-sm" role="alert">
-								{errors.images}
-							</p>
-						)}
-						<div className="grid gap-3 md:grid-cols-2">
-							{images.map((image, index) => (
-								<div
-									className="rounded-md border border-border bg-surface-2 p-3"
-									key={`${image.storageId}-${index}`}
-								>
-									<div className="flex items-center justify-between">
-										<p className="font-medium text-foreground text-sm">
-											Image #{index + 1}
-										</p>
-										<Button
-											aria-label={`Remove image ${index + 1}`}
-											isIconOnly
-											onPress={() => removeImage(index)}
-											size="sm"
-											variant="ghost"
-										>
-											<Trash2 aria-hidden="true" className="h-4 w-4" />
-										</Button>
-									</div>
-									<p className="mt-1 text-foreground/70 text-xs">
-										Storage ID: {image.storageId}
-									</p>
-									<div className="mt-3">
-										<TextField name={`images.${index}.alt`}>
-											<Label>Alt text</Label>
-											<Input
-												className="placeholder:text-foreground/50"
-												onChange={(e) =>
-													updateImage(index, { alt: e.target.value })
-												}
-												placeholder="Front elevation"
-												value={image.alt}
-											/>
-										</TextField>
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
-
-					<Separator />
-
-					<div className="space-y-3">
 						<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 							<div className="flex gap-3">
 								<DocumentTypeSelector
@@ -1568,7 +1506,7 @@ export default function ListingCreationForm() {
 								/>
 							</div>
 							<Button
-								className={"text-foreground"}
+								className="text-foreground"
 								isDisabled={isUploadingMedia}
 								onPress={() => documentInputRef.current?.click()}
 								size="sm"
