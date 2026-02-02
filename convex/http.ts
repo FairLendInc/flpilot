@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { z } from "zod";
 import { logger } from "../lib/logger";
+import { env } from "./lib/env";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
@@ -18,9 +19,8 @@ const normalizeNullToUndefined = <T extends Record<string, unknown>>(
 		])
 	) as T;
 
-const WEBHOOK_ALLOWED_ORIGIN =
-	process.env.LISTINGS_WEBHOOK_ALLOWED_ORIGIN ?? "*";
-const LISTINGS_WEBHOOK_API_KEY = process.env.LISTINGS_WEBHOOK_API_KEY;
+const WEBHOOK_ALLOWED_ORIGIN = env.LISTINGS_WEBHOOK_ALLOWED_ORIGIN;
+const LISTINGS_WEBHOOK_API_KEY = env.LISTINGS_WEBHOOK_API_KEY;
 
 const webhookCorsHeaders = {
 	"Access-Control-Allow-Origin": WEBHOOK_ALLOWED_ORIGIN,

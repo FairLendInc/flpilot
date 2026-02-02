@@ -9,6 +9,7 @@
 
 import { logger } from "../../../lib/logger";
 import type { AuditEventRecord } from "./types";
+import { env } from "../env";
 
 /**
  * Event emission result
@@ -37,7 +38,7 @@ export class ConsoleEventEmitter implements IEventEmitter {
 	private readonly isDev: boolean;
 
 	constructor() {
-		this.isDev = process.env.NODE_ENV !== "production";
+		this.isDev = env.NODE_ENV !== "production";
 	}
 
 	async emit(event: AuditEventRecord): Promise<EmitResult> {

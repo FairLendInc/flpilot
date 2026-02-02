@@ -1,4 +1,5 @@
 import type { LawyerProfile, NameFields } from "./types";
+import { env } from "../lib/env";
 
 export type IdentityInquiryStatus = "pending" | "completed";
 
@@ -64,7 +65,7 @@ let identityProvider: IdentityVerificationProvider | null = null;
 
 export function getIdentityVerificationProvider(): IdentityVerificationProvider {
 	if (!identityProvider) {
-		const provider = process.env.LAWYER_IDENTITY_PROVIDER ?? "mock_persona";
+		const provider = env.LAWYER_IDENTITY_PROVIDER;
 		identityProvider =
 			provider === "persona"
 				? new PersonaIdentityVerificationProvider()

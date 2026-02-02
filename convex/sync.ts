@@ -18,6 +18,7 @@
 
 import { WorkOS } from "@workos-inc/node";
 import { v } from "convex/values";
+import { env } from "./lib/env";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
@@ -212,7 +213,7 @@ export const syncUsers = internalAction({
 		errors: v.array(v.string()),
 	}),
 	handler: async (ctx) => {
-		const workos = new WorkOS(process.env.WORKOS_API_KEY);
+		const workos = new WorkOS(env.WORKOS_API_KEY);
 		const errors: string[] = [];
 		let added = 0;
 		let updated = 0;
@@ -364,7 +365,7 @@ export const syncOrganizations = internalAction({
 		errors: v.array(v.string()),
 	}),
 	handler: async (ctx) => {
-		const workos = new WorkOS(process.env.WORKOS_API_KEY);
+		const workos = new WorkOS(env.WORKOS_API_KEY);
 		const errors: string[] = [];
 		let added = 0;
 		let updated = 0;
@@ -528,7 +529,7 @@ export const syncOrganizationMemberships = internalAction({
 		errors: v.array(v.string()),
 	}),
 	handler: async (ctx) => {
-		const workos = new WorkOS(process.env.WORKOS_API_KEY);
+		const workos = new WorkOS(env.WORKOS_API_KEY);
 		const errors: string[] = [];
 		let added = 0;
 		let updated = 0;
