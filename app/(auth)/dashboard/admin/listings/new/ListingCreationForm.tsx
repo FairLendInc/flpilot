@@ -14,7 +14,8 @@ import {
 	TextField,
 } from "@heroui/react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Trash2, Upload } from "lucide-react";
+import { ImagePlus, Trash2, Upload, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +29,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { ListingCreationPayload } from "@/convex/listings";
@@ -84,6 +87,10 @@ export default function ListingCreationForm() {
 	const images = useListingCreationStore((state) => state.images);
 	const documents = useListingCreationStore((state) => state.documents);
 	const comparables = useListingCreationStore((state) => state.comparables);
+	const asIfAppraisal = useListingCreationStore((state) => state.asIfAppraisal);
+	const asIfAppraisalImages = useListingCreationStore(
+		(state) => state.asIfAppraisalImages
+	);
 	const errors = useListingCreationStore((state) => state.errors);
 	const isSubmitting = useListingCreationStore((state) => state.isSubmitting);
 
@@ -122,6 +129,15 @@ export default function ListingCreationForm() {
 	const removeComparable = useListingCreationStore(
 		(state) => state.removeComparable
 	);
+	const setAsIfAppraisalField = useListingCreationStore(
+		(state) => state.setAsIfAppraisalField
+	);
+	const addAsIfAppraisalImage = useListingCreationStore(
+		(state) => state.addAsIfAppraisalImage
+	);
+	const removeAsIfAppraisalImage = useListingCreationStore(
+		(state) => state.removeAsIfAppraisalImage
+	);
 	const setErrors = useListingCreationStore((state) => state.setErrors);
 	const clearErrors = useListingCreationStore((state) => state.clearErrors);
 	const setSubmitting = useListingCreationStore((state) => state.setSubmitting);
@@ -133,6 +149,12 @@ export default function ListingCreationForm() {
 
 	const imageInputRef = useRef<HTMLInputElement | null>(null);
 	const documentInputRef = useRef<HTMLInputElement | null>(null);
+	const comparableImageInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+	const asIfImageInputRef = useRef<HTMLInputElement | null>(null);
+	const [uploadingComparableIndex, setUploadingComparableIndex] = useState<
+		number | null
+	>(null);
+	const [isUploadingAsIfImages, setIsUploadingAsIfImages] = useState(false);
 
 	const emailForLookup = borrower.email.trim();
 	const shouldLookup =
@@ -218,6 +240,103 @@ export default function ListingCreationForm() {
 		}
 	};
 
+	const handleComparableImageUpload = async (
+		index: number,
+		file: File | null
+	) => {
+		if (!file) return;
+		if (!file.type.startsWith("image/")) {
+			toast.error("Please upload an image file");
+			return;
+		}
+
+		setUploadingComparableIndex(index);
+		try {
+			const uploadUrl = await generateUploadUrl({});
+			const response = await fetch(uploadUrl, {
+				method: "POST",
+				headers: { "Content-Type": file.type },
+				body: file,
+			});
+			if (!response.ok) {
+				throw new Error(`Upload failed for ${file.name}`);
+			}
+			const json = (await response.json()) as { storageId: string };
+			updateComparable(index, {
+				imageStorageId: json.storageId,
+				previewUrl: URL.createObjectURL(file),
+			});
+			toast.success("Comparable image uploaded");
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unable to upload image";
+			toast.error(message);
+		} finally {
+			setUploadingComparableIndex(null);
+			const inputRef = comparableImageInputRefs.current[index];
+			if (inputRef) {
+				inputRef.value = "";
+			}
+		}
+	};
+
+	const handleRemoveComparableImage = (index: number) => {
+		const comp = comparables[index];
+		// Revoke the preview URL to free memory
+		if (comp?.previewUrl) {
+			URL.revokeObjectURL(comp.previewUrl);
+		}
+		updateComparable(index, {
+			imageStorageId: undefined,
+			previewUrl: undefined,
+		});
+	};
+
+	const handleAsIfImageUpload = async (files: FileList | null) => {
+		if (!files || files.length === 0) return;
+		setIsUploadingAsIfImages(true);
+		try {
+			for (const file of Array.from(files)) {
+				if (!file.type.startsWith("image/")) {
+					toast.error(`Unsupported file type for ${file.name}`);
+					continue;
+				}
+				const uploadUrl = await generateUploadUrl({});
+				const response = await fetch(uploadUrl, {
+					method: "POST",
+					headers: { "Content-Type": file.type },
+					body: file,
+				});
+				if (!response.ok) {
+					throw new Error(`Upload failed for ${file.name}`);
+				}
+				const json = (await response.json()) as { storageId: string };
+				addAsIfAppraisalImage({
+					storageId: json.storageId,
+					previewUrl: URL.createObjectURL(file),
+				});
+			}
+			toast.success("Improvement image upload complete");
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unable to upload image";
+			toast.error(message);
+		} finally {
+			setIsUploadingAsIfImages(false);
+			if (asIfImageInputRef.current) {
+				asIfImageInputRef.current.value = "";
+			}
+		}
+	};
+
+	const handleRemoveAsIfImage = (index: number) => {
+		const image = asIfAppraisalImages[index];
+		if (image?.previewUrl) {
+			URL.revokeObjectURL(image.previewUrl);
+		}
+		removeAsIfAppraisalImage(index);
+	};
+
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		clearErrors();
@@ -295,7 +414,30 @@ export default function ListingCreationForm() {
 				imageStorageId: comp.imageStorageId
 					? (comp.imageStorageId as Id<"_storage">)
 					: undefined,
+				asIf: comp.asIf,
 			})),
+			// Include as-if appraisal when any comparable has asIf=true
+			asIfAppraisal: state.comparables.some((c) => c.asIf)
+				? {
+						marketValue: Number(state.asIfAppraisal.marketValue),
+						method: state.asIfAppraisal.method.trim(),
+						company: state.asIfAppraisal.company.trim(),
+						date: state.asIfAppraisal.date,
+						// New optional fields
+						description: state.asIfAppraisal.description.trim() || undefined,
+						projectedCompletionDate:
+							state.asIfAppraisal.projectedCompletionDate || undefined,
+						cost: state.asIfAppraisal.cost
+							? Number(state.asIfAppraisal.cost)
+							: undefined,
+						imageStorageIds:
+							state.asIfAppraisalImages.length > 0
+								? state.asIfAppraisalImages.map(
+										(img) => img.storageId as Id<"_storage">
+									)
+								: undefined,
+					}
+				: undefined,
 		};
 
 		setSubmitting(true);
@@ -804,22 +946,109 @@ export default function ListingCreationForm() {
 						)}
 						{comparables.map((comp, index) => (
 							<div
-								className="rounded-md border border-border bg-surface-2 p-4"
+								className={cn(
+									"rounded-md border p-4",
+									comp.asIf
+										? "border-amber-400/50 bg-amber-50/30 dark:bg-amber-950/10"
+										: "border-border bg-surface-2"
+								)}
 								key={comp.id ?? `comparable-${index}`}
 							>
+								{/* Image upload section */}
+								<div className="mb-4">
+									{comp.previewUrl ? (
+										<div className="relative aspect-video overflow-hidden rounded-md">
+											<img
+												alt={`Comparable property ${index + 1}`}
+												className="h-full w-full object-cover"
+												src={comp.previewUrl}
+											/>
+											<button
+												aria-label="Remove image"
+												className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70"
+												onClick={() => handleRemoveComparableImage(index)}
+												type="button"
+											>
+												<X className="h-4 w-4" />
+											</button>
+										</div>
+									) : (
+										<button
+											aria-label="Upload comparable property image"
+											className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-border bg-surface-3/50 transition-colors hover:border-primary/50 hover:bg-surface-3"
+											disabled={uploadingComparableIndex === index}
+											onClick={() =>
+												comparableImageInputRefs.current[index]?.click()
+											}
+											type="button"
+										>
+											{uploadingComparableIndex === index ? (
+												<div className="flex flex-col items-center gap-2">
+													<div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+													<span className="text-foreground/50 text-sm">
+														Uploading...
+													</span>
+												</div>
+											) : (
+												<>
+													<ImagePlus className="h-8 w-8 text-foreground/40" />
+													<span className="mt-2 text-foreground/50 text-sm">
+														Click to upload image
+													</span>
+												</>
+											)}
+										</button>
+									)}
+									<input
+										accept="image/*"
+										className="hidden"
+										onChange={(e) =>
+											handleComparableImageUpload(
+												index,
+												e.target.files?.[0] ?? null
+											)
+										}
+										ref={(el) => {
+											comparableImageInputRefs.current[index] = el;
+										}}
+										type="file"
+									/>
+								</div>
+
+								{/* Header with title, as-if toggle, and delete button */}
 								<div className="mb-3 flex items-center justify-between">
-									<h4 className="font-medium text-foreground">
-										Comparable #{index + 1}
-									</h4>
-									<Button
-										aria-label={`Remove comparable ${index + 1}`}
-										isIconOnly
-										onPress={() => removeComparable(index)}
-										size="sm"
-										variant="ghost"
-									>
-										<Trash2 aria-hidden="true" className="h-4 w-4" />
-									</Button>
+									<div className="flex items-center gap-3">
+										<h4 className="font-medium text-foreground">
+											Comparable #{index + 1}
+										</h4>
+										{comp.asIf && <Badge variant="warning">As-If</Badge>}
+									</div>
+									<div className="flex items-center gap-3">
+										<div className="flex items-center gap-2">
+											<Checkbox
+												checked={comp.asIf ?? false}
+												id={`comparable-${index}-asif`}
+												onCheckedChange={(checked) =>
+													updateComparable(index, { asIf: checked === true })
+												}
+											/>
+											<Label
+												className="cursor-pointer text-foreground/70 text-sm"
+												htmlFor={`comparable-${index}-asif`}
+											>
+												As-If Complete
+											</Label>
+										</div>
+										<Button
+											aria-label={`Remove comparable ${index + 1}`}
+											isIconOnly
+											onPress={() => removeComparable(index)}
+											size="sm"
+											variant="ghost"
+										>
+											<Trash2 aria-hidden="true" className="h-4 w-4" />
+										</Button>
+									</div>
 								</div>
 								<FieldGroup className="grid gap-x-4 md:grid-cols-3">
 									<div className="md:col-span-2">
@@ -1014,6 +1243,194 @@ export default function ListingCreationForm() {
 								</FieldGroup>
 							</div>
 						))}
+
+						{/* As-If Appraisal Metadata Section */}
+						{comparables.some((c) => c.asIf) && (
+							<Surface className="flex flex-col gap-3 rounded-xl border-amber-400/30 bg-amber-50/20 p-6 dark:bg-amber-950/10">
+								<Fieldset.Root>
+									<Fieldset.Legend className="text-foreground/70">
+										As-If Complete Appraisal Details
+									</Fieldset.Legend>
+									<Description className="text-foreground/50">
+										Enter projected market value after improvements are
+										complete. Required when using as-if comparables.
+									</Description>
+									<FieldGroup className="grid gap-x-4 md:grid-cols-2">
+										<TextField isRequired name="asIfAppraisal.marketValue">
+											<Label>Projected Market Value</Label>
+											<Input
+												className="placeholder:text-foreground/50"
+												onChange={(e) =>
+													setAsIfAppraisalField("marketValue", e.target.value)
+												}
+												placeholder="650000"
+												type="number"
+												value={asIfAppraisal.marketValue}
+											/>
+											{errors["asIfAppraisal.marketValue"] && (
+												<p className="mt-1 text-danger text-sm" role="alert">
+													{errors["asIfAppraisal.marketValue"]}
+												</p>
+											)}
+										</TextField>
+										<TextField isRequired name="asIfAppraisal.method">
+											<Label>Appraisal Method</Label>
+											<Input
+												className="placeholder:text-foreground/50"
+												onChange={(e) =>
+													setAsIfAppraisalField("method", e.target.value)
+												}
+												placeholder="As-If Complete Sales Comparison"
+												value={asIfAppraisal.method}
+											/>
+											{errors["asIfAppraisal.method"] && (
+												<p className="mt-1 text-danger text-sm" role="alert">
+													{errors["asIfAppraisal.method"]}
+												</p>
+											)}
+										</TextField>
+										<TextField isRequired name="asIfAppraisal.company">
+											<Label>Appraisal Company</Label>
+											<Input
+												className="placeholder:text-foreground/50"
+												onChange={(e) =>
+													setAsIfAppraisalField("company", e.target.value)
+												}
+												placeholder="Renovation Appraisals Inc."
+												value={asIfAppraisal.company}
+											/>
+											{errors["asIfAppraisal.company"] && (
+												<p className="mt-1 text-danger text-sm" role="alert">
+													{errors["asIfAppraisal.company"]}
+												</p>
+											)}
+										</TextField>
+										<div>
+											<Label>Appraisal Date</Label>
+											<DatePicker
+												className="w-full"
+												date={formatDate(asIfAppraisal.date)}
+												onDateChange={(date) =>
+													setAsIfAppraisalField("date", toIsoDate(date))
+												}
+												placeholder="Select as-if appraisal date"
+											/>
+											{errors["asIfAppraisal.date"] && (
+												<p className="mt-1 text-danger text-sm" role="alert">
+													{errors["asIfAppraisal.date"]}
+												</p>
+											)}
+										</div>
+									</FieldGroup>
+
+									{/* Separator for new optional fields */}
+									<Separator className="my-4" />
+
+									{/* New optional fields */}
+									<FieldGroup className="space-y-4">
+										<TextField name="asIfAppraisal.description">
+											<Label>Renovation Description</Label>
+											<textarea
+												className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+												onChange={(e) =>
+													setAsIfAppraisalField("description", e.target.value)
+												}
+												placeholder="Describe the planned improvements..."
+												value={asIfAppraisal.description}
+											/>
+										</TextField>
+
+										<div className="grid gap-4 md:grid-cols-2">
+											<div>
+												<Label>Projected Completion Date</Label>
+												<DatePicker
+													className="w-full"
+													date={formatDate(asIfAppraisal.projectedCompletionDate)}
+													onDateChange={(date) =>
+														setAsIfAppraisalField(
+															"projectedCompletionDate",
+															toIsoDate(date)
+														)
+													}
+													placeholder="Select completion date"
+												/>
+											</div>
+											<TextField name="asIfAppraisal.cost">
+												<Label>Renovation Cost ($)</Label>
+												<Input
+													className="placeholder:text-foreground/50"
+													onChange={(e) =>
+														setAsIfAppraisalField("cost", e.target.value)
+													}
+													placeholder="50000"
+													type="number"
+													value={asIfAppraisal.cost}
+												/>
+											</TextField>
+										</div>
+
+										{/* Improvement Images */}
+										<div className="space-y-3">
+											<div className="flex items-center justify-between">
+												<Label>Improvement Mockup Images</Label>
+												<Button
+													className="text-foreground"
+													isDisabled={isUploadingAsIfImages}
+													onPress={() => asIfImageInputRef.current?.click()}
+													size="sm"
+													variant="ghost"
+												>
+													<Upload className="mr-2 h-4 w-4" />
+													{isUploadingAsIfImages ? "Uploading..." : "Upload"}
+												</Button>
+											</div>
+											<input
+												accept="image/*"
+												className="hidden"
+												multiple
+												onChange={(event) =>
+													handleAsIfImageUpload(event.target.files)
+												}
+												ref={asIfImageInputRef}
+												type="file"
+											/>
+											{asIfAppraisalImages.length > 0 && (
+												<div className="grid grid-cols-4 gap-2">
+													{asIfAppraisalImages.map((image, index) => (
+														<div
+															className="group relative aspect-square overflow-hidden rounded-md border"
+															key={image.storageId}
+														>
+															{/* biome-ignore lint/a11y/useAltText: decorative preview */}
+															<img
+																className="h-full w-full object-cover"
+																src={
+																	image.previewUrl ||
+																	`/api/storage/${image.storageId}`
+																}
+															/>
+															<button
+																className="absolute top-1 right-1 rounded-full bg-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
+																onClick={() => handleRemoveAsIfImage(index)}
+																type="button"
+															>
+																<X className="h-3 w-3 text-white" />
+															</button>
+														</div>
+													))}
+												</div>
+											)}
+											{asIfAppraisalImages.length === 0 && (
+												<p className="text-foreground/50 text-sm">
+													No improvement mockups uploaded yet.
+												</p>
+											)}
+										</div>
+									</FieldGroup>
+								</Fieldset.Root>
+							</Surface>
+						)}
+
 						<Button
 							className={"text-foreground"}
 							onPress={() =>

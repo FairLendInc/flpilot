@@ -85,6 +85,23 @@ export type ComparableFormState = {
 	propertyType?: string;
 	imageStorageId?: string;
 	previewUrl?: string;
+	asIf?: boolean; // Mark as "as-if complete" comparable (post-renovation value)
+};
+
+export type AsIfAppraisalFormState = {
+	marketValue: string;
+	method: string;
+	company: string;
+	date: string;
+	// New optional fields for renovation details
+	description: string;
+	projectedCompletionDate: string;
+	cost: string;
+};
+
+export type AsIfAppraisalImageEntry = {
+	storageId: string;
+	previewUrl?: string;
 };
 
 const createInitialBorrower = (): BorrowerFormState => ({
@@ -137,6 +154,16 @@ const _createInitialComparable = (): ComparableFormState => ({
 	distance: "",
 });
 
+const createInitialAsIfAppraisal = (): AsIfAppraisalFormState => ({
+	marketValue: "",
+	method: "",
+	company: "",
+	date: "",
+	description: "",
+	projectedCompletionDate: "",
+	cost: "",
+});
+
 const removeError = (errors: Record<string, string>, field: string) => {
 	if (!errors[field]) return errors;
 	const { [field]: _removed, ...rest } = errors;
@@ -162,6 +189,8 @@ type ListingCreationStore = {
 	images: ListingImageEntry[];
 	documents: ListingDocumentEntry[];
 	comparables: ComparableFormState[];
+	asIfAppraisal: AsIfAppraisalFormState;
+	asIfAppraisalImages: AsIfAppraisalImageEntry[];
 	errors: Record<string, string>;
 	isSubmitting: boolean;
 	setBorrowerField: <K extends keyof BorrowerFormState>(
@@ -196,6 +225,12 @@ type ListingCreationStore = {
 		entry: Partial<ComparableFormState>
 	) => void;
 	removeComparable: (index: number) => void;
+	setAsIfAppraisalField: <K extends keyof AsIfAppraisalFormState>(
+		field: K,
+		value: AsIfAppraisalFormState[K]
+	) => void;
+	addAsIfAppraisalImage: (entry: AsIfAppraisalImageEntry) => void;
+	removeAsIfAppraisalImage: (index: number) => void;
 	setErrors: (errors: Record<string, string>) => void;
 	clearError: (field: string) => void;
 	clearErrors: () => void;
@@ -212,6 +247,8 @@ export const useListingCreationStore = create<ListingCreationStore>(
 		images: [],
 		documents: [],
 		comparables: [],
+		asIfAppraisal: createInitialAsIfAppraisal(),
+		asIfAppraisalImages: [],
 		errors: {},
 		isSubmitting: false,
 		setBorrowerField: (field, value) =>
@@ -317,6 +354,21 @@ export const useListingCreationStore = create<ListingCreationStore>(
 			set((state) => ({
 				comparables: state.comparables.filter((_, i) => i !== index),
 			})),
+		setAsIfAppraisalField: (field, value) =>
+			set((state) => ({
+				asIfAppraisal: { ...state.asIfAppraisal, [field]: value },
+				errors: removeError(state.errors, `asIfAppraisal.${String(field)}`),
+			})),
+		addAsIfAppraisalImage: (entry) =>
+			set((state) => ({
+				asIfAppraisalImages: [...state.asIfAppraisalImages, entry],
+			})),
+		removeAsIfAppraisalImage: (index) =>
+			set((state) => ({
+				asIfAppraisalImages: state.asIfAppraisalImages.filter(
+					(_, i) => i !== index
+				),
+			})),
 		setErrors: (errors) => set({ errors }),
 		clearError: (field) =>
 			set((state) => ({ errors: removeError(state.errors, field) })),
@@ -330,6 +382,8 @@ export const useListingCreationStore = create<ListingCreationStore>(
 				images: [],
 				documents: [],
 				comparables: [],
+				asIfAppraisal: createInitialAsIfAppraisal(),
+				asIfAppraisalImages: [],
 				errors: {},
 				isSubmitting: false,
 			}),
@@ -343,9 +397,18 @@ export const validateListingForm = ({
 	images,
 	documents,
 	comparables,
+	asIfAppraisal,
+	asIfAppraisalImages,
 }: Pick<
 	ListingCreationStore,
-	"borrower" | "mortgage" | "listing" | "images" | "documents" | "comparables"
+	| "borrower"
+	| "mortgage"
+	| "listing"
+	| "images"
+	| "documents"
+	| "comparables"
+	| "asIfAppraisal"
+	| "asIfAppraisalImages"
 >) => {
 	const errors: Record<string, string> = {};
 
@@ -543,6 +606,36 @@ export const validateListingForm = ({
 			}
 		}
 	});
+
+	// Validate as-if appraisal when any comparable has asIf=true
+	const hasAsIfComparable = comparables.some((comp) => comp.asIf === true);
+	if (hasAsIfComparable) {
+		const asIfMarketValue = Number(asIfAppraisal.marketValue);
+		if (!Number.isFinite(asIfMarketValue) || asIfMarketValue <= 0) {
+			errors["asIfAppraisal.marketValue"] =
+				"As-if market value must be a positive number";
+		}
+
+		if (!asIfAppraisal.method.trim()) {
+			errors["asIfAppraisal.method"] = "As-if appraisal method is required";
+		}
+
+		if (!asIfAppraisal.company.trim()) {
+			errors["asIfAppraisal.company"] = "As-if appraisal company is required";
+		}
+
+		if (asIfAppraisal.date) {
+			const parsedDate = Date.parse(asIfAppraisal.date);
+			if (Number.isNaN(parsedDate)) {
+				errors["asIfAppraisal.date"] = "As-if appraisal date must be valid";
+			} else if (parsedDate > Date.now()) {
+				errors["asIfAppraisal.date"] =
+					"As-if appraisal date cannot be in the future";
+			}
+		} else {
+			errors["asIfAppraisal.date"] = "As-if appraisal date is required";
+		}
+	}
 
 	return errors;
 };

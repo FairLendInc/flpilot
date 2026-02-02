@@ -136,10 +136,29 @@ async function runAuthMiddleware(
 		},
 	});
 
-	return (await mw(
+	const res = (await mw(
 		req as Parameters<typeof mw>[0],
 		{} as Parameters<typeof mw>[1]
 	)) as NextResponse;
+
+	if (res.headers.get("location")) {
+		return res;
+	}
+
+	const requestHeaders = new Headers(req.headers);
+	requestHeaders.set("x-pathname", req.nextUrl.pathname);
+
+	const nextRes = NextResponse.next({
+		request: {
+			headers: requestHeaders,
+		},
+	});
+
+	res.headers.forEach((value, key) => {
+		nextRes.headers.set(key, value);
+	});
+
+	return nextRes;
 }
 
 /**
@@ -197,6 +216,7 @@ function handleMicSubdomain(
 			headers: new Headers({
 				...Object.fromEntries(req.headers),
 				"x-subdomain": subdomain,
+				"x-pathname": req.nextUrl.pathname,
 			}),
 		},
 	});
@@ -230,6 +250,7 @@ function handleSubdomainRewrite(
 			headers: new Headers({
 				...Object.fromEntries(req.headers),
 				"x-subdomain": subdomain,
+				"x-pathname": req.nextUrl.pathname,
 				...(flagsCode ? { "x-precomputed-flags": flagsCode } : {}),
 			}),
 		},

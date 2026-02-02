@@ -31,11 +31,24 @@ const listingOptionsValidator = v.object({
 	visible: v.optional(v.boolean()),
 });
 
+const asIfAppraisalValidator = v.object({
+	marketValue: v.number(),
+	method: v.string(),
+	company: v.string(),
+	date: v.string(),
+	// New optional fields for renovation details
+	description: v.optional(v.string()),
+	imageStorageIds: v.optional(v.array(v.id("_storage"))),
+	projectedCompletionDate: v.optional(v.string()),
+	cost: v.optional(v.number()),
+});
+
 const listingCreationPayloadValidator = v.object({
 	borrower: borrowerPayloadValidator,
 	mortgage: mortgageDetailsValidator,
 	listing: listingOptionsValidator,
 	comparables: v.optional(v.array(comparablePayloadValidator)),
+	asIfAppraisal: v.optional(asIfAppraisalValidator),
 });
 
 const listingCreationResultValidator = v.object({
@@ -137,6 +150,8 @@ const runListingCreation = async (
 	const mortgageResult = await ensureMortgage(ctx, {
 		borrowerId,
 		...payload.mortgage,
+		// Include as-if appraisal if provided at payload root
+		asIfAppraisal: payload.asIfAppraisal,
 	});
 	const mortgageId = mortgageResult.mortgageId;
 

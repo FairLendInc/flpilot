@@ -100,6 +100,7 @@ export function transformComparables(
 			(comp.imageStorageId
 				? `/api/storage/${comp.imageStorageId}`
 				: "/house.jpg"),
+		asIf: comp.asIf,
 	}));
 }
 

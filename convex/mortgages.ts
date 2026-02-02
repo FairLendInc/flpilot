@@ -107,6 +107,11 @@ const mortgageDetailsFields = {
 			method: v.string(),
 			company: v.string(),
 			date: v.string(),
+			// New optional fields for renovation details
+			description: v.optional(v.string()),
+			imageStorageIds: v.optional(v.array(v.id("_storage"))),
+			projectedCompletionDate: v.optional(v.string()),
+			cost: v.optional(v.number()),
 		})
 	),
 } as const;
@@ -1316,6 +1321,11 @@ export const updateMortgage = authenticatedMutation({
 				method: v.string(),
 				company: v.string(),
 				date: v.string(),
+				// New optional fields for renovation details
+				description: v.optional(v.string()),
+				imageStorageIds: v.optional(v.array(v.id("_storage"))),
+				projectedCompletionDate: v.optional(v.string()),
+				cost: v.optional(v.number()),
 			})
 		),
 	},
