@@ -398,7 +398,6 @@ export const validateListingForm = ({
 	documents,
 	comparables,
 	asIfAppraisal,
-	asIfAppraisalImages,
 }: Pick<
 	ListingCreationStore,
 	| "borrower"
@@ -408,7 +407,6 @@ export const validateListingForm = ({
 	| "documents"
 	| "comparables"
 	| "asIfAppraisal"
-	| "asIfAppraisalImages"
 >) => {
 	const errors: Record<string, string> = {};
 

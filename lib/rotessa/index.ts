@@ -1,10 +1,10 @@
-export { ROTESSA_MANIFEST } from "./manifest";
-export * from "./types";
 export {
+	createRotessaClient,
+	getRotessaClient,
 	RotessaApiError,
 	RotessaConfigError,
 	RotessaRequestError,
-	createRotessaClient,
-	getRotessaClient,
 	resetRotessaClient,
 } from "./client";
+export { ROTESSA_MANIFEST } from "./manifest";
+export * from "./types";

@@ -363,7 +363,7 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 								</div>
 								{/* New: Description if available */}
 								{financials.asIfAppraisal.description && (
-									<div className="mt-3 border-t border-foreground/10 pt-3">
+									<div className="mt-3 border-foreground/10 border-t pt-3">
 										<p className="text-foreground/60 text-xs">
 											{financials.asIfAppraisal.description}
 										</p>

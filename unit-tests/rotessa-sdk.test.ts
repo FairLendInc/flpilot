@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
 import {
+	createRotessaClient,
 	RotessaApiError,
 	RotessaConfigError,
-	createRotessaClient,
 } from "../lib/rotessa";
 
 type MockResponse = {
@@ -76,9 +76,7 @@ describe("Rotessa SDK", () => {
 	test("normalizes Rotessa error payloads", async () => {
 		const fetchFn = vi.fn().mockResolvedValue(
 			createMockResponse(422, {
-				errors: [
-					{ error_code: "invalid_request", error_message: "Bad input" },
-				],
+				errors: [{ error_code: "invalid_request", error_message: "Bad input" }],
 			})
 		);
 

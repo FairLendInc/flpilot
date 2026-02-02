@@ -10,8 +10,8 @@ import {
 	type RotessaTransactionReportItem,
 	type RotessaTransactionReportQuery,
 	type RotessaTransactionSchedule,
-	type RotessaTransactionScheduleCreateWithCustomIdentifier,
 	type RotessaTransactionScheduleCreateWithCustomerId,
+	type RotessaTransactionScheduleCreateWithCustomIdentifier,
 	type RotessaTransactionScheduleUpdate,
 	type RotessaTransactionScheduleUpdateViaPost,
 } from "./types";
@@ -103,7 +103,9 @@ export class RotessaRequestError extends Error {
 	}
 }
 
-function resolveConfig(input: RotessaClientConfigInput = {}): RotessaClientConfig {
+function resolveConfig(
+	input: RotessaClientConfigInput = {}
+): RotessaClientConfig {
 	const apiKey = input.apiKey ?? process.env.ROTESSA_API_KEY;
 	if (!apiKey) {
 		throw new RotessaConfigError(
@@ -182,25 +184,28 @@ function buildUrl(
 }
 
 function safeParseJson(text: string) {
-	if (!text) return undefined;
+	if (!text) return;
 	try {
 		return JSON.parse(text) as unknown;
 	} catch {
-		return undefined;
+		return;
 	}
 }
 
-function normalizeErrors(payload: unknown): RotessaApiErrorDetail[] | undefined {
-	if (!payload || typeof payload !== "object") return undefined;
+function normalizeErrors(
+	payload: unknown
+): RotessaApiErrorDetail[] | undefined {
+	if (!payload || typeof payload !== "object") return;
 	const errors = (payload as { errors?: unknown }).errors;
-	if (!Array.isArray(errors)) return undefined;
+	if (!Array.isArray(errors)) return;
 
 	const normalized = errors
 		.map((item) => {
 			if (!item || typeof item !== "object") return null;
-			const error_code = String((item as any).error_code ?? "");
-			const error_message = String((item as any).error_message ?? "");
-			if (!error_code && !error_message) return null;
+			const errorItem = item as Record<string, unknown>;
+			const error_code = String(errorItem.error_code ?? "");
+			const error_message = String(errorItem.error_message ?? "");
+			if (!(error_code || error_message)) return null;
 			return { error_code, error_message };
 		})
 		.filter(Boolean) as RotessaApiErrorDetail[];
@@ -257,7 +262,7 @@ async function rotessaRequest<T>(
 			method,
 			headers: {
 				Accept: "application/json",
-				Authorization: `Token token=\"${config.apiKey}\"`,
+				Authorization: `Token token="${config.apiKey}"`,
 				"Content-Type": "application/json",
 			},
 			body:
@@ -293,8 +298,7 @@ async function rotessaRequest<T>(
 		if (error instanceof RotessaApiError) {
 			throw error;
 		}
-		const isAbort =
-			error instanceof Error && error.name === "AbortError";
+		const isAbort = error instanceof Error && error.name === "AbortError";
 		const requestError = new RotessaRequestError({
 			message: isAbort
 				? "Rotessa request timed out."
@@ -367,43 +371,41 @@ export function createRotessaClient(
 	return {
 		customers: {
 			list: () =>
-				rotessaRequest<RotessaCustomerListItem[]>(
+				rotessaRequest<RotessaCustomerListItem[]>(config, "GET", "/customers"),
+			get: (id) =>
+				rotessaRequest<RotessaCustomerDetail>(
 					config,
 					"GET",
-					"/customers"
-					),
-			get: (id) =>
-				rotessaRequest<RotessaCustomerDetail>(config, "GET", "/customers/{id}", {
-					pathParams: { id },
-				}),
+					"/customers/{id}",
+					{
+						pathParams: { id },
+					}
+				),
 			getByCustomIdentifier: (customIdentifier) =>
 				rotessaRequest<RotessaCustomerDetail>(
 					config,
 					"POST",
 					"/customers/show_with_custom_identifier",
 					{ body: { custom_identifier: customIdentifier } }
-					),
+				),
 			create: (payload) =>
-				rotessaRequest<RotessaCustomerDetail>(
-					config,
-					"POST",
-					"/customers",
-					{ body: payload }
-					),
+				rotessaRequest<RotessaCustomerDetail>(config, "POST", "/customers", {
+					body: payload,
+				}),
 			update: (id, payload) =>
 				rotessaRequest<RotessaCustomerDetail>(
 					config,
 					"PATCH",
 					"/customers/{id}",
 					{ pathParams: { id }, body: payload }
-					),
+				),
 			updateViaPost: (payload) =>
 				rotessaRequest<RotessaCustomerDetail>(
 					config,
 					"POST",
 					"/customers/update_via_post",
 					{ body: payload }
-					),
+				),
 		},
 		transactionSchedules: {
 			get: (id) =>
@@ -412,14 +414,14 @@ export function createRotessaClient(
 					"GET",
 					"/transaction_schedules/{id}",
 					{ pathParams: { id } }
-					),
+				),
 			create: (payload: RotessaTransactionScheduleCreateWithCustomerId) =>
 				rotessaRequest<RotessaTransactionSchedule>(
 					config,
 					"POST",
 					"/transaction_schedules",
 					{ body: payload }
-					),
+				),
 			createWithCustomIdentifier: (
 				payload: RotessaTransactionScheduleCreateWithCustomIdentifier
 			) =>
@@ -428,28 +430,25 @@ export function createRotessaClient(
 					"POST",
 					"/transaction_schedules/create_with_custom_identifier",
 					{ body: payload }
-					),
+				),
 			update: (id, payload) =>
 				rotessaRequest<RotessaTransactionSchedule>(
 					config,
 					"PATCH",
 					"/transaction_schedules/{id}",
 					{ pathParams: { id }, body: payload }
-					),
+				),
 			updateViaPost: (payload) =>
 				rotessaRequest<RotessaTransactionSchedule>(
 					config,
 					"POST",
 					"/transaction_schedules/update_via_post",
 					{ body: payload }
-					),
+				),
 			delete: (id) =>
-				rotessaRequest<null>(
-					config,
-					"DELETE",
-					"/transaction_schedules/{id}",
-					{ pathParams: { id } }
-					),
+				rotessaRequest<null>(config, "DELETE", "/transaction_schedules/{id}", {
+					pathParams: { id },
+				}),
 		},
 		transactionReport: {
 			list: (params) => {
@@ -466,7 +465,7 @@ export function createRotessaClient(
 					"GET",
 					"/transaction_report",
 					{ query: queryParams }
-					);
+				);
 			},
 		},
 		request: (method, path, options) =>
