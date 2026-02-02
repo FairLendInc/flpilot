@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { checkRbac } from "../lib/authhelper";
+import { isTestEnv } from "./lib/env";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -653,8 +654,7 @@ export const approveJourney = mutation({
 						: "member";
 
 		const skipRoleSync =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+			isTestEnv;
 
 		// Determine which organization to assign the role to
 		// Only require organization if we need to assign a role (not in test and not member role)
