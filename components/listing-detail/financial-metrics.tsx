@@ -34,6 +34,11 @@ type FinancialMetricsProps = {
 			method: string;
 			company: string;
 			date: string;
+			// New optional renovation fields
+			description?: string;
+			imageStorageIds?: string[];
+			projectedCompletionDate?: string;
+			cost?: number;
 		} | null;
 		mortgageType?: string; // New: 1st, 2nd, 3rd mortgage
 		propertyType?: string; // New: e.g., "Residential - Condo", "Commercial - Office"
@@ -174,6 +179,11 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 	// Calculate LTV (Loan-to-Value ratio) - with fallback values
 	// const ltv = (principalLoanAmount / currentValue) * 100;
 	const ltv = financials.ltv;
+
+	// Calculate As-If LTV when asIfAppraisal exists
+	const asIfLtv = financials.asIfAppraisal
+		? (principalLoanAmount / financials.asIfAppraisal.marketValue) * 100
+		: 0;
 
 	// Determine LTV color coding
 	const getLTVColorClass = (value: number) => {
@@ -320,7 +330,45 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 											)}
 										</p>
 									</div>
+									{/* New: Renovation cost if available */}
+									{financials.asIfAppraisal.cost && (
+										<div className="flex items-center gap-2">
+											<Icon
+												className="h-4 w-4 text-foreground/50"
+												icon="lucide:hammer"
+											/>
+											<p className="font-medium text-foreground/60 text-sm">
+												Reno: {formatCurrency(financials.asIfAppraisal.cost)}
+											</p>
+										</div>
+									)}
+									{/* New: Projected completion date if available */}
+									{financials.asIfAppraisal.projectedCompletionDate && (
+										<div className="flex items-center gap-2">
+											<Icon
+												className="h-4 w-4 text-foreground/50"
+												icon="lucide:target"
+											/>
+											<p className="font-medium text-foreground/60 text-sm">
+												Est.{" "}
+												{format(
+													parseISO(
+														financials.asIfAppraisal.projectedCompletionDate
+													),
+													"MMM yyyy"
+												)}
+											</p>
+										</div>
+									)}
 								</div>
+								{/* New: Description if available */}
+								{financials.asIfAppraisal.description && (
+									<div className="mt-3 border-t border-foreground/10 pt-3">
+										<p className="text-foreground/60 text-xs">
+											{financials.asIfAppraisal.description}
+										</p>
+									</div>
+								)}
 							</div>
 						</div>
 					</Surface>
@@ -343,6 +391,19 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 					trend={ltv <= 80 ? "up" : "down"}
 					value={formatLTV(ltv)}
 				/>
+
+				{/* As-If LTV - Only when asIfAppraisal exists */}
+				{financials.asIfAppraisal && (
+					<MetricCard
+						colorClass={getLTVColorClass(asIfLtv)}
+						icon="lucide:target"
+						isHighlighted
+						label="As-If LTV"
+						sublabel={`After improvements • ${getLTVLabel(asIfLtv)}`}
+						trend={asIfLtv <= 80 ? "up" : "down"}
+						value={formatLTV(asIfLtv)}
+					/>
+				)}
 
 				{/* Interest Rate */}
 				<MetricCard

@@ -72,6 +72,7 @@ export const comparablePayloadValidator = v.object({
 	bathrooms: v.optional(v.number()),
 	propertyType: v.optional(v.string()),
 	imageStorageId: v.optional(v.id("_storage")),
+	asIf: v.optional(v.boolean()),
 });
 
 /**
@@ -146,6 +147,7 @@ export const createComparable = authenticatedMutation({
 		bathrooms: v.optional(v.number()),
 		propertyType: v.optional(v.string()),
 		imageStorageId: v.optional(v.id("_storage")),
+		asIf: v.optional(v.boolean()),
 	},
 	returns: v.id("appraisal_comparables"),
 	handler: async (ctx, args) => {
@@ -177,6 +179,7 @@ export const createComparable = authenticatedMutation({
 			bathrooms: args.bathrooms,
 			propertyType: args.propertyType,
 			imageStorageId: args.imageStorageId,
+			asIf: args.asIf,
 		});
 	},
 });
@@ -203,6 +206,7 @@ export const bulkCreateComparables = internalMutation({
 				bathrooms: v.optional(v.number()),
 				propertyType: v.optional(v.string()),
 				imageStorageId: v.optional(v.id("_storage")),
+				asIf: v.optional(v.boolean()),
 			})
 		),
 	},
@@ -249,6 +253,7 @@ export const updateComparable = authenticatedMutation({
 		bathrooms: v.optional(v.number()),
 		propertyType: v.optional(v.string()),
 		imageStorageId: v.optional(v.id("_storage")),
+		asIf: v.optional(v.boolean()),
 	},
 	returns: v.id("appraisal_comparables"),
 	handler: async (ctx, args) => {
