@@ -33,6 +33,15 @@ export type OnboardingStateValue =
 	| "lawyer.pending_admin"
 	| "lawyer.rejected"
 	| "lawyer.placeholder"
+	| "borrower.intro"
+	| "borrower.profile"
+	| "borrower.identity_verification"
+	| "borrower.kyc_aml"
+	| "borrower.rotessa_setup"
+	| "borrower.review"
+	| "borrower.pending_admin"
+	| "borrower.rejected"
+	| "borrower.approved"
 	| "pendingAdmin"
 	| "rejected"
 	| "completed";
@@ -43,6 +52,7 @@ type MachineContext = {
 	investor: NonNullable<JourneyDoc["context"]>["investor"];
 	broker: NonNullable<JourneyDoc["context"]>["broker"];
 	lawyer: NonNullable<JourneyDoc["context"]>["lawyer"];
+	borrower: NonNullable<JourneyDoc["context"]>["borrower"];
 	stateValue: OnboardingStateValue;
 };
 
@@ -63,6 +73,7 @@ const DEFAULT_CONTEXT: MachineContext = {
 	investor: {},
 	broker: {},
 	lawyer: {},
+	borrower: {},
 	stateValue: "personaSelection",
 };
 
@@ -92,6 +103,14 @@ export const onboardingMachine = setup({
 			event.type === "HYDRATE" &&
 			event.journey?.status === "rejected" &&
 			event.journey?.persona === "lawyer",
+		isBorrowerPendingAdmin: ({ event }: { event: MachineEvent }) =>
+			event.type === "HYDRATE" &&
+			event.journey?.status === "awaiting_admin" &&
+			event.journey?.persona === "borrower",
+		isBorrowerRejected: ({ event }: { event: MachineEvent }) =>
+			event.type === "HYDRATE" &&
+			event.journey?.status === "rejected" &&
+			event.journey?.persona === "borrower",
 		isRejected: ({ event }: { event: MachineEvent }) =>
 			event.type === "HYDRATE" && event.journey?.status === "rejected",
 		isApproved: ({ event }: { event: MachineEvent }) =>
@@ -111,6 +130,7 @@ export const onboardingMachine = setup({
 				investor: event.journey.context?.investor ?? {},
 				broker: event.journey.context?.broker ?? {},
 				lawyer: event.journey.context?.lawyer ?? {},
+				borrower: event.journey.context?.borrower ?? {},
 				stateValue: (event.journey.stateValue ??
 					"personaSelection") as OnboardingStateValue,
 			};
@@ -306,6 +326,79 @@ export const onboardingMachine = setup({
 					stateValue: event.stateValue,
 				})),
 			},
+			// Borrower ADVANCE handlers
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.intro",
+				target: ".borrower.intro",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.profile",
+				target: ".borrower.profile",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.identity_verification",
+				target: ".borrower.identity_verification",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.kyc_aml",
+				target: ".borrower.kyc_aml",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.rotessa_setup",
+				target: ".borrower.rotessa_setup",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.review",
+				target: ".borrower.review",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.pending_admin",
+				target: ".borrower.pending_admin",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.rejected",
+				target: ".borrower.rejected",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "borrower.approved",
+				target: ".borrower.approved",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
 			{
 				target: ".personaSelection",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
@@ -343,6 +436,16 @@ export const onboardingMachine = setup({
 			{
 				guard: "isLawyerRejected",
 				target: ".lawyer.rejected",
+				actions: "applyJourney",
+			},
+			{
+				guard: "isBorrowerPendingAdmin",
+				target: ".borrower.pending_admin",
+				actions: "applyJourney",
+			},
+			{
+				guard: "isBorrowerRejected",
+				target: ".borrower.rejected",
 				actions: "applyJourney",
 			},
 			{
@@ -525,6 +628,70 @@ export const onboardingMachine = setup({
 				target: ".lawyer.intro",
 				actions: "applyJourney",
 			},
+			// Borrower HYDRATE handlers
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.intro",
+				target: ".borrower.intro",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.profile",
+				target: ".borrower.profile",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.identity_verification",
+				target: ".borrower.identity_verification",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.kyc_aml",
+				target: ".borrower.kyc_aml",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.rotessa_setup",
+				target: ".borrower.rotessa_setup",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.review",
+				target: ".borrower.review",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.pending_admin",
+				target: ".borrower.pending_admin",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.rejected",
+				target: ".borrower.rejected",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "borrower.approved",
+				target: ".borrower.approved",
+				actions: "applyJourney",
+			},
 			{
 				guard: ({ event }: { event: HydrateEvent }) =>
 					event.type === "HYDRATE" && event.journey?.stateValue !== undefined,
@@ -584,6 +751,20 @@ export const onboardingMachine = setup({
 				pending_admin: {},
 				rejected: {},
 				placeholder: {},
+			},
+		},
+		borrower: {
+			initial: "intro",
+			states: {
+				intro: {},
+				profile: {},
+				identity_verification: {},
+				kyc_aml: {},
+				rotessa_setup: {},
+				review: {},
+				pending_admin: {},
+				rejected: {},
+				approved: {},
 			},
 		},
 		pendingAdmin: {},

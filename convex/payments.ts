@@ -92,7 +92,9 @@ export const createPayment = authenticatedMutation({
 		),
 		paymentId: v.string(),
 		customerId: v.string(),
-		transactionScheduleId: v.string(),
+		transactionScheduleId: v.optional(v.string()),
+		transactionSchedule: v.optional(v.any()),
+		paymentMetadata: v.optional(v.any()),
 	},
 	returns: v.id("payments"),
 	handler: async (ctx, args) => {
@@ -115,6 +117,8 @@ export const createPayment = authenticatedMutation({
 			paymentId: args.paymentId,
 			customerId: args.customerId,
 			transactionScheduleId: args.transactionScheduleId,
+			transactionSchedule: args.transactionSchedule,
+			paymentMetadata: args.paymentMetadata,
 		});
 	},
 });
@@ -158,7 +162,9 @@ export const bulkCreatePayments = authenticatedMutation({
 				),
 				paymentId: v.string(),
 				customerId: v.string(),
-				transactionScheduleId: v.string(),
+				transactionScheduleId: v.optional(v.string()),
+				transactionSchedule: v.optional(v.any()),
+				paymentMetadata: v.optional(v.any()),
 			})
 		),
 	},
@@ -214,7 +220,9 @@ export const syncPaymentFromRotessa = authenticatedMutation({
 			v.literal("failed")
 		),
 		customerId: v.string(),
-		transactionScheduleId: v.string(),
+		transactionScheduleId: v.optional(v.string()),
+		transactionSchedule: v.optional(v.any()),
+		paymentMetadata: v.optional(v.any()),
 	},
 	returns: v.id("payments"),
 	handler: async (ctx, args) => {
@@ -243,6 +251,8 @@ export const syncPaymentFromRotessa = authenticatedMutation({
 			paymentId: args.paymentId,
 			customerId: args.customerId,
 			transactionScheduleId: args.transactionScheduleId,
+			transactionSchedule: args.transactionSchedule,
+			paymentMetadata: args.paymentMetadata,
 		});
 	},
 });

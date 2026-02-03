@@ -462,7 +462,7 @@ export const performSync = internalAction({
 						continue;
 					}
 
-					metrics.transactionsProcessed++;
+					metrics.transactionsProcessed += 1;
 
 					// Process the transaction
 					const result = await ctx.runMutation(
@@ -481,9 +481,9 @@ export const performSync = internalAction({
 					);
 
 					if (result.created) {
-						metrics.paymentsCreated++;
+						metrics.paymentsCreated += 1;
 					} else if (result.updated) {
-						metrics.paymentsUpdated++;
+						metrics.paymentsUpdated += 1;
 					}
 
 					// Record to ledger if payment is approved/cleared
@@ -496,7 +496,7 @@ export const performSync = internalAction({
 									amount: transaction.amount,
 								}
 							);
-							metrics.ledgerTransactionsCreated++;
+							metrics.ledgerTransactionsCreated += 1;
 						} catch (ledgerError) {
 							// Log ledger error but don't fail the sync
 							const errorMessage =
@@ -508,7 +508,7 @@ export const performSync = internalAction({
 								error: `Ledger: ${errorMessage}`,
 								timestamp: Date.now(),
 							});
-							metrics.errors++;
+							metrics.errors += 1;
 						}
 					}
 				} catch (itemError) {
@@ -520,7 +520,7 @@ export const performSync = internalAction({
 						error: errorMessage,
 						timestamp: Date.now(),
 					});
-					metrics.errors++;
+					metrics.errors += 1;
 				}
 			}
 
@@ -601,7 +601,8 @@ export const processTransaction = internalMutation({
 				rotessaStatus: args.status,
 				rotessaStatusReason: args.statusReason,
 				settlementDate: args.settlementDate,
-				paymentMetadata: args.paymentMetadata ?? existingPayment.paymentMetadata,
+				paymentMetadata:
+					args.paymentMetadata ?? existingPayment.paymentMetadata,
 				transactionSchedule:
 					args.transactionSchedule ?? existingPayment.transactionSchedule,
 				updatedAt: new Date().toISOString(),
@@ -816,15 +817,14 @@ export const createBackfillLog = internalMutation({
 		triggeredBy: v.optional(v.id("users")),
 	},
 	returns: v.id("backfill_log"),
-	handler: async (ctx, args) => {
-		return await ctx.db.insert("backfill_log", {
+	handler: async (ctx, args) =>
+		await ctx.db.insert("backfill_log", {
 			mortgageId: args.mortgageId,
 			scheduleId: args.scheduleId,
 			triggeredBy: args.triggeredBy,
 			status: "running",
 			startedAt: Date.now(),
-		});
-	},
+		}),
 });
 
 /**
@@ -939,8 +939,11 @@ export const backfillHistoricalPayments = internalAction({
 			// Go back 2 years to capture all historical data
 			const startDate = new Date();
 			startDate.setFullYear(startDate.getFullYear() - 2);
-			const startDateStr = startDate.toISOString().split("T")[0]!;
-			const endDateStr = new Date().toISOString().split("T")[0]!;
+			const startDateStr = startDate.toISOString().split("T")[0];
+			const endDateStr = new Date().toISOString().split("T")[0];
+			if (!(startDateStr && endDateStr)) {
+				throw new Error("Failed to format dates");
+			}
 
 			const allTransactions: Array<{
 				id: number;
@@ -963,7 +966,7 @@ export const backfillHistoricalPayments = internalAction({
 
 				if (batch.length === 0) break;
 				allTransactions.push(...batch);
-				page++;
+				page += 1;
 			}
 
 			// Filter to only this schedule's Approved transactions with settlement_date
@@ -994,7 +997,7 @@ export const backfillHistoricalPayments = internalAction({
 					);
 
 					if (processResult.created) {
-						metrics.paymentsCreated++;
+						metrics.paymentsCreated += 1;
 					}
 
 					// Now record to ledger with bi-temporal timestamp
@@ -1026,13 +1029,13 @@ export const backfillHistoricalPayments = internalAction({
 						);
 
 						if (ledgerResult.success) {
-							metrics.ledgerTransactionsCreated++;
+							metrics.ledgerTransactionsCreated += 1;
 						} else if (ledgerResult.error) {
 							errors.push({
 								transactionId: transaction.id,
 								error: ledgerResult.error,
 							});
-							metrics.errors++;
+							metrics.errors += 1;
 						}
 					}
 				} catch (itemError) {
@@ -1043,7 +1046,7 @@ export const backfillHistoricalPayments = internalAction({
 						transactionId: transaction.id,
 						error: errorMessage,
 					});
-					metrics.errors++;
+					metrics.errors += 1;
 				}
 			}
 

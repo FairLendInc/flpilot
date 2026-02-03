@@ -706,7 +706,11 @@ describe("getPendingTransfersForReview", () => {
 		);
 
 		expect(pendingTransfers.length).toBeGreaterThanOrEqual(2);
-		expect(pendingTransfers.every((pt) => pt.status === "pending")).toBe(true);
+		expect(
+			pendingTransfers.every(
+				(pt: { status: string; dealId: Id<"deals"> }) => pt.status === "pending"
+			)
+		).toBe(true);
 	});
 
 	test("should not return approved or rejected transfers", async () => {
@@ -732,7 +736,9 @@ describe("getPendingTransfersForReview", () => {
 			{}
 		);
 
-		const found = pendingTransfers.find((pt) => pt.dealId === dealId);
+		const found = pendingTransfers.find(
+			(pt: { status: string; dealId: Id<"deals"> }) => pt.dealId === dealId
+		);
 		expect(found).toBeUndefined();
 	});
 });

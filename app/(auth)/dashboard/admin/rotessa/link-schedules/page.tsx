@@ -100,7 +100,7 @@ export default function LinkSchedulesPage() {
 
 	// Handle linking
 	const handleLink = async () => {
-		if (!selectedSchedule || !selectedMortgage) return;
+		if (!(selectedSchedule && selectedMortgage)) return;
 
 		setIsLinking(true);
 		try {
@@ -256,10 +256,10 @@ export default function LinkSchedulesPage() {
 												)}
 											</div>
 											{schedule.customerEmail && (
-											<div className="mt-1 truncate text-muted-foreground text-xs">
-												{schedule.customerEmail}
-											</div>
-										)}
+												<div className="mt-1 truncate text-muted-foreground text-xs">
+													{schedule.customerEmail}
+												</div>
+											)}
 										</button>
 									))
 								)}
@@ -279,46 +279,49 @@ export default function LinkSchedulesPage() {
 						</CardHeader>
 						<CardContent>
 							<div className="max-h-[400px] space-y-2 overflow-y-auto">
-								{!availableMortgages ? (
+								{availableMortgages ? (
+									availableMortgages.length === 0 ? (
+										<p className="py-8 text-center text-muted-foreground text-sm">
+											No mortgages without schedules
+										</p>
+									) : (
+										availableMortgages.map((mortgage) => (
+											<button
+												className={`w-full rounded-lg border p-3 text-left transition-colors ${
+													selectedMortgage?._id === mortgage._id
+														? "border-primary bg-primary/5"
+														: "hover:bg-muted/50"
+												}`}
+												key={mortgage._id}
+												onClick={() => setSelectedMortgage(mortgage)}
+												type="button"
+											>
+												<div className="flex items-center justify-between">
+													<div className="flex items-center gap-2">
+														<Home className="h-4 w-4 text-muted-foreground" />
+														<span className="font-medium">
+															{mortgage.borrowerName}
+														</span>
+													</div>
+													<span className="font-semibold">
+														{formatCurrency(mortgage.loanAmount)}
+													</span>
+												</div>
+												<div className="mt-1 truncate text-muted-foreground text-sm">
+													{mortgage.propertyAddress}
+												</div>
+												<div className="mt-1 flex items-center gap-1 text-muted-foreground text-xs">
+													<DollarSign className="h-3 w-3" />
+													{formatCurrency(mortgage.monthlyInterestPayment)}
+													/month
+												</div>
+											</button>
+										))
+									)
+								) : (
 									<div className="flex items-center justify-center py-8">
 										<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
 									</div>
-								) : availableMortgages.length === 0 ? (
-									<p className="py-8 text-center text-muted-foreground text-sm">
-										No mortgages without schedules
-									</p>
-								) : (
-									availableMortgages.map((mortgage) => (
-										<button
-											className={`w-full rounded-lg border p-3 text-left transition-colors ${
-												selectedMortgage?._id === mortgage._id
-													? "border-primary bg-primary/5"
-													: "hover:bg-muted/50"
-											}`}
-											key={mortgage._id}
-											onClick={() => setSelectedMortgage(mortgage)}
-											type="button"
-										>
-											<div className="flex items-center justify-between">
-												<div className="flex items-center gap-2">
-													<Home className="h-4 w-4 text-muted-foreground" />
-													<span className="font-medium">
-														{mortgage.borrowerName}
-													</span>
-												</div>
-												<span className="font-semibold">
-													{formatCurrency(mortgage.loanAmount)}
-												</span>
-											</div>
-											<div className="mt-1 truncate text-muted-foreground text-sm">
-												{mortgage.propertyAddress}
-											</div>
-											<div className="mt-1 flex items-center gap-1 text-muted-foreground text-xs">
-												<DollarSign className="h-3 w-3" />
-												{formatCurrency(mortgage.monthlyInterestPayment)}/month
-											</div>
-										</button>
-									))
 								)}
 							</div>
 						</CardContent>
@@ -376,7 +379,9 @@ export default function LinkSchedulesPage() {
 
 								{/* Link button */}
 								<Button
-									disabled={!selectedSchedule || !selectedMortgage || isLinking}
+									disabled={
+										!(selectedSchedule && selectedMortgage) || isLinking
+									}
 									onClick={handleLink}
 								>
 									{isLinking ? (
