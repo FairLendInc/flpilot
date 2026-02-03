@@ -171,7 +171,7 @@ send [$asset ${Math.round(pct)}] (
 								</SelectItem>
 
 								{/* Investors */}
-								{investorList.map((investor) => (
+								{investorList.map((investor: NonNullable<typeof investors>[number]) => (
 									<SelectItem key={investor._id} value={investor._id}>
 										<div className="flex items-center gap-2">
 											<span>

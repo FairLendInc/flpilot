@@ -77,7 +77,7 @@ export default function ManagedBrokersPage() {
 		return null;
 	}
 
-	const filteredBrokers = brokers?.filter((broker) => {
+	const filteredBrokers = brokers?.filter((broker: Broker) => {
 		if (statusFilter !== "all" && broker.status !== statusFilter) return false;
 		if (searchQuery) {
 			const brandName = broker.branding?.brandName?.toLowerCase() || "";
@@ -88,11 +88,12 @@ export default function ManagedBrokersPage() {
 		return true;
 	});
 
-	const activeCount = brokers?.filter((b) => b.status === "active").length || 0;
+	const activeCount =
+		brokers?.filter((b: Broker) => b.status === "active").length || 0;
 	const suspendedCount =
-		brokers?.filter((b) => b.status === "suspended").length || 0;
+		brokers?.filter((b: Broker) => b.status === "suspended").length || 0;
 	const revokedCount =
-		brokers?.filter((b) => b.status === "revoked").length || 0;
+		brokers?.filter((b: Broker) => b.status === "revoked").length || 0;
 
 	return (
 		<>
@@ -212,7 +213,7 @@ export default function ManagedBrokersPage() {
 							</div>
 						) : (
 							<div className="space-y-4">
-								{filteredBrokers?.map((broker) => (
+								{filteredBrokers?.map((broker: Broker) => (
 									<BrokerCard broker={broker} key={broker._id} />
 								))}
 							</div>

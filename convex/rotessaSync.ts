@@ -13,7 +13,7 @@
 
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
 	internalAction,
 	internalMutation,
@@ -742,6 +742,36 @@ export const recordPaymentToLedger = internalMutation({
 	},
 });
 
+/**
+ * Mark payment as recorded in Formance ledger.
+ *
+ * Only sets ledgerTransactionId if it's not already present.
+ */
+export const markPaymentLedgerRecorded = internalMutation({
+	args: {
+		paymentId: v.id("payments"),
+		ledgerTransactionId: v.string(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const payment = await ctx.db.get(args.paymentId);
+		if (!payment) {
+			throw new Error("Payment not found");
+		}
+
+		if (payment.ledgerTransactionId) {
+			return null;
+		}
+
+		await ctx.db.patch(args.paymentId, {
+			ledgerTransactionId: args.ledgerTransactionId,
+			updatedAt: new Date().toISOString(),
+		});
+
+		return null;
+	},
+});
+
 // ============================================================================
 // CRON Handler (Task 4.3)
 // ============================================================================
@@ -1030,6 +1060,17 @@ export const backfillHistoricalPayments = internalAction({
 
 						if (ledgerResult.success) {
 							metrics.ledgerTransactionsCreated += 1;
+
+							const resolvedLedgerTransactionId =
+								ledgerResult.transactionId ?? `backfill:${reference}`;
+
+							await ctx.runMutation(
+								internal.rotessaSync.markPaymentLedgerRecorded,
+								{
+									paymentId: processResult.paymentId as Id<"payments">,
+									ledgerTransactionId: resolvedLedgerTransactionId,
+								}
+							);
 						} else if (ledgerResult.error) {
 							errors.push({
 								transactionId: transaction.id,

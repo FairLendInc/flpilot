@@ -82,7 +82,7 @@ export default function OwnershipReviewPage() {
 		).length ?? 0;
 	const reviewedTransfers: ReviewedExceptionalTransfer[] =
 		pendingTransfers.filter(
-			(transfer): transfer is ReviewedExceptionalTransfer =>
+			(transfer: PendingTransfer): transfer is ReviewedExceptionalTransfer =>
 				typeof transfer.reviewedAt === "number"
 		);
 	const avgReviewTimeMs =

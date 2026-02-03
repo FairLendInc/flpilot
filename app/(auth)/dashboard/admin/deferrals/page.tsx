@@ -48,21 +48,25 @@ export default function AdminDeferralsPage() {
 	}
 
 	// Transform requests to expected format
-	const requests: DeferralRequest[] = (pendingRequests ?? []).map((item) => ({
-		id: item.request._id,
-		borrowerId: item.request.borrowerId,
-		borrowerName: item.borrowerName,
-		borrowerEmail: item.borrowerEmail,
-		mortgageId: item.request.mortgageId,
-		propertyAddress: item.propertyAddress,
-		requestType: item.request.requestType,
-		requestedDeferralDate: item.request.requestedDeferralDate,
-		originalPaymentDate: item.request.requestedDeferralDate, // Using deferral date as proxy
-		originalPaymentAmount: (item.loanAmount * 0.08) / 12, // Approximate monthly interest
-		reason: item.request.reason ?? "",
-		status: item.request.status,
-		createdAt: item.request.createdAt,
-	}));
+	const requests: DeferralRequest[] = (pendingRequests ?? []).map(
+		(item: NonNullable<typeof pendingRequests>[number]) => ({
+			id: item.request._id,
+			borrowerId: item.request.borrowerId,
+			borrowerName: item.borrowerName,
+			borrowerEmail: item.borrowerEmail,
+			mortgageId: item.request.mortgageId,
+			propertyAddress: item.propertyAddress,
+			requestType: item.request.requestType,
+			requestedDeferralDate: item.request.requestedDeferralDate,
+			originalPaymentDate:
+				item.originalPaymentDate ?? item.request.requestedDeferralDate,
+			originalPaymentAmount:
+				item.originalPaymentAmount ?? (item.loanAmount * 0.08) / 12,
+			reason: item.request.reason ?? "",
+			status: item.request.status,
+			createdAt: item.request.createdAt,
+		})
+	);
 
 	const handleApprove = async (requestId: string) => {
 		try {

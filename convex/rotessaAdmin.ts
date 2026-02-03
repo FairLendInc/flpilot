@@ -602,7 +602,7 @@ export const syncRotessaCustomerToConvex = action({
 				);
 
 				logger.info("Created borrower from Rotessa", {
-					borrowerId: borrowerId,
+					borrowerId,
 					rotessaCustomerId: customer.id,
 				});
 			}
@@ -640,8 +640,9 @@ export const syncRotessaCustomerToConvex = action({
 							processDate: transaction.process_date,
 							settlementDate: undefined,
 							paymentMetadata: transaction,
-							transactionSchedule:
-								scheduleMap.get(transaction.transaction_schedule_id),
+							transactionSchedule: scheduleMap.get(
+								transaction.transaction_schedule_id
+							),
 						}
 					);
 
@@ -652,7 +653,7 @@ export const syncRotessaCustomerToConvex = action({
 					}
 
 					if (transaction.status === "Approved" && result.paymentId) {
-					// ToDo: Check to see if this function is correctly using bi-temporality and backdating for old transactions. g/
+						// ToDo: Check to see if this function is correctly using bi-temporality and backdating for old transactions. g/
 						await ctx.runMutation(internal.rotessaSync.recordPaymentToLedger, {
 							paymentId: result.paymentId,
 							amount: transaction.amount,
@@ -750,12 +751,54 @@ export const getBorrowerByRotessaCustomerId = action({
 		),
 		error: v.optional(v.string()),
 	}),
-	handler: async (ctx, args) => {
+	handler: async (
+		ctx,
+		args
+	): Promise<{
+		success: boolean;
+		borrower?: {
+			_id: string;
+			name: string;
+			email: string;
+			phone?: string;
+			userId?: string;
+			status?: string;
+		};
+		user?: {
+			_id: string;
+			idp_id: string;
+			email: string;
+			first_name?: string;
+			last_name?: string;
+		};
+		workosMemberships?: Array<{
+			organizationId: string;
+			organizationName: string;
+			organizationExternalId?: string;
+			roles: Array<{ slug: string; name: string }>;
+			primaryRoleSlug?: string;
+		}>;
+		brokerClient?: {
+			clientBrokerId: string;
+			brokerId: string;
+			brokerName: string;
+			brokerStatus?: string;
+			workosOrgId?: string;
+			onboardingStatus?: string;
+		};
+		mortgages?: Array<{
+			id: string;
+			propertyAddress: string;
+			status: string;
+			rotessaScheduleId?: number;
+		}>;
+		error?: string;
+	}> => {
 		try {
-			const borrower = (await ctx.runQuery(
+			const borrower: Doc<"borrowers"> | null = await ctx.runQuery(
 				internal.borrowers.getBorrowerByRotessaIdInternal,
 				{ rotessaCustomerId: String(args.rotessaCustomerId) }
-			)) as any;
+			);
 
 			if (!borrower) {
 				return {
@@ -764,10 +807,47 @@ export const getBorrowerByRotessaCustomerId = action({
 				};
 			}
 
-			const details = (await ctx.runQuery(
+			const details: {
+				borrower: {
+					_id: Id<"borrowers">;
+					name: string;
+					email: string;
+					phone?: string;
+					userId?: Id<"users">;
+					status?: string;
+				};
+				user?: {
+					_id: string;
+					idp_id: string;
+					email: string;
+					first_name?: string;
+					last_name?: string;
+				};
+				workosMemberships?: Array<{
+					organizationId: string;
+					organizationName: string;
+					organizationExternalId?: string;
+					roles: Array<{ slug: string; name: string }>;
+					primaryRoleSlug?: string;
+				}>;
+				brokerClient?: {
+					clientBrokerId: string;
+					brokerId: string;
+					brokerName: string;
+					brokerStatus?: string;
+					workosOrgId?: string;
+					onboardingStatus?: string;
+				};
+				mortgages: Array<{
+					id: string;
+					propertyAddress: string;
+					status: string;
+					rotessaScheduleId?: number;
+				}>;
+			} | null = await ctx.runQuery(
 				internal.rotessaAdminQueries.getBorrowerPlatformDetailsInternal,
 				{ borrowerId: borrower._id }
-			)) as any;
+			);
 
 			if (!details) {
 				return {
@@ -801,7 +881,15 @@ export const assignBorrowerBroker = action({
 		reassigned: v.optional(v.boolean()),
 		error: v.optional(v.string()),
 	}),
-	handler: async (ctx, args) => {
+	handler: async (
+		ctx,
+		args
+	): Promise<{
+		success: boolean;
+		clientBrokerId?: string;
+		reassigned?: boolean;
+		error?: string;
+	}> => {
 		try {
 			logger.info("[assignBorrowerBroker] start", {
 				borrowerUserId: args.borrowerUserId,
@@ -809,12 +897,12 @@ export const assignBorrowerBroker = action({
 				workosOrgId: args.workosOrgId,
 			});
 
-			const existing = (await ctx.runQuery(
+			const existing: Array<Doc<"broker_clients">> = await ctx.runQuery(
 				internal.rotessaAdminQueries.getBrokerClientsByClientIdInternal,
 				{ clientId: args.borrowerUserId }
-			)) as any;
+			);
 
-			const current = existing[0] as any;
+			const current: Doc<"broker_clients"> | undefined = existing[0];
 
 			if (current) {
 				logger.info("[assignBorrowerBroker] reassign", {
@@ -832,9 +920,8 @@ export const assignBorrowerBroker = action({
 				};
 			}
 
-			const createResult = (await ctx.runMutation(
-				api.brokers.clients.createClientBrokerRecord,
-				{
+			const createResult: { clientBrokerId: Id<"broker_clients"> } =
+				await ctx.runMutation(api.brokers.clients.createClientBrokerRecord, {
 					brokerId: args.brokerId,
 					clientId: args.borrowerUserId,
 					workosOrgId: args.workosOrgId,
@@ -846,8 +933,7 @@ export const assignBorrowerBroker = action({
 							riskProfile: "balanced",
 						},
 					},
-				}
-			)) as any;
+				});
 
 			return {
 				success: true,
@@ -981,11 +1067,20 @@ export const provisionBorrowerUser = action({
 						emailVerified: false,
 					});
 					userId = newUser.id;
-				} catch (createError: any) {
+				} catch (createError: unknown) {
 					// Check if error is because user already exists
+					const errorMessage =
+						createError instanceof Error ? createError.message : "";
+					const errorCode =
+						typeof createError === "object" &&
+						createError !== null &&
+						"code" in createError
+							? (createError as { code?: string }).code
+							: undefined;
+
 					if (
-						createError?.message?.includes("already exists") ||
-						createError?.code === "user_exists"
+						errorMessage.includes("already exists") ||
+						errorCode === "user_exists"
 					) {
 						// Try to find the existing user again
 						const retryUsers = await workos.userManagement.listUsers({
@@ -1031,7 +1126,7 @@ export const provisionBorrowerUser = action({
 			});
 
 			// Verify the link succeeded by checking the borrower
-			const updatedBorrower: any = await ctx.runQuery(
+			const updatedBorrower = await ctx.runQuery(
 				internal.borrowers.getBorrowerByIdInternal,
 				{ borrowerId: args.borrowerId }
 			);
@@ -1344,7 +1439,8 @@ export const getRotessaDashboardStats = action({
 			// Get recent transactions (last 30 days)
 			const thirtyDaysAgo = new Date();
 			thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-			const startDate = thirtyDaysAgo.toISOString().split("T")[0]!;
+			const dateParts = thirtyDaysAgo.toISOString().split("T");
+			const startDate = dateParts[0] ?? "";
 
 			const recentTransactions = await client.transactionReport.list({
 				start_date: startDate,

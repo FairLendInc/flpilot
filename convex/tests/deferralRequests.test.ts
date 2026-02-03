@@ -113,6 +113,38 @@ async function createTestMortgage(
 }
 
 /**
+ * Create a test payment for a mortgage
+ */
+async function createTestPayment(
+	t: ReturnType<typeof createTest>,
+	options: {
+		mortgageId: Id<"mortgages">;
+		borrowerId: Id<"borrowers">;
+		amount: number;
+		processDate: string;
+		status: "pending" | "processing" | "cleared" | "failed" | "nsf";
+	}
+) {
+	return await t.run(
+		async (ctx) =>
+			await ctx.db.insert("payments", {
+				mortgageId: options.mortgageId,
+				borrowerId: options.borrowerId,
+				amount: options.amount,
+				currency: "CAD",
+				paymentType: "interest_only",
+				processDate: options.processDate,
+				dueDate: options.processDate,
+				status: options.status,
+				paymentId: `payment_${Date.now()}_${Math.random()}`,
+				customerId: `customer_${Date.now()}_${Math.random()}`,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+			})
+	);
+}
+
+/**
  * Create a deferral request directly in DB
  */
 async function createDeferralRequest(
@@ -527,5 +559,82 @@ describe("getMyDeferralRequests", () => {
 
 		expect(pendingRequests.length).toBe(1);
 		expect(pendingRequests[0]?.status).toBe("pending");
+	});
+});
+
+// ============================================================================
+// getPendingDeferralRequests Tests
+// ============================================================================
+
+describe("getPendingDeferralRequests", () => {
+	test("should return original payment date and amount from pending payments", async () => {
+		const t = createTest();
+
+		const userId = await createTestUser(t, "pending_deferrals_user");
+		const borrowerId = await createTestBorrower(t, userId);
+		const mortgageId = await createTestMortgage(t, borrowerId);
+
+		const requestedDate = getFutureDateString(20);
+		const requestId = await createDeferralRequest(t, borrowerId, mortgageId, {
+			status: "pending",
+			requestedDeferralDate: requestedDate,
+		});
+
+		const pendingPaymentDate1 = getFutureDateString(7);
+		const pendingPaymentDate2 = getFutureDateString(12);
+
+		await createTestPayment(t, {
+			mortgageId,
+			borrowerId,
+			amount: 123.45,
+			processDate: pendingPaymentDate1,
+			status: "pending",
+		});
+
+		await createTestPayment(t, {
+			mortgageId,
+			borrowerId,
+			amount: 200,
+			processDate: pendingPaymentDate2,
+			status: "pending",
+		});
+
+		const adminUserId = await createTestUser(t, "admin_pending_deferrals");
+		const adminIdpId = await getUserIdpId(t, adminUserId);
+
+		const requests = await t
+			.withIdentity({ subject: adminIdpId, role: "admin" })
+			.query(api.deferralRequests.getPendingDeferralRequests, {});
+
+		const matched = requests.find((item) => item.request._id === requestId);
+		expect(matched).toBeDefined();
+		expect(matched?.originalPaymentDate).toBe(pendingPaymentDate1);
+		expect(matched?.originalPaymentAmount).toBe(123.45);
+	});
+
+	test("should fall back to requested date when no payments exist", async () => {
+		const t = createTest();
+
+		const userId = await createTestUser(t, "pending_deferrals_no_payment");
+		const borrowerId = await createTestBorrower(t, userId);
+		const mortgageId = await createTestMortgage(t, borrowerId);
+
+		const requestedDate = getFutureDateString(10);
+		const requestId = await createDeferralRequest(t, borrowerId, mortgageId, {
+			status: "pending",
+			requestedDeferralDate: requestedDate,
+		});
+
+		const adminUserId = await createTestUser(t, "admin_pending_no_payment");
+		const adminIdpId = await getUserIdpId(t, adminUserId);
+
+		const requests = await t
+			.withIdentity({ subject: adminIdpId, role: "admin" })
+			.query(api.deferralRequests.getPendingDeferralRequests, {});
+
+		const matched = requests.find((item) => item.request._id === requestId);
+		expect(matched).toBeDefined();
+		expect(matched?.originalPaymentDate).toBe(requestedDate);
+		expect(matched?.originalPaymentAmount).toBeCloseTo((500000 * 0.08) / 12, 5);
 	});
 });

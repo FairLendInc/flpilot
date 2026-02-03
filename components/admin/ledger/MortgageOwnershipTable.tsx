@@ -45,13 +45,15 @@ export function MortgageOwnershipTable({ className }: { className?: string }) {
 	}, [fetchOwnership]);
 
 	// Filter mortgages by search
-	const filteredMortgages = (mortgages || []).filter((mortgage) => {
-		const addressStr = `${mortgage.address.street}, ${mortgage.address.city}`;
-		return (
-			addressStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			mortgage._id.toLowerCase().includes(searchQuery.toLowerCase())
-		);
-	});
+	const filteredMortgages = (mortgages || []).filter(
+		(mortgage: NonNullable<typeof mortgages>[number]) => {
+			const addressStr = `${mortgage.address.street}, ${mortgage.address.city}`;
+			return (
+				addressStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				mortgage._id.toLowerCase().includes(searchQuery.toLowerCase())
+			);
+		}
+	);
 
 	// Calculate stats
 	const totalMortgages = mortgages?.length || 0;
@@ -115,7 +117,7 @@ export function MortgageOwnershipTable({ className }: { className?: string }) {
 				/>
 			) : (
 				<div className="flex flex-col gap-3">
-					{filteredMortgages.map((mortgage) => {
+					{filteredMortgages.map((mortgage: NonNullable<typeof mortgages>[number]) => {
 						// Ownership data is keyed by the hash of the mortgage ID (not the full ID)
 						// The asset is M{hash}, so the key is {hash}
 						const assetName = getMortgageShareAsset(mortgage._id);
