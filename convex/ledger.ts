@@ -1453,6 +1453,213 @@ export const provisionInvestorAccounts = action({
 	},
 });
 
+// ============================================================================
+// Payment Collection (Borrower → Mortgage Trust)
+// ============================================================================
+
+/**
+ * Numscript template for payment collection
+ *
+ * Two-step flow:
+ * 1. @world → borrower:{rotessaCustomerId}:rotessa (Payment ingress from Rotessa)
+ * 2. borrower:{rotessaCustomerId}:rotessa → mortgage:{mortgageId}:trust (Clear to trust)
+ *
+ * Amount is in cents (CAD/100) to match Formance integer requirements.
+ */
+export const PAYMENT_COLLECTION_NUMSCRIPT = `
+vars {
+  monetary $amount
+  account $borrower_account
+  account $mortgage_trust
+}
+
+// Step 1: Payment ingress from Rotessa (infinite source)
+send $amount (
+  source = @world
+  destination = $borrower_account
+)
+
+// Step 2: Clear from borrower to mortgage trust
+send $amount (
+  source = $borrower_account
+  destination = $mortgage_trust
+)
+`.trim();
+
+/**
+ * Account path builders for payment collection
+ */
+const PAYMENT_ACCOUNTS = {
+	/** Borrower's Rotessa clearing account */
+	borrowerRotessa: (rotessaCustomerId: string) =>
+		`borrower:${rotessaCustomerId}:rotessa`,
+	/** Mortgage trust account for collected funds */
+	mortgageTrust: (mortgageId: string) => `mortgage:${mortgageId}:trust`,
+} as const;
+
+/**
+ * Record a payment collection in the Formance Ledger
+ *
+ * Called when a Rotessa payment is approved/cleared. Records the two-step flow:
+ * 1. Payment ingress: @world → borrower:{rotessaCustomerId}:rotessa
+ * 2. Clear to trust: borrower:... → mortgage:{mortgageId}:trust
+ *
+ * CRITICAL: Uses idempotency reference to prevent duplicate recordings.
+ * Reference format: "payment:{paymentId}:{mortgageId}"
+ *
+ * @param paymentId - Convex payment ID
+ * @param mortgageId - Convex mortgage ID
+ * @param rotessaCustomerId - Rotessa customer ID (for account path)
+ * @param amountCents - Payment amount in cents (integer)
+ * @param reference - Idempotency key (required)
+ * @param effectiveTimestamp - Optional ISO 8601 timestamp for bi-temporal backdating
+ */
+export const recordPaymentCollection = internalAction({
+	args: {
+		paymentId: v.string(),
+		mortgageId: v.string(),
+		rotessaCustomerId: v.string(),
+		amountCents: v.number(),
+		reference: v.string(),
+		/** Optional ISO 8601 timestamp for bi-temporal backdating (e.g., "2025-06-15T00:00:00Z") */
+		effectiveTimestamp: v.optional(v.string()),
+	},
+	returns: v.object({
+		success: v.boolean(),
+		transactionId: v.optional(v.string()),
+		error: v.optional(v.string()),
+	}),
+	handler: async (_ctx, args) => {
+		const {
+			paymentId,
+			mortgageId,
+			rotessaCustomerId,
+			amountCents,
+			reference,
+			effectiveTimestamp,
+		} = args;
+
+		// Build account paths
+		const borrowerAccount = PAYMENT_ACCOUNTS.borrowerRotessa(rotessaCustomerId);
+		const mortgageTrust = PAYMENT_ACCOUNTS.mortgageTrust(mortgageId);
+
+		try {
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
+
+			// Get auth token
+			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: new URLSearchParams({
+					grant_type: "client_credentials",
+					client_id: clientID,
+					client_secret: clientSecret,
+				}).toString(),
+			});
+
+			if (!tokenResponse.ok) {
+				throw new Error(`Failed to authenticate: ${tokenResponse.statusText}`);
+			}
+
+			const { access_token } = await tokenResponse.json();
+
+			// Build request body
+			const body = {
+				script: {
+					plain: PAYMENT_COLLECTION_NUMSCRIPT,
+					vars: {
+						amount: `CAD/100 ${amountCents}`,
+						borrower_account: borrowerAccount,
+						mortgage_trust: mortgageTrust,
+					},
+				},
+				reference,
+				metadata: {
+					type: "payment_collection",
+					paymentId,
+					mortgageId,
+					rotessaCustomerId,
+					amountCents: amountCents.toString(),
+				},
+				// Include timestamp for bi-temporal backdating when provided
+				...(effectiveTimestamp && { timestamp: effectiveTimestamp }),
+			};
+
+			const apiUrl = `${serverURL}/api/ledger/v2/${DEFAULT_LEDGER}/transactions`;
+
+			logger.info("recordPaymentCollection: Making API request", {
+				apiUrl,
+				reference,
+				paymentId,
+				mortgageId,
+				amountCents,
+				...(effectiveTimestamp && { effectiveTimestamp }),
+			});
+
+			const apiResponse = await fetch(apiUrl, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${access_token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(body),
+			});
+
+			const text = await apiResponse.text();
+
+			if (apiResponse.ok) {
+				const data = JSON.parse(text);
+				const transactionId = data?.data?.id?.toString();
+
+				logger.info("recordPaymentCollection: Transaction successful", {
+					paymentId,
+					mortgageId,
+					transactionId,
+					reference,
+				});
+
+				return { success: true, transactionId };
+			}
+
+			// Handle idempotency conflict (duplicate reference)
+			if (apiResponse.status === 409) {
+				logger.warn(
+					"recordPaymentCollection: Duplicate reference (idempotent)",
+					{
+						reference,
+						paymentId,
+					}
+				);
+				return { success: true };
+			}
+
+			logger.error("recordPaymentCollection: Ledger API error", {
+				paymentId,
+				mortgageId,
+				status: apiResponse.status,
+				error: text,
+			});
+
+			return {
+				success: false,
+				error: `Ledger error (${apiResponse.status}): ${text}`,
+			};
+		} catch (error) {
+			logger.error("recordPaymentCollection: Exception", {
+				paymentId,
+				mortgageId,
+				error,
+			});
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Unknown error",
+			};
+		}
+	},
+});
+
 /**
  * Get ownership balances for all mortgages from the ledger.
  *

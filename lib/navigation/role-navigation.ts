@@ -1,19 +1,23 @@
 import {
 	Briefcase,
 	Building2,
+	Calendar,
 	Database,
 	Edit3,
 	FileText,
 	Home,
 	LayoutDashboard,
+	Link2,
 	Lock,
 	type LucideIcon,
 	PieChart,
+	RefreshCw,
 	Settings,
 	Shield,
 	TrendingUp,
 	UserPlus,
 	Users,
+	Wallet,
 } from "lucide-react";
 
 export type NavItem = {
@@ -64,6 +68,43 @@ export const ROLE_NAVIGATION: Record<UserRole, NavItem[]> = {
 			title: "Lawyers",
 			url: "/dashboard/admin/lawyers",
 			icon: Shield,
+		},
+		{
+			title: "Borrowers",
+			url: "/dashboard/admin/borrowers",
+			icon: Wallet,
+			items: [
+				{
+					title: "All Borrowers",
+					url: "/dashboard/admin/borrowers",
+					icon: Users,
+				},
+				{
+					title: "Approval Queue",
+					url: "/dashboard/admin/borrowers/queue",
+					icon: UserPlus,
+				},
+				{
+					title: "Deferrals",
+					url: "/dashboard/admin/deferrals",
+					icon: Calendar,
+				},
+			],
+		},
+		{
+			title: "Rotessa Customers",
+			url: "/dashboard/admin/rotessa/customers",
+			icon: Users,
+		},
+		{
+			title: "Rotessa Sync",
+			url: "/dashboard/admin/rotessa/sync",
+			icon: RefreshCw,
+		},
+		{
+			title: "Link Schedules",
+			url: "/dashboard/admin/rotessa/link-schedules",
+			icon: Link2,
 		},
 		{
 			title: "Listings",
