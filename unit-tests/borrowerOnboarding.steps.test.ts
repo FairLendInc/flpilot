@@ -283,7 +283,9 @@ describe("borrowerKycAmlStep", () => {
 	});
 
 	test("should validate requires_review status as invalid", async () => {
-		const result = await borrowerKycAmlStep.validate({ status: "requires_review" });
+		const result = await borrowerKycAmlStep.validate({
+			status: "requires_review",
+		});
 		expect(result.valid).toBe(false);
 		expect(result.errors?.status).toContain("manual review");
 	});

@@ -494,6 +494,57 @@ describe("processTransaction", () => {
 });
 
 // ============================================================================
+// Ledger Backfill Tests
+// ============================================================================
+
+describe("markPaymentLedgerRecorded", () => {
+	test("should set ledgerTransactionId once and not overwrite", async () => {
+		const t = createTest();
+
+		const borrowerId = await createTestBorrower(t, "ledger_test_customer");
+		const mortgageId = await createTestMortgage(t, borrowerId, 12345);
+
+		const paymentId = await t.run(
+			async (ctx) =>
+				await ctx.db.insert("payments", {
+					mortgageId,
+					borrowerId,
+					amount: 1000,
+					processDate: "2024-01-15",
+					status: "cleared",
+					paymentId: "ledger_payment_1",
+					customerId: "ledger_customer_1",
+					currency: "CAD",
+					paymentType: "interest_only",
+					dueDate: "2024-01-15",
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString(),
+				})
+		);
+
+		await t.run(async (ctx) =>
+			ctx.runMutation(internal.rotessaSync.markPaymentLedgerRecorded, {
+				paymentId,
+				ledgerTransactionId: "tx_123",
+			})
+		);
+
+		const updatedOnce = await t.run(async (ctx) => ctx.db.get(paymentId));
+		expect(updatedOnce?.ledgerTransactionId).toBe("tx_123");
+
+		await t.run(async (ctx) =>
+			ctx.runMutation(internal.rotessaSync.markPaymentLedgerRecorded, {
+				paymentId,
+				ledgerTransactionId: "tx_456",
+			})
+		);
+
+		const updatedTwice = await t.run(async (ctx) => ctx.db.get(paymentId));
+		expect(updatedTwice?.ledgerTransactionId).toBe("tx_123");
+	});
+});
+
+// ============================================================================
 // Admin Query Tests
 // ============================================================================
 

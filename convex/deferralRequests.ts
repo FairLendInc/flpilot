@@ -338,6 +338,8 @@ export const getPendingDeferralRequests = adminQuery({
 			borrowerEmail: v.string(),
 			propertyAddress: v.string(),
 			loanAmount: v.number(),
+			originalPaymentDate: v.string(),
+			originalPaymentAmount: v.number(),
 		})
 	),
 	handler: async (ctx: AuthorizedQueryCtx) => {
@@ -346,10 +348,55 @@ export const getPendingDeferralRequests = adminQuery({
 			.withIndex("by_status", (q) => q.eq("status", "pending"))
 			.collect();
 
+		const today = new Date().toISOString().split("T")[0] ?? "";
+
 		const enrichedRequests = await Promise.all(
 			pendingRequests.map(async (request) => {
 				const borrower = await ctx.db.get(request.borrowerId);
 				const mortgage = await ctx.db.get(request.mortgageId);
+				const payments = await ctx.db
+					.query("payments")
+					.withIndex("by_mortgage", (q) =>
+						q.eq("mortgageId", request.mortgageId)
+					)
+					.collect();
+
+				const pendingUpcomingPayments = payments
+					.filter(
+						(payment) =>
+							payment.status === "pending" && payment.processDate >= today
+					)
+					.sort((a, b) => a.processDate.localeCompare(b.processDate));
+
+				let selectedPayment = pendingUpcomingPayments[0];
+
+				if (!selectedPayment && payments.length > 0) {
+					const requestedTime = new Date(
+						request.requestedDeferralDate
+					).getTime();
+					selectedPayment = payments.reduce(
+						(closest, payment) => {
+							const diff = Math.abs(
+								new Date(payment.processDate).getTime() - requestedTime
+							);
+							if (diff < closest.diff) {
+								return { payment, diff };
+							}
+							return closest;
+						},
+						{
+							payment: payments[0],
+							diff: Math.abs(
+								new Date(payments[0].processDate).getTime() - requestedTime
+							),
+						}
+					).payment;
+				}
+
+				const originalPaymentDate =
+					selectedPayment?.processDate ?? request.requestedDeferralDate;
+				const originalPaymentAmount =
+					selectedPayment?.amount ?? ((mortgage?.loanAmount ?? 0) * 0.08) / 12;
 
 				return {
 					request,
@@ -359,6 +406,8 @@ export const getPendingDeferralRequests = adminQuery({
 						? `${mortgage.address.street}, ${mortgage.address.city}`
 						: "Unknown",
 					loanAmount: mortgage?.loanAmount ?? 0,
+					originalPaymentDate,
+					originalPaymentAmount,
 				};
 			})
 		);

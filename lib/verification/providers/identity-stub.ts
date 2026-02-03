@@ -28,9 +28,8 @@ class IdentityStubProvider
 	readonly name = "Identity Stub (Development)";
 	readonly enabled = true;
 	readonly type = "identity" as const;
-
-	private config: IdentityVerificationConfig | null = null;
 	private readonly simulateDelay = 500; // ms
+	private config!: IdentityVerificationConfig;
 
 	async initialize(config: IdentityVerificationConfig): Promise<void> {
 		this.config = config;

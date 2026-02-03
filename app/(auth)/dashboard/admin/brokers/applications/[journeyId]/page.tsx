@@ -496,32 +496,43 @@ export default function BrokerApplicationDetailPage() {
 								{brokerData?.representatives &&
 								brokerData.representatives.length > 0 ? (
 									<div className="space-y-4">
-										{brokerData.representatives.map((rep, index) => (
-											<div
-												className="flex items-start gap-4 rounded-lg border p-4"
-												key={`${rep.email}-${index}`}
-											>
+										{brokerData.representatives.map(
+											(
+												rep: {
+													firstName: string;
+													lastName: string;
+													role: string;
+													email: string;
+													hasAuthority?: boolean;
+												},
+												index: number
+											) => (
+												<div
+													className="flex items-start gap-4 rounded-lg border p-4"
+													key={`${rep.email}-${index}`}
+												>
 												<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
 													<User className="h-5 w-5 text-primary" />
 												</div>
-												<div className="flex-1">
-													<p className="font-medium">
-														{rep.firstName} {rep.lastName}
-													</p>
-													<p className="text-muted-foreground text-sm">
-														{rep.role}
-													</p>
-													<p className="text-muted-foreground text-sm">
-														{rep.email}
-													</p>
-													{rep.hasAuthority && (
-														<Badge className="mt-2" variant="outline">
-															Has Authority
-														</Badge>
-													)}
+													<div className="flex-1">
+														<p className="font-medium">
+															{rep.firstName} {rep.lastName}
+														</p>
+														<p className="text-muted-foreground text-sm">
+															{rep.role}
+														</p>
+														<p className="text-muted-foreground text-sm">
+															{rep.email}
+														</p>
+														{rep.hasAuthority && (
+															<Badge className="mt-2" variant="outline">
+																Has Authority
+															</Badge>
+														)}
+													</div>
 												</div>
-											</div>
-										))}
+											)
+										)}
 									</div>
 								) : (
 									<p className="text-muted-foreground">
@@ -540,24 +551,34 @@ export default function BrokerApplicationDetailPage() {
 							<CardContent>
 								{brokerData?.documents && brokerData.documents.length > 0 ? (
 									<div className="space-y-4">
-										{brokerData.documents.map((doc, index) => (
-											<div
-												className="flex items-center gap-4 rounded-lg border p-4"
-												key={`${doc.storageId}-${index}`}
-											>
-												<FileText className="h-8 w-8 text-primary" />
-												<div className="flex-1">
-													<p className="font-medium">{doc.label}</p>
-													<p className="text-muted-foreground text-sm">
-														Type: {doc.type}
-													</p>
-													<p className="text-muted-foreground text-sm">
-														Uploaded:{" "}
-														{new Date(doc.uploadedAt).toLocaleDateString()}
-													</p>
+										{brokerData.documents.map(
+											(
+												doc: {
+													storageId: string;
+													label: string;
+													type: string;
+													uploadedAt: string;
+												},
+												index: number
+											) => (
+												<div
+													className="flex items-center gap-4 rounded-lg border p-4"
+													key={`${doc.storageId}-${index}`}
+												>
+													<FileText className="h-8 w-8 text-primary" />
+													<div className="flex-1">
+														<p className="font-medium">{doc.label}</p>
+														<p className="text-muted-foreground text-sm">
+															Type: {doc.type}
+														</p>
+														<p className="text-muted-foreground text-sm">
+															Uploaded:{" "}
+															{new Date(doc.uploadedAt).toLocaleDateString()}
+														</p>
+													</div>
 												</div>
-											</div>
-										))}
+											)
+										)}
 									</div>
 								) : (
 									<p className="text-muted-foreground">
@@ -577,33 +598,43 @@ export default function BrokerApplicationDetailPage() {
 								{brokerData?.adminRequestTimeline &&
 								brokerData.adminRequestTimeline.length > 0 ? (
 									<div className="space-y-4">
-										{brokerData.adminRequestTimeline.map((entry) => (
-											<div
-												className="flex gap-4 rounded-lg border p-4"
-												key={entry.id}
-											>
-												<Calendar className="h-5 w-5 text-muted-foreground" />
-												<div className="flex-1">
-													<div className="mb-2 flex items-center gap-2">
-														<Badge
-															variant={entry.resolved ? "default" : "secondary"}
-														>
-															{entry.resolved ? "Resolved" : "Pending"}
-														</Badge>
-														<span className="text-muted-foreground text-sm">
-															{new Date(entry.requestedAt).toLocaleDateString()}
-														</span>
-													</div>
-													<p className="text-sm">{entry.message}</p>
-													{entry.response && (
-														<div className="mt-2 rounded bg-muted p-2">
-															<p className="font-medium text-sm">Response:</p>
-															<p className="text-sm">{entry.response}</p>
+										{brokerData.adminRequestTimeline.map(
+											(entry: {
+												id: string;
+												resolved: boolean;
+												requestedAt: string;
+												message: string;
+												response?: string;
+											}) => (
+												<div
+													className="flex gap-4 rounded-lg border p-4"
+													key={entry.id}
+												>
+													<Calendar className="h-5 w-5 text-muted-foreground" />
+													<div className="flex-1">
+														<div className="mb-2 flex items-center gap-2">
+															<Badge
+																variant={
+																	entry.resolved ? "default" : "secondary"
+																}
+															>
+																{entry.resolved ? "Resolved" : "Pending"}
+															</Badge>
+															<span className="text-muted-foreground text-sm">
+																{new Date(entry.requestedAt).toLocaleDateString()}
+															</span>
 														</div>
-													)}
+														<p className="text-sm">{entry.message}</p>
+														{entry.response && (
+															<div className="mt-2 rounded bg-muted p-2">
+																<p className="font-medium text-sm">Response:</p>
+																<p className="text-sm">{entry.response}</p>
+															</div>
+														)}
+													</div>
 												</div>
-											</div>
-										))}
+											)
+										)}
 									</div>
 								) : (
 									<p className="text-muted-foreground">No timeline entries.</p>

@@ -61,23 +61,25 @@ export default function AdminRotessaSyncPage() {
 						: "healthy";
 
 	// Transform sync logs to expected format
-	const syncLogs: SyncLog[] = (syncLogsResult ?? []).map((log) => ({
-		id: log._id,
-		syncType: log.syncType,
-		status: log.status,
-		startedAt: log.startedAt,
-		completedAt: log.completedAt,
-		triggeredBy: log.triggeredBy,
-		metrics: log.metrics
-			? {
-					transactionsProcessed: log.metrics.transactionsProcessed ?? 0,
-					paymentsCreated: log.metrics.paymentsCreated ?? 0,
-					paymentsUpdated: log.metrics.paymentsUpdated ?? 0,
-					ledgerTransactionsCreated: log.metrics.ledgerTransactionsCreated ?? 0,
-					errors: log.metrics.errors ?? 0,
-				}
-			: undefined,
-	}));
+	const syncLogs: SyncLog[] = (syncLogsResult ?? []).map(
+		(log: NonNullable<typeof syncLogsResult>[number]) => ({
+			id: log._id,
+			syncType: log.syncType,
+			status: log.status,
+			startedAt: log.startedAt,
+			completedAt: log.completedAt,
+			triggeredBy: log.triggeredBy,
+			metrics: log.metrics
+				? {
+						transactionsProcessed: log.metrics.transactionsProcessed ?? 0,
+						paymentsCreated: log.metrics.paymentsCreated ?? 0,
+						paymentsUpdated: log.metrics.paymentsUpdated ?? 0,
+						ledgerTransactionsCreated: log.metrics.ledgerTransactionsCreated ?? 0,
+						errors: log.metrics.errors ?? 0,
+					}
+				: undefined,
+		})
+	);
 
 	const handleManualSync = async (params: {
 		scope: "all" | "borrower" | "mortgage";

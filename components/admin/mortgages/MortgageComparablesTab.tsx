@@ -614,7 +614,7 @@ export function MortgageComparablesTab({
 					</div>
 				) : (
 					<div className="space-y-3">
-						{comparables.map((comp) => (
+						{comparables.map((comp: NonNullable<typeof comparables>[number]) => (
 							<ComparableCard
 								comp={comp}
 								isUploadingImage={

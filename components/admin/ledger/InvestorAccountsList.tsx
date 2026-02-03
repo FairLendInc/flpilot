@@ -82,22 +82,26 @@ export function InvestorAccountsList({ className }: { className?: string }) {
 	}
 
 	// Filter users by search
-	const filteredUsers = (users || []).filter((user) => {
-		const searchLower = searchQuery.toLowerCase();
-		return (
-			user.email.toLowerCase().includes(searchLower) ||
-			user.first_name?.toLowerCase().includes(searchLower) ||
-			user.last_name?.toLowerCase().includes(searchLower) ||
-			user._id.toLowerCase().includes(searchLower)
-		);
-	});
+	const filteredUsers = (users || []).filter(
+		(user: NonNullable<typeof users>[number]) => {
+			const searchLower = searchQuery.toLowerCase();
+			return (
+				user.email.toLowerCase().includes(searchLower) ||
+				user.first_name?.toLowerCase().includes(searchLower) ||
+				user.last_name?.toLowerCase().includes(searchLower) ||
+				user._id.toLowerCase().includes(searchLower)
+			);
+		}
+	);
 
 	// Calculate stats
 	const totalUsers = users?.length || 0;
-	const provisionedCount = filteredUsers.filter((user) => {
-		const inventoryAddress = `investor:${user._id}:inventory`;
-		return accountMap.has(inventoryAddress);
-	}).length;
+	const provisionedCount = filteredUsers.filter(
+		(user: NonNullable<typeof users>[number]) => {
+			const inventoryAddress = `investor:${user._id}:inventory`;
+			return accountMap.has(inventoryAddress);
+		}
+	).length;
 	const missingCount = totalUsers - provisionedCount;
 
 	const isLoading = users === undefined || isLoadingAccounts;
@@ -154,7 +158,7 @@ export function InvestorAccountsList({ className }: { className?: string }) {
 				/>
 			) : (
 				<div className="flex flex-col gap-3">
-					{filteredUsers.map((user) => {
+					{filteredUsers.map((user: NonNullable<typeof users>[number]) => {
 						const inventoryAddress = `investor:${user._id}:inventory`;
 						const inventoryAccount = accountMap.get(inventoryAddress);
 

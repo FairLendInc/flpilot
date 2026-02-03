@@ -11,7 +11,7 @@ import {
 	RefreshCw,
 	User,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +73,7 @@ export default function LinkSchedulesPage() {
 	);
 
 	// Fetch unlinked schedules
-	const fetchSchedules = async () => {
+	const fetchSchedules = useCallback(async () => {
 		setIsLoadingSchedules(true);
 		try {
 			const result = await getUnlinkedSchedules({});
@@ -91,12 +91,12 @@ export default function LinkSchedulesPage() {
 		} finally {
 			setIsLoadingSchedules(false);
 		}
-	};
+	}, [getUnlinkedSchedules]);
 
 	// Load on first render
-	useState(() => {
-		fetchSchedules();
-	});
+	useEffect(() => {
+		fetchSchedules().catch(console.error);
+	}, [fetchSchedules]);
 
 	// Handle linking
 	const handleLink = async () => {
@@ -285,7 +285,7 @@ export default function LinkSchedulesPage() {
 											No mortgages without schedules
 										</p>
 									) : (
-										availableMortgages.map((mortgage) => (
+										availableMortgages.map((mortgage: AvailableMortgage) => (
 											<button
 												className={`w-full rounded-lg border p-3 text-left transition-colors ${
 													selectedMortgage?._id === mortgage._id
