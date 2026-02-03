@@ -1453,3 +1453,229 @@ export const deleteMortgageInternal = internalMutation({
 	}),
 	handler: async (ctx, args) => await deleteMortgageCore(ctx, args),
 });
+
+// ============================================================================
+// Rotessa Schedule Linking (Admin Integration)
+// ============================================================================
+
+/**
+ * Get mortgages that don't have a Rotessa schedule linked
+ * Used by admin UI to show mortgages available for schedule linking
+ */
+export const getMortgagesWithoutSchedule = authenticatedQuery({
+	args: {},
+	returns: v.array(
+		v.object({
+			_id: v.id("mortgages"),
+			borrowerId: v.id("borrowers"),
+			borrowerName: v.string(),
+			propertyAddress: v.string(),
+			loanAmount: v.number(),
+			monthlyInterestPayment: v.number(),
+			status: mortgageStatusValidator,
+		})
+	),
+	handler: async (ctx) => {
+		// Check admin/broker role
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		checkRbac({
+			required_roles: ["admin", "broker"],
+			user_identity: identity,
+		});
+
+		// Get all active mortgages without a Rotessa schedule
+		const mortgages = await ctx.db
+			.query("mortgages")
+			.filter((q) =>
+				q.and(
+					q.eq(q.field("status"), "active"),
+					q.eq(q.field("rotessaScheduleId"), undefined)
+				)
+			)
+			.collect();
+
+		// Get borrower names
+		const borrowerIds = [...new Set(mortgages.map((m) => m.borrowerId))];
+		const borrowers = await Promise.all(
+			borrowerIds.map((id) => ctx.db.get(id))
+		);
+		const borrowerMap = new Map(
+			borrowers.filter(Boolean).map((b) => [b?._id, b!])
+		);
+
+		return mortgages.map((m) => ({
+			_id: m._id,
+			borrowerId: m.borrowerId,
+			borrowerName: borrowerMap.get(m.borrowerId)?.name ?? "Unknown",
+			propertyAddress: `${m.address.street}, ${m.address.city}`,
+			loanAmount: m.loanAmount,
+			// Calculate monthly interest payment (interest-only)
+			monthlyInterestPayment: (m.loanAmount * m.interestRate) / 100 / 12,
+			status: m.status,
+		}));
+	},
+});
+
+/**
+ * Link a Rotessa schedule to a mortgage
+ * Called after creating a schedule in Rotessa
+ */
+export const linkRotessaScheduleToMortgage = authenticatedMutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+		rotessaScheduleId: v.number(),
+	},
+	returns: v.id("mortgages"),
+	handler: async (ctx, args) => {
+		// Check admin role
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		checkRbac({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		const mortgage = await ctx.db.get(args.mortgageId);
+		if (!mortgage) {
+			throw new Error("Mortgage not found");
+		}
+
+		if (mortgage.rotessaScheduleId) {
+			throw new Error(
+				`Mortgage is already linked to schedule ${mortgage.rotessaScheduleId}`
+			);
+		}
+
+		// Check if schedule is already linked to another mortgage
+		const existingLink = await ctx.db
+			.query("mortgages")
+			.withIndex("by_rotessa_schedule", (q) =>
+				q.eq("rotessaScheduleId", args.rotessaScheduleId)
+			)
+			.first();
+
+		if (existingLink) {
+			throw new Error(
+				`Schedule ${args.rotessaScheduleId} is already linked to mortgage ${existingLink._id}`
+			);
+		}
+
+		await ctx.db.patch(args.mortgageId, {
+			rotessaScheduleId: args.rotessaScheduleId,
+		});
+
+		console.log("Linked Rotessa schedule to mortgage:", {
+			mortgageId: args.mortgageId,
+			rotessaScheduleId: args.rotessaScheduleId,
+			adminId: identity.subject,
+		});
+
+		return args.mortgageId;
+	},
+});
+
+/**
+ * Unlink a Rotessa schedule from a mortgage
+ */
+export const unlinkRotessaScheduleFromMortgage = authenticatedMutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+	},
+	returns: v.id("mortgages"),
+	handler: async (ctx, args) => {
+		// Check admin role
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Authentication required");
+		}
+
+		checkRbac({
+			required_roles: ["admin"],
+			user_identity: identity,
+		});
+
+		const mortgage = await ctx.db.get(args.mortgageId);
+		if (!mortgage) {
+			throw new Error("Mortgage not found");
+		}
+
+		if (!mortgage.rotessaScheduleId) {
+			throw new Error("Mortgage has no linked Rotessa schedule");
+		}
+
+		const previousScheduleId = mortgage.rotessaScheduleId;
+
+		await ctx.db.patch(args.mortgageId, {
+			rotessaScheduleId: undefined,
+		});
+
+		console.log("Unlinked Rotessa schedule from mortgage:", {
+			mortgageId: args.mortgageId,
+			previousScheduleId,
+			adminId: identity.subject,
+		});
+
+		return args.mortgageId;
+	},
+});
+
+/**
+ * Internal: Link schedule to mortgage (for actions, skips auth)
+ */
+export const linkRotessaScheduleInternal = internalMutation({
+	args: {
+		mortgageId: v.id("mortgages"),
+		rotessaScheduleId: v.number(),
+	},
+	returns: v.id("mortgages"),
+	handler: async (ctx, args) => {
+		const mortgage = await ctx.db.get(args.mortgageId);
+		if (!mortgage) {
+			throw new Error("Mortgage not found");
+		}
+
+		await ctx.db.patch(args.mortgageId, {
+			rotessaScheduleId: args.rotessaScheduleId,
+		});
+
+		return args.mortgageId;
+	},
+});
+
+/**
+ * Internal: Get a mortgage by ID (simple version for actions)
+ */
+export const getMortgageByIdInternal = internalQuery({
+	args: {
+		mortgageId: v.id("mortgages"),
+	},
+	returns: v.union(v.any(), v.null()),
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.mortgageId);
+	},
+});
+
+/**
+ * Internal: Get a mortgage by Rotessa schedule ID
+ */
+export const getMortgageByScheduleIdInternal = internalQuery({
+	args: {
+		scheduleId: v.number(),
+	},
+	returns: v.union(v.any(), v.null()),
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("mortgages")
+			.withIndex("by_rotessa_schedule", (q) =>
+				q.eq("rotessaScheduleId", args.scheduleId)
+			)
+			.first();
+	},
+});
