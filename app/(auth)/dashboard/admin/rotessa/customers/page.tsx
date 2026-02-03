@@ -45,7 +45,7 @@ type PlatformMortgage = {
 type BrokerResult = {
 	_id: string;
 	branding?: { brandName?: string };
-	userName?: string;
+	userName: string | null;
 	subdomain?: string;
 	status?: string;
 };
@@ -187,7 +187,7 @@ export default function AdminRotessaCustomersPage() {
 							amount: s.amount,
 							frequency: s.frequency,
 							processDate: s.process_date,
-							nextProcessDate: s.next_process_date,
+							nextProcessDate: s.next_process_date ?? undefined,
 							installments: s.installments,
 							comment: s.comment,
 						})
@@ -198,7 +198,7 @@ export default function AdminRotessaCustomersPage() {
 							amount: t.amount,
 							processDate: t.process_date,
 							status: t.status,
-							statusReason: t.status_reason,
+							statusReason: t.status_reason ?? undefined,
 						})
 					),
 					platform: linkedBorrower
@@ -668,7 +668,7 @@ export default function AdminRotessaCustomersPage() {
 						broker.userName ||
 						broker.subdomain ||
 						broker._id,
-					status: broker.status,
+					status: broker.status ?? null,
 				}))}
 				customer={selectedCustomerDetail}
 				isAssigningBroker={isAssigningBroker}

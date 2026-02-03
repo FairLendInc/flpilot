@@ -93,14 +93,14 @@ describe("borrowerIntroStep", () => {
 		expect(borrowerIntroStep.allowSkip).toBe(false);
 	});
 
-	test("should validate acknowledged = false as invalid", () => {
-		const result = borrowerIntroStep.validate({ acknowledged: false });
+	test("should validate acknowledged = false as invalid", async () => {
+		const result = await borrowerIntroStep.validate({ acknowledged: false });
 		expect(result.valid).toBe(false);
 		expect(result.errors?.acknowledged).toBeDefined();
 	});
 
-	test("should validate acknowledged = true as valid", () => {
-		const result = borrowerIntroStep.validate({ acknowledged: true });
+	test("should validate acknowledged = true as valid", async () => {
+		const result = await borrowerIntroStep.validate({ acknowledged: true });
 		expect(result.valid).toBe(true);
 	});
 
@@ -121,13 +121,13 @@ describe("borrowerProfileStep", () => {
 		expect(borrowerProfileStep.allowSkip).toBe(false);
 	});
 
-	test("should validate empty profile as invalid", () => {
+	test("should validate empty profile as invalid", async () => {
 		const data: BorrowerProfileData = {
 			firstName: "",
 			lastName: "",
 			email: "",
 		};
-		const result = borrowerProfileStep.validate(data);
+		const result = await borrowerProfileStep.validate(data);
 
 		expect(result.valid).toBe(false);
 		expect(result.errors?.firstName).toBeDefined();
@@ -135,7 +135,7 @@ describe("borrowerProfileStep", () => {
 		expect(result.errors?.email).toBeDefined();
 	});
 
-	test("should validate complete profile as valid", () => {
+	test("should validate complete profile as valid", async () => {
 		const data: BorrowerProfileData = {
 			firstName: "John",
 			lastName: "Smith",
@@ -149,23 +149,23 @@ describe("borrowerProfileStep", () => {
 				country: "Canada",
 			},
 		};
-		const result = borrowerProfileStep.validate(data);
+		const result = await borrowerProfileStep.validate(data);
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate invalid email format", () => {
+	test("should validate invalid email format", async () => {
 		const data: BorrowerProfileData = {
 			firstName: "John",
 			lastName: "Smith",
 			email: "not-an-email",
 		};
-		const result = borrowerProfileStep.validate(data);
+		const result = await borrowerProfileStep.validate(data);
 
 		expect(result.valid).toBe(false);
 		expect(result.errors?.email).toContain("Invalid email format");
 	});
 
-	test("should validate invalid Canadian postal code", () => {
+	test("should validate invalid Canadian postal code", async () => {
 		const data: BorrowerProfileData = {
 			firstName: "John",
 			lastName: "Smith",
@@ -178,7 +178,7 @@ describe("borrowerProfileStep", () => {
 				country: "Canada",
 			},
 		};
-		const result = borrowerProfileStep.validate(data);
+		const result = await borrowerProfileStep.validate(data);
 
 		expect(result.valid).toBe(false);
 		expect(result.errors?.["address.postalCode"]).toContain(
@@ -186,7 +186,7 @@ describe("borrowerProfileStep", () => {
 		);
 	});
 
-	test("should accept valid Canadian postal codes", () => {
+	test("should accept valid Canadian postal codes", async () => {
 		const validPostalCodes = ["M5V 1A1", "M5V1A1", "K1A-0B1", "V6B 2W2"];
 
 		for (const postalCode of validPostalCodes) {
@@ -202,7 +202,7 @@ describe("borrowerProfileStep", () => {
 					country: "Canada",
 				},
 			};
-			const result = borrowerProfileStep.validate(data);
+			const result = await borrowerProfileStep.validate(data);
 			expect(result.valid).toBe(true);
 		}
 	});
@@ -220,37 +220,37 @@ describe("borrowerIdentityVerificationStep", () => {
 		expect(borrowerIdentityVerificationStep.allowSkip).toBe(true);
 	});
 
-	test("should validate verified status as valid", () => {
-		const result = borrowerIdentityVerificationStep.validate({
+	test("should validate verified status as valid", async () => {
+		const result = await borrowerIdentityVerificationStep.validate({
 			status: "verified",
 		});
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate skipped status as valid", () => {
-		const result = borrowerIdentityVerificationStep.validate({
+	test("should validate skipped status as valid", async () => {
+		const result = await borrowerIdentityVerificationStep.validate({
 			status: "skipped",
 		});
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate not_started status as valid (skippable)", () => {
-		const result = borrowerIdentityVerificationStep.validate({
+	test("should validate not_started status as valid (skippable)", async () => {
+		const result = await borrowerIdentityVerificationStep.validate({
 			status: "not_started",
 		});
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate failed status as invalid", () => {
-		const result = borrowerIdentityVerificationStep.validate({
+	test("should validate failed status as invalid", async () => {
+		const result = await borrowerIdentityVerificationStep.validate({
 			status: "failed",
 		});
 		expect(result.valid).toBe(false);
 		expect(result.errors?.status).toContain("failed");
 	});
 
-	test("should validate pending status as invalid", () => {
-		const result = borrowerIdentityVerificationStep.validate({
+	test("should validate pending status as invalid", async () => {
+		const result = await borrowerIdentityVerificationStep.validate({
 			status: "pending",
 		});
 		expect(result.valid).toBe(false);
@@ -267,23 +267,23 @@ describe("borrowerKycAmlStep", () => {
 		expect(borrowerKycAmlStep.allowSkip).toBe(true);
 	});
 
-	test("should validate passed status as valid", () => {
-		const result = borrowerKycAmlStep.validate({ status: "passed" });
+	test("should validate passed status as valid", async () => {
+		const result = await borrowerKycAmlStep.validate({ status: "passed" });
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate skipped status as valid", () => {
-		const result = borrowerKycAmlStep.validate({ status: "skipped" });
+	test("should validate skipped status as valid", async () => {
+		const result = await borrowerKycAmlStep.validate({ status: "skipped" });
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate failed status as invalid", () => {
-		const result = borrowerKycAmlStep.validate({ status: "failed" });
+	test("should validate failed status as invalid", async () => {
+		const result = await borrowerKycAmlStep.validate({ status: "failed" });
 		expect(result.valid).toBe(false);
 	});
 
-	test("should validate requires_review status as invalid", () => {
-		const result = borrowerKycAmlStep.validate({ status: "requires_review" });
+	test("should validate requires_review status as invalid", async () => {
+		const result = await borrowerKycAmlStep.validate({ status: "requires_review" });
 		expect(result.valid).toBe(false);
 		expect(result.errors?.status).toContain("manual review");
 	});
@@ -300,42 +300,42 @@ describe("borrowerRotessaStep", () => {
 		expect(borrowerRotessaStep.allowSkip).toBe(false);
 	});
 
-	test("should validate not_started status as invalid", () => {
+	test("should validate not_started status as invalid", async () => {
 		const data: BorrowerRotessaData = { status: "not_started" };
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 
 		expect(result.valid).toBe(false);
 		expect(result.errors?.status).toContain("complete Rotessa payment setup");
 	});
 
-	test("should validate active status as valid", () => {
+	test("should validate active status as valid", async () => {
 		const data: BorrowerRotessaData = {
 			status: "active",
 			customerId: 12345,
 		};
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate linked status as valid", () => {
+	test("should validate linked status as valid", async () => {
 		const data: BorrowerRotessaData = {
 			status: "linked",
 			customerId: 12345,
 		};
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate created status as valid", () => {
+	test("should validate created status as valid", async () => {
 		const data: BorrowerRotessaData = {
 			status: "created",
 			customerId: 12345,
 		};
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 		expect(result.valid).toBe(true);
 	});
 
-	test("should validate bank info institution number format", () => {
+	test("should validate bank info institution number format", async () => {
 		const data: BorrowerRotessaData = {
 			status: "active",
 			customerId: 12345,
@@ -346,13 +346,13 @@ describe("borrowerRotessaStep", () => {
 				accountType: "checking",
 			},
 		};
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 
 		expect(result.valid).toBe(false);
 		expect(result.errors?.["bankInfo.institutionNumber"]).toContain("3 digits");
 	});
 
-	test("should validate bank info transit number format", () => {
+	test("should validate bank info transit number format", async () => {
 		const data: BorrowerRotessaData = {
 			status: "active",
 			customerId: 12345,
@@ -363,13 +363,13 @@ describe("borrowerRotessaStep", () => {
 				accountType: "checking",
 			},
 		};
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 
 		expect(result.valid).toBe(false);
 		expect(result.errors?.["bankInfo.transitNumber"]).toContain("5 digits");
 	});
 
-	test("should validate bank info account number format", () => {
+	test("should validate bank info account number format", async () => {
 		const data: BorrowerRotessaData = {
 			status: "active",
 			customerId: 12345,
@@ -380,13 +380,13 @@ describe("borrowerRotessaStep", () => {
 				accountType: "checking",
 			},
 		};
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 
 		expect(result.valid).toBe(false);
 		expect(result.errors?.["bankInfo.accountNumber"]).toContain("5-12 digits");
 	});
 
-	test("should validate complete valid bank info", () => {
+	test("should validate complete valid bank info", async () => {
 		const data: BorrowerRotessaData = {
 			status: "active",
 			customerId: 12345,
@@ -397,7 +397,7 @@ describe("borrowerRotessaStep", () => {
 				accountType: "checking",
 			},
 		};
-		const result = borrowerRotessaStep.validate(data);
+		const result = await borrowerRotessaStep.validate(data);
 		expect(result.valid).toBe(true);
 	});
 });
@@ -413,19 +413,19 @@ describe("borrowerReviewStep", () => {
 		expect(borrowerReviewStep.allowSkip).toBe(false);
 	});
 
-	test("should validate confirmed = false as invalid", () => {
-		const result = borrowerReviewStep.validate({ confirmed: false });
+	test("should validate confirmed = false as invalid", async () => {
+		const result = await borrowerReviewStep.validate({ confirmed: false });
 		expect(result.valid).toBe(false);
 		expect(result.errors?.confirmed).toContain("confirm");
 	});
 
-	test("should validate confirmed = true as valid", () => {
-		const result = borrowerReviewStep.validate({ confirmed: true });
+	test("should validate confirmed = true as valid", async () => {
+		const result = await borrowerReviewStep.validate({ confirmed: true });
 		expect(result.valid).toBe(true);
 	});
 
-	test("should accept final notes", () => {
-		const result = borrowerReviewStep.validate({
+	test("should accept final notes", async () => {
+		const result = await borrowerReviewStep.validate({
 			confirmed: true,
 			finalNotes: "All looks good!",
 		});
