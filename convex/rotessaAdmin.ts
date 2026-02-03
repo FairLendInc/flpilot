@@ -1073,6 +1073,229 @@ export const provisionBorrowerUser = action({
 });
 
 // ============================================================================
+// Schedule Linking
+// ============================================================================
+
+/**
+ * Get unlinked Rotessa schedules
+ *
+ * Fetches all schedules from Rotessa API and filters out those already linked
+ * to mortgages in the database.
+ */
+export const getUnlinkedSchedules = action({
+	args: {},
+	returns: v.object({
+		success: v.boolean(),
+		data: v.optional(
+			v.array(
+				v.object({
+					scheduleId: v.number(),
+					customerId: v.number(),
+					customerName: v.string(),
+					customerEmail: v.optional(v.string()),
+					amount: v.number(),
+					frequency: v.string(),
+					nextProcessDate: v.optional(v.string()),
+				})
+			)
+		),
+		error: v.optional(v.string()),
+	}),
+	handler: async (ctx) => {
+		try {
+			// Get all linked schedule IDs from database
+			const linkedScheduleIds = (await ctx.runQuery(
+				internal.rotessaAdminQueries.getLinkedScheduleIdsInternal,
+				{}
+			)) as number[];
+
+			const linkedSet = new Set(linkedScheduleIds);
+
+			// Fetch all customers from Rotessa
+			const client = getRotessaClient({ timeoutMs: 60_000 });
+			const customers = await client.customers.list();
+
+			// Collect all schedules across customers
+			const unlinkedSchedules: Array<{
+				scheduleId: number;
+				customerId: number;
+				customerName: string;
+				customerEmail?: string;
+				amount: number;
+				frequency: string;
+				nextProcessDate?: string;
+			}> = [];
+
+			for (const customer of customers) {
+				try {
+					// Get customer details with schedules
+					const detail = await client.customers.get(customer.id);
+
+					for (const schedule of detail.transaction_schedules ?? []) {
+						// Skip if already linked
+						if (linkedSet.has(schedule.id)) continue;
+
+						// Parse amount (comes as string)
+						const amount = Number.parseFloat(schedule.amount);
+
+						unlinkedSchedules.push({
+							scheduleId: schedule.id,
+							customerId: customer.id,
+							customerName: customer.name,
+							customerEmail: customer.email ?? undefined,
+							amount,
+							frequency: schedule.frequency,
+							nextProcessDate: schedule.next_process_date ?? undefined,
+						});
+					}
+				} catch (customerError) {
+					logger.warn(
+						"[getUnlinkedSchedules] Failed to fetch customer details",
+						{
+							customerId: customer.id,
+							error: customerError,
+						}
+					);
+					// Continue with other customers
+				}
+			}
+
+			logger.info("[getUnlinkedSchedules] Success", {
+				totalUnlinked: unlinkedSchedules.length,
+				totalLinked: linkedScheduleIds.length,
+			});
+
+			return {
+				success: true,
+				data: unlinkedSchedules,
+			};
+		} catch (error) {
+			return handleActionError("getUnlinkedSchedules", error);
+		}
+	},
+});
+
+/**
+ * Link a Rotessa schedule to a mortgage
+ *
+ * Associates a Rotessa payment schedule with a mortgage and optionally
+ * triggers historical payment backfill.
+ */
+export const linkScheduleToMortgage = action({
+	args: {
+		mortgageId: v.id("mortgages"),
+		scheduleId: v.number(),
+		triggerBackfill: v.optional(v.boolean()),
+	},
+	returns: v.object({
+		success: v.boolean(),
+		backfillScheduled: v.optional(v.boolean()),
+		borrowerMismatch: v.optional(v.boolean()),
+		error: v.optional(v.string()),
+	}),
+	handler: async (
+		ctx,
+		args
+	): Promise<{
+		success: boolean;
+		backfillScheduled?: boolean;
+		borrowerMismatch?: boolean;
+		error?: string;
+	}> => {
+		try {
+			logger.info("[linkScheduleToMortgage] Starting", {
+				mortgageId: args.mortgageId,
+				scheduleId: args.scheduleId,
+				triggerBackfill: args.triggerBackfill,
+			});
+
+			// Validate schedule exists in Rotessa
+			const client = getRotessaClient();
+			const schedule = await client.transactionSchedules.get(args.scheduleId);
+
+			if (!schedule) {
+				return {
+					success: false,
+					error: `Rotessa schedule ${args.scheduleId} not found`,
+				};
+			}
+
+			// Get mortgage and verify it doesn't already have a schedule
+			const mortgage: Doc<"mortgages"> | null = await ctx.runQuery(
+				internal.mortgages.getMortgageByIdInternal,
+				{ mortgageId: args.mortgageId }
+			);
+
+			if (!mortgage) {
+				return {
+					success: false,
+					error: `Mortgage ${args.mortgageId} not found`,
+				};
+			}
+
+			if (mortgage.rotessaScheduleId !== undefined) {
+				return {
+					success: false,
+					error: `Mortgage already has linked schedule ${mortgage.rotessaScheduleId}`,
+				};
+			}
+
+			// Verify schedule isn't already linked to another mortgage
+			const linkedScheduleIds = (await ctx.runQuery(
+				internal.rotessaAdminQueries.getLinkedScheduleIdsInternal,
+				{}
+			)) as number[];
+
+			if (linkedScheduleIds.includes(args.scheduleId)) {
+				return {
+					success: false,
+					error: `Schedule ${args.scheduleId} is already linked to another mortgage`,
+				};
+			}
+
+			// Note: We skip borrower mismatch check since RotessaTransactionSchedule
+			// does not include customer_id. The UI shows customer info for manual verification.
+
+			// Link the schedule
+			await ctx.runMutation(api.mortgages.linkRotessaScheduleToMortgage, {
+				mortgageId: args.mortgageId,
+				rotessaScheduleId: args.scheduleId,
+			});
+
+			logger.info("[linkScheduleToMortgage] Linked successfully", {
+				mortgageId: args.mortgageId,
+				scheduleId: args.scheduleId,
+			});
+
+			// Optionally trigger backfill
+			let backfillScheduled = false;
+			if (args.triggerBackfill) {
+				await ctx.scheduler.runAfter(
+					0,
+					internal.rotessaSync.backfillHistoricalPayments,
+					{
+						mortgageId: args.mortgageId,
+						scheduleId: args.scheduleId,
+					}
+				);
+				backfillScheduled = true;
+				logger.info("[linkScheduleToMortgage] Backfill scheduled", {
+					mortgageId: args.mortgageId,
+					scheduleId: args.scheduleId,
+				});
+			}
+
+			return {
+				success: true,
+				backfillScheduled,
+			};
+		} catch (error) {
+			return handleActionError("linkScheduleToMortgage", error);
+		}
+	},
+});
+
+// ============================================================================
 // Dashboard Stats
 // ============================================================================
 

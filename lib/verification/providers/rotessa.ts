@@ -68,6 +68,7 @@ class RotessaProvider
 	readonly enabled = true;
 	readonly type = "payment" as const;
 
+	private config: PaymentProviderConfig | null = null;
 	private client: RotessaClient | null = null;
 
 	async initialize(config: PaymentProviderConfig): Promise<void> {

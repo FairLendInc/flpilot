@@ -1311,12 +1311,12 @@ export default function BrokerDetailPage() {
 									<div className="space-y-2">
 										{brokerClients.map(
 											(client: {
-												_id: string;
-												user?: {
+												_id: Id<"broker_clients">;
+												user: {
 													firstName?: string;
 													lastName?: string;
 													email?: string;
-												};
+												} | null;
 												onboardingStatus: string;
 											}) => (
 												<div
