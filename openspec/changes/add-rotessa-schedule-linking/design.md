@@ -91,3 +91,71 @@ No migration needed - additive changes only.
 ## Open Questions
 
 None - all resolved during brainstorming.
+
+---
+
+## API Integration Patterns
+
+*Added from research findings (2026-02-03)*
+
+### Timestamp Format Conversion
+
+Rotessa returns `settlement_date` as `YYYY-MM-DD`. Formance requires ISO 8601.
+
+```typescript
+// CRITICAL: Convert before passing to Formance
+function toFormanceTimestamp(settlementDate: string): string {
+  return `${settlementDate}T00:00:00Z`;
+}
+
+// Usage
+const effectiveTimestamp = toFormanceTimestamp(transaction.settlement_date);
+```
+
+**Source:** Formance Ledger API, Context7 `/formancehq/ledger`
+
+### Reference Format
+
+Use distinct prefixes to differentiate backfill from regular sync:
+
+```typescript
+// Backfill payments
+const reference = `backfill:${paymentId}:${mortgageId}`;
+
+// Regular sync payments (existing)
+const reference = `payment:${paymentId}:${mortgageId}`;
+```
+
+### Rotessa Pagination
+
+Transaction report may return multiple pages. Must iterate:
+
+```typescript
+const allTransactions: RotessaTransactionReportItem[] = [];
+let page = 1;
+
+while (true) {
+  const batch = await client.transactionReport.list({
+    start_date: startDate,
+    end_date: endDate,
+    page,
+  });
+
+  if (batch.length === 0) break;
+  allTransactions.push(...batch);
+  page++;
+}
+```
+
+---
+
+## Implementation Footguns
+
+*Critical mistakes to avoid - see `research/footguns.md` for details*
+
+1. **Timestamp format** - Must convert `YYYY-MM-DD` → `YYYY-MM-DDTHH:mm:ssZ`
+2. **Null settlement_date** - Filter `status === "Approved" && settlement_date !== null`
+3. **Pagination** - Iterate all pages, don't assume single page
+4. **Mutation/Action boundary** - Use `ctx.scheduler.runAfter()`, not `ctx.runAction()`
+5. **Log creation order** - Create `backfill_log` BEFORE processing starts
+6. **409 handling** - Treat as success, not error
