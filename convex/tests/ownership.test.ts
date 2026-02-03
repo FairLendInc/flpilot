@@ -216,7 +216,7 @@ describe("createMortgage", () => {
 					zip: "12345",
 					country: "USA",
 				},
-				location: { lat: 37.7749, lng: -122.4194 },
+				location: { lat: 200, lng: -122.4194 }, // Invalid
 				propertyType: "Single Family",
 				appraisalMarketValue: 600000,
 				appraisalMethod: "CMA",
@@ -287,6 +287,14 @@ describe("createOwnership", () => {
 		const total = await verifyTotalOwnership(t, mortgageId, 100);
 		expect(total.owners).toBe(2);
 		expect(total.breakdown).toHaveLength(2);
+		expect(total.breakdown[0]).toEqual({
+			ownerId: "fairlend",
+			percentage: 75,
+		});
+		expect(total.breakdown[1]).toEqual({
+			ownerId: user1,
+			percentage: 25,
+		});
 	});
 
 	test("should handle multiple investors", async () => {
@@ -324,6 +332,23 @@ describe("createOwnership", () => {
 		// Verify total is 100%
 		const total = await verifyTotalOwnership(t, mortgageId, 100);
 		expect(total.owners).toBe(4); // 3 investors + FairLend
+		expect(total.breakdown).toHaveLength(4);
+		expect(total.breakdown[0]).toEqual({
+			ownerId: "fairlend",
+			percentage: 35,
+		});
+		expect(total.breakdown[1]).toEqual({
+			ownerId: investor1,
+			percentage: 20,
+		});
+		expect(total.breakdown[2]).toEqual({
+			ownerId: investor2,
+			percentage: 30,
+		});
+		expect(total.breakdown[3]).toEqual({
+			ownerId: investor3,
+			percentage: 15,
+		});
 	});
 
 	test("should delete FairLend record when ownership reaches 0%", async () => {
@@ -347,6 +372,11 @@ describe("createOwnership", () => {
 		// Verify total is still 100%
 		const total = await verifyTotalOwnership(t, mortgageId, 100);
 		expect(total.owners).toBe(1); // Only investor_1
+		expect(total.breakdown).toHaveLength(1);
+		expect(total.breakdown[0]).toEqual({
+			ownerId: investor1,
+			percentage: 100,
+		});
 	});
 
 	test("should reject ownership > FairLend's available percentage", async () => {
@@ -1311,7 +1341,9 @@ describe("getUserPortfolio", () => {
 		});
 
 		expect(result).toHaveLength(2);
-		const mortgageIds = result.map((r) => r.mortgageId);
+		const mortgageIds = result.map(
+			(r: { mortgageId: Id<"mortgages"> }) => r.mortgageId
+		);
 		expect(mortgageIds).toContain(m1);
 		expect(mortgageIds).toContain(m2);
 	});
@@ -1398,7 +1430,9 @@ describe("getInstitutionalPortfolio", () => {
 		// m2 has no FairLend ownership (100% sold)
 		expect(result.length).toBeGreaterThanOrEqual(2);
 
-		const mortgageIds = result.map((r) => r.mortgageId);
+		const mortgageIds = result.map(
+			(r: { mortgageId: Id<"mortgages"> }) => r.mortgageId
+		);
 		expect(mortgageIds).toContain(m1);
 		expect(mortgageIds).toContain(m3);
 	});
@@ -1495,6 +1529,23 @@ describe("ownership invariant integration", () => {
 			mortgageId,
 		});
 		expect(total.owners).toBe(4); // 3 investors + FairLend
+		expect(total.breakdown).toHaveLength(4);
+		expect(total.breakdown[0]).toEqual({
+			ownerId: "fairlend",
+			percentage: 45,
+		});
+		expect(total.breakdown[1]).toEqual({
+			ownerId: await createTestUser(t, "investor_1"),
+			percentage: 20,
+		});
+		expect(total.breakdown[2]).toEqual({
+			ownerId: await createTestUser(t, "investor_2"),
+			percentage: 30,
+		});
+		expect(total.breakdown[3]).toEqual({
+			ownerId: await createTestUser(t, "investor_3"),
+			percentage: 15,
+		});
 	});
 
 	test("should handle concurrent ownership updates", async () => {

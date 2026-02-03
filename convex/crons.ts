@@ -67,4 +67,27 @@ crons.interval(
 	internal.auditEventsCron.pruneOldEvents
 );
 
+/**
+ * Daily Rotessa Sync
+ *
+ * Runs at 11:00 PM UTC every day to sync Rotessa payment transactions.
+ * Rotessa doesn't offer webhooks, so we poll for transaction updates.
+ *
+ * What it does:
+ * - Fetches recent transactions from Rotessa transaction_report API
+ * - Creates or updates local payment records
+ * - Records cleared payments to Formance Ledger
+ * - Logs sync metrics and any errors
+ *
+ * Schedule: Daily at 11:00 PM UTC (end of business day)
+ */
+crons.daily(
+	"daily-rotessa-sync",
+	{
+		hourUTC: 23, // 11:00 PM UTC
+		minuteUTC: 0,
+	},
+	internal.rotessaSync.performDailySync
+);
+
 export default crons;

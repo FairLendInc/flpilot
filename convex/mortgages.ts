@@ -1504,7 +1504,9 @@ export const getMortgagesWithoutSchedule = authenticatedQuery({
 			borrowerIds.map((id) => ctx.db.get(id))
 		);
 		const borrowerMap = new Map(
-			borrowers.filter(Boolean).map((b) => [b?._id, b!])
+			borrowers
+				.filter((b): b is NonNullable<typeof b> => b !== null)
+				.map((b) => [b._id, b])
 		);
 
 		return mortgages.map((m) => ({
@@ -1633,6 +1635,7 @@ export const linkRotessaScheduleInternal = internalMutation({
 	args: {
 		mortgageId: v.id("mortgages"),
 		rotessaScheduleId: v.number(),
+		borrowerId: v.optional(v.id("borrowers")),
 	},
 	returns: v.id("mortgages"),
 	handler: async (ctx, args) => {
@@ -1641,9 +1644,17 @@ export const linkRotessaScheduleInternal = internalMutation({
 			throw new Error("Mortgage not found");
 		}
 
-		await ctx.db.patch(args.mortgageId, {
-			rotessaScheduleId: args.rotessaScheduleId,
-		});
+		const updates: { rotessaScheduleId: number; borrowerId?: Id<"borrowers"> } =
+			{
+				rotessaScheduleId: args.rotessaScheduleId,
+			};
+
+		// Update borrowerId if provided
+		if (args.borrowerId) {
+			updates.borrowerId = args.borrowerId;
+		}
+
+		await ctx.db.patch(args.mortgageId, updates);
 
 		return args.mortgageId;
 	},
@@ -1657,9 +1668,7 @@ export const getMortgageByIdInternal = internalQuery({
 		mortgageId: v.id("mortgages"),
 	},
 	returns: v.union(v.any(), v.null()),
-	handler: async (ctx, args) => {
-		return await ctx.db.get(args.mortgageId);
-	},
+	handler: async (ctx, args) => await ctx.db.get(args.mortgageId),
 });
 
 /**
@@ -1670,12 +1679,11 @@ export const getMortgageByScheduleIdInternal = internalQuery({
 		scheduleId: v.number(),
 	},
 	returns: v.union(v.any(), v.null()),
-	handler: async (ctx, args) => {
-		return await ctx.db
+	handler: async (ctx, args) =>
+		await ctx.db
 			.query("mortgages")
 			.withIndex("by_rotessa_schedule", (q) =>
 				q.eq("rotessaScheduleId", args.scheduleId)
 			)
-			.first();
-	},
+			.first(),
 });

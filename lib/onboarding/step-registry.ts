@@ -70,11 +70,16 @@ export type OnboardingStep<TData = unknown> = {
  * Journey context passed to steps for conditional logic
  */
 export type JourneyContext = {
-	persona: "broker" | "investor" | "lawyer";
+	persona: "broker" | "investor" | "lawyer" | "borrower";
 	brokerId?: string;
 	brokerCode?: string;
 	configVersion: number;
 	stepData: Record<string, unknown>;
+	// Borrower-specific context
+	invitation?: {
+		invitedBy: string;
+		invitedByRole: "broker" | "admin";
+	};
 };
 
 /**
@@ -253,7 +258,7 @@ export const globalStepRegistry = new StepRegistry();
  * Determine which configuration to use based on journey context
  */
 export function determineConfigurationId(context: {
-	persona: "broker" | "investor" | "lawyer";
+	persona: "broker" | "investor" | "lawyer" | "borrower";
 	brokerId?: string;
 	brokerCode?: string;
 }): string {
@@ -266,6 +271,12 @@ export function determineConfigurationId(context: {
 			return "fairlend"; // TODO: Check if broker is FairLend
 		}
 		return "fairlend";
+	}
+
+	if (context.persona === "borrower") {
+		// Borrowers use a single configuration
+		// Future: Could differentiate by invitation type
+		return "borrower";
 	}
 
 	// For other personas, use persona-specific config
