@@ -58,6 +58,28 @@ The system SHALL backfill historical Approved payments to Formance Ledger when l
 - **THEN** the system uses the Rotessa `settlement_date` as the Formance `timestamp`
 - **AND** this enables bi-temporal queries showing when funds actually cleared
 
+#### Scenario: Convert settlement date to ISO 8601
+- **WHEN** converting Rotessa `settlement_date` for Formance
+- **THEN** the system converts `YYYY-MM-DD` format to `YYYY-MM-DDTHH:mm:ssZ`
+- **AND** uses midnight UTC (`T00:00:00Z`) as the time component
+- **AND** the resulting timestamp is valid ISO 8601
+
+#### Scenario: Filter null settlement dates
+- **WHEN** processing transactions for backfill
+- **THEN** the system filters out transactions where `settlement_date` is null
+- **AND** only processes transactions with both `status === "Approved"` AND `settlement_date !== null`
+
+#### Scenario: Handle paginated transaction report
+- **WHEN** fetching historical transactions from Rotessa
+- **THEN** the system iterates through all pages of results
+- **AND** continues until an empty page is returned
+- **AND** collects all transactions across pages before processing
+
+#### Scenario: Use backfill reference prefix
+- **WHEN** recording a backfill payment to Formance
+- **THEN** the system uses reference format: `backfill:{paymentId}:{mortgageId}`
+- **AND** this distinguishes backfill from regular sync references (`payment:{paymentId}:{mortgageId}`)
+
 #### Scenario: Idempotent backfill
 - **WHEN** a payment has already been recorded in Formance
 - **THEN** the system detects the duplicate reference
@@ -81,11 +103,12 @@ The system SHALL backfill historical Approved payments to Formance Ledger when l
 
 The system SHALL maintain logs of backfill operations for auditing.
 
-#### Scenario: Create backfill log
+#### Scenario: Create backfill log before processing
 - **WHEN** a backfill operation starts
-- **THEN** the system creates a `backfill_log` entry
+- **THEN** the system creates a `backfill_log` entry BEFORE fetching any transactions
 - **AND** records mortgageId, scheduleId, triggeredBy, startedAt
 - **AND** sets status to "running"
+- **AND** if the action fails, the log entry exists for audit purposes
 
 #### Scenario: Update backfill log on completion
 - **WHEN** backfill completes successfully
