@@ -1091,7 +1091,7 @@ export const getUnlinkedSchedules = action({
 					scheduleId: v.number(),
 					customerId: v.number(),
 					customerName: v.string(),
-					customerEmail: v.string(),
+					customerEmail: v.optional(v.string()),
 					amount: v.number(),
 					frequency: v.string(),
 					nextProcessDate: v.optional(v.string()),
@@ -1112,11 +1112,10 @@ export const getUnlinkedSchedules = action({
 				scheduleId: number;
 				customerId: number;
 				customerName: string;
-				customerEmail: string;
+				customerEmail?: string;
 				amount: number;
 				frequency: string;
 				nextProcessDate?: string;
-				status?: string;
 			}> = [];
 
 			// Fetch detailed info for each customer to get their schedules
@@ -1130,7 +1129,7 @@ export const getUnlinkedSchedules = action({
 							scheduleId: schedule.id,
 							customerId: customer.id,
 							customerName: customer.name,
-							customerEmail: customer.email,
+							customerEmail: customer.email ?? undefined,
 							amount:
 								typeof schedule.amount === "string"
 									? Number.parseFloat(schedule.amount)

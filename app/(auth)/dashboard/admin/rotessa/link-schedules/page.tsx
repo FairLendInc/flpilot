@@ -33,7 +33,7 @@ type UnlinkedSchedule = {
 	scheduleId: number;
 	customerId: number;
 	customerName: string;
-	customerEmail: string;
+	customerEmail?: string;
 	amount: number;
 	frequency: string;
 	nextProcessDate?: string;
@@ -255,9 +255,11 @@ export default function LinkSchedulesPage() {
 													</span>
 												)}
 											</div>
+											{schedule.customerEmail && (
 											<div className="mt-1 truncate text-muted-foreground text-xs">
 												{schedule.customerEmail}
 											</div>
+										)}
 										</button>
 									))
 								)}
