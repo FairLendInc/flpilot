@@ -511,9 +511,9 @@ export default function BrokerApplicationDetailPage() {
 													className="flex items-start gap-4 rounded-lg border p-4"
 													key={`${rep.email}-${index}`}
 												>
-												<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-													<User className="h-5 w-5 text-primary" />
-												</div>
+													<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+														<User className="h-5 w-5 text-primary" />
+													</div>
 													<div className="flex-1">
 														<p className="font-medium">
 															{rep.firstName} {rep.lastName}
@@ -621,7 +621,9 @@ export default function BrokerApplicationDetailPage() {
 																{entry.resolved ? "Resolved" : "Pending"}
 															</Badge>
 															<span className="text-muted-foreground text-sm">
-																{new Date(entry.requestedAt).toLocaleDateString()}
+																{new Date(
+																	entry.requestedAt
+																).toLocaleDateString()}
 															</span>
 														</div>
 														<p className="text-sm">{entry.message}</p>

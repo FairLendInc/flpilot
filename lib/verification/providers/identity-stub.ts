@@ -29,7 +29,6 @@ class IdentityStubProvider
 	readonly enabled = true;
 	readonly type = "identity" as const;
 	private readonly simulateDelay = 500; // ms
-	private config!: IdentityVerificationConfig;
 
 	async initialize(config: IdentityVerificationConfig): Promise<void> {
 		this.config = config;
