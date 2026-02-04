@@ -117,25 +117,27 @@ export function MortgageOwnershipTable({ className }: { className?: string }) {
 				/>
 			) : (
 				<div className="flex flex-col gap-3">
-					{filteredMortgages.map((mortgage: NonNullable<typeof mortgages>[number]) => {
-						// Ownership data is keyed by the hash of the mortgage ID (not the full ID)
-						// The asset is M{hash}, so the key is {hash}
-						const assetName = getMortgageShareAsset(mortgage._id);
-						const hashKey = assetName.slice(1); // Remove "M" prefix
-						const ownership = ownershipData[hashKey] || null;
-						const addressStr = `${mortgage.address.street}, ${mortgage.address.city}, ${mortgage.address.state}`;
+					{filteredMortgages.map(
+						(mortgage: NonNullable<typeof mortgages>[number]) => {
+							// Ownership data is keyed by the hash of the mortgage ID (not the full ID)
+							// The asset is M{hash}, so the key is {hash}
+							const assetName = getMortgageShareAsset(mortgage._id);
+							const hashKey = assetName.slice(1); // Remove "M" prefix
+							const ownership = ownershipData[hashKey] || null;
+							const addressStr = `${mortgage.address.street}, ${mortgage.address.city}, ${mortgage.address.state}`;
 
-						return (
-							<MortgageOwnershipRow
-								address={addressStr}
-								key={mortgage._id}
-								loanAmount={mortgage.loanAmount}
-								mortgageId={mortgage._id}
-								onMintSuccess={fetchOwnership}
-								ownership={ownership}
-							/>
-						);
-					})}
+							return (
+								<MortgageOwnershipRow
+									address={addressStr}
+									key={mortgage._id}
+									loanAmount={mortgage.loanAmount}
+									mortgageId={mortgage._id}
+									onMintSuccess={fetchOwnership}
+									ownership={ownership}
+								/>
+							);
+						}
+					)}
 				</div>
 			)}
 

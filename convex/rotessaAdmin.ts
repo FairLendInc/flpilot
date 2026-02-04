@@ -897,7 +897,7 @@ export const assignBorrowerBroker = action({
 				workosOrgId: args.workosOrgId,
 			});
 
-			const existing: Array<Doc<"broker_clients">> = await ctx.runQuery(
+			const existing: Doc<"broker_clients">[] = await ctx.runQuery(
 				internal.rotessaAdminQueries.getBrokerClientsByClientIdInternal,
 				{ clientId: args.borrowerUserId }
 			);

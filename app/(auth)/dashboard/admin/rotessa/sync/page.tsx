@@ -74,7 +74,8 @@ export default function AdminRotessaSyncPage() {
 						transactionsProcessed: log.metrics.transactionsProcessed ?? 0,
 						paymentsCreated: log.metrics.paymentsCreated ?? 0,
 						paymentsUpdated: log.metrics.paymentsUpdated ?? 0,
-						ledgerTransactionsCreated: log.metrics.ledgerTransactionsCreated ?? 0,
+						ledgerTransactionsCreated:
+							log.metrics.ledgerTransactionsCreated ?? 0,
 						errors: log.metrics.errors ?? 0,
 					}
 				: undefined,

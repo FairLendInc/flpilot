@@ -614,22 +614,24 @@ export function MortgageComparablesTab({
 					</div>
 				) : (
 					<div className="space-y-3">
-						{comparables.map((comp: NonNullable<typeof comparables>[number]) => (
-							<ComparableCard
-								comp={comp}
-								isUploadingImage={
-									editingUploading && editingComparableId === comp._id
-								}
-								key={comp._id}
-								onDelete={handleDelete}
-								onImageClick={() => {
-									setEditingComparableId(comp._id);
-									editImageInputRef.current?.click();
-								}}
-								onUpdateAddress={handleUpdateAddress}
-								onUpdateField={handleUpdateField}
-							/>
-						))}
+						{comparables.map(
+							(comp: NonNullable<typeof comparables>[number]) => (
+								<ComparableCard
+									comp={comp}
+									isUploadingImage={
+										editingUploading && editingComparableId === comp._id
+									}
+									key={comp._id}
+									onDelete={handleDelete}
+									onImageClick={() => {
+										setEditingComparableId(comp._id);
+										editImageInputRef.current?.click();
+									}}
+									onUpdateAddress={handleUpdateAddress}
+									onUpdateField={handleUpdateField}
+								/>
+							)
+						)}
 					</div>
 				)
 			) : (
