@@ -209,7 +209,7 @@ export function AppraisalData({
 						</Card.Root>
 
 						{/* Renovation Cost Card - Only if cost is provided */}
-						{asIfAppraisal.cost && (
+						{asIfAppraisal.cost != null && (
 							<Card.Root>
 								<CardContent className="p-4">
 									<div className="flex items-start gap-3">

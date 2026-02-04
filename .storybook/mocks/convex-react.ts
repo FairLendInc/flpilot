@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 type MockConfig = {
 	queries?: Record<string, unknown>;
 	actions?: Record<string, (...args: unknown[]) => unknown>;
@@ -71,13 +73,13 @@ export const useConvexAuth = () => {
 export const ConvexProvider = ({
 	children,
 }: {
-	children: React.ReactNode;
+	children: ReactNode;
 }) => children;
 
 export const ConvexProviderWithAuth = ({
 	children,
 }: {
-	children: React.ReactNode;
+	children: ReactNode;
 }) => children;
 
 export class ConvexReactClient {
