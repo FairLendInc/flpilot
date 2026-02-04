@@ -19,9 +19,25 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-	title: "MIC - Structured Data Overview",
+	title: "FairLend MIC | Canadian Mortgage Investment Corporation",
 	description:
-		"Synthesizing real-estate debt markets with algorithmic precision.",
+		"Invest in Canadian real estate through a modern mortgage investment corporation. Transparent, TFSA/RRSP eligible, engineered for returns. Join the waitlist.",
+	keywords: [
+		"MIC",
+		"mortgage investment corporation",
+		"Canadian real estate investment",
+		"TFSA eligible investment",
+		"RRSP eligible investment",
+		"private mortgage lending",
+		"FairLend",
+	],
+	openGraph: {
+		title: "FairLend MIC | Canadian Mortgage Investment Corporation",
+		description:
+			"Invest in Canadian real estate through a modern mortgage investment corporation. Transparent, TFSA/RRSP eligible, engineered for returns.",
+		type: "website",
+		locale: "en_CA",
+	},
 };
 
 // import { ThemeProvider } from "./components/theme-provider";
