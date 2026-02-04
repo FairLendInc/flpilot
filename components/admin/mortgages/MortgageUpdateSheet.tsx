@@ -1184,8 +1184,10 @@ export function MortgageUpdateSheet({
 																		image.url ||
 																		`/api/storage/${image.storageId}`
 																	}
+																	unoptimized={Boolean(image.previewUrl)}
 																/>
 																<button
+																	aria-label="Remove improvement mockup"
 																	className="absolute top-1 right-1 rounded-full bg-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
 																	onClick={() => handleRemoveAsIfImage(index)}
 																	type="button"

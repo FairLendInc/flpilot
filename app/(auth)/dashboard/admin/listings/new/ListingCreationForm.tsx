@@ -113,8 +113,6 @@ export default function ListingCreationForm() {
 		(state) => state.setListingVisibility
 	);
 	const addImage = useListingCreationStore((state) => state.addImage);
-	const _updateImage = useListingCreationStore((state) => state.updateImage);
-	const _removeImage = useListingCreationStore((state) => state.removeImage);
 	const addDocument = useListingCreationStore((state) => state.addDocument);
 	const updateDocument = useListingCreationStore(
 		(state) => state.updateDocument
@@ -1406,9 +1404,10 @@ export default function ListingCreationForm() {
 															className="group relative aspect-square overflow-hidden rounded-md border"
 															key={image.storageId}
 														>
-															{/* biome-ignore lint/a11y/useAltText: decorative preview */}
 															{/* biome-ignore lint/performance/noImgElement: Dynamic image from blob URL */}
 															<img
+																alt=""
+																aria-hidden="true"
 																className="h-full w-full object-cover"
 																height={200}
 																src={
@@ -1418,6 +1417,7 @@ export default function ListingCreationForm() {
 																width={200}
 															/>
 															<button
+																aria-label="Remove improvement mockup"
 																className="absolute top-1 right-1 rounded-full bg-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
 																onClick={() => handleRemoveAsIfImage(index)}
 																type="button"
