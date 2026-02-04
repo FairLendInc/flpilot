@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react"
 import { useSearchParams } from "next/navigation"
 import { createLogger } from "./mocks/logger"
 import { useDealStore } from "./store/dealStore"
+import { FairLendRole } from "./utils/dealLogic"
 
 const logger = createLogger("app:portalPage")
 // import { User } from '@/server/db/schema';
@@ -192,7 +193,23 @@ export default function DSMPortalPage({
     if (dealId) {
       useDealStore.getState().setDealId(dealId)
     }
-  }, [initialDocuments, initialUsers, deal, dealId, setDocuments, setAvailableUsers])
+
+    // Auto-set currentUser based on authenticated user identity
+    if (user?.email) {
+      const matchedUser = initialUsers?.find((u: { email: string }) => u.email === user.email)
+      if (matchedUser) {
+        useDealStore.getState().setCurrentUser(matchedUser)
+      } else {
+        // User is authenticated but not a document participant
+        useDealStore.getState().setCurrentUser({
+          id: user.subject || 'auth-user',
+          email: user.email,
+          name: user.name || user.email,
+          role: FairLendRole.NONE
+        })
+      }
+    }
+  }, [initialDocuments, initialUsers, deal, dealId, user, setDocuments, setAvailableUsers])
   
   return (
     <ErrorBoundary>
