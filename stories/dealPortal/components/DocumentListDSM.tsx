@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { AlertTriangle, AlertCircle, CheckCircle, ChevronLeft, Clock, FileText, ShieldCheck, Stamp, HandCoins } from "lucide-react"
 import HorizontalSteps from "./ui/horizontal-steps"
 import { useDealStore } from "../store/dealStore"
-import { ActionTypeEnum, Document as DocumensoDoc, ActionAssignment } from "../utils/dealLogic"
+import { ActionTypeEnum, Document as DocumensoDoc, ActionAssignment, FairLendRole } from "../utils/dealLogic"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const actionToTitle = (action: ActionAssignment) => {
@@ -81,13 +81,23 @@ const DocumentCard = ({
   // const currentUser2 = getCurrentUser2()
   const hasUserAction = requiredAction?.assignedToEmail === currentUser2?.email
 
-  // Get document steps using new DSM methods with null safety
-  // const steps = docManager2.getActionList() || []
-  // const currentStep = docManager2.getActionIndex() || 0
+  // Get document steps using signingSteps property, sorted by order
+  const steps = document.signingSteps 
+    ? [...document.signingSteps]
+        .sort((a, b) => a.order - b.order)
+        .map(s => ({
+          assignedToName: s.name || s.email,
+          action: String(s.role) === "LAWYER" ? "Review" : "Sign",
+          status: s.status
+        }))
+    : []
   
-  // Mock steps
-  const steps: any[] = []
-  const currentStep = 0
+  // Calculate current step based on first non-signed step (after sorting)
+  const sortedSigningSteps = document.signingSteps 
+    ? [...document.signingSteps].sort((a, b) => a.order - b.order)
+    : []
+  const currentStepIndex = sortedSigningSteps.findIndex(s => s.status !== 'SIGNED')
+  const currentStep = currentStepIndex === -1 ? steps.length : currentStepIndex
 
   // Calculate progress (simplified for individual document)
   const hasAction = !isCompleted

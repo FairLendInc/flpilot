@@ -152,6 +152,17 @@ export default defineSchema({
 		context: v.object({
 			investor: v.optional(
 				v.object({
+					// Broker selection step
+					brokerSelection: v.optional(
+						v.object({
+							brokerId: v.optional(v.id("brokers")),
+							brokerCode: v.optional(v.string()),
+							selectedAt: v.string(), // ISO timestamp
+						})
+					),
+					// Step configuration version for this journey
+					configVersion: v.optional(v.number()),
+					// Profile step
 					profile: v.optional(
 						v.object({
 							firstName: v.optional(v.string()),
@@ -170,6 +181,7 @@ export default defineSchema({
 							legalName: v.optional(v.string()),
 						})
 					),
+					// Preferences step
 					preferences: v.optional(
 						v.object({
 							minTicket: v.number(),
@@ -183,6 +195,29 @@ export default defineSchema({
 							focusRegions: v.optional(v.array(v.string())),
 						})
 					),
+					// KYC step (differentiated by broker type)
+					kyc: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("in_progress"),
+								v.literal("submitted"),
+								v.literal("acknowledged") // For external broker stub
+							),
+							documents: v.optional(
+								v.array(
+									v.object({
+										storageId: v.id("_storage"),
+										documentType: v.string(), // e.g., "id_verification", "proof_of_address"
+										uploadedAt: v.string(),
+									})
+								)
+							),
+							acknowledgedAt: v.optional(v.string()),
+							notes: v.optional(v.string()),
+						})
+					),
+					// Legacy KYC placeholder (for backward compatibility)
 					kycPlaceholder: v.optional(
 						v.object({
 							status: v.union(
@@ -191,6 +226,165 @@ export default defineSchema({
 								v.literal("submitted")
 							),
 							notes: v.optional(v.string()),
+						})
+					),
+					// Documents step (optional uploads)
+					documents: v.optional(
+						v.array(
+							v.object({
+								storageId: v.id("_storage"),
+								label: v.string(),
+							})
+						)
+					),
+				})
+			),
+			broker: v.optional(
+				v.object({
+					// Company information
+					companyInfo: v.optional(
+						v.object({
+							companyName: v.string(),
+							entityType: v.union(
+								v.literal("sole_proprietorship"),
+								v.literal("partnership"),
+								v.literal("corporation")
+							),
+							registrationNumber: v.string(),
+							registeredAddress: v.object({
+								street: v.string(),
+								city: v.string(),
+								state: v.string(),
+								zip: v.string(),
+								country: v.string(),
+							}),
+							businessPhone: v.string(),
+							businessEmail: v.string(),
+						})
+					),
+					// Licensing information
+					licensing: v.optional(
+						v.object({
+							licenseType: v.union(
+								v.literal("mortgage_broker"),
+								v.literal("investment_broker"),
+								v.literal("mortgage_dealer")
+							),
+							licenseNumber: v.string(),
+							issuer: v.string(),
+							issuedDate: v.string(), // ISO date
+							expiryDate: v.string(), // ISO date
+							jurisdictions: v.array(v.string()), // e.g., ["Ontario", "British Columbia"]
+						})
+					),
+					// Representative information
+					representatives: v.optional(
+						v.array(
+							v.object({
+								firstName: v.string(),
+								lastName: v.string(),
+								role: v.string(),
+								email: v.string(),
+								phone: v.string(),
+								hasAuthority: v.boolean(),
+							})
+						)
+					),
+					// Documents
+					documents: v.optional(
+						v.array(
+							v.object({
+								storageId: v.id("_storage"),
+								label: v.string(),
+								type: v.string(), // e.g., "license", "insurance", "agreement"
+								uploadedAt: v.string(), // ISO timestamp
+							})
+						)
+					),
+					// Timeline of admin requests and broker responses
+					adminRequestTimeline: v.optional(
+						v.array(
+							v.object({
+								id: v.string(), // UUID
+								type: v.union(
+									v.literal("info_request"),
+									v.literal("document_request"),
+									v.literal("clarification")
+								),
+								requestedBy: v.id("users"),
+								requestedAt: v.string(), // ISO timestamp
+								message: v.string(),
+								resolved: v.boolean(),
+								resolvedAt: v.optional(v.string()), // ISO timestamp
+								response: v.optional(v.string()),
+								responseDocuments: v.optional(
+									v.array(
+										v.object({
+											storageId: v.id("_storage"),
+											label: v.string(),
+										})
+									)
+								),
+							})
+						)
+					),
+					// Proposed subdomain (subject to availability check)
+					proposedSubdomain: v.optional(v.string()),
+				})
+			),
+			lawyer: v.optional(
+				v.object({
+					profile: v.optional(
+						v.object({
+							firstName: v.string(),
+							middleName: v.optional(v.string()),
+							lastName: v.string(),
+							lsoNumber: v.string(),
+							firmName: v.string(),
+							email: v.string(),
+							phone: v.string(),
+							jurisdiction: v.string(),
+						})
+					),
+					identityVerification: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("pending"),
+								v.literal("verified"),
+								v.literal("mismatch"),
+								v.literal("failed")
+							),
+							provider: v.optional(v.string()),
+							inquiryId: v.optional(v.string()),
+							extractedName: v.optional(
+								v.object({
+									firstName: v.string(),
+									middleName: v.optional(v.string()),
+									lastName: v.string(),
+								})
+							),
+							checkedAt: v.optional(v.string()),
+						})
+					),
+					lsoVerification: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("verified"),
+								v.literal("failed")
+							),
+							checkedAt: v.optional(v.string()),
+							matchedRecord: v.optional(
+								v.object({
+									lsoNumber: v.string(),
+									firstName: v.string(),
+									lastName: v.string(),
+									firmName: v.optional(v.string()),
+									jurisdiction: v.optional(v.string()),
+									status: v.optional(v.string()),
+								})
+							),
 						})
 					),
 					documents: v.optional(
@@ -215,12 +409,191 @@ export default defineSchema({
 				decidedBy: v.id("users"),
 				decidedAt: v.string(),
 				notes: v.optional(v.string()),
+				decisionSource: v.optional(
+					v.union(v.literal("admin"), v.literal("system"))
+				),
 			})
 		),
 		lastTouchedAt: v.string(),
 	})
 		.index("by_user", ["userId"])
 		.index("by_status", ["status"]),
+
+	// ============================================================================
+	// Broker Onboarding and Management Tables
+	// ============================================================================
+
+	/**
+	 * Approved broker configurations
+	 * Stores subdomain, branding, commission rates, and status for approved brokers
+	 */
+	brokers: defineTable({
+		// References
+		userId: v.id("users"), // Primary broker user
+		workosOrgId: v.string(), // Broker's WorkOS organization
+		// Subdomain configuration
+		subdomain: v.string(), // e.g., "acmebrokers"
+		customDomain: v.optional(v.string()), // e.g., "mortgages.acme.com"
+		// Branding configuration
+		branding: v.object({
+			logoStorageId: v.optional(v.id("_storage")),
+			primaryColor: v.optional(v.string()), // hex color
+			secondaryColor: v.optional(v.string()), // hex color
+			brandName: v.optional(v.string()), // override default company name
+		}),
+		// Commission configuration
+		commission: v.object({
+			ratePercentage: v.number(), // e.g., 2.5 for 2.5%
+		}),
+		// Status
+		status: v.union(
+			v.literal("active"),
+			v.literal("suspended"),
+			v.literal("revoked")
+		),
+		// Timestamps
+		approvedAt: v.string(), // ISO timestamp
+		createdAt: v.string(),
+		updatedAt: v.string(),
+	})
+		.index("by_user", ["userId"])
+		.index("by_subdomain", ["subdomain"])
+		.index("by_workos_org", ["workosOrgId"])
+		.index("by_status", ["status"]),
+
+	/**
+	 * Broker-client relationships
+	 * Links clients to their managing brokers with filter configurations
+	 */
+	broker_clients: defineTable({
+		// References
+		brokerId: v.id("brokers"),
+		clientId: v.id("users"), // The client user
+		workosOrgId: v.string(), // Client's WorkOS organization
+		// Listing filter configuration (set by broker)
+		filters: v.object({
+			// Broker-provided constraints (set by broker, read-only to client)
+			constraints: v.object({
+				minLTV: v.optional(v.number()),
+				maxLTV: v.optional(v.number()),
+				minLoanAmount: v.optional(v.number()),
+				maxLoanAmount: v.optional(v.number()),
+				minInterestRate: v.optional(v.number()),
+				maxInterestRate: v.optional(v.number()),
+				allowedPropertyTypes: v.optional(v.array(v.string())),
+				allowedLocations: v.optional(v.array(v.string())),
+				allowedRiskProfiles: v.optional(
+					v.array(
+						v.union(
+							v.literal("conservative"),
+							v.literal("balanced"),
+							v.literal("growth")
+						)
+					)
+				),
+			}),
+			// Client-selected values (within constraints)
+			values: v.object({
+				minLTV: v.optional(v.number()),
+				maxLTV: v.optional(v.number()),
+				minLoanAmount: v.optional(v.number()),
+				maxLoanAmount: v.optional(v.number()),
+				minInterestRate: v.optional(v.number()),
+				maxInterestRate: v.optional(v.number()),
+				propertyTypes: v.array(v.string()),
+				locations: v.array(v.string()),
+				riskProfile: v.union(
+					v.literal("conservative"),
+					v.literal("balanced"),
+					v.literal("growth")
+				),
+			}),
+		}),
+		// Onboarding workflow
+		onboardingStatus: v.union(
+			v.literal("invited"),
+			v.literal("in_progress"),
+			v.literal("pending_approval"),
+			v.literal("approved"),
+			v.literal("rejected")
+		),
+		// Timestamps
+		invitedAt: v.string(),
+		approvedAt: v.optional(v.string()),
+		createdAt: v.string(),
+		updatedAt: v.string(),
+	})
+		.index("by_broker", ["brokerId"])
+		.index("by_client", ["clientId"])
+		.index("by_status", ["onboardingStatus"])
+		.index("by_broker_status", ["brokerId", "onboardingStatus"]),
+
+	/**
+	 * Broker rate history for historical commission/adjustment rates
+	 * Tracks rate changes over time for accurate historical calculations
+	 */
+	broker_rate_history: defineTable({
+		brokerId: v.id("brokers"),
+		type: v.literal("commission"),
+		oldRate: v.number(),
+		newRate: v.number(),
+		effectiveAt: v.string(), // ISO timestamp when new rate took effect
+		changedBy: v.id("users"), // Admin who made the change
+		createdAt: v.string(),
+	})
+		.index("by_broker", ["brokerId"])
+		.index("by_broker_type", ["brokerId", "type"])
+		.index("by_effective", ["effectiveAt"]),
+
+	/**
+	 * Broker-client communication timeline
+	 * Tracks all communication between brokers and clients
+	 */
+	communication_timeline: defineTable({
+		// References
+		clientBrokerId: v.id("broker_clients"),
+		sentBy: v.id("users"), // User ID of the sender (broker or client)
+		// Communication type
+		type: v.union(
+			v.literal("info_request"),
+			v.literal("document_request"),
+			v.literal("clarification"),
+			v.literal("announcement")
+		),
+		// Content
+		message: v.string(),
+		// Document attachments
+		documents: v.optional(
+			v.array(
+				v.object({
+					storageId: v.id("_storage"),
+					label: v.string(),
+				})
+			)
+		),
+		// Resolution status (for requests that need responses)
+		resolved: v.boolean(),
+		resolvedAt: v.optional(v.string()), // ISO timestamp
+		response: v.optional(v.string()), // Response message
+		responseDocuments: v.optional(
+			v.array(
+				v.object({
+					storageId: v.id("_storage"),
+					label: v.string(),
+				})
+			)
+		),
+		respondedBy: v.optional(v.id("users")), // User ID of responder
+		// Optional announcement ID for grouping bulk announcements
+		announcementId: v.optional(v.string()), // UUID
+		// Timestamps
+		sentAt: v.string(), // ISO timestamp when message was sent
+		createdAt: v.string(),
+	})
+		.index("by_client", ["clientBrokerId"])
+		.index("by_client_status", ["clientBrokerId", "resolved"])
+		.index("by_sent_by", ["sentBy"])
+		.index("by_announcement", ["announcementId"]),
 
 	// ============================================================================
 	// Mortgage Marketplace Tables
@@ -230,11 +603,17 @@ export default defineSchema({
 		// Borrower profile information
 		name: v.string(),
 		email: v.string(),
+		phone: v.optional(v.string()),
 		// Rotessa payment processor customer ID
+		//TODO: Convert this to extPaymentId
 		rotessaCustomerId: v.string(),
 	})
 		.index("by_rotessa_customer_id", ["rotessaCustomerId"])
 		.index("by_email", ["email"]),
+
+	mic_investors_demo: defineTable({
+		name: v.string(),
+	}),
 
 	mortgages: defineTable({
 		// Optional external identifier for integrations (used for idempotency)
@@ -284,6 +663,11 @@ export default defineSchema({
 				method: v.string(),
 				company: v.string(),
 				date: v.string(),
+				// New optional fields for renovation details
+				description: v.optional(v.string()),
+				imageStorageIds: v.optional(v.array(v.id("_storage"))),
+				projectedCompletionDate: v.optional(v.string()),
+				cost: v.optional(v.number()),
 			})
 		),
 		propertyType: v.string(),
@@ -481,6 +865,7 @@ export default defineSchema({
 				v.literal("pending_docs"),
 				v.literal("pending_transfer"),
 				v.literal("pending_verification"),
+				v.literal("pending_ownership_review"),
 				v.literal("completed"),
 				v.literal("cancelled"),
 				v.literal("archived")
@@ -593,7 +978,11 @@ export default defineSchema({
 			v.literal("deal_state_changed"),
 			v.literal("deal_completed"),
 			v.literal("deal_cancelled"),
-			v.literal("deal_stuck") // Future: for time-based alerts
+			v.literal("deal_stuck"), // Future: for time-based alerts
+			// Ownership transfer workflow alerts
+			v.literal("ownership_review_required"),
+			v.literal("ownership_transfer_rejected"),
+			v.literal("manual_resolution_required")
 		),
 		severity: v.union(
 			v.literal("info"),
@@ -675,4 +1064,174 @@ export default defineSchema({
 		.index("by_group", ["groupName"])
 		.index("by_name", ["name"])
 		.index("by_group_name", ["groupName", "name"]),
+
+	// ============================================================================
+	// Ownership Transfer Workflow Tables
+	// ============================================================================
+
+	/**
+	 * Pending ownership transfers - staged for admin review before execution
+	 * Implements the Maker-Checker pattern for ownership transfers
+	 */
+	pending_ownership_transfers: defineTable({
+		// References
+		dealId: v.id("deals"),
+		mortgageId: v.id("mortgages"),
+		// Owner reference - union type: userId from users table OR "fairlend" literal
+		fromOwnerId: v.union(v.literal("fairlend"), v.id("users")),
+		toOwnerId: v.id("users"),
+		// Transfer details
+		percentage: v.number(), // Percentage being transferred (0-100)
+		// Status tracking
+		status: v.union(
+			v.literal("pending"),
+			v.literal("approved"),
+			v.literal("rejected")
+		),
+		// Timestamps
+		createdAt: v.number(),
+		reviewedAt: v.optional(v.number()),
+		// Review metadata
+		reviewedBy: v.optional(v.id("users")),
+		reviewNotes: v.optional(v.string()),
+		// Rejection tracking for manual resolution escalation
+		rejectionCount: v.optional(v.number()),
+	})
+		.index("by_deal", ["dealId"])
+		.index("by_status", ["status"])
+		.index("by_mortgage", ["mortgageId"]),
+
+	// ============================================================================
+	// Investor Onboarding Tables
+	// ============================================================================
+
+	/**
+	 * Broker codes for investor onboarding
+	 * Maps unique codes to brokers for self-directed investor onboarding
+	 */
+	broker_codes: defineTable({
+		// The actual code (e.g., "ABC123") - stored uppercase for case-insensitive lookup
+		code: v.string(),
+		// Reference to the broker
+		brokerId: v.id("brokers"),
+		// Optional description (e.g., "Spring 2024 Campaign")
+		description: v.optional(v.string()),
+		// Expiration date (optional)
+		expiresAt: v.optional(v.string()), // ISO timestamp
+		// Usage tracking
+		maxUses: v.optional(v.number()), // null = unlimited
+		useCount: v.number(),
+		// Status
+		isActive: v.boolean(),
+		// Timestamps
+		createdAt: v.string(), // ISO timestamp
+		createdBy: v.id("users"),
+		updatedAt: v.string(),
+	})
+		.index("by_code", ["code"])
+		.index("by_broker", ["brokerId"])
+		.index("by_active_code", ["isActive", "code"]),
+
+	/**
+	 * Investor onboarding step configurations
+	 * Defines step order and settings for different broker types
+	 */
+	investor_onboarding_configs: defineTable({
+		// Configuration identifier: "fairlend", "external_broker", or specific brokerId
+		configId: v.string(),
+		// Step order (array of step IDs)
+		stepOrder: v.array(v.string()),
+		// Step-specific settings
+		stepSettings: v.record(
+			v.string(), // stepId
+			v.object({
+				isRequired: v.boolean(),
+				allowSkip: v.boolean(),
+				customFields: v.optional(v.record(v.string(), v.any())),
+			})
+		),
+		// Configuration version for migration handling
+		version: v.number(),
+		// Timestamps
+		createdAt: v.string(),
+		updatedAt: v.string(),
+	})
+		.index("by_config_id", ["configId"])
+		.index("by_version", ["configId", "version"]),
+
+	/**
+	 * Trace spans - execution-level observability for backend function calls
+	 * Records function name, arguments, auth context, timing, results, and errors.
+	 * Dev mode captures full payloads; production can be disabled or sampled.
+	 */
+	trace_spans: defineTable({
+		// Trace identification
+		traceId: v.string(), // Groups all spans in a single request chain
+		spanId: v.string(), // Unique span identifier
+		parentSpanId: v.optional(v.string()), // Links to parent span
+		requestId: v.optional(v.string()), // Correlates to x-request-id from proxy
+		// Function info
+		functionName: v.string(), // e.g., "deals.createDeal"
+		functionType: v.string(), // "query" | "mutation" | "action"
+		// Timing
+		startTime: v.number(),
+		endTime: v.optional(v.number()),
+		duration: v.optional(v.number()), // ms
+		// Status
+		status: v.string(), // "started" | "completed" | "error"
+		// Full payloads (dev mode - no truncation)
+		args: v.optional(v.any()), // Full function arguments
+		result: v.optional(v.any()), // Full return value
+		error: v.optional(
+			v.object({
+				message: v.string(),
+				stack: v.optional(v.string()),
+			})
+		),
+		// Auth context snapshot
+		authContext: v.optional(
+			v.object({
+				subject: v.optional(v.string()),
+				role: v.optional(v.string()),
+				org_id: v.optional(v.string()),
+				permissions: v.optional(v.array(v.string())),
+			})
+		),
+		// Whether payload was truncated due to size limits
+		truncated: v.optional(v.boolean()),
+	})
+		.index("by_trace", ["traceId"])
+		.index("by_parent", ["parentSpanId"])
+		.index("by_function", ["functionName"])
+		.index("by_status", ["status"])
+		.index("by_start_time", ["startTime"])
+		.index("by_request_id", ["requestId"]),
+
+	/**
+	 * Audit events - durable storage for events before external emission
+	 * Write-ahead pattern ensures no events lost; supports at-least-once delivery
+	 */
+	audit_events: defineTable({
+		// Event identification
+		eventType: v.string(), // e.g., "ownership.transfer.created"
+		entityType: v.string(), // e.g., "mortgage_ownership"
+		entityId: v.string(), // ID of the affected entity
+		// Actor
+		userId: v.id("users"), // Who triggered the event
+		// Timing
+		timestamp: v.number(),
+		// State snapshots (sanitized - no PII)
+		beforeState: v.optional(v.any()),
+		afterState: v.optional(v.any()),
+		// Additional context
+		metadata: v.optional(v.any()),
+		// Emission tracking
+		emittedAt: v.optional(v.number()), // null = not yet emitted
+		emitFailures: v.optional(v.number()), // Retry counter
+	})
+		.index("by_entity", ["entityType", "entityId"])
+		.index("by_type", ["eventType"])
+		.index("by_emitted", ["emittedAt"]) // For cron job - find unemitted events
+		.index("by_user", ["userId"])
+		.index("by_timestamp", ["timestamp"]), // For 7-year retention cleanup
 });

@@ -10,6 +10,7 @@ import {
 	type QueryCtx,
 	query,
 } from "./_generated/server";
+import { adminQuery } from "./lib/authorizedFunctions";
 import schema from "./schema";
 
 const userFields = schema.tables.users.validator.fields;
@@ -75,6 +76,36 @@ export const updateFromWorkOS = internalMutation({
 				},
 			};
 		}
+	},
+});
+
+/**
+ * Delete a user by their WorkOS ID (idp_id)
+ * Used by the user.deleted webhook
+ */
+export const destroyByWorkosId = internalMutation({
+	args: {
+		workosUserId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const existingUser = await userByExternalId(ctx, args.workosUserId);
+
+		if (!existingUser) {
+			console.log("User not found for deletion:", {
+				workosUserId: args.workosUserId,
+			});
+			return null;
+		}
+
+		await ctx.db.delete(existingUser._id);
+
+		console.log("User deleted:", {
+			userId: existingUser._id,
+			workosUserId: args.workosUserId,
+			email: existingUser.email,
+		});
+
+		return existingUser;
 	},
 });
 
@@ -217,6 +248,31 @@ export const viewer = query({
 	},
 });
 
+export const getUserByIdAdmin = adminQuery({
+	args: { userId: v.id("users") },
+	returns: v.union(
+		v.object({
+			_id: v.id("users"),
+			email: v.string(),
+			first_name: v.optional(v.string()),
+			last_name: v.optional(v.string()),
+		}),
+		v.null()
+	),
+	handler: async (ctx, { userId }) => {
+		const user = await ctx.db.get(userId);
+		if (!user) {
+			return null;
+		}
+		return {
+			_id: user._id,
+			email: user.email,
+			first_name: user.first_name,
+			last_name: user.last_name,
+		};
+	},
+});
+
 /**
  * Internal query to get user by IDP ID
  * For use by actions that need to resolve user IDs
@@ -224,4 +280,28 @@ export const viewer = query({
 export const getUserByIdpId = internalQuery({
 	args: { idpId: v.string() },
 	handler: async (ctx, { idpId }) => await userByExternalId(ctx, idpId),
+});
+
+export const getUserById = internalQuery({
+	args: { userId: v.id("users") },
+	handler: async (ctx, { userId }) => await ctx.db.get(userId),
+});
+
+/**
+ * List all users for admin purposes
+ * Used by the Ledger View admin dashboard
+ */
+export const listAllUsers = adminQuery({
+	args: {},
+	handler: async (ctx) => {
+		const users = await ctx.db.query("users").collect();
+		return users.map((user) => ({
+			_id: user._id,
+			idp_id: user.idp_id,
+			email: user.email,
+			first_name: user.first_name,
+			last_name: user.last_name,
+			created_at: user.created_at,
+		}));
+	},
 });

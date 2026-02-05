@@ -32,6 +32,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { getTimeAgo } from "@/lib/types/dealTypes";
+
+type AlertItem = (typeof api.alerts.getUnreadAlerts._returnType)[number];
+
 import { cn } from "@/lib/utils";
 
 // Map alert type strings to icon components
@@ -114,7 +117,7 @@ export function AlertBell() {
 					<>
 						<ScrollArea className="h-[384px]">
 							<div className="pr-4">
-								{unreadAlerts.map((alert) => {
+								{unreadAlerts.map((alert: AlertItem) => {
 									const IconComponent = ALERT_ICONS[alert.type] || Bell;
 
 									return (

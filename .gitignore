@@ -17,12 +17,39 @@ dev/**
 .vscode/**
 .vscode/*
 
+qdrant_storage/
+qdrant_storage/**
+qdrant_storage/*
+
 # testing
 /coverage
 
 # next.js
 /.next/
 /out/
+
+#agents 
+# .agent/
+# .agent/*
+# .cursor/
+# .cursor/**
+# .gemini/
+# .factory/
+# .kilocode/
+# .qoder/
+# .shared/
+# .zed/
+# .opencode/
+# .claude/
+# openspec/
+# openspec/changes/
+# openspec/changes/*
+# openspec/changes/**
+# /openspec/
+# .opencode/**
+# QODER.md
+# .claude/**
+# openspec/**
 
 # production
 /build
@@ -51,6 +78,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+docs/*
+docs/**
+docs/
+.agent/
+.agent/*
+.cursor/
+.cursor/**
+.gemini/
+.factory/
+.kilocode/
+.qoder/
+.shared/
+.zed/
 
 # Playwright
 node_modules/

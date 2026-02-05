@@ -17,6 +17,9 @@ import type {
 	MortgageWithUrls,
 } from "@/lib/types/convex";
 
+type ListingWithMortgage =
+	(typeof api.listings.getAvailableListingsWithMortgages._returnType)[number];
+
 type ListingItem = FilterableItem & {
 	id: string;
 	imageSrc: string;
@@ -110,7 +113,7 @@ export function ListingsClient() {
 
 	// Only process listings if authenticated - prevents using empty array from query fallback
 	const listings: ListingItem[] =
-		listingsWithMortgages?.map((item) => ({
+		listingsWithMortgages?.map((item: ListingWithMortgage) => ({
 			...transformMortgage(item.mortgage as MortgageWithUrls),
 			locked: item.listing.locked,
 		})) ?? [];

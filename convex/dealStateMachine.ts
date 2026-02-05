@@ -33,6 +33,7 @@ export type DealStateValue =
 	| "pending_docs"
 	| "pending_transfer"
 	| "pending_verification"
+	| "pending_ownership_review"
 	| "completed"
 	| "cancelled"
 	| "archived";
@@ -65,7 +66,10 @@ export type DealEvent =
 	| { type: "DOCUMENTS_COMPLETE"; notes?: string }
 	| { type: "RECEIVE_FUNDS"; notes?: string }
 	| { type: "VERIFY_FUNDS"; notes?: string }
-	| { type: "COMPLETE_DEAL"; notes?: string }
+	| { type: "VERIFY_COMPLETE"; notes?: string } // pending_verification -> pending_ownership_review
+	| { type: "CONFIRM_TRANSFER"; notes?: string } // pending_ownership_review -> completed
+	| { type: "REJECT_TRANSFER"; reason: string } // pending_ownership_review -> pending_verification
+	| { type: "COMPLETE_DEAL"; notes?: string } // Legacy: direct to completed (backward compat)
 	| { type: "GO_BACK"; toState: DealStateValue; notes?: string }
 	| { type: "CANCEL"; reason: string }
 	| { type: "ARCHIVE" };
@@ -131,6 +135,11 @@ export const dealMachine = setup({
 			)
 				toState = "pending_transfer";
 			else if (event.type === "VERIFY_FUNDS") toState = "pending_verification";
+			else if (event.type === "VERIFY_COMPLETE")
+				toState = "pending_ownership_review";
+			else if (event.type === "CONFIRM_TRANSFER") toState = "completed";
+			else if (event.type === "REJECT_TRANSFER")
+				toState = "pending_verification";
 			else if (event.type === "COMPLETE_DEAL") toState = "completed";
 			else if (event.type === "CANCEL") toState = "cancelled";
 			else if (event.type === "ARCHIVE") toState = "archived";
@@ -260,10 +269,17 @@ export const dealMachine = setup({
 		/**
 		 * PENDING_VERIFICATION
 		 * Verifying that transferred funds match deal value and have cleared.
-		 * Final step before deal completion.
+		 * Transitions to ownership review for admin approval.
 		 */
 		pending_verification: {
 			on: {
+				// New: Transition to ownership review (preferred path)
+				VERIFY_COMPLETE: {
+					target: "pending_ownership_review",
+					guard: "canTransitionForward",
+					actions: "logTransition",
+				},
+				// Legacy: Direct to completed (backward compatibility)
 				COMPLETE_DEAL: {
 					target: "completed",
 					guard: "canTransitionForward",
@@ -271,6 +287,31 @@ export const dealMachine = setup({
 				},
 				GO_BACK: {
 					target: "pending_transfer",
+					guard: "canTransitionBackward",
+					actions: "logTransition",
+				},
+				CANCEL: {
+					target: "cancelled",
+					guard: "canCancel",
+					actions: "logTransition",
+				},
+			},
+		},
+
+		/**
+		 * PENDING_OWNERSHIP_REVIEW
+		 * Admin reviews ownership transfer details before execution.
+		 * Can approve (-> completed) or reject (-> pending_verification).
+		 */
+		pending_ownership_review: {
+			on: {
+				CONFIRM_TRANSFER: {
+					target: "completed",
+					guard: "canTransitionForward",
+					actions: "logTransition",
+				},
+				REJECT_TRANSFER: {
+					target: "pending_verification",
 					guard: "canTransitionBackward",
 					actions: "logTransition",
 				},
@@ -335,6 +376,7 @@ export const DEAL_STATES: readonly DealStateValue[] = [
 	"pending_docs",
 	"pending_transfer",
 	"pending_verification",
+	"pending_ownership_review",
 	"completed",
 	"cancelled",
 	"archived",
@@ -355,6 +397,14 @@ export function canCancelFromState(state: DealStateValue): boolean {
 }
 
 /**
+ * Check if a state is the ownership review state
+ * Used to determine if the deal requires admin approval for ownership transfer
+ */
+export function isOwnershipReviewState(state: DealStateValue): boolean {
+	return state === "pending_ownership_review";
+}
+
+/**
  * Get the next valid forward state for a given state
  */
 export function getNextState(
@@ -365,7 +415,8 @@ export function getNextState(
 		pending_lawyer: "pending_docs",
 		pending_docs: "pending_transfer",
 		pending_transfer: "pending_verification",
-		pending_verification: "completed",
+		pending_verification: "pending_ownership_review",
+		pending_ownership_review: "completed",
 		completed: "archived",
 		cancelled: "archived",
 		archived: null,
@@ -385,6 +436,7 @@ export function getPreviousState(
 		pending_docs: "pending_lawyer",
 		pending_transfer: "pending_docs",
 		pending_verification: "pending_transfer",
+		pending_ownership_review: "pending_verification",
 		completed: null,
 		cancelled: null,
 		archived: null,

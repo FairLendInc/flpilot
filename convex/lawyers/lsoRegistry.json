@@ -1,0 +1,26 @@
+[
+  {
+    "lsoNumber": "LSO-10001",
+    "firstName": "Ada",
+    "lastName": "Lovelace",
+    "firmName": "Analytical Law",
+    "jurisdiction": "ON",
+    "status": "active"
+  },
+  {
+    "lsoNumber": "LSO-10002",
+    "firstName": "Alan",
+    "lastName": "Turing",
+    "firmName": "Enigma Legal",
+    "jurisdiction": "ON",
+    "status": "active"
+  },
+  {
+    "lsoNumber": "LSO-10003",
+    "firstName": "Grace",
+    "lastName": "Hopper",
+    "firmName": "Compiler & Co",
+    "jurisdiction": "ON",
+    "status": "inactive"
+  }
+]

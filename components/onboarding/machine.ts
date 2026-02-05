@@ -7,12 +7,31 @@ export type OnboardingStateValue =
 	| "loading"
 	| "personaSelection"
 	| "investor.intro"
+	| "investor.broker_selection"
 	| "investor.profile"
 	| "investor.preferences"
-	| "investor.kycStub"
+	| "investor.kyc_documents"
+	| "investor.kyc_stub"
 	| "investor.documentsStub"
 	| "investor.review"
-	| "broker.placeholder"
+	| "investor.pending_admin"
+	| "investor.rejected"
+	| "investor.approved"
+	| "broker.intro"
+	| "broker.company_info"
+	| "broker.licensing"
+	| "broker.representatives"
+	| "broker.documents"
+	| "broker.review"
+	| "broker.pending_admin"
+	| "broker.rejected"
+	| "lawyer.intro"
+	| "lawyer.profile"
+	| "lawyer.identity_verification"
+	| "lawyer.lso_verification"
+	| "lawyer.review"
+	| "lawyer.pending_admin"
+	| "lawyer.rejected"
 	| "lawyer.placeholder"
 	| "pendingAdmin"
 	| "rejected"
@@ -22,6 +41,8 @@ type MachineContext = {
 	persona: JourneyDoc["persona"] | "unselected";
 	status: JourneyDoc["status"];
 	investor: NonNullable<JourneyDoc["context"]>["investor"];
+	broker: NonNullable<JourneyDoc["context"]>["broker"];
+	lawyer: NonNullable<JourneyDoc["context"]>["lawyer"];
 	stateValue: OnboardingStateValue;
 };
 
@@ -40,6 +61,8 @@ const DEFAULT_CONTEXT: MachineContext = {
 	persona: "unselected",
 	status: "draft",
 	investor: {},
+	broker: {},
+	lawyer: {},
 	stateValue: "personaSelection",
 };
 
@@ -53,6 +76,22 @@ export const onboardingMachine = setup({
 			event.type === "HYDRATE" && !event.journey,
 		isPendingAdmin: ({ event }: { event: MachineEvent }) =>
 			event.type === "HYDRATE" && event.journey?.status === "awaiting_admin",
+		isBrokerPendingAdmin: ({ event }: { event: MachineEvent }) =>
+			event.type === "HYDRATE" &&
+			event.journey?.status === "awaiting_admin" &&
+			event.journey?.persona === "broker",
+		isBrokerRejected: ({ event }: { event: MachineEvent }) =>
+			event.type === "HYDRATE" &&
+			event.journey?.status === "rejected" &&
+			event.journey?.persona === "broker",
+		isLawyerPendingAdmin: ({ event }: { event: MachineEvent }) =>
+			event.type === "HYDRATE" &&
+			event.journey?.status === "awaiting_admin" &&
+			event.journey?.persona === "lawyer",
+		isLawyerRejected: ({ event }: { event: MachineEvent }) =>
+			event.type === "HYDRATE" &&
+			event.journey?.status === "rejected" &&
+			event.journey?.persona === "lawyer",
 		isRejected: ({ event }: { event: MachineEvent }) =>
 			event.type === "HYDRATE" && event.journey?.status === "rejected",
 		isApproved: ({ event }: { event: MachineEvent }) =>
@@ -70,6 +109,8 @@ export const onboardingMachine = setup({
 				persona: event.journey.persona,
 				status: event.journey.status,
 				investor: event.journey.context?.investor ?? {},
+				broker: event.journey.context?.broker ?? {},
+				lawyer: event.journey.context?.lawyer ?? {},
 				stateValue: (event.journey.stateValue ??
 					"personaSelection") as OnboardingStateValue,
 			};
@@ -107,8 +148,24 @@ export const onboardingMachine = setup({
 			},
 			{
 				guard: ({ event }: { event: AdvanceEvent }) =>
-					event.stateValue === "investor.kycStub",
-				target: ".investor.kycStub",
+					event.stateValue === "investor.broker_selection",
+				target: ".investor.broker_selection",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "investor.kyc_documents",
+				target: ".investor.kyc_documents",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "investor.kyc_stub",
+				target: ".investor.kyc_stub",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -125,6 +182,126 @@ export const onboardingMachine = setup({
 				guard: ({ event }: { event: AdvanceEvent }) =>
 					event.stateValue === "investor.review",
 				target: ".investor.review",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.intro",
+				target: ".broker.intro",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.company_info",
+				target: ".broker.company_info",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.licensing",
+				target: ".broker.licensing",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.representatives",
+				target: ".broker.representatives",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.documents",
+				target: ".broker.documents",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.review",
+				target: ".broker.review",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.pending_admin",
+				target: ".broker.pending_admin",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "broker.rejected",
+				target: ".broker.rejected",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "lawyer.intro",
+				target: ".lawyer.intro",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "lawyer.profile",
+				target: ".lawyer.profile",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "lawyer.identity_verification",
+				target: ".lawyer.identity_verification",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "lawyer.lso_verification",
+				target: ".lawyer.lso_verification",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "lawyer.review",
+				target: ".lawyer.review",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "lawyer.pending_admin",
+				target: ".lawyer.pending_admin",
+				actions: assign(({ event }: { event: AdvanceEvent }) => ({
+					stateValue: event.stateValue,
+				})),
+			},
+			{
+				guard: ({ event }: { event: AdvanceEvent }) =>
+					event.stateValue === "lawyer.rejected",
+				target: ".lawyer.rejected",
 				actions: assign(({ event }: { event: AdvanceEvent }) => ({
 					stateValue: event.stateValue,
 				})),
@@ -148,6 +325,26 @@ export const onboardingMachine = setup({
 		},
 		HYDRATE: [
 			{ guard: "noJourney", target: ".personaSelection" },
+			{
+				guard: "isBrokerPendingAdmin",
+				target: ".broker.pending_admin",
+				actions: "applyJourney",
+			},
+			{
+				guard: "isBrokerRejected",
+				target: ".broker.rejected",
+				actions: "applyJourney",
+			},
+			{
+				guard: "isLawyerPendingAdmin",
+				target: ".lawyer.pending_admin",
+				actions: "applyJourney",
+			},
+			{
+				guard: "isLawyerRejected",
+				target: ".lawyer.rejected",
+				actions: "applyJourney",
+			},
 			{
 				guard: "isPendingAdmin",
 				target: ".pendingAdmin",
@@ -184,8 +381,22 @@ export const onboardingMachine = setup({
 			{
 				guard: ({ event }: { event: HydrateEvent }) =>
 					event.type === "HYDRATE" &&
-					event.journey?.stateValue === "investor.kycStub",
-				target: ".investor.kycStub",
+					event.journey?.stateValue === "investor.broker_selection",
+				target: ".investor.broker_selection",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.kyc_documents",
+				target: ".investor.kyc_documents",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "investor.kyc_stub",
+				target: ".investor.kyc_stub",
 				actions: "applyJourney",
 			},
 			{
@@ -200,6 +411,118 @@ export const onboardingMachine = setup({
 					event.type === "HYDRATE" &&
 					event.journey?.stateValue === "investor.review",
 				target: ".investor.review",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.intro",
+				target: ".broker.intro",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.company_info",
+				target: ".broker.company_info",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.licensing",
+				target: ".broker.licensing",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.representatives",
+				target: ".broker.representatives",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.documents",
+				target: ".broker.documents",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.review",
+				target: ".broker.review",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.pending_admin",
+				target: ".broker.pending_admin",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "broker.rejected",
+				target: ".broker.rejected",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.intro",
+				target: ".lawyer.intro",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.profile",
+				target: ".lawyer.profile",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.identity_verification",
+				target: ".lawyer.identity_verification",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.lso_verification",
+				target: ".lawyer.lso_verification",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.review",
+				target: ".lawyer.review",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.pending_admin",
+				target: ".lawyer.pending_admin",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.rejected",
+				target: ".lawyer.rejected",
+				actions: "applyJourney",
+			},
+			{
+				guard: ({ event }: { event: HydrateEvent }) =>
+					event.type === "HYDRATE" &&
+					event.journey?.stateValue === "lawyer.placeholder",
+				target: ".lawyer.intro",
 				actions: "applyJourney",
 			},
 			{
@@ -225,22 +548,41 @@ export const onboardingMachine = setup({
 			initial: "intro",
 			states: {
 				intro: {},
+				broker_selection: {},
 				profile: {},
 				preferences: {},
-				kycStub: {},
+				kyc_documents: {},
+				kyc_stub: {},
 				documentsStub: {},
 				review: {},
+				pending_admin: {},
+				rejected: {},
+				approved: {},
 			},
 		},
 		broker: {
-			initial: "placeholder",
+			initial: "intro",
 			states: {
-				placeholder: {},
+				intro: {},
+				company_info: {},
+				licensing: {},
+				representatives: {},
+				documents: {},
+				review: {},
+				pending_admin: {},
+				rejected: {},
 			},
 		},
 		lawyer: {
-			initial: "placeholder",
+			initial: "intro",
 			states: {
+				intro: {},
+				profile: {},
+				identity_verification: {},
+				lso_verification: {},
+				review: {},
+				pending_admin: {},
+				rejected: {},
 				placeholder: {},
 			},
 		},

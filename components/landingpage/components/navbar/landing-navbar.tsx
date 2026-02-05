@@ -13,11 +13,12 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet";
 
-import { WaitlistModal } from "@/components/landingpage/components/waitlist-modal";
+import { useWaitlist } from "@/lib/context/waitlist-context";
 
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  // const [showWaitlistModal, setShowWaitlistModal] = useState(false); // Removed local state
+  const { setShowWaitlistModal } = useWaitlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { scrollY } = useScroll();
   const { isAuthenticated } = useConvexAuth();
@@ -169,8 +170,6 @@ export function LandingNavbar() {
           </SheetContent>
         </Sheet>
       </div>
-
-      <WaitlistModal open={showWaitlistModal} onOpenChange={setShowWaitlistModal} />
     </motion.header>
   );
 }

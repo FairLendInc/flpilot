@@ -21,6 +21,11 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
+
+type DealDocument =
+	(typeof api.deal_documents.getDealDocuments._returnType)[number];
+type DealDocumentSigner = DealDocument["signatories"][number];
+
 import { AddDocumentDialog } from "./AddDocumentDialog";
 
 type DocumentDetailsSectionProps = {
@@ -62,7 +67,7 @@ export function DocumentDetailsSection({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{documents.map((doc) => (
+							{documents.map((doc: DealDocument) => (
 								<TableRow key={doc._id}>
 									<TableCell className="font-medium">
 										<div className="flex items-center gap-2">
@@ -85,7 +90,7 @@ export function DocumentDetailsSection({
 									</TableCell>
 									<TableCell>
 										<div className="flex flex-col gap-1">
-											{doc.signatories.map((signer) => (
+											{doc.signatories.map((signer: DealDocumentSigner) => (
 												<div
 													className="flex items-center gap-2 text-muted-foreground text-xs"
 													key={signer.email}

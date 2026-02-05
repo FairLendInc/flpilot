@@ -32,7 +32,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
+
+type BorrowerItem = (typeof api.borrowers.listBorrowers._returnType)[number];
+
 import { MortgageDocumentTemplatesEditor } from "../MortgageDocumentTemplatesEditor";
+import { MortgageComparablesTab } from "./MortgageComparablesTab";
+import { MortgageOwnershipTab } from "./MortgageOwnershipTab";
 
 type MortgageUpdateSheetProps = {
 	open: boolean;
@@ -89,6 +94,7 @@ export function MortgageUpdateSheet({
 		location,
 		priorEncumbrance,
 		asIfAppraisal,
+		asIfAppraisalImages,
 		images,
 		documents,
 		errors,
@@ -98,6 +104,8 @@ export function MortgageUpdateSheet({
 		setLocationField,
 		setPriorEncumbrance,
 		setAsIfAppraisal,
+		addAsIfAppraisalImage,
+		removeAsIfAppraisalImage,
 		addImage,
 		updateImage,
 		removeImage,
@@ -117,8 +125,10 @@ export function MortgageUpdateSheet({
 		"appraisal" | "title" | "inspection" | "loan_agreement" | "insurance"
 	>("appraisal");
 	const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+	const [isUploadingAsIfImages, setIsUploadingAsIfImages] = useState(false);
 	const imageInputRef = useRef<HTMLInputElement | null>(null);
 	const documentInputRef = useRef<HTMLInputElement | null>(null);
+	const asIfImageInputRef = useRef<HTMLInputElement | null>(null);
 
 	// Load mortgage data when it becomes available
 	useEffect(() => {
@@ -144,8 +154,14 @@ export function MortgageUpdateSheet({
 					URL.revokeObjectURL(image.previewUrl);
 				}
 			}
+			// Also revoke as-if appraisal image preview URLs
+			for (const image of asIfAppraisalImages) {
+				if (image.previewUrl) {
+					URL.revokeObjectURL(image.previewUrl);
+				}
+			}
 		};
-	}, [images]); // Include images in deps to capture current state
+	}, [images, asIfAppraisalImages]); // Include images in deps to capture current state
 
 	const handleImageUpload = async (files: FileList | null) => {
 		if (!files || files.length === 0) return;
@@ -205,6 +221,60 @@ export function MortgageUpdateSheet({
 			URL.revokeObjectURL(imageToRemove.previewUrl);
 		}
 		removeImage(index);
+	};
+
+	const handleAsIfImageUpload = async (files: FileList | null) => {
+		if (!files || files.length === 0) return;
+		setIsUploadingAsIfImages(true);
+		try {
+			for (const file of Array.from(files)) {
+				if (!file.type.startsWith("image/")) {
+					toast.error(`Unsupported file type for ${file.name}`);
+					continue;
+				}
+				if (file.size > MAX_IMAGE_BYTES) {
+					const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+					const maxMB = (MAX_IMAGE_BYTES / (1024 * 1024)).toFixed(0);
+					toast.error(
+						`${file.name} is too large (${sizeMB}MB). Maximum size is ${maxMB}MB.`
+					);
+					continue;
+				}
+
+				const uploadUrl = await generateUploadUrl({});
+				const response = await fetch(uploadUrl, {
+					method: "POST",
+					headers: { "Content-Type": file.type },
+					body: file,
+				});
+				if (!response.ok) {
+					throw new Error(`Upload failed for ${file.name}`);
+				}
+				const json = (await response.json()) as { storageId: string };
+				addAsIfAppraisalImage({
+					storageId: json.storageId,
+					previewUrl: URL.createObjectURL(file),
+				});
+			}
+			toast.success("Improvement image upload complete");
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unable to upload image";
+			toast.error(message);
+		} finally {
+			setIsUploadingAsIfImages(false);
+			if (asIfImageInputRef.current) {
+				asIfImageInputRef.current.value = "";
+			}
+		}
+	};
+
+	const handleRemoveAsIfImage = (index: number) => {
+		const imageToRemove = asIfAppraisalImages[index];
+		if (imageToRemove?.previewUrl) {
+			URL.revokeObjectURL(imageToRemove.previewUrl);
+		}
+		removeAsIfAppraisalImage(index);
 	};
 
 	const handleDocumentUpload = async (file: File | null) => {
@@ -292,7 +362,17 @@ export function MortgageUpdateSheet({
 				externalMortgageId: externalMortgageId.trim() || undefined,
 				borrowerId: borrowerId as Id<"borrowers">,
 				priorEncumbrance: priorEncumbrance || undefined,
-				asIfAppraisal: asIfAppraisal || undefined,
+				asIfAppraisal: asIfAppraisal
+					? {
+							...asIfAppraisal,
+							imageStorageIds:
+								asIfAppraisalImages.length > 0
+									? asIfAppraisalImages.map(
+											(img) => img.storageId as Id<"_storage">
+										)
+									: undefined,
+						}
+					: undefined,
 				images: images.map((img: (typeof images)[0], index: number) => ({
 					storageId: img.storageId as Id<"_storage">,
 					alt: img.alt.trim() || undefined,
@@ -337,11 +417,13 @@ export function MortgageUpdateSheet({
 				<ScrollArea className="min-h-0 flex-1">
 					<div className="px-4">
 						<Tabs className="mt-4" defaultValue="loan">
-							<TabsList className="grid w-full grid-cols-4">
+							<TabsList className="grid w-full grid-cols-6">
 								<TabsTrigger value="loan">Loan Details</TabsTrigger>
 								<TabsTrigger value="property">Property Info</TabsTrigger>
+								<TabsTrigger value="comparables">Comparables</TabsTrigger>
 								<TabsTrigger value="media">Media</TabsTrigger>
 								<TabsTrigger value="templates">Templates</TabsTrigger>
+								<TabsTrigger value="ownership">Ownership</TabsTrigger>
 							</TabsList>
 
 							<TabsContent className="mt-4 space-y-4" value="loan">
@@ -480,7 +562,7 @@ export function MortgageUpdateSheet({
 												<SelectValue placeholder="Select borrower" />
 											</SelectTrigger>
 											<SelectContent>
-												{borrowers?.map((borrower) => (
+												{borrowers?.map((borrower: BorrowerItem) => (
 													<SelectItem key={borrower._id} value={borrower._id}>
 														{borrower.name} ({borrower.email})
 													</SelectItem>
@@ -919,90 +1001,222 @@ export function MortgageUpdateSheet({
 									</div>
 
 									{asIfAppraisal && (
-										<div className="grid gap-4 md:grid-cols-2">
+										<div className="space-y-4">
+											<div className="grid gap-4 md:grid-cols-2">
+												<div className="space-y-2">
+													<Label htmlFor="asIfAppraisalMarketValue">
+														Market Value ($)
+													</Label>
+													<Input
+														id="asIfAppraisalMarketValue"
+														onChange={(e) => {
+															const value = Number.parseFloat(e.target.value);
+															setAsIfAppraisal({
+																...asIfAppraisal,
+																marketValue: Number.isNaN(value) ? 0 : value,
+															});
+														}}
+														type="number"
+														value={asIfAppraisal.marketValue}
+													/>
+													{errors.asIfAppraisalMarketValue && (
+														<p className="text-destructive text-sm">
+															{errors.asIfAppraisalMarketValue}
+														</p>
+													)}
+												</div>
+
+												<div className="space-y-2">
+													<Label htmlFor="asIfAppraisalMethod">Method</Label>
+													<Input
+														id="asIfAppraisalMethod"
+														onChange={(e) =>
+															setAsIfAppraisal({
+																...asIfAppraisal,
+																method: e.target.value,
+															})
+														}
+														value={asIfAppraisal.method}
+													/>
+													{errors.asIfAppraisalMethod && (
+														<p className="text-destructive text-sm">
+															{errors.asIfAppraisalMethod}
+														</p>
+													)}
+												</div>
+
+												<div className="space-y-2">
+													<Label htmlFor="asIfAppraisalCompany">Company</Label>
+													<Input
+														id="asIfAppraisalCompany"
+														onChange={(e) =>
+															setAsIfAppraisal({
+																...asIfAppraisal,
+																company: e.target.value,
+															})
+														}
+														value={asIfAppraisal.company}
+													/>
+													{errors.asIfAppraisalCompany && (
+														<p className="text-destructive text-sm">
+															{errors.asIfAppraisalCompany}
+														</p>
+													)}
+												</div>
+
+												<div className="space-y-2">
+													<Label htmlFor="asIfAppraisalDate">Date</Label>
+													<Input
+														id="asIfAppraisalDate"
+														onChange={(e) =>
+															setAsIfAppraisal({
+																...asIfAppraisal,
+																date: e.target.value,
+															})
+														}
+														type="date"
+														value={asIfAppraisal.date}
+													/>
+													{errors.asIfAppraisalDate && (
+														<p className="text-destructive text-sm">
+															{errors.asIfAppraisalDate}
+														</p>
+													)}
+												</div>
+											</div>
+
+											{/* New fields: Description */}
 											<div className="space-y-2">
-												<Label htmlFor="asIfAppraisalMarketValue">
-													Market Value ($)
+												<Label htmlFor="asIfAppraisalDescription">
+													Renovation Description
 												</Label>
-												<Input
-													id="asIfAppraisalMarketValue"
-													onChange={(e) => {
-														const value = Number.parseFloat(e.target.value);
-														setAsIfAppraisal({
-															...asIfAppraisal,
-															marketValue: Number.isNaN(value) ? 0 : value,
-														});
-													}}
-													type="number"
-													value={asIfAppraisal.marketValue}
-												/>
-												{errors.asIfAppraisalMarketValue && (
-													<p className="text-destructive text-sm">
-														{errors.asIfAppraisalMarketValue}
-													</p>
-												)}
-											</div>
-
-											<div className="space-y-2">
-												<Label htmlFor="asIfAppraisalMethod">Method</Label>
-												<Input
-													id="asIfAppraisalMethod"
+												<textarea
+													className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+													id="asIfAppraisalDescription"
 													onChange={(e) =>
 														setAsIfAppraisal({
 															...asIfAppraisal,
-															method: e.target.value,
+															description: e.target.value,
 														})
 													}
-													value={asIfAppraisal.method}
+													placeholder="Describe the planned improvements..."
+													value={asIfAppraisal.description ?? ""}
 												/>
-												{errors.asIfAppraisalMethod && (
-													<p className="text-destructive text-sm">
-														{errors.asIfAppraisalMethod}
-													</p>
-												)}
 											</div>
 
-											<div className="space-y-2">
-												<Label htmlFor="asIfAppraisalCompany">Company</Label>
-												<Input
-													id="asIfAppraisalCompany"
-													onChange={(e) =>
-														setAsIfAppraisal({
-															...asIfAppraisal,
-															company: e.target.value,
-														})
-													}
-													value={asIfAppraisal.company}
-												/>
-												{errors.asIfAppraisalCompany && (
-													<p className="text-destructive text-sm">
-														{errors.asIfAppraisalCompany}
-													</p>
-												)}
+											{/* New fields: Projected Completion Date and Cost */}
+											<div className="grid gap-4 md:grid-cols-2">
+												<div className="space-y-2">
+													<Label htmlFor="asIfAppraisalProjectedCompletionDate">
+														Projected Completion Date
+													</Label>
+													<Input
+														id="asIfAppraisalProjectedCompletionDate"
+														onChange={(e) =>
+															setAsIfAppraisal({
+																...asIfAppraisal,
+																projectedCompletionDate: e.target.value,
+															})
+														}
+														type="date"
+														value={asIfAppraisal.projectedCompletionDate ?? ""}
+													/>
+												</div>
+
+												<div className="space-y-2">
+													<Label htmlFor="asIfAppraisalCost">
+														Renovation Cost ($)
+													</Label>
+													<Input
+														id="asIfAppraisalCost"
+														onChange={(e) => {
+															const value = Number.parseFloat(e.target.value);
+															setAsIfAppraisal({
+																...asIfAppraisal,
+																cost: Number.isNaN(value) ? undefined : value,
+															});
+														}}
+														placeholder="50000"
+														type="number"
+														value={asIfAppraisal.cost ?? ""}
+													/>
+												</div>
 											</div>
 
-											<div className="space-y-2">
-												<Label htmlFor="asIfAppraisalDate">Date</Label>
-												<Input
-													id="asIfAppraisalDate"
-													onChange={(e) =>
-														setAsIfAppraisal({
-															...asIfAppraisal,
-															date: e.target.value,
-														})
+											{/* New fields: Improvement Images */}
+											<div className="space-y-3">
+												<div className="flex items-center justify-between">
+													<Label>Improvement Mockup Images</Label>
+													<Button
+														disabled={isUploadingAsIfImages}
+														onClick={() => asIfImageInputRef.current?.click()}
+														size="sm"
+														type="button"
+														variant="outline"
+													>
+														<Upload className="mr-2 h-4 w-4" />
+														{isUploadingAsIfImages ? "Uploading..." : "Upload"}
+													</Button>
+												</div>
+												<input
+													accept="image/*"
+													className="hidden"
+													multiple
+													onChange={(event) =>
+														handleAsIfImageUpload(event.target.files)
 													}
-													type="date"
-													value={asIfAppraisal.date}
+													ref={asIfImageInputRef}
+													type="file"
 												/>
-												{errors.asIfAppraisalDate && (
-													<p className="text-destructive text-sm">
-														{errors.asIfAppraisalDate}
+												{asIfAppraisalImages.length > 0 && (
+													<div className="grid grid-cols-3 gap-2">
+														{asIfAppraisalImages.map((image, index) => (
+															<div
+																className="group relative aspect-square overflow-hidden rounded-md border"
+																key={image.storageId}
+															>
+																<Image
+																	alt={`Improvement mockup ${index + 1}`}
+																	className="object-cover"
+																	fill
+																	src={
+																		image.previewUrl ||
+																		image.url ||
+																		`/api/storage/${image.storageId}`
+																	}
+																/>
+																<button
+																	className="absolute top-1 right-1 rounded-full bg-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
+																	onClick={() => handleRemoveAsIfImage(index)}
+																	type="button"
+																>
+																	<X className="h-3 w-3 text-destructive-foreground" />
+																</button>
+															</div>
+														))}
+													</div>
+												)}
+												{asIfAppraisalImages.length === 0 && (
+													<p className="text-muted-foreground text-sm">
+														No improvement mockups uploaded yet.
 													</p>
 												)}
 											</div>
 										</div>
 									)}
 								</div>
+							</TabsContent>
+
+							<TabsContent className="mt-4 space-y-6" value="comparables">
+								{mortgageId ? (
+									<MortgageComparablesTab mortgageId={mortgageId} />
+								) : (
+									<div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+										<p className="text-muted-foreground">
+											Please save the mortgage first to add comparables.
+										</p>
+									</div>
+								)}
 							</TabsContent>
 
 							<TabsContent className="mt-4 space-y-6" value="media">
@@ -1238,6 +1452,21 @@ export function MortgageUpdateSheet({
 									<div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
 										<p className="text-muted-foreground">
 											Please save the mortgage first to add document templates.
+										</p>
+									</div>
+								)}
+							</TabsContent>
+
+							<TabsContent className="mt-4 space-y-6" value="ownership">
+								{mortgageId ? (
+									<MortgageOwnershipTab
+										mortgageAddress={addressDisplay}
+										mortgageId={mortgageId}
+									/>
+								) : (
+									<div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+										<p className="text-muted-foreground">
+											Please save the mortgage first to view ownership.
 										</p>
 									</div>
 								)}

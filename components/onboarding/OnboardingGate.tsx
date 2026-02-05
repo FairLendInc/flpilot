@@ -1,28 +1,28 @@
 "use client";
 
-import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useQuery } from "convex/react";
+import { useConvexAuth } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
-import { isElevatedRole } from "@/types/workos";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+import { extractRole, isElevatedRole } from "@/types/workos";
 
 const ALLOWLIST = ["/onboarding", "/sign-in", "/sign-up", "/callback"];
 
-type OnboardingGateProps = {
-	userRole: string | undefined;
-};
-
-export function OnboardingGate({ userRole }: OnboardingGateProps) {
-	const { user } = useAuth();
-	console.info("USER", { user });
+export function OnboardingGate() {
+	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
 	const pathname = usePathname();
 	const router = useRouter();
-	const journey = useQuery(api.onboarding.getJourney);
-	const isAuthenticated = !!user;
+	const journey = useAuthenticatedQuery(api.onboarding.getJourney, {});
+	const profile = useAuthenticatedQuery(api.profile.getCurrentUserProfile, {});
+	const userRole = extractRole(profile?.workOsIdentity);
 
 	useEffect(() => {
-		if (!(isAuthenticated && pathname)) {
+		if (authLoading || !pathname) {
+			return;
+		}
+
+		if (!isAuthenticated) {
 			return;
 		}
 
@@ -54,8 +54,8 @@ export function OnboardingGate({ userRole }: OnboardingGateProps) {
 			return;
 		}
 
-		// Wait for journey data to load
-		if (journey === undefined) {
+		// Wait for journey and profile data to load
+		if (journey === undefined || profile === undefined) {
 			return;
 		}
 
@@ -70,7 +70,15 @@ export function OnboardingGate({ userRole }: OnboardingGateProps) {
 		if (requiresOnboarding) {
 			router.replace("/onboarding");
 		}
-	}, [isAuthenticated, journey, pathname, router, userRole]);
+	}, [
+		authLoading,
+		isAuthenticated,
+		journey,
+		pathname,
+		profile,
+		router,
+		userRole,
+	]);
 
 	return null;
 }

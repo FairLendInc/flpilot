@@ -7,6 +7,7 @@
  */
 
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { DealStateValue } from "@/convex/dealStateMachine";
 
 // Re-export state machine types from backend
 export type {
@@ -15,8 +16,6 @@ export type {
 	DealStateValue,
 } from "@/convex/dealStateMachine";
 
-// Import for local use
-import type { DealStateValue } from "@/convex/dealStateMachine";
 import {
 	canCancelFromState,
 	getNextState,
@@ -24,12 +23,12 @@ import {
 	isTerminalState,
 } from "@/convex/dealStateMachine";
 
-// biome-ignore lint/performance/noBarrelFile: Intentional re-export for convenience and type safety
 export {
 	canCancelFromState,
 	DEAL_STATES,
 	getNextState,
 	getPreviousState,
+	isOwnershipReviewState,
 	isTerminalState,
 } from "@/convex/dealStateMachine";
 
@@ -56,7 +55,10 @@ export type AlertType =
 	| "deal_state_changed"
 	| "deal_completed"
 	| "deal_cancelled"
-	| "deal_stuck";
+	| "deal_stuck"
+	| "ownership_review_required"
+	| "ownership_transfer_rejected"
+	| "manual_resolution_required";
 
 /**
  * Get user-friendly label for an alert type
@@ -68,6 +70,9 @@ export function getAlertTypeLabel(type: AlertType): string {
 		deal_completed: "Deal Completed",
 		deal_cancelled: "Deal Cancelled",
 		deal_stuck: "Deal Stuck",
+		ownership_review_required: "Ownership Review Required",
+		ownership_transfer_rejected: "Transfer Rejected",
+		manual_resolution_required: "Manual Resolution Required",
 	};
 	return labels[type] || type;
 }
@@ -82,6 +87,9 @@ export function getAlertTypeIcon(type: AlertType): string {
 		deal_completed: "CheckCircle",
 		deal_cancelled: "XCircle",
 		deal_stuck: "AlertCircle",
+		ownership_review_required: "ClipboardCheck",
+		ownership_transfer_rejected: "XOctagon",
+		manual_resolution_required: "AlertTriangle",
 	};
 	return icons[type] || "Bell";
 }
@@ -152,6 +160,7 @@ export const DEAL_STATE_LABELS: Record<DealStateValue, string> = {
 	pending_docs: "Pending Document Signing",
 	pending_transfer: "Pending Fund Transfer",
 	pending_verification: "Pending Fund Verification",
+	pending_ownership_review: "Ownership Review",
 	completed: "Deal Completed",
 	cancelled: "Cancelled",
 	archived: "Archived",
@@ -166,6 +175,7 @@ export const DEAL_STATE_COLORS: Record<DealStateValue, string> = {
 	pending_docs: "#DAA520", // Goldenrod
 	pending_transfer: "#6B8E23", // Olive green
 	pending_verification: "#556B2F", // Dark olive green
+	pending_ownership_review: "#4169E1", // Royal blue - distinct for review step
 	completed: "#228B22", // Forest green
 	cancelled: "#8B4513", // Saddle brown
 	archived: "#696969", // Dim gray
@@ -180,9 +190,26 @@ export const DEAL_STATE_ICONS: Record<DealStateValue, string> = {
 	pending_docs: "file-signature",
 	pending_transfer: "banknote",
 	pending_verification: "search-check",
+	pending_ownership_review: "clipboard-check",
 	completed: "check-circle",
 	cancelled: "x-circle",
 	archived: "archive",
+};
+
+/**
+ * Investor-facing labels for deal states (simpler, user-friendly)
+ * Used in the deal portal for investor view
+ */
+export const DEAL_STATE_LABELS_INVESTOR: Record<DealStateValue, string> = {
+	locked: "Reserved",
+	pending_lawyer: "Awaiting Legal Review",
+	pending_docs: "Documents Ready for Signing",
+	pending_transfer: "Awaiting Payment",
+	pending_verification: "Payment Being Verified",
+	pending_ownership_review: "Finalizing Transfer",
+	completed: "Complete",
+	cancelled: "Cancelled",
+	archived: "Archived",
 };
 
 /**

@@ -121,6 +121,7 @@ const HorizontalSteps = React.forwardRef<HTMLDivElement, HorizontalStepsProps>(
 
       return colorsVars
     }, [color])
+    console.log("DEAL STEPS", steps, "CURRENT STEP", currentStep)
 
     return (
       <div aria-label="Progress" className="flex w-full items-center justify-center">

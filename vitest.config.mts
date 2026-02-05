@@ -44,7 +44,13 @@ export default defineConfig({
 				inline: ["convex-test"],
 			},
 		},
-		exclude: ["e2e/**", "node_modules/**", "dist/**", ".next/**"],
+		exclude: [
+			"e2e/**",
+			"node_modules/**",
+			"dist/**",
+			".next/**",
+			".opencode/**",
+		],
 	},
 	resolve: {
 		alias: {

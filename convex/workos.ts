@@ -4,6 +4,7 @@ import { WorkOS } from "@workos-inc/node";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
+import { env, isTestEnv } from "./lib/env";
 
 type WorkOsDomain = {
 	id?: string;
@@ -19,10 +20,10 @@ export const verifyWebhook = internalAction({
 	}),
 	returns: v.any(),
 	handler: async (_, args) => {
-		const workos = new WorkOS(process.env.WORKOS_API_KEY);
+		const workos = new WorkOS(env.WORKOS_API_KEY);
 
 		// Use the exact webhook secret from WorkOS dashboard
-		const webhookSecret = process.env.WORKOS_WEBHOOK_SECRET;
+		const webhookSecret = env.WORKOS_WEBHOOK_SECRET;
 
 		// WorkOS SDK bug fix applied in node_modules
 
@@ -74,7 +75,7 @@ export const getUserRoleFromWorkOS = internalAction({
 	args: v.object({ userId: v.string() }),
 	returns: v.object({ role: v.string() }),
 	handler: async (_ctx, { userId }) => {
-		const workos = new WorkOS(process.env.WORKOS_API_KEY);
+		const workos = new WorkOS(env.WORKOS_API_KEY);
 		try {
 			const user = await workos.userManagement.getUser(userId);
 			const role =
@@ -94,10 +95,7 @@ export const updateUserRole = internalAction({
 	}),
 	returns: v.null(),
 	handler: async (_ctx, { userId, role }) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 		if (!apiKey || isTestEnv) {
 			console.warn(
 				"Skipping WorkOS role update (missing API key or test environment)"
@@ -135,7 +133,7 @@ export const updateUserProfile = internalAction({
 	}),
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const workos = new WorkOS(process.env.WORKOS_API_KEY);
+		const workos = new WorkOS(env.WORKOS_API_KEY);
 		const update: Record<string, unknown> = {};
 		if (args.firstName !== undefined) update.firstName = args.firstName;
 		if (args.lastName !== undefined) update.lastName = args.lastName;
@@ -164,10 +162,7 @@ export const assignOrganizationRole = internalAction({
 	}),
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 		if (!apiKey || isTestEnv) {
 			console.warn(
 				"Skipping WorkOS organization role assignment (missing API key or test environment)"
@@ -254,7 +249,7 @@ export const syncUserOrganizations = internalAction({
 		organizationsSynced: v.number(),
 	}),
 	handler: async (ctx, { userId }) => {
-		const workos = new WorkOS(process.env.WORKOS_API_KEY);
+		const workos = new WorkOS(env.WORKOS_API_KEY);
 
 		try {
 			console.log("Syncing organizations from WorkOS for user:", userId);

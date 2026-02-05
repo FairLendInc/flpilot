@@ -43,4 +43,40 @@ crons.interval(
 	internal.deals.checkPendingDocsDeals
 );
 
+/**
+ * Emit Pending Audit Events
+ *
+ * Runs every minute to process unemitted audit events.
+ * Individual event failures are caught and logged - one failure
+ * doesn't block the entire batch (footguns.md #7).
+ *
+ * Events are:
+ * 1. Fetched from audit_events where emittedAt is null
+ * 2. Sent to external emission system (stubbed for now)
+ * 3. Marked as emitted or increment failure counter
+ */
+crons.interval(
+	"emit-pending-audit-events",
+	{ minutes: 1 },
+	internal.auditEventsCron.emitPendingEvents
+);
+
+crons.interval(
+	"prune-audit-events",
+	{ hours: 24 },
+	internal.auditEventsCron.pruneOldEvents
+);
+
+/**
+ * Cleanup Expired Trace Spans
+ *
+ * Runs every hour to delete trace spans older than TRACING_RETENTION_HOURS
+ * (default 24h). Prevents unbounded storage growth from dev tracing.
+ */
+crons.interval(
+	"cleanup-expired-traces",
+	{ hours: 1 },
+	internal.traces.cleanupExpiredTraces
+);
+
 export default crons;
