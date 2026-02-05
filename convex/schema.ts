@@ -1160,6 +1160,54 @@ export default defineSchema({
 		.index("by_version", ["configId", "version"]),
 
 	/**
+	 * Trace spans - execution-level observability for backend function calls
+	 * Records function name, arguments, auth context, timing, results, and errors.
+	 * Dev mode captures full payloads; production can be disabled or sampled.
+	 */
+	trace_spans: defineTable({
+		// Trace identification
+		traceId: v.string(), // Groups all spans in a single request chain
+		spanId: v.string(), // Unique span identifier
+		parentSpanId: v.optional(v.string()), // Links to parent span
+		requestId: v.optional(v.string()), // Correlates to x-request-id from proxy
+		// Function info
+		functionName: v.string(), // e.g., "deals.createDeal"
+		functionType: v.string(), // "query" | "mutation" | "action"
+		// Timing
+		startTime: v.number(),
+		endTime: v.optional(v.number()),
+		duration: v.optional(v.number()), // ms
+		// Status
+		status: v.string(), // "started" | "completed" | "error"
+		// Full payloads (dev mode - no truncation)
+		args: v.optional(v.any()), // Full function arguments
+		result: v.optional(v.any()), // Full return value
+		error: v.optional(
+			v.object({
+				message: v.string(),
+				stack: v.optional(v.string()),
+			})
+		),
+		// Auth context snapshot
+		authContext: v.optional(
+			v.object({
+				subject: v.optional(v.string()),
+				role: v.optional(v.string()),
+				org_id: v.optional(v.string()),
+				permissions: v.optional(v.array(v.string())),
+			})
+		),
+		// Whether payload was truncated due to size limits
+		truncated: v.optional(v.boolean()),
+	})
+		.index("by_trace", ["traceId"])
+		.index("by_parent", ["parentSpanId"])
+		.index("by_function", ["functionName"])
+		.index("by_status", ["status"])
+		.index("by_start_time", ["startTime"])
+		.index("by_request_id", ["requestId"]),
+
+	/**
 	 * Audit events - durable storage for events before external emission
 	 * Write-ahead pattern ensures no events lost; supports at-least-once delivery
 	 */

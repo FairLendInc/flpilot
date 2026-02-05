@@ -78,6 +78,9 @@ import type * as seed from "../seed.js";
 import type * as storage from "../storage.js";
 import type * as sync from "../sync.js";
 import type * as syncHelpers from "../syncHelpers.js";
+import type * as traces from "../traces.js";
+import type * as lib_tracedFunctions from "../lib/tracedFunctions.js";
+import type * as lib_tracing from "../lib/tracing.js";
 import type * as users from "../users.js";
 import type * as workos from "../workos.js";
 
@@ -158,6 +161,9 @@ declare const fullApi: ApiFromModules<{
   storage: typeof storage;
   sync: typeof sync;
   syncHelpers: typeof syncHelpers;
+  traces: typeof traces;
+  "lib/tracedFunctions": typeof lib_tracedFunctions;
+  "lib/tracing": typeof lib_tracing;
   users: typeof users;
   workos: typeof workos;
 }>;

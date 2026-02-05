@@ -148,6 +148,12 @@ async function runAuthMiddleware(
 	const requestHeaders = new Headers(req.headers);
 	requestHeaders.set("x-pathname", req.nextUrl.pathname);
 
+	// Inject request ID for trace correlation across the request lifecycle.
+	// Preserves existing x-request-id if already set by upstream proxy/load balancer.
+	if (!requestHeaders.has("x-request-id")) {
+		requestHeaders.set("x-request-id", crypto.randomUUID());
+	}
+
 	const nextRes = NextResponse.next({
 		request: {
 			headers: requestHeaders,

@@ -1,4 +1,5 @@
 import {
+	Activity,
 	Briefcase,
 	Building2,
 	Database,
@@ -148,6 +149,11 @@ export const ROLE_NAVIGATION: Record<UserRole, NavItem[]> = {
 					icon: Home,
 				},
 			],
+		},
+		{
+			title: "Traces",
+			url: "/dashboard/admin/traces",
+			icon: Activity,
 		},
 		{
 			title: "Settings",

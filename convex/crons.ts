@@ -67,4 +67,16 @@ crons.interval(
 	internal.auditEventsCron.pruneOldEvents
 );
 
+/**
+ * Cleanup Expired Trace Spans
+ *
+ * Runs every hour to delete trace spans older than TRACING_RETENTION_HOURS
+ * (default 24h). Prevents unbounded storage growth from dev tracing.
+ */
+crons.interval(
+	"cleanup-expired-traces",
+	{ hours: 1 },
+	internal.traces.cleanupExpiredTraces
+);
+
 export default crons;
