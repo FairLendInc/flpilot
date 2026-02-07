@@ -11,6 +11,7 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import {
 	ENTITY_TYPES,
 	OWNERSHIP_EVENT_TYPES,
@@ -108,7 +109,9 @@ describe("createAuditEvent", () => {
 		expect(eventId).toBeDefined();
 
 		// Verify the event was created
-		const event = await t.run(async (ctx) => ctx.db.get(eventId));
+		const event = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(event).toBeTruthy();
 		expect(event?.eventType).toBe(OWNERSHIP_EVENT_TYPES.TRANSFER_CREATED);
 		expect(event?.entityType).toBe(ENTITY_TYPES.PENDING_TRANSFER);
@@ -133,7 +136,9 @@ describe("createAuditEvent", () => {
 				})
 		);
 
-		const event = await t.run(async (ctx) => ctx.db.get(eventId));
+		const event = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(event?.beforeState).toBeUndefined();
 		expect(event?.afterState).toBeUndefined();
 		expect(event?.metadata).toBeUndefined();
@@ -157,7 +162,9 @@ describe("createAuditEvent", () => {
 
 		const afterTime = Date.now();
 
-		const event = await t.run(async (ctx) => ctx.db.get(eventId));
+		const event = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(event?.timestamp).toBeGreaterThanOrEqual(beforeTime);
 		expect(event?.timestamp).toBeLessThanOrEqual(afterTime);
 	});
@@ -338,11 +345,15 @@ describe("createAuditEvent - PII sanitization in database", () => {
 				})
 		);
 
-		const event = await t.run(async (ctx) => ctx.db.get(eventId));
-		const beforeState = event?.beforeState as Record<string, unknown>;
+		const event = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
+		const beforeState = event?.beforeState as
+			| Record<string, unknown>
+			| undefined;
 
-		expect(beforeState.name).toBe("John");
-		expect(beforeState.status).toBe("pending");
+		expect(beforeState?.name).toBe("John");
+		expect(beforeState?.status).toBe("pending");
 		expect(beforeState).not.toHaveProperty("email");
 	});
 
@@ -366,11 +377,13 @@ describe("createAuditEvent - PII sanitization in database", () => {
 				})
 		);
 
-		const event = await t.run(async (ctx) => ctx.db.get(eventId));
-		const afterState = event?.afterState as Record<string, unknown>;
+		const event = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
+		const afterState = event?.afterState as Record<string, unknown> | undefined;
 
-		expect(afterState.name).toBe("John");
-		expect(afterState.status).toBe("approved");
+		expect(afterState?.name).toBe("John");
+		expect(afterState?.status).toBe("approved");
 		expect(afterState).not.toHaveProperty("phone");
 		expect(afterState).not.toHaveProperty("password");
 	});
@@ -410,13 +423,15 @@ describe("getEventsForEntity", () => {
 		});
 
 		const adminT = await getAdminTest(t);
-		const events = await adminT.query(api.auditEvents.getEventsForEntity, {
+		const events = (await adminT.query(api.auditEvents.getEventsForEntity, {
 			entityType: "test_entity",
 			entityId,
-		});
+		})) as Doc<"audit_events">[];
 
 		expect(events.length).toBe(2);
-		expect(events.every((e) => e.entityId === entityId)).toBe(true);
+		expect(
+			events.every((e: Doc<"audit_events">) => e.entityId === entityId)
+		).toBe(true);
 	});
 
 	test("should respect limit parameter", async () => {
@@ -437,11 +452,11 @@ describe("getEventsForEntity", () => {
 		});
 
 		const adminT = await getAdminTest(t);
-		const events = await adminT.query(api.auditEvents.getEventsForEntity, {
+		const events = (await adminT.query(api.auditEvents.getEventsForEntity, {
 			entityType: "test_entity",
 			entityId,
 			limit: 3,
-		});
+		})) as Doc<"audit_events">[];
 
 		expect(events.length).toBe(3);
 	});
@@ -468,10 +483,10 @@ describe("getEventsForEntity", () => {
 		});
 
 		const adminT = await getAdminTest(t);
-		const events = await adminT.query(api.auditEvents.getEventsForEntity, {
+		const events = (await adminT.query(api.auditEvents.getEventsForEntity, {
 			entityType: "test_entity",
 			entityId,
-		});
+		})) as Doc<"audit_events">[];
 
 		// Most recent should be first
 		expect(events[0].eventType).toBe("second");
@@ -507,12 +522,14 @@ describe("getEventsByType", () => {
 		});
 
 		const adminT = await getAdminTest(t);
-		const events = await adminT.query(api.auditEvents.getEventsByType, {
+		const events = (await adminT.query(api.auditEvents.getEventsByType, {
 			eventType,
-		});
+		})) as Doc<"audit_events">[];
 
 		expect(events.length).toBe(2);
-		expect(events.every((e) => e.eventType === eventType)).toBe(true);
+		expect(
+			events.every((e: Doc<"audit_events">) => e.eventType === eventType)
+		).toBe(true);
 	});
 });
 
@@ -534,9 +551,9 @@ describe("getRecentEvents", () => {
 		});
 
 		const adminT = await getAdminTest(t);
-		const events = await adminT.query(api.auditEvents.getRecentEvents, {
+		const events = (await adminT.query(api.auditEvents.getRecentEvents, {
 			limit: 3,
-		});
+		})) as Doc<"audit_events">[];
 
 		expect(events.length).toBeLessThanOrEqual(3);
 		// Should be in descending order
@@ -568,7 +585,9 @@ describe("markEventEmitted", () => {
 		);
 
 		// Initially not emitted
-		const eventBefore = await t.run(async (ctx) => ctx.db.get(eventId));
+		const eventBefore = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(eventBefore?.emittedAt).toBeUndefined();
 
 		const beforeMark = Date.now();
@@ -583,7 +602,9 @@ describe("markEventEmitted", () => {
 		const afterMark = Date.now();
 
 		// Verify emittedAt is set
-		const eventAfter = await t.run(async (ctx) => ctx.db.get(eventId));
+		const eventAfter = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(eventAfter?.emittedAt).toBeDefined();
 		expect(eventAfter?.emittedAt).toBeGreaterThanOrEqual(beforeMark);
 		expect(eventAfter?.emittedAt).toBeLessThanOrEqual(afterMark);
@@ -606,7 +627,9 @@ describe("incrementEmitFailures", () => {
 		);
 
 		// Initially 0 failures
-		const eventBefore = await t.run(async (ctx) => ctx.db.get(eventId));
+		const eventBefore = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(eventBefore?.emitFailures).toBe(0);
 
 		// Increment failures twice
@@ -619,7 +642,9 @@ describe("incrementEmitFailures", () => {
 			});
 		});
 
-		const eventAfter = await t.run(async (ctx) => ctx.db.get(eventId));
+		const eventAfter = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(eventAfter?.emitFailures).toBe(2);
 	});
 });
@@ -654,13 +679,13 @@ describe("getUnemittedEvents", () => {
 		});
 
 		// Query unemitted events
-		const unemittedEvents = await t.run(
+		const unemittedEvents = (await t.run(
 			async (ctx) =>
 				await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {})
-		);
+		)) as Doc<"audit_events">[];
 
 		// Should include eventId1 but not eventId2
-		const unemittedIds = unemittedEvents.map((e) => e._id);
+		const unemittedIds = unemittedEvents.map((e: Doc<"audit_events">) => e._id);
 		expect(unemittedIds).toContain(eventId1);
 		expect(unemittedIds).not.toContain(eventId2);
 	});
@@ -681,12 +706,12 @@ describe("getUnemittedEvents", () => {
 			}
 		});
 
-		const events = await t.run(
+		const events = (await t.run(
 			async (ctx) =>
 				await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {
 					limit: 2,
 				})
-		);
+		)) as Doc<"audit_events">[];
 
 		expect(events.length).toBe(2);
 	});
@@ -740,14 +765,18 @@ describe("emitPendingEvents cron job", () => {
 		);
 
 		// Verify not emitted before cron
-		const eventBefore = await t.run(async (ctx) => ctx.db.get(eventId));
+		const eventBefore = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(eventBefore?.emittedAt).toBeUndefined();
 
 		// Run cron
 		await t.action(internal.auditEventsCron.emitPendingEvents, {});
 
 		// Verify emitted after cron
-		const eventAfter = await t.run(async (ctx) => ctx.db.get(eventId));
+		const eventAfter = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(eventAfter?.emittedAt).toBeDefined();
 	});
 
@@ -803,13 +832,13 @@ describe("audit events integration", () => {
 
 		// 2. Query for the event
 		const adminT = await getAdminTest(t);
-		const queriedEvents = await adminT.query(
+		const queriedEvents = (await adminT.query(
 			api.auditEvents.getEventsForEntity,
 			{
 				entityType: ENTITY_TYPES.PENDING_TRANSFER,
 				entityId,
 			}
-		);
+		)) as Doc<"audit_events">[];
 
 		expect(queriedEvents.length).toBe(1);
 		expect(queriedEvents[0]._id).toBe(eventId);
@@ -821,7 +850,9 @@ describe("audit events integration", () => {
 		await t.action(internal.auditEventsCron.emitPendingEvents, {});
 
 		// 4. Verify event is marked as emitted
-		const event = await t.run(async (ctx) => ctx.db.get(eventId));
+		const event = (await t.run(async (ctx) =>
+			ctx.db.get(eventId)
+		)) as Doc<"audit_events"> | null;
 		expect(event?.emittedAt).toBeDefined();
 	});
 

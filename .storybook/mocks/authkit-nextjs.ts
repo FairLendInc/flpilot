@@ -1,4 +1,6 @@
-export const withAuth = <T extends (...args: any[]) => any>(handler: T) => handler;
+export const withAuth = <T extends (...args: unknown[]) => unknown>(
+	handler: T
+) => handler;
 
 export const getSignInUrl = async () => "";
 export const getSignUpUrl = async () => "";

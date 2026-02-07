@@ -308,7 +308,7 @@ describe("recordFundTransferUpload - File Upload", () => {
 		});
 
 		// Verify upload was recorded
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload).toBeDefined();
 		expect(deal?.currentUpload?.storageId).toBe(fakeStorageId);
 		expect(deal?.currentUpload?.fileName).toBe("proof_of_transfer.pdf");
@@ -333,7 +333,7 @@ describe("recordFundTransferUpload - File Upload", () => {
 			fileType: "image/png",
 		});
 
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload?.fileType).toBe("image/png");
 	});
 
@@ -354,7 +354,7 @@ describe("recordFundTransferUpload - File Upload", () => {
 			fileType: "image/jpeg",
 		});
 
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload?.fileType).toBe("image/jpeg");
 	});
 
@@ -432,7 +432,7 @@ describe("recordFundTransferUpload - Upload History", () => {
 		});
 
 		// Verify history
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload?.storageId).toBe(secondStorageId);
 		expect(deal?.uploadHistory).toBeDefined();
 		expect(deal?.uploadHistory?.length).toBe(1);
@@ -461,7 +461,7 @@ describe("recordFundTransferUpload - Upload History", () => {
 				fileType: "application/pdf",
 			});
 		}
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload?.storageId).toBe(uploads[2].id);
 		expect(deal?.uploadHistory?.length).toBe(2);
 		expect(deal?.uploadHistory?.[0].storageId).toBe(uploads[0].id);
@@ -487,7 +487,7 @@ describe("recordFundTransferUpload - Upload History", () => {
 
 		const afterTimestamp = Date.now();
 
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload?.uploadedAt).toBeGreaterThanOrEqual(
 			beforeTimestamp
 		);
@@ -509,7 +509,7 @@ describe("recordFundTransferUpload - Upload History", () => {
 			fileType: "application/pdf",
 		});
 
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload?.uploadedBy).toBe(investorIdpId);
 	});
 });
@@ -536,7 +536,7 @@ describe("recordFundTransferUpload - Authorization", () => {
 			fileType: "application/pdf",
 		});
 
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload).toBeDefined();
 	});
 
@@ -552,7 +552,7 @@ describe("recordFundTransferUpload - Authorization", () => {
 			fileType: "application/pdf",
 		});
 
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload).toBeDefined();
 	});
 
@@ -623,7 +623,7 @@ describe("recordFundTransferUpload - Integration", () => {
 		});
 
 		// 3. Verify deal was updated
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload).toBeDefined();
 		expect(deal?.currentUpload?.fileName).toBe("complete_transfer.pdf");
 
@@ -665,7 +665,7 @@ describe("recordFundTransferUpload - Integration", () => {
 			fileType: "application/pdf",
 		});
 
-		const deal = await t.run(async (ctx) => ctx.db.get(dealId));
+		const deal = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(deal?.currentUpload?.storageId).toBe(id3);
 		expect(deal?.uploadHistory?.length).toBe(2);
 	});
@@ -679,7 +679,7 @@ describe("recordFundTransferUpload - Integration", () => {
 		});
 
 		// Verify initial state
-		const dealBefore = await t.run(async (ctx) => ctx.db.get(dealId));
+		const dealBefore = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(dealBefore?.currentState).toBe("pending_transfer");
 
 		// Upload file
@@ -691,7 +691,7 @@ describe("recordFundTransferUpload - Integration", () => {
 		});
 
 		// Verify state hasn't changed (admin must manually verify)
-		const dealAfter = await t.run(async (ctx) => ctx.db.get(dealId));
+		const dealAfter = (await t.run(async (ctx) => ctx.db.get(dealId))) as any;
 		expect(dealAfter?.currentState).toBe("pending_transfer");
 	});
 });

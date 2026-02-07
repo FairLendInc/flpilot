@@ -898,7 +898,10 @@ export function OwnershipTransferReview({
 
 				const currentOwnership: OwnershipEntry[] = ownershipEntries
 					.map(
-						(entry): OwnershipEntry => ({
+						(entry: {
+							ownerId: string;
+							percentage: number;
+						}): OwnershipEntry => ({
 							ownerId: isFairlendOwnerId(entry.ownerId)
 								? "fairlend"
 								: (entry.ownerId as Id<"users">),
@@ -906,7 +909,10 @@ export function OwnershipTransferReview({
 							ownerName: resolveOwnerName(entry.ownerId),
 						})
 					)
-					.sort((a, b) => b.percentage - a.percentage);
+					.sort(
+						(a: OwnershipEntry, b: OwnershipEntry) =>
+							b.percentage - a.percentage
+					);
 
 				const ownershipMap = new Map<
 					"fairlend" | Id<"users">,

@@ -223,7 +223,7 @@ function DealCompleteState({
 							] ??
 							entry.toState
 								.replace(/_/g, " ")
-								.replace(/\b\w/g, (letter) => letter.toUpperCase()),
+								.replace(/\b\w/g, (letter: string) => letter.toUpperCase()),
 						date: entry.timestamp,
 						note: entry.notes,
 					}))

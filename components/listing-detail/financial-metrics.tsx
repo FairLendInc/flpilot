@@ -180,10 +180,15 @@ export function FinancialMetrics({ financials }: FinancialMetricsProps) {
 	// const ltv = (principalLoanAmount / currentValue) * 100;
 	const ltv = financials.ltv;
 
-	// Calculate As-If LTV when asIfAppraisal exists
-	const asIfLtv = financials.asIfAppraisal
-		? (principalLoanAmount / financials.asIfAppraisal.marketValue) * 100
-		: 0;
+	// Calculate As-If LTV when asIfAppraisal exists, guarding against invalid values
+	const asIfMarketValue = financials.asIfAppraisal?.marketValue;
+	const asIfLtv =
+		financials.asIfAppraisal &&
+		typeof asIfMarketValue === "number" &&
+		Number.isFinite(asIfMarketValue) &&
+		asIfMarketValue > 0
+			? (principalLoanAmount / asIfMarketValue) * 100
+			: 0;
 
 	// Determine LTV color coding
 	const getLTVColorClass = (value: number) => {

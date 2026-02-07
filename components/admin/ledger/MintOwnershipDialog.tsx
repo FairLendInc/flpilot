@@ -62,7 +62,7 @@ export function MintOwnershipDialog({
 				existingOwnership.ownership.length > 0
 			) {
 				const totalShares = existingOwnership.ownership.reduce(
-					(sum, o) => sum + o.percentage,
+					(sum: number, o: { percentage: number }) => sum + o.percentage,
 					0
 				);
 				console.error(
@@ -147,7 +147,7 @@ send [$asset 100] (
 					verification.ownership.length > 0
 				) {
 					const fairlendOwnership = verification.ownership.find(
-						(o) => o.ownerId === "fairlend"
+						(o: { ownerId: string }) => o.ownerId === "fairlend"
 					);
 
 					if (fairlendOwnership && fairlendOwnership.percentage > 0) {

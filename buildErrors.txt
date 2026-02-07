@@ -1,0 +1,4 @@
+
+> template-convex-nextjs-authkit@0.1.0 check-types /Users/connor/conductor/workspaces/flpilot/da-nang
+> tsgo --noEmit
+

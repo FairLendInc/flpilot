@@ -564,7 +564,7 @@ export default function BrokerDetailPage() {
 											</Label>
 											<div className="flex flex-wrap gap-2">
 												{applicationData.licensing.jurisdictions.map(
-													(jurisdiction) => (
+													(jurisdiction: string) => (
 														<Badge key={jurisdiction} variant="secondary">
 															{jurisdiction}
 														</Badge>
@@ -594,39 +594,51 @@ export default function BrokerDetailPage() {
 								{applicationData?.representatives &&
 								applicationData.representatives.length > 0 ? (
 									<div className="space-y-4">
-										{applicationData.representatives.map((rep, index) => (
-											<div
-												className="flex items-start gap-4 rounded-lg border p-4"
-												key={`${rep.email}-${index}`}
-											>
-												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-													<User className="h-5 w-5 text-primary" />
-												</div>
-												<div className="flex-1 space-y-1">
-													<p className="font-medium">
-														{rep.firstName} {rep.lastName}
-													</p>
-													<p className="text-muted-foreground text-sm">
-														{rep.role}
-													</p>
-													<div className="flex flex-wrap gap-4 text-sm">
-														<span className="flex items-center gap-1 text-muted-foreground">
-															<Mail className="h-3 w-3" />
-															{rep.email}
-														</span>
-														<span className="flex items-center gap-1 text-muted-foreground">
-															<Phone className="h-3 w-3" />
-															{rep.phone}
-														</span>
+										{applicationData.representatives.map(
+											(
+												rep: {
+													email: string;
+													firstName: string;
+													lastName: string;
+													role: string;
+													phone?: string;
+													hasAuthority?: boolean;
+												},
+												index: number
+											) => (
+												<div
+													className="flex items-start gap-4 rounded-lg border p-4"
+													key={`${rep.email}-${index}`}
+												>
+													<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+														<User className="h-5 w-5 text-primary" />
 													</div>
-													{rep.hasAuthority && (
-														<Badge className="mt-2" variant="outline">
-															Has Signing Authority
-														</Badge>
-													)}
+													<div className="flex-1 space-y-1">
+														<p className="font-medium">
+															{rep.firstName} {rep.lastName}
+														</p>
+														<p className="text-muted-foreground text-sm">
+															{rep.role}
+														</p>
+														<div className="flex flex-wrap gap-4 text-sm">
+															<span className="flex items-center gap-1 text-muted-foreground">
+																<Mail className="h-3 w-3" />
+																{rep.email}
+															</span>
+															<span className="flex items-center gap-1 text-muted-foreground">
+																<Phone className="h-3 w-3" />
+																{rep.phone}
+															</span>
+														</div>
+														{rep.hasAuthority && (
+															<Badge className="mt-2" variant="outline">
+																Has Signing Authority
+															</Badge>
+														)}
+													</div>
 												</div>
-											</div>
-										))}
+											)
+										)}
 									</div>
 								) : (
 									<p className="text-muted-foreground">
@@ -649,24 +661,34 @@ export default function BrokerDetailPage() {
 								{applicationData?.documents &&
 								applicationData.documents.length > 0 ? (
 									<div className="space-y-4">
-										{applicationData.documents.map((doc, index) => (
-											<div
-												className="flex items-center gap-4 rounded-lg border p-4"
-												key={`${doc.storageId}-${index}`}
-											>
-												<FileText className="h-8 w-8 shrink-0 text-primary" />
-												<div className="flex-1">
-													<p className="font-medium">{doc.label}</p>
-													<p className="text-muted-foreground text-sm">
-														Type: {doc.type}
-													</p>
-													<p className="text-muted-foreground text-sm">
-														Uploaded:{" "}
-														{new Date(doc.uploadedAt).toLocaleDateString()}
-													</p>
+										{applicationData.documents.map(
+											(
+												doc: {
+													storageId: string;
+													label: string;
+													type: string;
+													uploadedAt: string;
+												},
+												index: number
+											) => (
+												<div
+													className="flex items-center gap-4 rounded-lg border p-4"
+													key={`${doc.storageId}-${index}`}
+												>
+													<FileText className="h-8 w-8 shrink-0 text-primary" />
+													<div className="flex-1">
+														<p className="font-medium">{doc.label}</p>
+														<p className="text-muted-foreground text-sm">
+															Type: {doc.type}
+														</p>
+														<p className="text-muted-foreground text-sm">
+															Uploaded:{" "}
+															{new Date(doc.uploadedAt).toLocaleDateString()}
+														</p>
+													</div>
 												</div>
-											</div>
-										))}
+											)
+										)}
 									</div>
 								) : (
 									<p className="text-muted-foreground">
@@ -687,32 +709,39 @@ export default function BrokerDetailPage() {
 									<p className="text-muted-foreground">No clients yet.</p>
 								) : (
 									<div className="space-y-2">
-										{clients?.clients?.map((client) => (
-											<div
-												className="flex items-center justify-between rounded-lg border p-3"
-												key={client._id}
-											>
-												<div>
-													<p className="font-medium">
-														{client.userName ||
-															client.userEmail ||
-															"Not specified"}
-													</p>
-													<p className="text-muted-foreground text-sm">
-														Status: {client.onboardingStatus}
-													</p>
-												</div>
-												<Badge
-													variant={
-														client.onboardingStatus === "approved"
-															? "default"
-															: "secondary"
-													}
+										{clients?.clients?.map(
+											(client: {
+												_id: string;
+												userName?: string;
+												userEmail?: string;
+												onboardingStatus: string;
+											}) => (
+												<div
+													className="flex items-center justify-between rounded-lg border p-3"
+													key={client._id}
 												>
-													{client.onboardingStatus}
-												</Badge>
-											</div>
-										))}
+													<div>
+														<p className="font-medium">
+															{client.userName ||
+																client.userEmail ||
+																"Not specified"}
+														</p>
+														<p className="text-muted-foreground text-sm">
+															Status: {client.onboardingStatus}
+														</p>
+													</div>
+													<Badge
+														variant={
+															client.onboardingStatus === "approved"
+																? "default"
+																: "secondary"
+														}
+													>
+														{client.onboardingStatus}
+													</Badge>
+												</div>
+											)
+										)}
 									</div>
 								)}
 							</CardContent>
@@ -1223,12 +1252,24 @@ export default function BrokerDetailPage() {
 															</SelectTrigger>
 															<SelectContent>
 																{allBrokers
-																	?.filter((b) => b._id !== brokerId)
-																	.map((b) => (
-																		<SelectItem key={b._id} value={b._id}>
-																			{b.branding?.brandName || b.subdomain}
-																		</SelectItem>
-																	))}
+																	?.filter(
+																		(b: {
+																			_id: string;
+																			branding?: { brandName?: string };
+																			subdomain?: string;
+																		}) => b._id !== brokerId
+																	)
+																	.map(
+																		(b: {
+																			_id: string;
+																			branding?: { brandName?: string };
+																			subdomain?: string;
+																		}) => (
+																			<SelectItem key={b._id} value={b._id}>
+																				{b.branding?.brandName || b.subdomain}
+																			</SelectItem>
+																		)
+																	)}
 															</SelectContent>
 														</Select>
 													</div>
@@ -1268,49 +1309,71 @@ export default function BrokerDetailPage() {
 								</div>
 								{brokerClients && brokerClients.length > 0 ? (
 									<div className="space-y-2">
-										{brokerClients.map((client) => (
-											<div
-												className="flex items-center justify-between rounded-lg border p-3"
-												key={client._id}
-											>
-												<div>
-													<p className="font-medium">
-														{client.user?.firstName && client.user?.lastName
-															? `${client.user.firstName} ${client.user.lastName}`
-															: client.user?.email || "Not specified"}
-													</p>
-													<p className="text-muted-foreground text-sm">
-														Status: {client.onboardingStatus}
-													</p>
-												</div>
-												<Select
-													onValueChange={async (targetId) => {
-														try {
-															await reassignClient({
-																clientBrokerId: client._id,
-																targetBrokerId: targetId as Id<"brokers">,
-															});
-															toast.success("Client reassigned");
-														} catch (_err) {
-															toast.error("Failed to reassign client");
-														}
-													}}
+										{brokerClients.map(
+											(client: {
+												_id: Id<"broker_clients">;
+												user: {
+													firstName?: string;
+													lastName?: string;
+													email?: string;
+												} | null;
+												onboardingStatus: string;
+											}) => (
+												<div
+													className="flex items-center justify-between rounded-lg border p-3"
+													key={client._id}
 												>
-													<SelectTrigger className="w-[180px]">
-														<SelectValue placeholder="Reassign to..." />
-													</SelectTrigger>
-													<SelectContent>
-														{allBrokers
-															?.filter((b) => b._id !== brokerId)
-															.map((b) => (
-																<SelectItem key={b._id} value={b._id}>
-																	{b.branding?.brandName || b.subdomain}
-																</SelectItem>
-															))}
-													</SelectContent>
-												</Select>
-											</div>
-										))}
+													<div>
+														<p className="font-medium">
+															{client.user?.firstName && client.user?.lastName
+																? `${client.user.firstName} ${client.user.lastName}`
+																: client.user?.email || "Not specified"}
+														</p>
+														<p className="text-muted-foreground text-sm">
+															Status: {client.onboardingStatus}
+														</p>
+													</div>
+													<Select
+														onValueChange={async (targetId) => {
+															try {
+																await reassignClient({
+																	clientBrokerId: client._id,
+																	targetBrokerId: targetId as Id<"brokers">,
+																});
+																toast.success("Client reassigned");
+															} catch (_err) {
+																toast.error("Failed to reassign client");
+															}
+														}}
+													>
+														<SelectTrigger className="w-[180px]">
+															<SelectValue placeholder="Reassign to..." />
+														</SelectTrigger>
+														<SelectContent>
+															{allBrokers
+																?.filter(
+																	(b: {
+																		_id: string;
+																		branding?: { brandName?: string };
+																		subdomain?: string;
+																	}) => b._id !== brokerId
+																)
+																.map(
+																	(b: {
+																		_id: string;
+																		branding?: { brandName?: string };
+																		subdomain?: string;
+																	}) => (
+																		<SelectItem key={b._id} value={b._id}>
+																			{b.branding?.brandName || b.subdomain}
+																		</SelectItem>
+																	)
+																)}
+														</SelectContent>
+													</Select>
+												</div>
+											)
+										)}
 									</div>
 								) : (
 									<p className="text-muted-foreground">

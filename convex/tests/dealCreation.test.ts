@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import schema from "../schema";
 
 // @ts-ignore
@@ -269,7 +269,9 @@ describe("createDeal - Basic Flow", () => {
 		});
 
 		// Verify state machine was initialized
-		const deal = await t.run(async (ctx) => ctx.db.get(result.dealId));
+		const deal = (await t.run(async (ctx) =>
+			ctx.db.get(result.dealId)
+		)) as Doc<"deals"> | null;
 
 		expect(deal?.stateMachineState).toBeDefined();
 		expect(deal?.currentState).toBe("locked");
@@ -316,7 +318,9 @@ describe("createDeal - Basic Flow", () => {
 			lockRequestId,
 		});
 
-		const deal = await t.run(async (ctx) => ctx.db.get(result.dealId));
+		const deal = (await t.run(async (ctx) =>
+			ctx.db.get(result.dealId)
+		)) as Doc<"deals"> | null;
 
 		// Verify broker info (from getBrokerOfRecord)
 		expect(deal?.brokerName).toBeDefined();
@@ -603,20 +607,24 @@ describe("createDeal - Full Integration", () => {
 		const lockRequestId = await createLockRequest(t, listingId, investorIdpId);
 
 		// Verify lock request is pending
-		const lockRequest = await t.run(async (ctx) => ctx.db.get(lockRequestId));
+		const lockRequest = (await t.run(async (ctx) =>
+			ctx.db.get(lockRequestId)
+		)) as Doc<"lock_requests"> | null;
 		expect(lockRequest?.status).toBe("pending");
 
 		// 3. Admin approves lock request
 		await approveLockRequest(t, lockRequestId);
 
 		// Verify lock request is approved
-		const approvedLockRequest = await t.run(async (ctx) =>
+		const approvedLockRequest = (await t.run(async (ctx) =>
 			ctx.db.get(lockRequestId)
-		);
+		)) as Doc<"lock_requests"> | null;
 		expect(approvedLockRequest?.status).toBe("approved");
 
 		// Verify listing is locked
-		const listing = await t.run(async (ctx) => ctx.db.get(listingId));
+		const listing = (await t.run(async (ctx) =>
+			ctx.db.get(listingId)
+		)) as Doc<"listings"> | null;
 		expect(listing?.locked).toBe(true);
 		expect(listing?.lockedBy).toBe(investorId);
 

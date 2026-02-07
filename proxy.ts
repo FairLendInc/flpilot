@@ -101,14 +101,44 @@ const maybeRedirectDashboard = (
 
 	const redirectResponse = NextResponse.redirect(new URL(destination, req.url));
 
-	baseResponse.headers.forEach((value, key) => {
-		redirectResponse.headers.set(key, value);
-	});
+	copyHeadersPreservingSetCookie(baseResponse, redirectResponse);
 
 	return redirectResponse;
 };
 
 // --- Helper Functions ---
+
+function copyHeadersPreservingSetCookie(
+	fromResponse: NextResponse,
+	toResponse: NextResponse
+) {
+	const fromHeaders = fromResponse.headers;
+	const getSetCookie = (
+		fromHeaders as Headers & { getSetCookie?: () => string[] }
+	).getSetCookie;
+
+	let setCookies: string[] = [];
+	if (typeof getSetCookie === "function") {
+		setCookies = getSetCookie.call(fromHeaders);
+	}
+
+	fromHeaders.forEach((value, key) => {
+		if (key.toLowerCase() === "set-cookie") return;
+		toResponse.headers.set(key, value);
+	});
+
+	if (setCookies.length > 0) {
+		for (const cookie of setCookies) {
+			toResponse.headers.append("set-cookie", cookie);
+		}
+		return;
+	}
+
+	const singleSetCookie = fromHeaders.get("set-cookie");
+	if (singleSetCookie) {
+		toResponse.headers.append("set-cookie", singleSetCookie);
+	}
+}
 
 /**
  * Executes AuthKit middleware to handle authentication state and redirects.
@@ -154,9 +184,7 @@ async function runAuthMiddleware(
 		},
 	});
 
-	res.headers.forEach((value, key) => {
-		nextRes.headers.set(key, value);
-	});
+	copyHeadersPreservingSetCookie(res, nextRes);
 
 	return nextRes;
 }
@@ -257,9 +285,7 @@ function handleSubdomainRewrite(
 	});
 
 	// Preserve headers from AuthKit response (e.g. Set-Cookie)
-	baseRes.headers.forEach((val, key) => {
-		rewriteRes.headers.set(key, val);
-	});
+	copyHeadersPreservingSetCookie(baseRes, rewriteRes);
 
 	return rewriteRes;
 }
@@ -299,11 +325,8 @@ function evaluateRedirectRules(
 
 	if (subdomainRedirect) {
 		const redirectRes = NextResponse.redirect(subdomainRedirect);
-		// Only preserve essential headers (like auth cookies)
-		const setCookie = finalRes.headers.get("set-cookie");
-		if (setCookie) {
-			redirectRes.headers.set("set-cookie", setCookie);
-		}
+		// Preserve headers from AuthKit response (including auth cookies)
+		copyHeadersPreservingSetCookie(finalRes, redirectRes);
 		return redirectRes;
 	}
 

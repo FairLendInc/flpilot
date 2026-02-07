@@ -235,7 +235,7 @@ async function rotessaRequest<T>(
 		body?: unknown;
 	} & RotessaRequestOptions = {}
 ): Promise<T> {
-	let resolvedPath = path;
+	let resolvedPath: string;
 	try {
 		resolvedPath = applyPathParams(method, path, options.pathParams);
 	} catch (error) {
@@ -254,8 +254,23 @@ async function rotessaRequest<T>(
 
 	const url = buildUrl(config.baseUrl, resolvedPath, options.query);
 	const controller = new AbortController();
+	let externalAbortListener: (() => void) | null = null;
 	const timeoutMs = options.timeoutMs ?? config.timeoutMs;
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
+	const externalSignal = options.signal;
+
+	if (externalSignal) {
+		if (externalSignal.aborted) {
+			controller.abort((externalSignal as { reason?: unknown }).reason);
+		} else {
+			externalAbortListener = () => {
+				controller.abort((externalSignal as { reason?: unknown }).reason);
+			};
+			externalSignal.addEventListener("abort", externalAbortListener, {
+				once: true,
+			});
+		}
+	}
 
 	try {
 		const response = await config.fetchFn(url, {
@@ -269,7 +284,7 @@ async function rotessaRequest<T>(
 				options.body !== undefined && method !== "GET"
 					? JSON.stringify(options.body)
 					: undefined,
-			signal: options.signal ?? controller.signal,
+			signal: controller.signal,
 		});
 
 		const responseText = await response.text();
@@ -311,6 +326,9 @@ async function rotessaRequest<T>(
 		throw requestError;
 	} finally {
 		clearTimeout(timeout);
+		if (externalSignal && externalAbortListener) {
+			externalSignal.removeEventListener("abort", externalAbortListener);
+		}
 	}
 }
 

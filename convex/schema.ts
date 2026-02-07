@@ -146,7 +146,8 @@ export default defineSchema({
 			v.literal("unselected"),
 			v.literal("broker"),
 			v.literal("investor"),
-			v.literal("lawyer")
+			v.literal("lawyer"),
+			v.literal("borrower")
 		),
 		stateValue: v.string(),
 		context: v.object({
@@ -397,6 +398,117 @@ export default defineSchema({
 					),
 				})
 			),
+			// Borrower onboarding context (broker/admin initiated or self-registration)
+			borrower: v.optional(
+				v.object({
+					// Invitation context (if broker/admin-initiated)
+					invitation: v.optional(
+						v.object({
+							invitedBy: v.id("users"),
+							invitedByRole: v.union(v.literal("broker"), v.literal("admin")),
+							invitedAt: v.string(), // ISO timestamp
+							loanDetails: v.optional(
+								v.object({
+									requestedAmount: v.optional(v.number()),
+									propertyAddress: v.optional(v.string()),
+								})
+							),
+						})
+					),
+					// Step configuration version for this journey
+					configVersion: v.optional(v.number()),
+					// Profile step
+					profile: v.optional(
+						v.object({
+							firstName: v.string(),
+							middleName: v.optional(v.string()),
+							lastName: v.string(),
+							email: v.string(),
+							phone: v.optional(v.string()),
+							address: v.optional(
+								v.object({
+									street: v.string(),
+									city: v.string(),
+									province: v.string(),
+									postalCode: v.string(),
+									country: v.string(),
+								})
+							),
+						})
+					),
+					// Identity verification (Plaid - future)
+					idVerification: v.optional(
+						v.object({
+							provider: v.string(),
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("pending"),
+								v.literal("verified"),
+								v.literal("failed"),
+								v.literal("mismatch"),
+								v.literal("skipped")
+							),
+							inquiryId: v.optional(v.string()),
+							checkedAt: v.optional(v.string()),
+						})
+					),
+					// KYC/AML (future)
+					kycAml: v.optional(
+						v.object({
+							provider: v.string(),
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("pending"),
+								v.literal("passed"),
+								v.literal("failed"),
+								v.literal("requires_review"),
+								v.literal("skipped")
+							),
+							checkId: v.optional(v.string()),
+							checkedAt: v.optional(v.string()),
+						})
+					),
+					// Rotessa setup
+					rotessa: v.optional(
+						v.object({
+							status: v.union(
+								v.literal("not_started"),
+								v.literal("pending"),
+								v.literal("linked"),
+								v.literal("created"),
+								v.literal("active"),
+								v.literal("failed")
+							),
+							customerId: v.optional(v.number()),
+							customIdentifier: v.optional(v.string()),
+							linkedAt: v.optional(v.string()),
+							// Banking info (collected in step)
+							bankInfo: v.optional(
+								v.object({
+									institutionNumber: v.string(),
+									transitNumber: v.string(),
+									accountNumber: v.string(), // Encrypted/masked in context
+									accountType: v.union(
+										v.literal("checking"),
+										v.literal("savings")
+									),
+								})
+							),
+						})
+					),
+					// Documents (optional uploads)
+					documents: v.optional(
+						v.array(
+							v.object({
+								storageId: v.id("_storage"),
+								type: v.string(), // e.g., "id_verification", "proof_of_address"
+								label: v.string(),
+								uploadedAt: v.string(),
+							})
+						)
+					),
+				})
+			),
 		}),
 		status: v.union(
 			v.literal("draft"),
@@ -600,16 +712,77 @@ export default defineSchema({
 	// ============================================================================
 
 	borrowers: defineTable({
+		// Link to platform user account (borrowers are platform users)
+		userId: v.optional(v.id("users")), // Optional during migration, required for new borrowers
+
 		// Borrower profile information
 		name: v.string(),
 		email: v.string(),
 		phone: v.optional(v.string()),
+
+		// Address
+		address: v.optional(
+			v.object({
+				street: v.string(),
+				city: v.string(),
+				province: v.string(),
+				postalCode: v.string(),
+				country: v.string(),
+			})
+		),
+
 		// Rotessa payment processor customer ID
-		//TODO: Convert this to extPaymentId
 		rotessaCustomerId: v.string(),
+		rotessaCustomIdentifier: v.optional(v.string()),
+
+		// Verification status (from journey)
+		idVerificationStatus: v.optional(
+			v.union(
+				v.literal("not_started"),
+				v.literal("pending"),
+				v.literal("verified"),
+				v.literal("failed"),
+				v.literal("skipped")
+			)
+		),
+		kycAmlStatus: v.optional(
+			v.union(
+				v.literal("not_started"),
+				v.literal("pending"),
+				v.literal("passed"),
+				v.literal("failed"),
+				v.literal("requires_review"),
+				v.literal("skipped")
+			)
+		),
+
+		// Onboarding metadata
+		onboardingJourneyId: v.optional(v.id("onboarding_journeys")),
+		onboardedBy: v.optional(
+			v.union(v.literal("broker"), v.literal("admin"), v.literal("self"))
+		),
+		onboardedByUserId: v.optional(v.id("users")),
+		onboardedAt: v.optional(v.string()), // ISO timestamp
+
+		// Status (optional for backward compatibility, defaults to "active" in application logic)
+		status: v.optional(
+			v.union(
+				v.literal("pending_approval"),
+				v.literal("active"),
+				v.literal("inactive"),
+				v.literal("suspended")
+			)
+		),
+
+		// Sync metadata
+		rotessaLastSyncAt: v.optional(v.number()),
+		rotessaSyncError: v.optional(v.string()),
 	})
+		.index("by_user", ["userId"])
 		.index("by_rotessa_customer_id", ["rotessaCustomerId"])
-		.index("by_email", ["email"]),
+		.index("by_email", ["email"])
+		.index("by_status", ["status"])
+		.index("by_onboarding_journey", ["onboardingJourneyId"]),
 
 	mic_investors_demo: defineTable({
 		name: v.string(),
@@ -720,11 +893,23 @@ export default defineSchema({
 				})
 			)
 		),
+		// Rotessa payment schedule linking (1:1 mortgage → schedule)
+		rotessaScheduleId: v.optional(v.number()),
+		rotessaScheduleStatus: v.optional(
+			v.union(
+				v.literal("active"),
+				v.literal("paused"),
+				v.literal("completed"),
+				v.literal("cancelled")
+			)
+		),
+		rotessaScheduleLastSyncAt: v.optional(v.number()),
 	})
 		.index("by_borrower", ["borrowerId"])
 		.index("by_status", ["status"])
 		.index("by_maturity_date", ["maturityDate"])
-		.index("by_external_mortgage_id", ["externalMortgageId"]),
+		.index("by_external_mortgage_id", ["externalMortgageId"])
+		.index("by_rotessa_schedule", ["rotessaScheduleId"]),
 
 	mortgage_ownership: defineTable({
 		// Reference to mortgage
@@ -816,23 +1001,94 @@ export default defineSchema({
 	payments: defineTable({
 		// Reference to mortgage
 		mortgageId: v.id("mortgages"),
+		// Reference to borrower (for query efficiency)
+		borrowerId: v.optional(v.id("borrowers")),
 		// Payment details (interest-only payments)
 		amount: v.number(),
-		processDate: v.string(), // ISO date string
+		currency: v.optional(v.string()), // CAD default
+		paymentType: v.optional(
+			v.union(
+				v.literal("interest_only"),
+				v.literal("principal"),
+				v.literal("full")
+			)
+		),
+		processDate: v.string(), // ISO date string (Rotessa scheduled date)
+		dueDate: v.optional(v.string()), // Alias for processDate (for UI clarity)
+		paidDate: v.optional(v.string()), // Actual payment date
+		settlementDate: v.optional(v.string()), // Bank settlement date
 		status: v.union(
 			v.literal("pending"),
+			v.literal("processing"),
 			v.literal("cleared"),
-			v.literal("failed")
+			v.literal("failed"),
+			v.literal("nsf") // Non-sufficient funds / chargeback
 		),
 		// Rotessa payment processor identifiers
-		paymentId: v.string(), // Rotessa payment ID
+		paymentId: v.string(), // Rotessa payment ID (legacy field name)
+		rotessaTransactionId: v.optional(v.string()), // Explicit Rotessa transaction ID
 		customerId: v.string(), // Rotessa customer ID
-		transactionScheduleId: v.string(), // Rotessa schedule reference
+		transactionScheduleId: v.optional(v.string()), // Rotessa schedule reference (optional)
+		transactionSchedule: v.optional(v.any()), // Optional schedule payload snapshot
+		rotessaScheduleId: v.optional(v.number()), // Numeric schedule ID
+		rotessaStatus: v.optional(v.string()), // Raw Rotessa status
+		rotessaStatusReason: v.optional(v.string()), // Decline/chargeback reason
+		paymentMetadata: v.optional(v.any()), // Raw payment metadata (Rotessa payload)
+		// Formance Ledger integration
+		ledgerTransactionId: v.optional(v.string()), // Reference to Formance ledger transaction
+		// Timestamps
+		createdAt: v.optional(v.string()),
+		updatedAt: v.optional(v.string()),
 	})
 		.index("by_mortgage", ["mortgageId"])
+		.index("by_borrower", ["borrowerId"])
 		.index("by_status", ["status"])
 		.index("by_process_date", ["processDate"])
-		.index("by_payment_id", ["paymentId"]),
+		.index("by_payment_id", ["paymentId"])
+		.index("by_rotessa_transaction", ["rotessaTransactionId"])
+		.index("by_ledger_transaction", ["ledgerTransactionId"]),
+
+	/**
+	 * Backfill Log Table
+	 *
+	 * Tracks historical payment backfill operations from Rotessa to Formance.
+	 * Created when linking a schedule with backfill enabled.
+	 */
+	backfill_log: defineTable({
+		mortgageId: v.id("mortgages"),
+		scheduleId: v.number(), // Rotessa schedule ID
+		triggeredBy: v.optional(v.id("users")), // Admin who triggered
+		status: v.union(
+			v.literal("running"),
+			v.literal("completed"),
+			v.literal("partial"), // Completed with some errors
+			v.literal("failed")
+		),
+		// Metrics
+		metrics: v.optional(
+			v.object({
+				transactionsFound: v.number(),
+				paymentsCreated: v.number(),
+				ledgerTransactionsCreated: v.number(),
+				errors: v.number(),
+			})
+		),
+		// Error details for failed payments
+		errors: v.optional(
+			v.array(
+				v.object({
+					transactionId: v.number(),
+					error: v.string(),
+				})
+			)
+		),
+		// Timestamps
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+	})
+		.index("by_mortgage", ["mortgageId"])
+		.index("by_schedule", ["scheduleId"])
+		.index("by_status", ["status"]),
 
 	// ============================================================================
 	// Deal Management Tables (Pilot Program)
@@ -1186,4 +1442,113 @@ export default defineSchema({
 		.index("by_emitted", ["emittedAt"]) // For cron job - find unemitted events
 		.index("by_user", ["userId"])
 		.index("by_timestamp", ["timestamp"]), // For 7-year retention cleanup
+
+	// ============================================================================
+	// Borrower & Rotessa Sync Tables
+	// ============================================================================
+
+	/**
+	 * Rotessa sync log - tracks daily CRON and manual sync operations
+	 * Used for admin dashboard and audit trail
+	 */
+	rotessa_sync_log: defineTable({
+		// Sync type and scope
+		syncType: v.union(v.literal("daily"), v.literal("manual")),
+		scope: v.union(
+			v.literal("all"),
+			v.literal("borrower"),
+			v.literal("mortgage")
+		),
+		entityId: v.optional(v.string()), // borrowerId or mortgageId when scoped
+
+		// Status tracking
+		status: v.union(
+			v.literal("running"),
+			v.literal("completed"),
+			v.literal("partial"),
+			v.literal("failed")
+		),
+
+		// Admin who triggered manual sync
+		triggeredBy: v.optional(v.id("users")),
+
+		// Timestamps
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+
+		// Metrics
+		metrics: v.optional(
+			v.object({
+				transactionsProcessed: v.number(),
+				paymentsCreated: v.number(),
+				paymentsUpdated: v.number(),
+				ledgerTransactionsCreated: v.number(),
+				errors: v.number(),
+			})
+		),
+
+		// Error details for debugging
+		errors: v.optional(
+			v.array(
+				v.object({
+					transactionId: v.string(),
+					error: v.string(),
+					timestamp: v.number(),
+				})
+			)
+		),
+
+		// Date range for sync (custom range for manual sync)
+		dateRange: v.optional(
+			v.object({
+				startDate: v.string(), // ISO date
+				endDate: v.string(), // ISO date
+			})
+		),
+	})
+		.index("by_status", ["status"])
+		.index("by_started_at", ["startedAt"])
+		.index("by_sync_type", ["syncType"]),
+
+	/**
+	 * Deferral requests - borrower self-service payment deferral requests
+	 * Admin reviews and approves/rejects requests
+	 */
+	deferral_requests: defineTable({
+		// References
+		borrowerId: v.id("borrowers"),
+		mortgageId: v.id("mortgages"),
+
+		// Request type
+		requestType: v.union(v.literal("one_time"), v.literal("hardship")),
+
+		// Request details
+		requestedDeferralDate: v.string(), // ISO date
+		reason: v.optional(v.string()),
+
+		// Status
+		status: v.union(
+			v.literal("pending"),
+			v.literal("approved"),
+			v.literal("rejected")
+		),
+
+		// Admin decision
+		adminDecision: v.optional(
+			v.object({
+				decidedBy: v.id("users"),
+				decidedAt: v.string(), // ISO timestamp
+				reason: v.optional(v.string()),
+			})
+		),
+
+		// Rotessa adjustment reference (after approval)
+		rotessaAdjustmentId: v.optional(v.string()),
+
+		// Timestamps
+		createdAt: v.string(), // ISO timestamp
+	})
+		.index("by_borrower", ["borrowerId"])
+		.index("by_mortgage", ["mortgageId"])
+		.index("by_status", ["status"]),
 });

@@ -736,7 +736,9 @@ describe("cancelDeal - Cancellation from Different States", () => {
 		const adminT = await getAdminTest(t);
 
 		// Verify listing is locked
-		const listingBefore = await t.run(async (ctx) => ctx.db.get(listingId));
+		const listingBefore = await t.run(
+			async (ctx) => (await ctx.db.get(listingId)) as { locked: boolean } | null
+		);
 		expect(listingBefore?.locked).toBe(true);
 
 		// Cancel deal
@@ -746,7 +748,13 @@ describe("cancelDeal - Cancellation from Different States", () => {
 		});
 
 		// Verify listing is unlocked
-		const listingAfter = await t.run(async (ctx) => ctx.db.get(listingId));
+		const listingAfter = await t.run(
+			async (ctx) =>
+				(await ctx.db.get(listingId)) as {
+					locked: boolean;
+					lockedBy?: Id<"users">;
+				} | null
+		);
 		expect(listingAfter?.locked).toBe(false);
 		expect(listingAfter?.lockedBy).toBeUndefined();
 	});

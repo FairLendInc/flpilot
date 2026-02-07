@@ -51,7 +51,7 @@ export default function AdminBrokersPage() {
 	}
 
 	// Filter broker journeys
-	const filteredJourneys = brokerJourneys?.filter((journey) => {
+	const filteredJourneys = brokerJourneys?.filter((journey: BrokerJourney) => {
 		if (statusFilter !== "all" && journey.status !== statusFilter) return false;
 		if (searchQuery) {
 			const brokerData = journey.context?.broker;
@@ -63,7 +63,8 @@ export default function AdminBrokersPage() {
 	});
 
 	const pendingCount =
-		brokerJourneys?.filter((j) => j.status === "awaiting_admin").length || 0;
+		brokerJourneys?.filter((j: BrokerJourney) => j.status === "awaiting_admin")
+			.length || 0;
 	const totalBrokers = approvedBrokers?.length || 0;
 
 	return (
@@ -177,7 +178,7 @@ export default function AdminBrokersPage() {
 							</div>
 						) : (
 							<div className="space-y-4">
-								{filteredJourneys?.slice(0, 5).map((journey) => (
+								{filteredJourneys?.slice(0, 5).map((journey: BrokerJourney) => (
 									<BrokerApplicationCard journey={journey} key={journey._id} />
 								))}
 							</div>
@@ -215,7 +216,7 @@ export default function AdminBrokersPage() {
 							</div>
 						) : (
 							<div className="space-y-4">
-								{approvedBrokers?.slice(0, 5).map((broker) => (
+								{approvedBrokers?.slice(0, 5).map((broker: Broker) => (
 									<BrokerCard broker={broker} key={broker._id} />
 								))}
 							</div>
