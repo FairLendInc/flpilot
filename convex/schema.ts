@@ -230,11 +230,17 @@ export default defineSchema({
 		// Borrower profile information
 		name: v.string(),
 		email: v.string(),
+		phone: v.optional(v.string()),
 		// Rotessa payment processor customer ID
+		//TODO: Convert this to extPaymentId
 		rotessaCustomerId: v.string(),
 	})
 		.index("by_rotessa_customer_id", ["rotessaCustomerId"])
 		.index("by_email", ["email"]),
+
+	mic_investors_demo: defineTable({
+		name: v.string(),
+	}),
 
 	mortgages: defineTable({
 		// Optional external identifier for integrations (used for idempotency)
