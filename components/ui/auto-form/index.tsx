@@ -85,6 +85,22 @@ export function AutoForm<SchemaType extends ZodObjectOrWrapped>({
     const parsedValues = formSchema.safeParse(values);
     if (parsedValues.success) {
       onSubmitProp?.(parsedValues.data as z.infer<SchemaType>, form as unknown as UseFormReturn<z.infer<SchemaType>>);
+    } else {
+      for (const issue of parsedValues.error.issues) {
+        const path = issue.path.join(".");
+        if (path) {
+          const pathKey = path as keyof z.infer<SchemaType> & string;
+          form.setError(pathKey, {
+            type: "manual",
+            message: issue.message,
+          });
+        } else {
+          form.setError("root", {
+            type: "manual",
+            message: issue.message,
+          });
+        }
+      }
     }
   }
 

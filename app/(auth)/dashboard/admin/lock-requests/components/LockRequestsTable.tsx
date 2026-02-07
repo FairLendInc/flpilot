@@ -52,6 +52,11 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
+
+type LockRequestItem =
+	| (typeof api.lockRequests.getPendingLockRequestsWithDetails._returnType)[number]
+	| (typeof api.lockRequests.getApprovedLockRequestsWithDetails._returnType)[number]
+	| (typeof api.lockRequests.getRejectedLockRequestsWithDetails._returnType)[number];
 import {
 	type LockRequestSortColumn,
 	type LockStatusFilter,
@@ -197,7 +202,9 @@ export function LockRequestsTable({
 	// Filter by listingId if provided (for task 3.7)
 	const requestsFilteredByListing = useMemo(() => {
 		if (!(listingId && rawRequests)) return rawRequests;
-		return rawRequests.filter((item) => item.listing?._id === listingId);
+		return rawRequests.filter(
+			(item: LockRequestItem) => item.listing?._id === listingId
+		);
 	}, [rawRequests, listingId]);
 
 	// Apply search, filter, and sort
@@ -234,8 +241,9 @@ export function LockRequestsTable({
 	// Calculate "other pending requests" count for task 3.7
 	const otherPendingCount = useMemo(() => {
 		if (!(listingId && pendingRequestsData)) return 0;
-		return pendingRequestsData.filter((item) => item.listing?._id === listingId)
-			.length;
+		return pendingRequestsData.filter(
+			(item: LockRequestItem) => item.listing?._id === listingId
+		).length;
 	}, [listingId, pendingRequestsData]);
 
 	const isLoading = rawRequests === undefined;

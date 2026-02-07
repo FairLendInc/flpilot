@@ -6,16 +6,24 @@
 import { type Infer, v } from "convex/values";
 import { hasRbacAccess } from "../lib/authhelper";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { action, internalMutation, mutation, query } from "./_generated/server";
+import {
+	action,
+	internalMutation,
+	internalQuery,
+	mutation,
+	query,
+} from "./_generated/server";
 import { comparablePayloadValidator } from "./comparables";
 import { authenticatedQuery } from "./lib/authorizedFunctions";
+import { paginateByCreation } from "./lib/webhookPagination";
 import { ensureMortgage, mortgageDetailsValidator } from "./mortgages";
 
 const borrowerPayloadValidator = v.object({
 	name: v.string(),
 	email: v.string(),
+	phone: v.optional(v.string()),
 	rotessaCustomerId: v.string(),
 });
 
@@ -66,12 +74,18 @@ const ensureBorrowerForPayload = async (
 		.first();
 
 	if (existingByRotessa) {
-		const updates: Partial<{ name: string; email: string }> = {};
+		const updates: Partial<{ name: string; email: string; phone: string }> = {};
 		if (existingByRotessa.name !== borrower.name) {
 			updates.name = borrower.name;
 		}
 		if (existingByRotessa.email !== borrower.email) {
 			updates.email = borrower.email;
+		}
+		if (
+			borrower.phone !== undefined &&
+			existingByRotessa.phone !== borrower.phone
+		) {
+			updates.phone = borrower.phone;
 		}
 		if (Object.keys(updates).length > 0) {
 			await ctx.db.patch(existingByRotessa._id, updates);
@@ -90,9 +104,15 @@ const ensureBorrowerForPayload = async (
 				"Borrower email is already associated with a different Rotessa customer"
 			);
 		}
-		const updates: Partial<{ name: string }> = {};
+		const updates: Partial<{ name: string; phone: string }> = {};
 		if (existingByEmail.name !== borrower.name) {
 			updates.name = borrower.name;
+		}
+		if (
+			borrower.phone !== undefined &&
+			existingByEmail.phone !== borrower.phone
+		) {
+			updates.phone = borrower.phone;
 		}
 		if (Object.keys(updates).length > 0) {
 			await ctx.db.patch(existingByEmail._id, updates);
@@ -103,6 +123,7 @@ const ensureBorrowerForPayload = async (
 	return await ctx.db.insert("borrowers", {
 		name: borrower.name,
 		email: borrower.email,
+		phone: borrower.phone,
 		rotessaCustomerId: borrower.rotessaCustomerId,
 	});
 };
@@ -113,10 +134,24 @@ const runListingCreation = async (
 ): Promise<ListingCreationResult> => {
 	const borrowerId = await ensureBorrowerForPayload(ctx, payload.borrower);
 
-	const mortgageId = await ensureMortgage(ctx, {
+	const mortgageResult = await ensureMortgage(ctx, {
 		borrowerId,
 		...payload.mortgage,
 	});
+	const mortgageId = mortgageResult.mortgageId;
+
+	// Schedule ledger initialization only if mortgage was newly created
+	if (mortgageResult.created) {
+		const reference = `init:${mortgageId}:${Date.now()}`;
+		await ctx.scheduler.runAfter(
+			0,
+			internal.ledger.initializeMortgageOwnership,
+			{
+				mortgageId: mortgageId.toString(),
+				reference,
+			}
+		);
+	}
 
 	// Create comparables if provided
 	if (payload.comparables && payload.comparables.length > 0) {
@@ -809,4 +844,178 @@ export const deleteListingInternal = internalMutation({
 	},
 	returns: v.id("listings"),
 	handler: async (ctx, args) => await deleteListingCore(ctx, args),
+});
+
+/**
+ * Internal: Get listing by ID, mortgage ID, or external mortgage ID.
+ */
+export const getListingInternal = internalQuery({
+	args: {
+		listingId: v.optional(v.id("listings")),
+		mortgageId: v.optional(v.id("mortgages")),
+		externalMortgageId: v.optional(v.string()),
+		includeMortgage: v.optional(v.boolean()),
+		includeBorrower: v.optional(v.boolean()),
+		includeComparables: v.optional(v.boolean()),
+	},
+	returns: v.union(v.any(), v.null()),
+	handler: async (ctx, args) => {
+		let listing: Doc<"listings"> | null = null;
+
+		if (args.listingId) {
+			listing = await ctx.db.get(args.listingId);
+		} else if (args.mortgageId) {
+			const mId = args.mortgageId;
+			listing = await ctx.db
+				.query("listings")
+				.withIndex("by_mortgage", (q) => q.eq("mortgageId", mId))
+				.first();
+		} else if (args.externalMortgageId) {
+			const mortgage = await ctx.db
+				.query("mortgages")
+				.withIndex("by_external_mortgage_id", (q) =>
+					q.eq("externalMortgageId", args.externalMortgageId)
+				)
+				.first();
+			if (mortgage) {
+				listing = await ctx.db
+					.query("listings")
+					.withIndex("by_mortgage", (q) => q.eq("mortgageId", mortgage._id))
+					.first();
+			}
+		}
+
+		if (!listing) {
+			return null;
+		}
+
+		const result: Record<string, unknown> = { ...listing };
+
+		if (args.includeMortgage !== false) {
+			const mortgage = await ctx.db.get(listing.mortgageId);
+			if (mortgage) {
+				result.mortgage = mortgage;
+				if (args.includeBorrower) {
+					result.borrower = await ctx.db.get(mortgage.borrowerId);
+				}
+			}
+		}
+
+		if (args.includeComparables) {
+			result.comparables = await ctx.db
+				.query("appraisal_comparables")
+				.withIndex("by_mortgage", (q) => q.eq("mortgageId", listing.mortgageId))
+				.collect();
+		}
+
+		return result;
+	},
+});
+
+/**
+ * Internal: List listings with marketplace filters and pagination.
+ */
+export const listListingsInternal = internalQuery({
+	args: {
+		visible: v.optional(v.boolean()),
+		locked: v.optional(v.boolean()),
+		available: v.optional(v.boolean()),
+		lockedBy: v.optional(v.id("users")),
+		borrowerId: v.optional(v.id("borrowers")),
+		minLtv: v.optional(v.number()),
+		maxLtv: v.optional(v.number()),
+		minLoanAmount: v.optional(v.number()),
+		maxLoanAmount: v.optional(v.number()),
+		propertyType: v.optional(v.string()),
+		state: v.optional(v.string()),
+		city: v.optional(v.string()),
+		includeMortgage: v.optional(v.boolean()),
+		limit: v.optional(v.number()),
+		cursor: v.optional(v.string()),
+	},
+	returns: v.object({
+		listings: v.array(v.any()),
+		nextCursor: v.optional(v.string()),
+		hasMore: v.boolean(),
+		total: v.number(),
+	}),
+	handler: async (ctx, args) => {
+		const listings = await ctx.db.query("listings").collect();
+		const mortgages = await ctx.db.query("mortgages").collect();
+		const mortgageById = new Map(
+			mortgages.map((mortgage) => [mortgage._id, mortgage])
+		);
+
+		const filtered = listings.filter((listing) => {
+			if (args.available && (!listing.visible || listing.locked)) {
+				return false;
+			}
+			if (args.visible !== undefined && listing.visible !== args.visible) {
+				return false;
+			}
+			if (args.locked !== undefined && listing.locked !== args.locked) {
+				return false;
+			}
+			if (args.lockedBy && listing.lockedBy !== args.lockedBy) {
+				return false;
+			}
+
+			const mortgage = mortgageById.get(listing.mortgageId);
+			if (!mortgage) {
+				return false;
+			}
+
+			if (args.borrowerId && mortgage.borrowerId !== args.borrowerId) {
+				return false;
+			}
+			if (args.minLtv !== undefined && mortgage.ltv < args.minLtv) {
+				return false;
+			}
+			if (args.maxLtv !== undefined && mortgage.ltv > args.maxLtv) {
+				return false;
+			}
+			if (
+				args.minLoanAmount !== undefined &&
+				mortgage.loanAmount < args.minLoanAmount
+			) {
+				return false;
+			}
+			if (
+				args.maxLoanAmount !== undefined &&
+				mortgage.loanAmount > args.maxLoanAmount
+			) {
+				return false;
+			}
+			if (args.propertyType && mortgage.propertyType !== args.propertyType) {
+				return false;
+			}
+			if (args.state && mortgage.address.state !== args.state) {
+				return false;
+			}
+			if (args.city && mortgage.address.city !== args.city) {
+				return false;
+			}
+
+			return true;
+		});
+
+		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
+		const paginated = paginateByCreation(filtered, limit, args.cursor);
+
+		const result = [];
+		for (const listing of paginated.items) {
+			const record: Record<string, unknown> = { ...listing };
+			if (args.includeMortgage !== false) {
+				record.mortgage = mortgageById.get(listing.mortgageId);
+			}
+			result.push(record);
+		}
+
+		return {
+			listings: result,
+			nextCursor: paginated.nextCursor,
+			hasMore: paginated.hasMore,
+			total: paginated.total,
+		};
+	},
 });

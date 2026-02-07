@@ -32,6 +32,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
+
+type BorrowerItem = (typeof api.borrowers.listBorrowers._returnType)[number];
 import { MortgageDocumentTemplatesEditor } from "../MortgageDocumentTemplatesEditor";
 
 type MortgageUpdateSheetProps = {
@@ -480,7 +482,7 @@ export function MortgageUpdateSheet({
 												<SelectValue placeholder="Select borrower" />
 											</SelectTrigger>
 											<SelectContent>
-												{borrowers?.map((borrower) => (
+												{borrowers?.map((borrower: BorrowerItem) => (
 													<SelectItem key={borrower._id} value={borrower._id}>
 														{borrower.name} ({borrower.email})
 													</SelectItem>

@@ -32,6 +32,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
+type PendingRequestItem =
+	(typeof api.lockRequests.getPendingLockRequestsWithDetails._returnType)[number];
+
 // Use a flexible type that matches the query return types
 export type LockRequestDetailData = {
 	request: {
@@ -127,7 +130,7 @@ export function LockRequestDetail({
 		otherPendingCount ??
 		(allPendingRequests
 			? allPendingRequests.filter(
-					(item) =>
+					(item: PendingRequestItem) =>
 						item.listing?._id === request.listingId &&
 						item.request._id !== request._id
 				).length

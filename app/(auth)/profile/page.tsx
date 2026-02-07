@@ -108,13 +108,13 @@ export default function ProfilePage() {
 	const composed: ProfileData | undefined = useMemo(() => {
 		if (!data) return;
 		const organizations =
-			data.memberships.map((m) => ({
+			data.memberships.map((m: Membership) => ({
 				id: m.organizationId,
 				name: m.organizationName,
 				created_at: m.organizationCreatedAt,
 			})) ?? [];
 		const memberships = data.memberships ?? [];
-		const roles = memberships.map((m) => ({
+		const roles = memberships.map((m: Membership) => ({
 			slug: m.primaryRoleSlug || m.membershipRole?.slug || "",
 			name: m.primaryRoleSlug || m.membershipRole?.slug || "",
 			organizationId: m.organizationId,
@@ -190,7 +190,7 @@ export default function ProfilePage() {
 		try {
 			// Find the membership to get the WorkOS organization ID
 			const membership = data?.memberships?.find(
-				(m) => m.organizationId === value
+				(m: Membership) => m.organizationId === value
 			);
 			if (!membership) {
 				throw new Error("Organization not found");

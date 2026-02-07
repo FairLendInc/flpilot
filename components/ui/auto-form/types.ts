@@ -9,6 +9,8 @@ export enum FormLayout {
 
 export type FieldConfigItem = {
   description?: React.ReactNode;
+  icon?: React.ReactNode;
+  variant?: "default" | "ghost";
   inputProps?: React.InputHTMLAttributes<HTMLInputElement> &
     React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
       showLabel?: boolean;
@@ -25,10 +27,10 @@ export type FieldConfigItem = {
   order?: number;
 };
 
-export type FieldConfig<SchemaType extends z.infer<z.ZodObject<any, any>>> = {
+export type FieldConfig<SchemaType extends Record<string, unknown>> = {
   // If SchemaType.key is an object, create a nested FieldConfig, otherwise FieldConfigItem
-  [Key in keyof SchemaType]?: SchemaType[Key] extends object
-    ? FieldConfig<z.infer<SchemaType[Key]>>
+  [Key in keyof SchemaType]?: SchemaType[Key] extends Record<string, unknown>
+    ? FieldConfig<SchemaType[Key]>
     : FieldConfigItem;
 };
 

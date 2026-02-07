@@ -12,7 +12,9 @@ import { getSubdomain } from "./lib/subdomains";
 
 export default async function proxy(req: NextRequest) {
 	const url = req.nextUrl;
-	const hostname = req.headers.get("host") || "";
+	const forwardedHost = req.headers.get("x-forwarded-host");
+	const hostname =
+		forwardedHost?.split(",")[0]?.trim() || req.headers.get("host") || "";
 	const { subdomain } = getSubdomain(hostname);
 	const protocol = url.protocol;
 
@@ -179,8 +181,10 @@ function handleMicSubdomain(
 	// If not on landing page, redirect to landing page on same subdomain
 	if (url.pathname !== "/") {
 		const landingUrl = new URL(`${protocol}//${hostname}/`);
-		console.log("[proxy] mic subdomain restricting to landing:", {
-			from: `${protocol}//${hostname}${url.pathname}`,
+		logger.debug("[proxy] mic subdomain restricting to landing:", {
+			protocol,
+			hostname,
+			pathname: url.pathname,
 			to: landingUrl.toString(),
 		});
 		return NextResponse.redirect(landingUrl.toString());
@@ -202,8 +206,9 @@ function handleMicSubdomain(
 		rewriteRes.headers.set(key, val);
 	});
 
-	console.log(
-		"[proxy] mic subdomain serving landing page with x-subdomain header"
+	logger.debug(
+		"[proxy] mic subdomain serving landing page with x-subdomain header",
+		{ subdomain: "mic", header: "x-subdomain" }
 	);
 	return rewriteRes;
 }

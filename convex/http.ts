@@ -24,7 +24,7 @@ const LISTINGS_WEBHOOK_API_KEY = process.env.LISTINGS_WEBHOOK_API_KEY;
 
 const webhookCorsHeaders = {
 	"Access-Control-Allow-Origin": WEBHOOK_ALLOWED_ORIGIN,
-	"Access-Control-Allow-Methods": "POST, OPTIONS",
+	"Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
 	"Access-Control-Allow-Headers": "Content-Type, X-API-Key",
 	"Access-Control-Max-Age": "86400",
 };
@@ -37,6 +37,7 @@ const corsJsonHeaders = {
 const borrowerWebhookSchema = z.object({
 	name: z.string().min(1, "borrower.name.required"),
 	email: z.string().email("borrower.email.invalid"),
+	phone: z.string().optional(),
 	rotessaCustomerId: z.string().min(1, "borrower.rotessaCustomerId.required"),
 });
 
@@ -191,6 +192,27 @@ const mortgageWebhookSchema = z
 		externalMortgageId: z
 			.string()
 			.min(1, "mortgage.externalMortgageId.required"),
+		priorEncumbrance: z
+			.object({
+				amount: z.number().gt(0, "mortgage.priorEncumbrance.amount.positive"),
+				lender: z.string().min(1, "mortgage.priorEncumbrance.lender.required"),
+			})
+			.optional(),
+		asIfAppraisal: z
+			.object({
+				marketValue: z
+					.number()
+					.gt(0, "mortgage.asIfAppraisal.marketValue.positive"),
+				method: z.string().min(1, "mortgage.asIfAppraisal.method.required"),
+				company: z.string().min(1, "mortgage.asIfAppraisal.company.required"),
+				date: z
+					.string()
+					.refine(
+						(value) => !Number.isNaN(Date.parse(value)),
+						"mortgage.asIfAppraisal.date.invalid"
+					),
+			})
+			.optional(),
 	})
 	.superRefine((value, ctx) => {
 		const origination = Date.parse(value.originationDate);
@@ -288,6 +310,126 @@ const listingCreationWebhookSchema = z.object({
 
 type ListingWebhookPayload = z.infer<typeof listingCreationWebhookSchema>;
 
+const booleanQueryParam = z.preprocess(
+	(value) => {
+		if (value === "true") return true;
+		if (value === "false") return false;
+		return value;
+	},
+	z.boolean()
+);
+
+const numberQueryParam = z.preprocess((value) => {
+	if (typeof value !== "string") return value;
+	if (value.trim() === "") return undefined;
+	return Number(value);
+}, z.number());
+
+const borrowerCreateSchema = borrowerWebhookSchema;
+
+const borrowerGetQuerySchema = z.object({
+	borrowerId: z.string().optional(),
+	rotessaCustomerId: z.string().optional(),
+	email: z.string().optional(),
+});
+
+const borrowerListQuerySchema = z.object({
+	emailContains: z.string().optional(),
+	nameContains: z.string().optional(),
+	createdAfter: z.string().optional(),
+	createdBefore: z.string().optional(),
+	limit: numberQueryParam.optional(),
+	cursor: z.string().optional(),
+});
+
+const borrowerUpdateSchema = z.object({
+	borrowerId: z.string().optional(),
+	rotessaCustomerId: z.string().optional(),
+	name: z.string().optional(),
+	email: z.string().email("borrower.email.invalid").optional(),
+	phone: z.string().optional(),
+});
+
+const borrowerDeleteSchema = z.object({
+	borrowerId: z.string().optional(),
+	rotessaCustomerId: z.string().optional(),
+	force: booleanQueryParam.optional(),
+});
+
+const mortgageCreateSchema = mortgageWebhookSchema
+	.safeExtend({
+		borrowerId: z.string().optional(),
+		borrowerRotessaId: z.string().optional(),
+		borrower: borrowerWebhookSchema.optional(),
+	})
+	.superRefine((value, ctx) => {
+		const count = [
+			value.borrowerId,
+			value.borrowerRotessaId,
+			value.borrower,
+		].filter(Boolean).length;
+		if (count !== 1) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["borrowerId"],
+				message: "mortgage.borrower.reference.required",
+			});
+		}
+	});
+
+const mortgageGetQuerySchema = z.object({
+	mortgageId: z.string().optional(),
+	externalMortgageId: z.string().optional(),
+	includeBorrower: booleanQueryParam.optional(),
+	includeListing: booleanQueryParam.optional(),
+});
+
+const mortgageListQuerySchema = z.object({
+	borrowerId: z.string().optional(),
+	borrowerRotessaId: z.string().optional(),
+	status: z.string().optional(),
+	mortgageType: z.string().optional(),
+	minLtv: numberQueryParam.optional(),
+	maxLtv: numberQueryParam.optional(),
+	minLoanAmount: numberQueryParam.optional(),
+	maxLoanAmount: numberQueryParam.optional(),
+	maturityAfter: z.string().optional(),
+	maturityBefore: z.string().optional(),
+	createdAfter: z.string().optional(),
+	createdBefore: z.string().optional(),
+	hasListing: booleanQueryParam.optional(),
+	includeBorrower: booleanQueryParam.optional(),
+	limit: numberQueryParam.optional(),
+	cursor: z.string().optional(),
+});
+
+const listingGetQuerySchema = z.object({
+	listingId: z.string().optional(),
+	mortgageId: z.string().optional(),
+	externalMortgageId: z.string().optional(),
+	includeMortgage: booleanQueryParam.optional(),
+	includeBorrower: booleanQueryParam.optional(),
+	includeComparables: booleanQueryParam.optional(),
+});
+
+const listingListQuerySchema = z.object({
+	visible: booleanQueryParam.optional(),
+	locked: booleanQueryParam.optional(),
+	available: booleanQueryParam.optional(),
+	lockedBy: z.string().optional(),
+	borrowerId: z.string().optional(),
+	minLtv: numberQueryParam.optional(),
+	maxLtv: numberQueryParam.optional(),
+	minLoanAmount: numberQueryParam.optional(),
+	maxLoanAmount: numberQueryParam.optional(),
+	propertyType: z.string().optional(),
+	state: z.string().optional(),
+	city: z.string().optional(),
+	includeMortgage: booleanQueryParam.optional(),
+	limit: numberQueryParam.optional(),
+	cursor: z.string().optional(),
+});
+
 const toListingCreationPayload = (
 	payload: ListingWebhookPayload
 ): ListingCreationPayload => ({
@@ -331,6 +473,64 @@ const formatValidationIssues = (issues: z.ZodIssue[]) =>
 		error: issue.code,
 	}));
 
+const validateApiKey = (request: Request): Response | null => {
+	if (!LISTINGS_WEBHOOK_API_KEY) {
+		logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
+		return corsJsonResponse(500, {
+			code: "configuration_error",
+			message: "LISTINGS_WEBHOOK_API_KEY is not configured",
+		});
+	}
+
+	const providedKey = request.headers.get("x-api-key");
+	if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
+		return corsJsonResponse(401, {
+			code: "invalid_api_key",
+			message: "Missing or invalid API key",
+		});
+	}
+
+	return null;
+};
+
+const parseJsonBody = async (
+	request: Request
+): Promise<{ data?: unknown; errorResponse?: Response }> => {
+	try {
+		const raw = await request.json();
+		return { data: raw };
+	} catch (_err) {
+		return {
+			errorResponse: corsJsonResponse(400, {
+				code: "invalid_json",
+				message: "Request body must be valid JSON",
+			}),
+		};
+	}
+};
+
+const parseQueryParams = <T>(
+	request: Request,
+	schema: z.ZodSchema<T>
+): { data?: T; errorResponse?: Response } => {
+	const params = Object.fromEntries(new URL(request.url).searchParams.entries());
+	const parsed = schema.safeParse(params);
+	if (!parsed.success) {
+		return {
+			errorResponse: corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Query validation failed",
+				errors: formatValidationIssues(parsed.error.issues),
+			}),
+		};
+	}
+	return { data: parsed.data };
+};
+
+const isInvalidIdError = (error: unknown, tableName: string) =>
+	error instanceof Error &&
+	error.message.includes(`Expected ID for table "${tableName}"`);
+
 const corsJsonResponse = (status: number, body: Record<string, unknown>) =>
 	new Response(JSON.stringify(body), {
 		status,
@@ -364,36 +564,309 @@ http.route({
 });
 
 http.route({
+	path: "/borrowers/create",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/borrowers/create",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		const parsedPayload = borrowerCreateSchema.safeParse(data);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		const result = await ctx.runMutation(
+			internal.borrowers.createBorrowerInternal,
+			parsedPayload.data
+		);
+
+		return corsJsonResponse(result.created ? 201 : 200, {
+			code: result.created ? "borrower_created" : "borrower_already_exists",
+			result,
+		});
+	}),
+});
+
+http.route({
+	path: "/borrowers/get",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/borrowers/get",
+	method: "GET",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const params = new URL(request.url).searchParams;
+		if (
+			!params.get("borrowerId") &&
+			!params.get("rotessaCustomerId") &&
+			!params.get("email")
+		) {
+			return corsJsonResponse(400, {
+				code: "missing_identifier",
+				message: "Provide borrowerId, rotessaCustomerId, or email",
+			});
+		}
+
+		const { data, errorResponse } = parseQueryParams(
+			request,
+			borrowerGetQuerySchema
+		);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		let result: unknown;
+		try {
+			result = await ctx.runQuery(internal.borrowers.getBorrowerInternal, {
+				borrowerId: data?.borrowerId
+					? (data.borrowerId as Id<"borrowers">)
+					: undefined,
+				rotessaCustomerId: data?.rotessaCustomerId,
+				email: data?.email,
+			});
+		} catch (error) {
+			if (isInvalidIdError(error, "borrowers")) {
+				return corsJsonResponse(404, {
+					code: "borrower_not_found",
+					message: "Borrower not found",
+				});
+			}
+			throw error;
+		}
+
+		if (!result) {
+			return corsJsonResponse(404, {
+				code: "borrower_not_found",
+				message: "Borrower not found",
+			});
+		}
+
+		return corsJsonResponse(200, {
+			code: "borrower_found",
+			result,
+		});
+	}),
+});
+
+http.route({
+	path: "/borrowers/list",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/borrowers/list",
+	method: "GET",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const { data, errorResponse } = parseQueryParams(
+			request,
+			borrowerListQuerySchema
+		);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		const result = await ctx.runQuery(internal.borrowers.listBorrowersInternal, {
+			...data,
+		});
+
+		return corsJsonResponse(200, {
+			code: "borrowers_listed",
+			result,
+		});
+	}),
+});
+
+http.route({
+	path: "/borrowers/update",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/borrowers/update",
+	method: "PATCH",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		const parsedPayload = borrowerUpdateSchema.safeParse(data);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		if (!parsedPayload.data.borrowerId && !parsedPayload.data.rotessaCustomerId) {
+			return corsJsonResponse(400, {
+				code: "missing_identifier",
+				message: "Provide borrowerId or rotessaCustomerId",
+			});
+		}
+
+		try {
+			const result = await ctx.runMutation(
+				internal.borrowers.updateBorrowerInternal,
+				{
+					borrowerId: parsedPayload.data.borrowerId
+						? (parsedPayload.data.borrowerId as Id<"borrowers">)
+						: undefined,
+					rotessaCustomerId: parsedPayload.data.rotessaCustomerId,
+					name: parsedPayload.data.name,
+					email: parsedPayload.data.email,
+					phone: parsedPayload.data.phone,
+				}
+			);
+
+			return corsJsonResponse(200, {
+				code: "borrower_updated",
+				result,
+			});
+		} catch (error) {
+			if (error instanceof Error && error.message === "borrower_not_found") {
+				return corsJsonResponse(404, {
+					code: "borrower_not_found",
+					message: "Borrower not found",
+				});
+			}
+
+			return corsJsonResponse(400, {
+				code: "processing_error",
+				message: error instanceof Error ? error.message : "Unknown processing error",
+			});
+		}
+	}),
+});
+
+http.route({
+	path: "/borrowers/delete",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/borrowers/delete",
+	method: "DELETE",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		const parsedPayload = borrowerDeleteSchema.safeParse(data);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		if (!parsedPayload.data.borrowerId && !parsedPayload.data.rotessaCustomerId) {
+			return corsJsonResponse(400, {
+				code: "missing_identifier",
+				message: "Provide borrowerId or rotessaCustomerId",
+			});
+		}
+
+		try {
+			const result = await ctx.runMutation(
+				internal.borrowers.deleteBorrowerInternal,
+				{
+					borrowerId: parsedPayload.data.borrowerId
+						? (parsedPayload.data.borrowerId as Id<"borrowers">)
+						: undefined,
+					rotessaCustomerId: parsedPayload.data.rotessaCustomerId,
+					force: parsedPayload.data.force,
+				}
+			);
+
+			if (!result.deleted) {
+				return corsJsonResponse(409, {
+					code: "borrower_has_dependencies",
+					message: "Borrower has linked mortgages",
+					mortgageCount: result.mortgageCount ?? 0,
+				});
+			}
+
+			return corsJsonResponse(200, {
+				code: "borrower_deleted",
+				result,
+			});
+		} catch (error) {
+			if (error instanceof Error && error.message === "borrower_not_found") {
+				return corsJsonResponse(404, {
+					code: "borrower_not_found",
+					message: "Borrower not found",
+				});
+			}
+
+			return corsJsonResponse(400, {
+				code: "processing_error",
+				message: error instanceof Error ? error.message : "Unknown processing error",
+			});
+		}
+	}),
+});
+
+http.route({
 	path: "/listings/create",
 	method: "POST",
 	handler: httpAction(async (ctx, request) => {
-		if (!LISTINGS_WEBHOOK_API_KEY) {
-			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
-			return corsJsonResponse(500, {
-				code: "configuration_error",
-				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
-			});
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
 		}
 
-		const providedKey = request.headers.get("x-api-key");
-		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
-			return corsJsonResponse(401, {
-				code: "invalid_api_key",
-				message: "Missing or invalid API key",
-			});
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
 		}
 
-		let rawPayload: unknown;
-		try {
-			rawPayload = await request.json();
-		} catch (_err) {
-			return corsJsonResponse(400, {
-				code: "invalid_json",
-				message: "Request body must be valid JSON",
-			});
-		}
-
-		const parsedPayload = listingCreationWebhookSchema.safeParse(rawPayload);
+		const parsedPayload = listingCreationWebhookSchema.safeParse(data);
 		if (!parsedPayload.success) {
 			return corsJsonResponse(400, {
 				code: "payload_validation_error",
@@ -441,34 +914,18 @@ http.route({
 	path: "/listings/update",
 	method: "PATCH",
 	handler: httpAction(async (ctx, request) => {
-		if (!LISTINGS_WEBHOOK_API_KEY) {
-			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
-			return corsJsonResponse(500, {
-				code: "configuration_error",
-				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
-			});
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
 		}
 
-		const providedKey = request.headers.get("x-api-key");
-		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
-			return corsJsonResponse(401, {
-				code: "invalid_api_key",
-				message: "Missing or invalid API key",
-			});
-		}
-
-		let rawPayload: unknown;
-		try {
-			rawPayload = await request.json();
-		} catch (_err) {
-			return corsJsonResponse(400, {
-				code: "invalid_json",
-				message: "Request body must be valid JSON",
-			});
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
 		}
 
 		// Extract listingId from payload
-		const { listingId, ...updateData } = rawPayload as {
+		const { listingId, ...updateData } = data as {
 			listingId?: string;
 			[key: string]: unknown;
 		};
@@ -539,33 +996,17 @@ http.route({
 	path: "/listings/delete",
 	method: "DELETE",
 	handler: httpAction(async (ctx, request) => {
-		if (!LISTINGS_WEBHOOK_API_KEY) {
-			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
-			return corsJsonResponse(500, {
-				code: "configuration_error",
-				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
-			});
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
 		}
 
-		const providedKey = request.headers.get("x-api-key");
-		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
-			return corsJsonResponse(401, {
-				code: "invalid_api_key",
-				message: "Missing or invalid API key",
-			});
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
 		}
 
-		let rawPayload: unknown;
-		try {
-			rawPayload = await request.json();
-		} catch (_err) {
-			return corsJsonResponse(400, {
-				code: "invalid_json",
-				message: "Request body must be valid JSON",
-			});
-		}
-
-		const { listingId, ...deleteOptions } = rawPayload as {
+		const { listingId, ...deleteOptions } = data as {
 			listingId?: string;
 			[key: string]: unknown;
 		};
@@ -622,33 +1063,17 @@ http.route({
 	path: "/mortgages/update",
 	method: "PATCH",
 	handler: httpAction(async (ctx, request) => {
-		if (!LISTINGS_WEBHOOK_API_KEY) {
-			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
-			return corsJsonResponse(500, {
-				code: "configuration_error",
-				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
-			});
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
 		}
 
-		const providedKey = request.headers.get("x-api-key");
-		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
-			return corsJsonResponse(401, {
-				code: "invalid_api_key",
-				message: "Missing or invalid API key",
-			});
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
 		}
 
-		let rawPayload: unknown;
-		try {
-			rawPayload = await request.json();
-		} catch (_err) {
-			return corsJsonResponse(400, {
-				code: "invalid_json",
-				message: "Request body must be valid JSON",
-			});
-		}
-
-		const { mortgageId, ...updateData } = rawPayload as {
+		const { mortgageId, ...updateData } = data as {
 			mortgageId?: string;
 			[key: string]: unknown;
 		};
@@ -775,33 +1200,17 @@ http.route({
 	path: "/mortgages/delete",
 	method: "DELETE",
 	handler: httpAction(async (ctx, request) => {
-		if (!LISTINGS_WEBHOOK_API_KEY) {
-			logger.error("LISTINGS_WEBHOOK_API_KEY is not configured");
-			return corsJsonResponse(500, {
-				code: "configuration_error",
-				message: "LISTINGS_WEBHOOK_API_KEY is not configured",
-			});
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
 		}
 
-		const providedKey = request.headers.get("x-api-key");
-		if (!providedKey || providedKey !== LISTINGS_WEBHOOK_API_KEY) {
-			return corsJsonResponse(401, {
-				code: "invalid_api_key",
-				message: "Missing or invalid API key",
-			});
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
 		}
 
-		let rawPayload: unknown;
-		try {
-			rawPayload = await request.json();
-		} catch (_err) {
-			return corsJsonResponse(400, {
-				code: "invalid_json",
-				message: "Request body must be valid JSON",
-			});
-		}
-
-		const { mortgageId, ...deleteOptions } = rawPayload as {
+		const { mortgageId, ...deleteOptions } = data as {
 			mortgageId?: string;
 			[key: string]: unknown;
 		};
@@ -845,6 +1254,305 @@ http.route({
 				message,
 			});
 		}
+	}),
+});
+
+http.route({
+	path: "/mortgages/create",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/mortgages/create",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const { data, errorResponse } = await parseJsonBody(request);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		const parsedPayload = mortgageCreateSchema.safeParse(data);
+		if (!parsedPayload.success) {
+			return corsJsonResponse(400, {
+				code: "payload_validation_error",
+				message: "Payload validation failed",
+				errors: formatValidationIssues(parsedPayload.error.issues),
+			});
+		}
+
+		const payload = parsedPayload.data;
+		const images = payload.images?.map((image) => ({
+			...image,
+			storageId: image.storageId as Id<"_storage">,
+		}));
+		const documents = payload.documents?.map((document) => ({
+			...document,
+			storageId: document.storageId as Id<"_storage">,
+		}));
+
+		try {
+			const result = await ctx.runMutation(
+				internal.mortgages.createMortgageInternal,
+				{
+					...payload,
+					images,
+					documents,
+					borrowerId: payload.borrowerId
+						? (payload.borrowerId as Id<"borrowers">)
+						: undefined,
+				}
+			);
+
+			return corsJsonResponse(result.created ? 201 : 200, {
+				code: result.created ? "mortgage_created" : "mortgage_already_exists",
+				result,
+			});
+		} catch (error) {
+			if (isInvalidIdError(error, "borrowers")) {
+				return corsJsonResponse(400, {
+					code: "invalid_borrower_id",
+					message: "Invalid borrowerId",
+				});
+			}
+
+			if (error instanceof Error) {
+				if (
+					error.message === "invalid_borrower_id" ||
+					error.message === "borrower_not_found" ||
+					error.message === "missing_borrower_reference" ||
+					error.message === "mortgage_borrower_mismatch"
+				) {
+					return corsJsonResponse(400, {
+						code: error.message,
+						message: error.message,
+					});
+				}
+			}
+
+			return corsJsonResponse(400, {
+				code: "processing_error",
+				message: error instanceof Error ? error.message : "Unknown processing error",
+			});
+		}
+	}),
+});
+
+http.route({
+	path: "/mortgages/get",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/mortgages/get",
+	method: "GET",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const params = new URL(request.url).searchParams;
+		if (!params.get("mortgageId") && !params.get("externalMortgageId")) {
+			return corsJsonResponse(400, {
+				code: "missing_identifier",
+				message: "Provide mortgageId or externalMortgageId",
+			});
+		}
+
+		const { data, errorResponse } = parseQueryParams(
+			request,
+			mortgageGetQuerySchema
+		);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		let result: unknown;
+		try {
+			result = await ctx.runQuery(internal.mortgages.getMortgageInternal, {
+				mortgageId: data?.mortgageId
+					? (data.mortgageId as Id<"mortgages">)
+					: undefined,
+				externalMortgageId: data?.externalMortgageId,
+				includeBorrower: data?.includeBorrower,
+				includeListing: data?.includeListing,
+			});
+		} catch (error) {
+			if (isInvalidIdError(error, "mortgages")) {
+				return corsJsonResponse(404, {
+					code: "mortgage_not_found",
+					message: "Mortgage not found",
+				});
+			}
+			throw error;
+		}
+
+		if (!result) {
+			return corsJsonResponse(404, {
+				code: "mortgage_not_found",
+				message: "Mortgage not found",
+			});
+		}
+
+		return corsJsonResponse(200, {
+			code: "mortgage_found",
+			result,
+		});
+	}),
+});
+
+http.route({
+	path: "/mortgages/list",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/mortgages/list",
+	method: "GET",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const { data, errorResponse } = parseQueryParams(
+			request,
+			mortgageListQuerySchema
+		);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		const result = await ctx.runQuery(internal.mortgages.listMortgagesInternal, {
+			...data,
+			borrowerId: data?.borrowerId
+				? (data.borrowerId as Id<"borrowers">)
+				: undefined,
+		});
+
+		return corsJsonResponse(200, {
+			code: "mortgages_listed",
+			result,
+		});
+	}),
+});
+
+http.route({
+	path: "/listings/get",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/listings/get",
+	method: "GET",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const params = new URL(request.url).searchParams;
+		if (
+			!params.get("listingId") &&
+			!params.get("mortgageId") &&
+			!params.get("externalMortgageId")
+		) {
+			return corsJsonResponse(400, {
+				code: "missing_identifier",
+				message: "Provide listingId, mortgageId, or externalMortgageId",
+			});
+		}
+
+		const { data, errorResponse } = parseQueryParams(
+			request,
+			listingGetQuerySchema
+		);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		let result: unknown;
+		try {
+			result = await ctx.runQuery(internal.listings.getListingInternal, {
+				listingId: data?.listingId
+					? (data.listingId as Id<"listings">)
+					: undefined,
+				mortgageId: data?.mortgageId
+					? (data.mortgageId as Id<"mortgages">)
+					: undefined,
+				externalMortgageId: data?.externalMortgageId,
+				includeMortgage: data?.includeMortgage,
+				includeBorrower: data?.includeBorrower,
+				includeComparables: data?.includeComparables,
+			});
+		} catch (error) {
+			if (isInvalidIdError(error, "listings")) {
+				return corsJsonResponse(404, {
+					code: "listing_not_found",
+					message: "Listing not found",
+				});
+			}
+			throw error;
+		}
+
+		if (!result) {
+			return corsJsonResponse(404, {
+				code: "listing_not_found",
+				message: "Listing not found",
+			});
+		}
+
+		return corsJsonResponse(200, {
+			code: "listing_found",
+			result,
+		});
+	}),
+});
+
+http.route({
+	path: "/listings/list",
+	method: "OPTIONS",
+	handler: httpAction(async () => emptyCorsResponse(204)),
+});
+
+http.route({
+	path: "/listings/list",
+	method: "GET",
+	handler: httpAction(async (ctx, request) => {
+		const apiError = validateApiKey(request);
+		if (apiError) {
+			return apiError;
+		}
+
+		const { data, errorResponse } = parseQueryParams(
+			request,
+			listingListQuerySchema
+		);
+		if (errorResponse) {
+			return errorResponse;
+		}
+
+		const result = await ctx.runQuery(internal.listings.listListingsInternal, {
+			...data,
+			borrowerId: data?.borrowerId
+				? (data.borrowerId as Id<"borrowers">)
+				: undefined,
+			lockedBy: data?.lockedBy ? (data.lockedBy as Id<"users">) : undefined,
+		});
+
+		return corsJsonResponse(200, {
+			code: "listings_listed",
+			result,
+		});
 	}),
 });
 

@@ -16,6 +16,7 @@
 import { useAction } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
+import { logger } from "@/lib/logger";
 import {
 	ASSETS,
 	MIC_ACCOUNTS,
@@ -244,7 +245,9 @@ export function useMICLedgerData(): MICLedgerData {
 					cursor?: { data?: FormanceAccount[] };
 				};
 			};
-			const accountsData = accountsResult.data as AccountsResponse | undefined;
+			const accountsData = ("data" in accountsResult
+				? accountsResult.data
+				: undefined) as AccountsResponse | undefined;
 
 			if (
 				accountsResult.success &&
@@ -252,7 +255,11 @@ export function useMICLedgerData(): MICLedgerData {
 			) {
 				setRawAccounts(accountsData.v2AccountsCursorResponse.cursor.data);
 			} else if (!accountsResult.success) {
-				throw new Error(accountsResult.error || "Failed to fetch accounts");
+				const errorMessage =
+					"error" in accountsResult
+						? accountsResult.error
+						: "Failed to fetch accounts";
+				throw new Error(errorMessage);
 			}
 
 			// Parse transactions response
@@ -261,7 +268,9 @@ export function useMICLedgerData(): MICLedgerData {
 					cursor?: { data?: FormanceTransaction[] };
 				};
 			};
-			const txData = txResult.data as TransactionsResponse | undefined;
+			const txData = ("data" in txResult
+				? txResult.data
+				: undefined) as TransactionsResponse | undefined;
 
 			if (
 				txResult.success &&
@@ -270,7 +279,7 @@ export function useMICLedgerData(): MICLedgerData {
 				setRawTransactions(txData.v2TransactionsCursorResponse.cursor.data);
 			}
 		} catch (err) {
-			console.error("Failed to fetch MIC ledger data:", err);
+		logger.error("Failed to fetch MIC ledger data", { error: err });
 			setError(err instanceof Error ? err.message : "Unknown error");
 		} finally {
 			setIsLoading(false);

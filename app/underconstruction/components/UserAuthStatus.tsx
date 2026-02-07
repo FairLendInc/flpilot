@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
 
+type Membership =
+	(typeof api.profile.getCurrentUserProfile._returnType)["memberships"][number];
+
 export function UserAuthStatus() {
 	const { user: authUser, loading: authLoading, signOut } = useAuth();
 
@@ -48,7 +51,7 @@ export function UserAuthStatus() {
 
 	const activeOrgName =
 		profileData?.memberships?.find(
-			(m) => m.organizationId === profileData.activeOrganizationId
+			(m: Membership) => m.organizationId === profileData.activeOrganizationId
 		)?.organizationName || "No active organization";
 
 	const userRole = profileData?.workosRole || "Member";

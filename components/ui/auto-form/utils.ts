@@ -23,37 +23,61 @@ export function beautifyObjectName(string: string) {
  * Get the lowest level Zod type.
  * This will unpack optionals, refinements, etc.
  */
-export function getBaseSchema<
-  ChildType extends z.ZodAny | z.ZodObject<any, any> = z.ZodAny,
->(schema: ChildType | z.ZodPipe<ChildType, any>): ChildType | null {
+export function getBaseSchema(schema: z.ZodTypeAny): z.ZodTypeAny | null {
   if (!schema) return null;
-  const zodDef = (schema as any)._zod?.def;
-  if (!zodDef) return schema as ChildType;
-  
-  if ("innerType" in zodDef) {
-    return getBaseSchema(zodDef.innerType as ChildType);
-  }
-  if ("in" in zodDef) {
-    // ZodPipe - unwrap the input schema
-    return getBaseSchema(zodDef.in as ChildType);
-  }
-  if ("out" in zodDef && !("in" in zodDef)) {
-    // Handle other pipe-like structures
-    return getBaseSchema(zodDef.out as ChildType);
+
+  type ZodWithDef = z.ZodTypeAny & {
+    _def?: {
+      type?: string;
+      innerType?: z.ZodTypeAny;
+      schema?: z.ZodTypeAny;
+      in?: z.ZodTypeAny;
+    };
+  };
+
+  let current: z.ZodTypeAny | undefined = schema;
+
+  while (current) {
+    const def: ZodWithDef["_def"] = (current as ZodWithDef)._def;
+    const defType: string | undefined = def?.type ? String(def.type) : undefined;
+
+    if (
+      defType === "effects" ||
+      defType === "default" ||
+      defType === "optional" ||
+      defType === "nullable" ||
+      defType === "ZodEffects" ||
+      defType === "ZodDefault" ||
+      defType === "ZodOptional" ||
+      defType === "ZodNullable"
+    ) {
+      current = def?.innerType ?? def?.schema ?? def?.in;
+      continue;
+    }
+
+    if (defType === "pipe" || defType === "ZodPipe") {
+      current = def?.in ?? def?.schema ?? def?.innerType;
+      continue;
+    }
+
+    return current;
   }
 
-  return schema as ChildType;
+  return null;
 }
 
 /**
  * Get the type name of the lowest level Zod type.
  * This will unpack optionals, refinements, etc.
  */
-export function getBaseType(schema: z.ZodAny): string {
+export function getBaseType(schema: z.ZodTypeAny): string {
   const baseSchema = getBaseSchema(schema);
   if (!baseSchema) return "";
   const zodDef = (baseSchema as any)._zod?.def;
-  return zodDef?.type ?? "";
+  const type = zodDef?.type ?? "";
+  if (!type) return "";
+  // Map lowercase names to Zod* names for consistency
+  return `Zod${type.charAt(0).toUpperCase()}${type.slice(1)}`;
 }
 
 /**
@@ -153,13 +177,11 @@ export function zodToHtmlInputProps(
   }
 
   if (zodDef.type === "ZodOptional" || zodDef.type === "ZodNullable") {
-    const typedSchema = schema as z.ZodOptional<z.ZodNumber | z.ZodString>;
     return {
       ...zodToHtmlInputProps(zodDef.innerType as z.ZodNumber | z.ZodString),
       required: false,
     };
   }
-  const typedSchema = schema as z.ZodNumber | z.ZodString;
 
   const checks = zodDef.checks;
   if (!checks || !Array.isArray(checks)) {

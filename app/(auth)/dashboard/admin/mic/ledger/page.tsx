@@ -167,10 +167,12 @@ export default function LedgerViewPage() {
 					};
 				};
 
-				const accountsData = accountsResult.data as
-					| AccountsResponse
-					| undefined;
-				const txData = txResult.data as TransactionsResponse | undefined;
+				const accountsData = ("data" in accountsResult
+					? accountsResult.data
+					: undefined) as AccountsResponse | undefined;
+				const txData = ("data" in txResult
+					? txResult.data
+					: undefined) as TransactionsResponse | undefined;
 
 				if (
 					accountsResult.success &&
@@ -178,7 +180,11 @@ export default function LedgerViewPage() {
 				) {
 					setAccounts(accountsData.v2AccountsCursorResponse.cursor.data);
 				} else if (!accountsResult.success) {
-					toast.error(`Failed to load accounts: ${accountsResult.error}`);
+					const errorMessage =
+						"error" in accountsResult
+							? accountsResult.error
+							: "Unknown error";
+					toast.error(`Failed to load accounts: ${errorMessage}`);
 				}
 
 				if (

@@ -313,3 +313,72 @@ The system SHALL provide comprehensive UI components for admin mortgage manageme
 - **AND** Storybook stories demonstrate admin actions on mortgages including cascade delete
 - **AND** all Storybook stories pass accessibility tests
 
+### Requirement: Document Templates Field
+The `mortgages` table MUST include a `documentTemplates` field to support multiple Documenso template configurations.
+
+#### Scenario: Template Association
+Given an admin is configuring a mortgage
+When they add a Documenso template configuration
+Then the template is stored in the `mortgages.documentTemplates` array
+And each configuration includes:
+- `documensoTemplateId` (string): The Documenso envelope ID
+- `name` (string): Display name for the document type
+- `signatoryRoles` (array of strings): Required signatory roles (e.g., ["Broker", "Investor"])
+
+#### Scenario: Multiple Templates
+Given a mortgage has document templates configured
+When viewing the mortgage's template configurations
+Then all templates in the array are returned
+And each template maintains its own configuration independently.
+
+### Requirement: Template Configuration Management
+The system MUST provide mutations to manage the `documentTemplates` array.
+
+#### Scenario: Add Template Configuration
+Given an admin is on the mortgage admin page
+When they add a new template configuration
+Then the configuration is appended to `mortgages.documentTemplates`
+And the configuration includes template ID, display name, and required roles.
+
+#### Scenario: Remove Template Configuration
+Given a mortgage has multiple template configurations
+When an admin removes a template configuration
+Then the configuration is removed from the array
+And remaining configurations are unchanged.
+
+#### Scenario: Update Template Configuration
+Given a template configuration exists
+When an admin updates the display name or roles
+Then the specific configuration in the array is updated
+And other configurations are unchanged.
+
+### Requirement: Template ID Format
+The system SHALL store Documenso template IDs in envelope string format.
+
+**Source:** Research footguns #2
+
+The system MUST store template IDs in Documenso's envelope string format.
+
+#### Scenario: Template ID Storage
+When a template configuration is saved
+Then the `documensoTemplateId` field stores the string format
+And the format is `"envelope_xxxxxxxxxxxxx"`
+And NOT numeric format.
+
+**Rationale:** String format is used by API endpoints; numeric format only for specific SDK methods.
+
+### Requirement: Template Validation
+The system MUST validate template configurations before saving.
+
+#### Scenario: Validate Template Exists
+When an admin adds a template configuration
+Then the system MUST verify the template exists in Documenso
+And throw an error if the template is not found (404)
+And display user message "Template not found. Please select a valid template."
+
+#### Scenario: Validate Signatory Roles
+When an admin adds a template configuration
+Then the system MUST validate that `signatoryRoles` is not empty
+And each role is a valid string
+And throw an error if validation fails.
+

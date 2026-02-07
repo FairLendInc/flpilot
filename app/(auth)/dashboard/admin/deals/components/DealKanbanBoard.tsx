@@ -15,6 +15,7 @@ import {
 	ArrowRight,
 	Banknote,
 	CheckCircle,
+	ClipboardCheck,
 	ExternalLink,
 	FileSignature,
 	GripVertical,
@@ -64,6 +65,7 @@ const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	pending_docs: FileSignature,
 	pending_transfer: Banknote,
 	pending_verification: SearchCheck,
+	pending_ownership_review: ClipboardCheck,
 	completed: CheckCircle,
 	cancelled: XCircle,
 	archived: CheckCircle, // Not shown in Kanban
@@ -147,6 +149,12 @@ export function DealKanbanBoard() {
 			id: "pending_verification",
 			title: DEAL_STATE_LABELS.pending_verification,
 			color: DEAL_STATE_COLORS.pending_verification,
+			deals: [],
+		},
+		{
+			id: "pending_ownership_review",
+			title: DEAL_STATE_LABELS.pending_ownership_review,
+			color: DEAL_STATE_COLORS.pending_ownership_review,
 			deals: [],
 		},
 		{
@@ -255,6 +263,13 @@ export function DealKanbanBoard() {
 					event = { type: "RECEIVE_FUNDS" };
 				} else if (originalToState === "pending_verification") {
 					event = { type: "VERIFY_FUNDS" };
+				} else if (originalToState === "pending_ownership_review") {
+					event = { type: "VERIFY_COMPLETE" };
+				} else if (
+					originalToState === "completed" &&
+					originalFromState === "pending_ownership_review"
+				) {
+					event = { type: "CONFIRM_TRANSFER" };
 				} else if (originalToState === "completed") {
 					event = { type: "COMPLETE_DEAL" };
 				} else {

@@ -127,11 +127,17 @@ export function AddInvestorSheet({
 						</div>
 
 						<div className="grid gap-2">
-							<Label className="font-bold text-muted-foreground/60 text-xs uppercase tracking-widest">
+							<Label
+								className="font-bold text-muted-foreground/60 text-xs uppercase tracking-widest"
+								htmlFor="capital-class"
+							>
 								Capital Class
 							</Label>
 							<Select onValueChange={setCapitalClass} value={capitalClass}>
-								<SelectTrigger className="border-muted-foreground/20 bg-muted/30 shadow-none focus:ring-primary/20">
+								<SelectTrigger
+									className="border-muted-foreground/20 bg-muted/30 shadow-none focus:ring-primary/20"
+									id="capital-class"
+								>
 									<SelectValue placeholder="Select capital class" />
 								</SelectTrigger>
 								<SelectContent>
@@ -156,7 +162,16 @@ export function AddInvestorSheet({
 								<Input
 									className="border-muted-foreground/20 bg-muted/30 pl-9 focus-visible:ring-primary/20"
 									id="amount"
-									onChange={(e) => setAmount(e.target.value)}
+									min="0"
+									onChange={(e) => {
+										const value = e.target.value;
+										const numericValue = Number.parseFloat(value);
+										if (!Number.isNaN(numericValue) && numericValue < 0) {
+											setAmount("0");
+											return;
+										}
+										setAmount(value);
+									}}
 									placeholder="0.00"
 									required
 									type="number"

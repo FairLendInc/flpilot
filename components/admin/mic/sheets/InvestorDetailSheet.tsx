@@ -16,7 +16,7 @@ import { InvestorPositionCard } from "../widgets/InvestorPositionCard";
 type InvestorDetail = {
 	id: string;
 	name: string;
-	email: string;
+	email: string | null;
 	capitalClass: string;
 	unitsOwned: number;
 	ownershipPercentage: number;
@@ -29,7 +29,7 @@ type Transaction = {
 	id: string;
 	type: "subscription" | "redemption" | "distribution" | "adjustment";
 	description: string;
-	timestamp: string;
+	timestamp: string | null;
 	amount: number;
 	balanceAfter: number;
 	reference?: string;
@@ -76,9 +76,6 @@ export function InvestorDetailSheet({
 }: InvestorDetailSheetProps) {
 	if (!investor) return null;
 
-	const txCount = transactions.length; // use it to satisfy lint if needed
-	console.log(`Rendering ${txCount} transactions`);
-
 	return (
 		<Sheet onOpenChange={onOpenChange} open={open}>
 			<SheetContent className="overflow-y-auto border-none backdrop-blur-xl sm:max-w-2xl dark:bg-slate-900/95">
@@ -92,7 +89,7 @@ export function InvestorDetailSheet({
 								{investor.name}
 							</SheetTitle>
 							<SheetDescription className="flex items-center gap-2 font-medium text-[13px] text-muted-foreground/80">
-								{investor.email}
+								{investor.email ?? "Email not available"}
 								<span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
 								ID: {investor.id}
 							</SheetDescription>

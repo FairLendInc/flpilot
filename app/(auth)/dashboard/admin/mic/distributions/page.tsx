@@ -19,6 +19,29 @@ export default function DistributionsPage() {
 	const { runDistribution, investors: mockInvestors } = useMICStore();
 	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+	const now = new Date();
+	const currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+	const currentPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+	const periodName = now.toLocaleString("en-US", {
+		month: "long",
+		year: "numeric",
+	});
+	const periodDuration =
+		currentPeriodEnd.getTime() - currentPeriodStart.getTime();
+	const elapsed = now.getTime() - currentPeriodStart.getTime();
+	const progress = periodDuration > 0
+		? Math.min(100, Math.max(0, Math.round((elapsed / periodDuration) * 100)))
+		: 0;
+	const daysRemaining = Math.ceil(
+		(currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+	);
+	const periodStatus =
+		now >= currentPeriodEnd
+			? "closed"
+			: daysRemaining <= 3
+				? "closing"
+				: "open";
+
 	// ✅ Formance: Parse distribution transactions from activity
 	const distributionTransactions = recentActivity.filter(
 		(act) => act.type === "distribution"
@@ -141,11 +164,11 @@ export default function DistributionsPage() {
 				<div className="xl:col-span-1">
 					{/* TODO: Period tracking needs dedicated system */}
 					<CurrentPeriodCard
-						endDate="2024-12-31"
-						periodName="December 2024"
-						progress={65}
-						startDate="2024-12-01"
-						status="open"
+						endDate={currentPeriodEnd}
+						periodName={periodName}
+						progress={progress}
+						startDate={currentPeriodStart}
+						status={periodStatus}
 					/>
 				</div>
 				<div className="xl:col-span-2">

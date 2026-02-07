@@ -20,6 +20,7 @@ import {
 	Banknote,
 	Calendar,
 	CheckCircle,
+	ClipboardCheck,
 	FileSignature,
 	Lock,
 	MapPin,
@@ -32,6 +33,7 @@ import {
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
+import { OwnershipTransferReview } from "@/components/admin/deals/OwnershipTransferReview";
 import { FundTransferUploadCard } from "@/components/deals/FundTransferUploadCard";
 import {
 	AlertDialog,
@@ -77,6 +79,7 @@ import {
 	type DealStateValue,
 	formatDealValue,
 	getDaysInState,
+	isOwnershipReviewState,
 } from "@/lib/types/dealTypes";
 import { DocumentDetailsSection } from "../components/DocumentDetailsSection";
 
@@ -86,6 +89,7 @@ const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	pending_docs: FileSignature,
 	pending_transfer: Banknote,
 	pending_verification: SearchCheck,
+	pending_ownership_review: ClipboardCheck,
 	completed: CheckCircle,
 	cancelled: XCircle,
 	archived: Archive,
@@ -353,6 +357,25 @@ export default function DealDetailPage({
 							</CardContent>
 						</Card>
 
+						{/* Ownership Transfer Review - shown when in pending_ownership_review state */}
+						{deal.currentState &&
+							isOwnershipReviewState(deal.currentState) && (
+							<OwnershipTransferReview
+								dealId={deal._id}
+								onApproved={() => {
+									toast.success("Ownership Transfer Approved", {
+										description:
+											"The ownership transfer has been executed successfully.",
+									});
+								}}
+								onRejected={() => {
+									toast.info("Transfer Rejected", {
+										description: "The deal has been returned for review.",
+									});
+								}}
+							/>
+						)}
+
 						{/* Property Details */}
 						{mortgage && (
 							<Card>
@@ -420,7 +443,11 @@ export default function DealDetailPage({
 							</CardHeader>
 							<CardContent>
 								<div className="space-y-4">
-									{deal.stateHistory?.map((entry, idx) => (
+									{deal.stateHistory?.map(
+										(
+											entry: NonNullable<typeof deal.stateHistory>[number],
+											idx: number
+										) => (
 										<div
 											className="flex gap-4"
 											key={`${entry.timestamp}-${entry.fromState}-${entry.toState}`}
@@ -450,7 +477,8 @@ export default function DealDetailPage({
 												)}
 											</div>
 										</div>
-									))}
+									)
+									)}
 								</div>
 							</CardContent>
 						</Card>

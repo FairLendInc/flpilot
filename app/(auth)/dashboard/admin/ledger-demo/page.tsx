@@ -40,6 +40,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
+import { logger } from "@/lib/logger";
 
 // Numscript templates - mirroring the server-side definitions
 import {
@@ -142,7 +143,7 @@ export default function LedgerDemoPage() {
 		setIsLoadingLedgers(true);
 		try {
 			const result = await listLedgersAction({ pageSize: 50 });
-			if (result.success && result.data) {
+			if (result.success && "data" in result && result.data) {
 				const ledgerList =
 					(
 						result.data as {
@@ -155,7 +156,7 @@ export default function LedgerDemoPage() {
 				}
 			}
 		} catch (error) {
-			console.error("Failed to load ledgers:", error);
+		logger.error("Failed to load ledgers", { error });
 		} finally {
 			setIsLoadingLedgers(false);
 		}
@@ -170,7 +171,7 @@ export default function LedgerDemoPage() {
 				pageSize: 100,
 				expand: "volumes",
 			});
-			if (result.success && result.data) {
+			if (result.success && "data" in result && result.data) {
 				const accountList =
 					(
 						result.data as {
@@ -194,7 +195,7 @@ export default function LedgerDemoPage() {
 				ledgerName: selectedLedger,
 				pageSize: 20,
 			});
-			if (result.success && result.data) {
+			if (result.success && "data" in result && result.data) {
 				const txList =
 					(
 						result.data as {
@@ -237,7 +238,9 @@ export default function LedgerDemoPage() {
 				await loadLedgers();
 				setSelectedLedger(newLedgerName.trim());
 			} else {
-				console.error(`Failed to create ledger: ${result.error}`);
+				const errorMessage =
+					"error" in result ? result.error : "Unknown error";
+				console.error(`Failed to create ledger: ${errorMessage}`);
 			}
 		} catch (error) {
 			console.error("Failed to create ledger:", error);
@@ -254,20 +257,12 @@ export default function LedgerDemoPage() {
 		setIsExecuting(true);
 		setExecutionResult(null);
 		try {
-			console.log("Executing numscript:", selectedTemplate.script);
-			console.log("vars", {
-				ledgerName: selectedLedger,
-				script: selectedTemplate.script,
-				variables: variableValues,
-				dryRun,
-			});
 			const result = await executeNumscriptAction({
 				ledgerName: selectedLedger,
 				script: selectedTemplate.script,
 				variables: variableValues,
 				dryRun,
 			});
-			console.log("result", result);
 			setExecutionResult(result);
 			if (result.success && !dryRun) {
 				// Refresh accounts and transactions after successful execution
@@ -311,7 +306,8 @@ export default function LedgerDemoPage() {
 					await loadTransactions();
 				}
 			} else {
-				const errorMessage = result.error || "Unknown error";
+				const errorMessage =
+					"error" in result ? result.error || "Unknown error" : "Unknown error";
 
 				toast.error("Transaction failed", {
 					description: errorMessage,

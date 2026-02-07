@@ -7,6 +7,7 @@ import {
 import { FormField } from "@/components/ui/form";
 import { useForm, useFormContext } from "react-hook-form";
 import * as z from "zod";
+import { cn } from "@/lib/utils";
 import { DEFAULT_ZOD_HANDLERS, INPUT_COMPONENTS } from "../config";
 import { Dependency, FieldConfig, FieldConfigItem, FormLayout } from "../types";
 import {
@@ -47,28 +48,58 @@ export default function AutoFormObject<
   if (!schema) {
     return null;
   }
-  const { shape } = getBaseSchema<SchemaType>(schema) || {};
+  const baseSchema = getBaseSchema(schema) as z.ZodObject<any, any> | null;
+  const { shape } = baseSchema || {};
 
   if (!shape) {
     return null;
   }
 
   const handleIfZodNumber = (item: z.ZodAny) => {
-    const zodDef = (item as any)._zod?.def;
-    const isZodNumber = zodDef?.type === "ZodNumber";
-    const isInnerZodNumber = zodDef?.innerType?._zod?.def?.type === "ZodNumber";
-
-    if (isZodNumber) {
-      zodDef.coerce = true;
-    } else if (isInnerZodNumber) {
-      zodDef.innerType._zod.def.coerce = true;
+    const baseSchema = getBaseSchema(item);
+    if (!(baseSchema instanceof z.ZodNumber)) {
+      return item;
     }
 
-    return item;
+    type ZodWithDef = z.ZodTypeAny & {
+      _def?: { type?: string; innerType?: z.ZodTypeAny };
+    };
+
+    let current: ZodWithDef | undefined = item;
+    let isOptional = false;
+    let isNullable = false;
+
+    while (current) {
+      const defType = current._def?.type;
+      if (defType === "optional") {
+        isOptional = true;
+        current = current._def?.innerType as ZodWithDef | undefined;
+        continue;
+      }
+      if (defType === "nullable") {
+        isNullable = true;
+        current = current._def?.innerType as ZodWithDef | undefined;
+        continue;
+      }
+      break;
+    }
+
+    let schema: z.ZodTypeAny = z.coerce.number();
+    if (isOptional) {
+      schema = schema.optional();
+    }
+    if (isNullable) {
+      schema = schema.nullable();
+    }
+
+    return schema;
   };
 
   const sortedFieldKeys = sortFieldsByOrder(fieldConfig, Object.keys(shape));
-  const accordionClassName = layout === FormLayout.SIDEBYSIDE ? "space-y-4 border-none" : "space-y-5 border-none";
+  const accordionClassName = cn(
+    "border-none",
+    layout === FormLayout.SIDEBYSIDE ? "space-y-4" : "space-y-5"
+  );
 
   return (
     <Accordion type="multiple" className={accordionClassName}>
@@ -179,6 +210,7 @@ export default function AutoFormObject<
                         <AutoFormLabel
                           label={fieldConfigItem?.label || itemName}
                           isRequired={isRequired}
+                          icon={fieldConfigItem?.icon}
                         />
                       ) : undefined
                     }

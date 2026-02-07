@@ -1,15 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { z } from "zod";
+import { cn } from "@/lib/utils";
 import { AutoForm, AutoFormSubmit } from "@/components/ui/auto-form";
 import { DependencyType, FieldConfig, FormLayout } from "@/components/ui/auto-form/types";
 import { toast, Toaster } from "sonner";
+import { User, Mail, Calendar, Settings, Info, Lock, FileText, Hash, CheckSquare, ToggleLeft, List, Radio, Type } from "lucide-react";
 
 const meta: Meta<typeof AutoForm> = {
 	title: "UI/AutoForm",
 	component: AutoForm,
 	parameters: {
-		layout: "padded",
+		layout: "fullscreen",
 		docs: {
 			description: {
 				component:
@@ -20,7 +22,7 @@ const meta: Meta<typeof AutoForm> = {
 	tags: ["autodocs"],
 	decorators: [
 		(Story) => (
-			<div className="w-full max-w-2xl p-8">
+			<div className="w-full">
 				<Toaster />
 				<Story />
 			</div>
@@ -31,28 +33,99 @@ const meta: Meta<typeof AutoForm> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Basic form schema
-const basicSchema = z.object({
-	name: z.string().min(2, "Name must be at least 2 characters"),
-	email: z.string().email("Invalid email address"),
-	age: z.number().min(18, "Must be at least 18 years old"),
-	subscribe: z.boolean().default(false),
+// Comprehensive schema for all stories
+const comprehensiveSchema = z.object({
+	text: z.string().describe("Standard text input"),
+	number: z.number().describe("Number input"),
+	textarea: z.string().describe("Textarea input"),
+	date: z.date().describe("Date picker"),
+	select: z.enum(["Option 1", "Option 2", "Option 3"]).describe("Select dropdown"),
+	radio: z.enum(["One", "Two", "Three"]).describe("Radio group"),
+	checkbox: z.boolean().describe("Checkbox"),
+	switch: z.boolean().describe("Switch toggle"),
+	file: z.string().describe("File upload"),
+	tags: z.array(z.string()).describe("Tags input"),
+	categories: z.array(z.enum(["Tech", "Design", "Business"])).describe("Multi-select categories"),
+	array: z.array(z.object({
+		name: z.string(),
+		role: z.string(),
+	})).describe("Array of objects"),
+	nested: z.object({
+		subfield: z.string().describe("Subfield in object"),
+	}).describe("Nested object"),
 });
+
+const comprehensiveFieldConfig: FieldConfig<z.infer<typeof comprehensiveSchema>> = {
+	text: {
+		icon: <FileText className="size-4" />,
+		inputProps: { placeholder: "Enter some text..." },
+	},
+	number: {
+		icon: <Hash className="size-4" />,
+		inputProps: { placeholder: "42" },
+	},
+	textarea: {
+		fieldType: "textarea",
+		icon: <FileText className="size-4" />,
+		inputProps: { placeholder: "Write a long story here..." },
+	},
+	date: {
+		icon: <Calendar className="size-4" />,
+		inputProps: { placeholder: "Select a date" },
+	},
+	select: {
+		icon: <List className="size-4" />,
+		inputProps: { placeholder: "Choose an option" },
+	},
+	radio: {
+		fieldType: "radio",
+		icon: <Radio className="size-4" />,
+	},
+	checkbox: {
+		icon: <CheckSquare className="size-4" />,
+	},
+	switch: {
+		fieldType: "switch",
+		icon: <ToggleLeft className="size-4" />,
+	},
+	file: {
+		fieldType: "file",
+		icon: <FileText className="size-4" />,
+	},
+	tags: {
+		icon: <List className="size-4" />,
+		inputProps: { placeholder: "Add tags..." },
+	},
+	categories: {
+		icon: <Settings className="size-4" />,
+		inputProps: { placeholder: "Select categories..." },
+	},
+	array: {
+		label: "Array Items",
+	},
+	nested: {
+		subfield: {
+			inputProps: { placeholder: "Nested value" },
+		},
+	},
+};
 
 export const Basic: Story = {
 	render: () => {
-		const [submittedData, setSubmittedData] = useState<z.infer<
-			typeof basicSchema
-		> | null>(null);
+		const [submittedData, setSubmittedData] = useState<any>(null);
 
-		function handleSubmit(data: z.infer<typeof basicSchema>) {
+		function handleSubmit(data: any) {
 			setSubmittedData(data);
 			toast.success("Form submitted successfully!");
 		}
 
 		return (
 			<div className="space-y-6">
-				<AutoForm formSchema={basicSchema} onSubmit={handleSubmit}>
+				<AutoForm
+					formSchema={comprehensiveSchema}
+					onSubmit={handleSubmit}
+					fieldConfig={comprehensiveFieldConfig}
+				>
 					<AutoFormSubmit />
 				</AutoForm>
 				{submittedData && (
@@ -68,24 +141,11 @@ export const Basic: Story = {
 	},
 };
 
-// Side-by-side layout story
-const sideBySideSchema = z.object({
-	firstName: z.string().min(2, "First name must be at least 2 characters"),
-	lastName: z.string().min(2, "Last name must be at least 2 characters"),
-	email: z.string().email("Invalid email address"),
-	password: z.string().min(8, "Password must be at least 8 characters"),
-	passwordConfirm: z.string().min(8, "Password must be at least 8 characters"),
-	bio: z.string().optional().describe("Tell us about yourself"),
-	notifications: z.boolean().default(false),
-});
-
 export const SideBySide: Story = {
 	render: () => {
-		const [submittedData, setSubmittedData] = useState<z.infer<
-			typeof sideBySideSchema
-		> | null>(null);
+		const [submittedData, setSubmittedData] = useState<any>(null);
 
-		function handleSubmit(data: z.infer<typeof sideBySideSchema>) {
+		function handleSubmit(data: any) {
 			setSubmittedData(data);
 			toast.success("Form submitted successfully!");
 		}
@@ -93,16 +153,159 @@ export const SideBySide: Story = {
 		return (
 			<div className="space-y-6">
 				<AutoForm
-					formSchema={sideBySideSchema}
+					formSchema={comprehensiveSchema}
 					onSubmit={handleSubmit}
 					layout={FormLayout.SIDEBYSIDE}
-					fieldConfig={{
-						bio: {
-							description: "Optional: Share a brief description about yourself",
-							inputProps: {
-								showLabel: true,
-							},
-						},
+					fieldConfig={comprehensiveFieldConfig}
+				>
+					<AutoFormSubmit />
+				</AutoForm>
+				{submittedData && (
+					<div className="mt-4 rounded-lg border bg-muted p-4">
+						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
+						<pre className="text-sm">
+							{JSON.stringify(submittedData, null, 2)}
+						</pre>
+					</div>
+				)}
+			</div>
+		);
+	},
+};
+
+export const WithIcons: Story = {
+	render: () => {
+		const [submittedData, setSubmittedData] = useState<any>(null);
+
+		function handleSubmit(data: any) {
+			setSubmittedData(data);
+			toast.success("Form submitted successfully!");
+		}
+
+		return (
+			<div className="space-y-6">
+				<AutoForm
+					formSchema={comprehensiveSchema}
+					onSubmit={handleSubmit}
+					fieldConfig={comprehensiveFieldConfig}
+				>
+					<AutoFormSubmit />
+				</AutoForm>
+				{submittedData && (
+					<div className="mt-4 rounded-lg border bg-muted p-4">
+						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
+						<pre className="text-sm">
+							{JSON.stringify(submittedData, null, 2)}
+						</pre>
+					</div>
+				)}
+			</div>
+		);
+	},
+};
+
+export const Comprehensive: Story = {
+	render: () => {
+		const [submittedData, setSubmittedData] = useState<any>(null);
+
+		function handleSubmit(data: any) {
+			setSubmittedData(data);
+			toast.success("Form submitted successfully!");
+		}
+
+		return (
+			<div className="space-y-6">
+				<AutoForm
+					formSchema={comprehensiveSchema}
+					onSubmit={handleSubmit}
+					fieldConfig={comprehensiveFieldConfig}
+				>
+					<AutoFormSubmit />
+				</AutoForm>
+				{submittedData && (
+					<div className="mt-4 rounded-lg border bg-muted p-4">
+						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
+						<pre className="text-sm">
+							{JSON.stringify(submittedData, null, 2)}
+						</pre>
+					</div>
+				)}
+			</div>
+		);
+	},
+};
+
+export const SideBySideWithIcons: Story = {
+	render: () => {
+		const [submittedData, setSubmittedData] = useState<any>(null);
+
+		function handleSubmit(data: any) {
+			setSubmittedData(data);
+			toast.success("Form submitted successfully!");
+		}
+
+		return (
+			<div className="space-y-6">
+				<AutoForm
+					formSchema={comprehensiveSchema}
+					onSubmit={handleSubmit}
+					layout={FormLayout.SIDEBYSIDE}
+					fieldConfig={comprehensiveFieldConfig}
+				>
+					<AutoFormSubmit />
+				</AutoForm>
+				{submittedData && (
+					<div className="mt-4 rounded-lg border bg-muted p-4">
+						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
+						<pre className="text-sm">
+							{JSON.stringify(submittedData, null, 2)}
+						</pre>
+					</div>
+				)}
+			</div>
+		);
+	},
+};
+
+export const GhostInputs: Story = {
+	render: () => {
+		const [submittedData, setSubmittedData] = useState<any>(null);
+
+		function handleSubmit(data: any) {
+			setSubmittedData(data);
+			toast.success("Form submitted successfully!");
+		}
+
+		// Create ghost field config by spreading comprehensiveFieldConfig and adding variant: "ghost"
+		const ghostFieldConfig = Object.keys(comprehensiveFieldConfig).reduce((acc, key) => {
+			const config = comprehensiveFieldConfig[key as keyof typeof comprehensiveFieldConfig];
+			if (typeof config === 'object' && config !== null) {
+				acc[key as keyof typeof comprehensiveFieldConfig] = {
+					...config,
+					variant: "ghost" as const,
+				} as any;
+			}
+			return acc;
+		}, {} as any);
+
+		return (
+			<div className="space-y-6">
+				<AutoForm
+					formSchema={comprehensiveSchema}
+					onSubmit={handleSubmit}
+					layout={FormLayout.SIDEBYSIDE}
+					fieldConfig={ghostFieldConfig}
+					values={{
+						text: "Pre-filled text",
+						number: 123,
+						textarea: "This is some pre-filled long text content.",
+						date: new Date(),
+						select: "Option 2",
+						radio: "Two",
+						checkbox: true,
+						switch: true,
+						tags: ["Ghost", "In", "The", "Shell"],
+						categories: ["Design", "Business"],
 					}}
 				>
 					<AutoFormSubmit />
@@ -111,6 +314,54 @@ export const SideBySide: Story = {
 					<div className="mt-4 rounded-lg border bg-muted p-4">
 						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
 						<pre className="text-sm">
+							{JSON.stringify(submittedData, null, 2)}
+						</pre>
+					</div>
+				)}
+			</div>
+		);
+	},
+};
+
+// Rich Text Editor Story
+const richTextSchema = z.object({
+	title: z.string().min(1, "Title is required").describe("Article title"),
+	content: z.any().optional().describe("Rich text content"),
+});
+
+export const RichText: Story = {
+	render: () => {
+		const [submittedData, setSubmittedData] = useState<any>(null);
+
+		function handleSubmit(data: any) {
+			setSubmittedData(data);
+			toast.success("Form submitted successfully!");
+		}
+
+		return (
+			<div className="space-y-6">
+				<AutoForm
+					formSchema={richTextSchema}
+					onSubmit={handleSubmit}
+					fieldConfig={{
+						title: {
+							icon: <FileText className="size-4" />,
+							inputProps: { placeholder: "Enter article title..." },
+						},
+						content: {
+							fieldType: "richtext",
+							label: "Content",
+							icon: <Type className="size-4" />,
+							description: "Write your content with rich formatting. Use '/' for quick commands.",
+						},
+					}}
+				>
+					<AutoFormSubmit />
+				</AutoForm>
+				{submittedData && (
+					<div className="mt-4 rounded-lg border bg-muted p-4">
+						<h3 className="mb-2 font-semibold">Submitted Data:</h3>
+						<pre className="max-h-[300px] overflow-auto text-sm">
 							{JSON.stringify(submittedData, null, 2)}
 						</pre>
 					</div>

@@ -13,7 +13,6 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet";
 
-import { WaitlistModal } from "@/components/landingpage/components/waitlist-modal";
 import { useWaitlist } from "@/lib/context/waitlist-context";
 
 export function LandingNavbar() {

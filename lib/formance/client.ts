@@ -10,7 +10,22 @@ let formanceClient: SDK | null = null;
  * @returns Authenticated Formance SDK instance
  * @throws If required environment variables are not set
  */
-export function getFormanceClient(): SDK {
+async function resolveTokenUrl(serverURL: string): Promise<string> {
+	const fallbackTokenUrl = `${serverURL}/api/auth/oauth/token`;
+	try {
+		const discoveryUrl = `${serverURL}/api/auth/.well-known/openid-configuration`;
+		const response = await fetch(discoveryUrl);
+		if (!response.ok) {
+			return fallbackTokenUrl;
+		}
+		const data = (await response.json()) as { token_endpoint?: string };
+		return data.token_endpoint ?? fallbackTokenUrl;
+	} catch {
+		return fallbackTokenUrl;
+	}
+}
+
+export async function getFormanceClient(): Promise<SDK> {
 	if (!formanceClient) {
 		const clientID = process.env.FORMANCE_CLIENT_ID;
 		const clientSecret = process.env.FORMANCE_CLIENT_SECRET;
@@ -28,8 +43,8 @@ export function getFormanceClient(): SDK {
 			);
 		}
 
-		// Construct token URL from server URL
-		const tokenURL = `${serverURL}/api/auth/oauth/token`;
+		// Resolve token URL via OIDC discovery with fallback
+		const tokenURL = await resolveTokenUrl(serverURL);
 
 		formanceClient = new SDK({
 			serverURL,

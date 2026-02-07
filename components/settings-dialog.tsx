@@ -62,6 +62,13 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+type AlertItem = (typeof api.alerts.getAllUserAlerts._returnType)[number];
+type DealItem = (typeof api.deals.getAllActiveDeals._returnType)[number];
+type LockRequestItem =
+	| (typeof api.lockRequests.getPendingLockRequestsWithDetails._returnType)[number]
+	| (typeof api.lockRequests.getApprovedLockRequestsWithDetails._returnType)[number]
+	| (typeof api.lockRequests.getRejectedLockRequestsWithDetails._returnType)[number];
 import {
 	DEAL_STATE_COLORS,
 	DEAL_STATE_LABELS,
@@ -315,7 +322,7 @@ function NotificationsContent() {
 					</Button>
 				</div>
 			)}
-			{alerts.map((alert) => {
+			{alerts.map((alert: AlertItem) => {
 				const IconComponent = ALERT_ICONS[alert.type] || Bell;
 
 				return (
@@ -497,7 +504,7 @@ function DealsContent() {
 
 	return (
 		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{deals.map((deal) => {
+			{deals.map((deal: DealItem) => {
 				const StateIcon = deal.currentState
 					? DEAL_STATE_ICONS[deal.currentState] || Lock
 					: Lock;
@@ -584,15 +591,15 @@ function DealRequestsContent() {
 
 	// Combine all requests
 	const allRequests = React.useMemo(() => {
-		const pending = (pendingRequests || []).map((r) => ({
+		const pending = (pendingRequests || []).map((r: LockRequestItem) => ({
 			...r,
 			status: "pending" as const,
 		}));
-		const approved = (approvedRequests || []).map((r) => ({
+		const approved = (approvedRequests || []).map((r: LockRequestItem) => ({
 			...r,
 			status: "approved" as const,
 		}));
-		const rejected = (rejectedRequests || []).map((r) => ({
+		const rejected = (rejectedRequests || []).map((r: LockRequestItem) => ({
 			...r,
 			status: "rejected" as const,
 		}));

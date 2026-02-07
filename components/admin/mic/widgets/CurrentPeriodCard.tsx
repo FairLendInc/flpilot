@@ -56,25 +56,29 @@ export function CurrentPeriodCard({
 	const statusConfig = {
 		open: {
 			label: "Period Open",
-			variant: "success",
 			icon: Clock,
+			badgeClassName:
+				"bg-success text-success-foreground [a&]:hover:bg-success/90",
 			description: "Accepting subscriptions and originations.",
 		},
 		closing: {
 			label: "Closing Soon",
-			variant: "warning",
 			icon: Calendar,
+			badgeClassName:
+				"bg-warning text-warning-foreground [a&]:hover:bg-warning/90",
 			description: "Preparing for monthly distribution close.",
 		},
 		closed: {
 			label: "Period Closed",
-			variant: "secondary",
 			icon: CheckCircle2,
+			badgeClassName:
+				"bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
 			description: "Distribution complete. View history for details.",
 		},
 	} as const;
 
-	const { label, variant, icon: Icon, description } = statusConfig[status];
+	const { label, badgeClassName, icon: Icon, description } =
+		statusConfig[status];
 
 	const formatDate = (date: Date | string) => {
 		const d = typeof date === "string" ? new Date(date) : date;
@@ -94,8 +98,10 @@ export function CurrentPeriodCard({
 						Current Period
 					</CardTitle>
 					<Badge
-						className="gap-1 rounded-full px-2 py-0.5 font-bold text-[10px] uppercase"
-						variant={variant}
+						className={cn(
+							"gap-1 rounded-full px-2 py-0.5 font-bold text-[10px] uppercase",
+							badgeClassName
+						)}
 					>
 						<Icon className="size-3" />
 						{label}
