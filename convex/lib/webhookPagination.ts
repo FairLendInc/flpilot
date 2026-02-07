@@ -3,8 +3,10 @@ export type CursorPayload = {
 	id: string;
 };
 
-export const decodeCursor = (cursor?: string | null): CursorPayload | undefined => {
-	if (!cursor) return undefined;
+export const decodeCursor = (
+	cursor?: string | null
+): CursorPayload | undefined => {
+	if (!cursor) return;
 	try {
 		const parsed = JSON.parse(cursor) as CursorPayload;
 		if (
@@ -15,15 +17,16 @@ export const decodeCursor = (cursor?: string | null): CursorPayload | undefined 
 			return parsed;
 		}
 	} catch {
-		return undefined;
+		return;
 	}
-	return undefined;
+	return;
 };
 
-export const encodeCursor = (cursor: CursorPayload) =>
-	JSON.stringify(cursor);
+export const encodeCursor = (cursor: CursorPayload) => JSON.stringify(cursor);
 
-export const paginateByCreation = <T extends { _id: string; _creationTime: number }>(
+export const paginateByCreation = <
+	T extends { _id: string; _creationTime: number },
+>(
 	items: T[],
 	limit: number,
 	cursor?: string | null
@@ -36,21 +39,20 @@ export const paginateByCreation = <T extends { _id: string; _creationTime: numbe
 	});
 
 	const decoded = decodeCursor(cursor);
-	const startIndex =
-		decoded
-			? sorted.findIndex(
-					(item) =>
-						item._creationTime === decoded.time && item._id === decoded.id
-				) + 1
-			: 0;
+	const startIndex = decoded
+		? sorted.findIndex(
+				(item) => item._creationTime === decoded.time && item._id === decoded.id
+			) + 1
+		: 0;
 
 	const pageItems = sorted.slice(startIndex, startIndex + limit);
 	const hasMore = startIndex + limit < sorted.length;
+	const lastItem = pageItems.at(-1);
 	const nextCursor =
-		hasMore && pageItems.length > 0
+		hasMore && lastItem
 			? encodeCursor({
-					time: pageItems[pageItems.length - 1]._creationTime,
-					id: pageItems[pageItems.length - 1]._id,
+					time: lastItem._creationTime,
+					id: lastItem._id,
 				})
 			: undefined;
 

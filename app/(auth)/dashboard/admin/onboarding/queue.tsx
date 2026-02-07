@@ -2,6 +2,7 @@
 
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -143,7 +144,8 @@ function OnboardingQueueClient() {
 					<CardTitle>No onboarding submissions</CardTitle>
 				</CardHeader>
 				<CardContent className="text-muted-foreground text-sm">
-					Members will appear here after submitting their investor profile.
+					Applicants will appear here after submitting their onboarding
+					application for review.
 				</CardContent>
 			</Card>
 		);
@@ -157,7 +159,10 @@ function OnboardingQueueClient() {
 						<CardContent className="flex items-center justify-between gap-4 py-4">
 							<div>
 								<p className="font-medium">
-									{entry.applicant?.first_name} {entry.applicant?.last_name}
+									{entry.journey.persona === "broker"
+										? entry.journey.context?.broker?.companyInfo?.companyName ||
+											`${entry.applicant?.first_name} ${entry.applicant?.last_name}`
+										: `${entry.applicant?.first_name} ${entry.applicant?.last_name}`}
 								</p>
 								<p className="text-muted-foreground text-sm">
 									{entry.applicant?.email}
@@ -170,26 +175,39 @@ function OnboardingQueueClient() {
 							</div>
 							<div className="flex items-center gap-2">
 								<Badge variant="outline">{entry.journey.persona}</Badge>
-								<Button
-									onClick={() => {
-										setSelectedId(entry.journey._id);
-									}}
-									size="sm"
-									variant="ghost"
-								>
-									Review
-								</Button>
+								{entry.journey.persona === "broker" ? (
+									<Button asChild size="sm" variant="ghost">
+										<Link
+											href={`/dashboard/admin/brokers/applications/${entry.journey._id}`}
+										>
+											Review
+										</Link>
+									</Button>
+								) : (
+									<Button
+										onClick={() => {
+											setSelectedId(entry.journey._id);
+										}}
+										size="sm"
+										variant="ghost"
+									>
+										Review
+									</Button>
+								)}
 							</div>
 						</CardContent>
 					</Card>
 				))}
 			</div>
-			<Sheet onOpenChange={() => setSelectedId(null)} open={Boolean(selected)}>
+			<Sheet
+				onOpenChange={() => setSelectedId(null)}
+				open={Boolean(selected) && selected?.journey.persona === "investor"}
+			>
 				<SheetContent className="w-full max-w-lg" side="right">
 					<SheetHeader>
-						<SheetTitle>Submission details</SheetTitle>
+						<SheetTitle>Investor Application Review</SheetTitle>
 					</SheetHeader>
-					{selected ? (
+					{selected && selected.journey.persona === "investor" ? (
 						<ScrollArea className="mt-4 h-[calc(100vh-7rem)] space-y-5 pr-4">
 							<section className="space-y-2 rounded border p-4">
 								<p className="font-medium text-sm">Profile</p>
@@ -200,20 +218,23 @@ function OnboardingQueueClient() {
 										selected.journey.context?.investor?.profile?.lastName,
 									]
 										.filter(Boolean)
-										.join(" ")}
+										.join(" ") || "Not provided"}
 								</p>
 							</section>
 							<section className="space-y-2 rounded border p-4">
-								<p className="font-medium text-sm">Preferences</p>
+								<p className="font-medium text-sm">Investment Preferences</p>
 								<p className="text-muted-foreground text-sm">
-									$
-									{selected.journey.context?.investor?.preferences?.minTicket?.toLocaleString()}{" "}
+									Investment Range: $
+									{selected.journey.context?.investor?.preferences?.minTicket?.toLocaleString() ||
+										"—"}{" "}
 									– $
-									{selected.journey.context?.investor?.preferences?.maxTicket?.toLocaleString()}
+									{selected.journey.context?.investor?.preferences?.maxTicket?.toLocaleString() ||
+										"—"}
 								</p>
 								<p className="text-muted-foreground text-sm">
-									Risk{" "}
-									{selected.journey.context?.investor?.preferences?.riskProfile}
+									Risk Profile:{" "}
+									{selected.journey.context?.investor?.preferences
+										?.riskProfile || "Not specified"}
 								</p>
 							</section>
 							{needsOrganizationSelection && (
@@ -252,19 +273,25 @@ function OnboardingQueueClient() {
 								</section>
 							)}
 							<section className="space-y-2 rounded border p-4">
-								<p className="font-medium text-sm">Notes to investor</p>
+								<p className="font-medium text-sm">Approval Notes</p>
+								<p className="mb-2 text-muted-foreground text-xs">
+									These notes will be shared with the investor upon approval.
+								</p>
 								<Textarea
 									onChange={(event) => setNotes(event.target.value)}
-									placeholder="Shared only on approval"
+									placeholder="Optional notes shared on approval..."
 									rows={4}
 									value={notes}
 								/>
 							</section>
 							<section className="space-y-2 rounded border p-4">
-								<p className="font-medium text-sm">Rejection reason</p>
+								<p className="font-medium text-sm">Rejection Reason</p>
+								<p className="mb-2 text-muted-foreground text-xs">
+									This reason will be visible to the applicant.
+								</p>
 								<Textarea
 									onChange={(event) => setRejectNotes(event.target.value)}
-									placeholder="Visible to the applicant"
+									placeholder="Explain why the application is being rejected..."
 									rows={3}
 									value={rejectNotes}
 								/>

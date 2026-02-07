@@ -47,9 +47,7 @@ export default function AUMPortfolioPage() {
 			ownershipPercentage: aum.micOwnership,
 			micValue: (aum.principal * aum.micOwnership) / 10000,
 			accrualStatus:
-				aum.state === "active"
-					? ("up-to-date" as const)
-					: ("pending" as const),
+				aum.state === "active" ? ("up-to-date" as const) : ("pending" as const),
 			lastAccruedDate: aum.originationDate,
 		}))
 		.filter((aum) => {

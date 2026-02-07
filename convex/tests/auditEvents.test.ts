@@ -9,12 +9,11 @@
  */
 
 import { convexTest } from "convex-test";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
 import {
-	OWNERSHIP_EVENT_TYPES,
 	ENTITY_TYPES,
+	OWNERSHIP_EVENT_TYPES,
 	SENSITIVE_FIELDS,
 	sanitizeState,
 } from "../lib/events/types";
@@ -93,17 +92,18 @@ describe("createAuditEvent", () => {
 		const t = createTest();
 		const userId = await createTestUser(t);
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: OWNERSHIP_EVENT_TYPES.TRANSFER_CREATED,
-				entityType: ENTITY_TYPES.PENDING_TRANSFER,
-				entityId: "test-entity-123",
-				userId,
-				beforeState: { status: "pending" },
-				afterState: { status: "approved" },
-				metadata: { dealId: "deal-123" },
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: OWNERSHIP_EVENT_TYPES.TRANSFER_CREATED,
+					entityType: ENTITY_TYPES.PENDING_TRANSFER,
+					entityId: "test-entity-123",
+					userId,
+					beforeState: { status: "pending" },
+					afterState: { status: "approved" },
+					metadata: { dealId: "deal-123" },
+				})
+		);
 
 		expect(eventId).toBeDefined();
 
@@ -123,14 +123,15 @@ describe("createAuditEvent", () => {
 		const t = createTest();
 		const userId = await createTestUser(t);
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: "test.event",
-				entityType: "test_entity",
-				entityId: "test-123",
-				userId,
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: "test.event",
+					entityType: "test_entity",
+					entityId: "test-123",
+					userId,
+				})
+		);
 
 		const event = await t.run(async (ctx) => ctx.db.get(eventId));
 		expect(event?.beforeState).toBeUndefined();
@@ -144,14 +145,15 @@ describe("createAuditEvent", () => {
 
 		const beforeTime = Date.now();
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: "test.event",
-				entityType: "test_entity",
-				entityId: "test-123",
-				userId,
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: "test.event",
+					entityType: "test_entity",
+					entityId: "test-123",
+					userId,
+				})
+		);
 
 		const afterTime = Date.now();
 
@@ -259,7 +261,7 @@ describe("sanitizeState - PII removal", () => {
 		};
 
 		const sanitized = sanitizeState(state) as Record<string, unknown>;
-		const users = sanitized.users as Array<Record<string, unknown>>;
+		const users = sanitized.users as Record<string, unknown>[];
 
 		expect(users).toHaveLength(2);
 		expect(users[0].name).toBe("John");
@@ -321,19 +323,20 @@ describe("createAuditEvent - PII sanitization in database", () => {
 		const t = createTest();
 		const userId = await createTestUser(t);
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: "test.event",
-				entityType: "test",
-				entityId: "123",
-				userId,
-				beforeState: {
-					name: "John",
-					email: "john@example.com",
-					status: "pending",
-				},
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: "test.event",
+					entityType: "test",
+					entityId: "123",
+					userId,
+					beforeState: {
+						name: "John",
+						email: "john@example.com",
+						status: "pending",
+					},
+				})
+		);
 
 		const event = await t.run(async (ctx) => ctx.db.get(eventId));
 		const beforeState = event?.beforeState as Record<string, unknown>;
@@ -347,20 +350,21 @@ describe("createAuditEvent - PII sanitization in database", () => {
 		const t = createTest();
 		const userId = await createTestUser(t);
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: "test.event",
-				entityType: "test",
-				entityId: "123",
-				userId,
-				afterState: {
-					name: "John",
-					phone: "555-1234",
-					password: "secret",
-					status: "approved",
-				},
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: "test.event",
+					entityType: "test",
+					entityId: "123",
+					userId,
+					afterState: {
+						name: "John",
+						phone: "555-1234",
+						password: "secret",
+						status: "approved",
+					},
+				})
+		);
 
 		const event = await t.run(async (ctx) => ctx.db.get(eventId));
 		const afterState = event?.afterState as Record<string, unknown>;
@@ -422,7 +426,7 @@ describe("getEventsForEntity", () => {
 
 		// Create 5 events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 5; i++) {
+			for (let i = 0; i < 5; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `event.type.${i}`,
 					entityType: "test_entity",
@@ -519,7 +523,7 @@ describe("getRecentEvents", () => {
 
 		// Create several events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 5; i++) {
+			for (let i = 0; i < 5; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `recent.event.${i}`,
 					entityType: "test",
@@ -536,7 +540,7 @@ describe("getRecentEvents", () => {
 
 		expect(events.length).toBeLessThanOrEqual(3);
 		// Should be in descending order
-		for (let i = 0; i < events.length - 1; i++) {
+		for (let i = 0; i < events.length - 1; i += 1) {
 			expect(events[i]._creationTime).toBeGreaterThanOrEqual(
 				events[i + 1]._creationTime
 			);
@@ -553,14 +557,15 @@ describe("markEventEmitted", () => {
 		const t = createTest();
 		const userId = await createTestUser(t);
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: "test.event",
-				entityType: "test",
-				entityId: "123",
-				userId,
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: "test.event",
+					entityType: "test",
+					entityId: "123",
+					userId,
+				})
+		);
 
 		// Initially not emitted
 		const eventBefore = await t.run(async (ctx) => ctx.db.get(eventId));
@@ -590,14 +595,15 @@ describe("incrementEmitFailures", () => {
 		const t = createTest();
 		const userId = await createTestUser(t);
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: "test.event",
-				entityType: "test",
-				entityId: "123",
-				userId,
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: "test.event",
+					entityType: "test",
+					entityId: "123",
+					userId,
+				})
+		);
 
 		// Initially 0 failures
 		const eventBefore = await t.run(async (ctx) => ctx.db.get(eventId));
@@ -648,9 +654,10 @@ describe("getUnemittedEvents", () => {
 		});
 
 		// Query unemitted events
-		const unemittedEvents = await t.run(async (ctx) => {
-			return await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {});
-		});
+		const unemittedEvents = await t.run(
+			async (ctx) =>
+				await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {})
+		);
 
 		// Should include eventId1 but not eventId2
 		const unemittedIds = unemittedEvents.map((e) => e._id);
@@ -664,7 +671,7 @@ describe("getUnemittedEvents", () => {
 
 		// Create 5 events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 5; i++) {
+			for (let i = 0; i < 5; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `batch.event.${i}`,
 					entityType: "test",
@@ -674,11 +681,12 @@ describe("getUnemittedEvents", () => {
 			}
 		});
 
-		const events = await t.run(async (ctx) => {
-			return await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {
-				limit: 2,
-			});
-		});
+		const events = await t.run(
+			async (ctx) =>
+				await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {
+					limit: 2,
+				})
+		);
 
 		expect(events.length).toBe(2);
 	});
@@ -695,7 +703,7 @@ describe("emitPendingEvents cron job", () => {
 
 		// Create multiple unemitted events
 		await t.run(async (ctx) => {
-			for (let i = 0; i < 3; i++) {
+			for (let i = 0; i < 3; i += 1) {
 				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
 					eventType: `cron.test.event.${i}`,
 					entityType: "test",
@@ -706,7 +714,10 @@ describe("emitPendingEvents cron job", () => {
 		});
 
 		// Run the cron action
-		const result = await t.action(internal.auditEventsCron.emitPendingEvents, {});
+		const result = await t.action(
+			internal.auditEventsCron.emitPendingEvents,
+			{}
+		);
 
 		// Should process all events
 		expect(result.processed).toBeGreaterThanOrEqual(3);
@@ -718,14 +729,15 @@ describe("emitPendingEvents cron job", () => {
 		const t = createTest();
 		const userId = await createTestUser(t);
 
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: "cron.success.test",
-				entityType: "test",
-				entityId: "success-1",
-				userId,
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: "cron.success.test",
+					entityType: "test",
+					entityId: "success-1",
+					userId,
+				})
+		);
 
 		// Verify not emitted before cron
 		const eventBefore = await t.run(async (ctx) => ctx.db.get(eventId));
@@ -754,7 +766,10 @@ describe("emitPendingEvents cron job", () => {
 			}
 		});
 
-		const result = await t.action(internal.auditEventsCron.emitPendingEvents, {});
+		const result = await t.action(
+			internal.auditEventsCron.emitPendingEvents,
+			{}
+		);
 
 		expect(result.processed).toBe(0);
 		expect(result.succeeded).toBe(0);
@@ -773,24 +788,28 @@ describe("audit events integration", () => {
 		const entityId = `lifecycle-${Date.now()}`;
 
 		// 1. Create event
-		const eventId = await t.run(async (ctx) => {
-			return await ctx.runMutation(internal.auditEvents.createAuditEvent, {
-				eventType: OWNERSHIP_EVENT_TYPES.TRANSFER_CREATED,
-				entityType: ENTITY_TYPES.PENDING_TRANSFER,
-				entityId,
-				userId,
-				beforeState: { status: "pending", email: "test@test.com" },
-				afterState: { status: "approved" },
-				metadata: { source: "test" },
-			});
-		});
+		const eventId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(internal.auditEvents.createAuditEvent, {
+					eventType: OWNERSHIP_EVENT_TYPES.TRANSFER_CREATED,
+					entityType: ENTITY_TYPES.PENDING_TRANSFER,
+					entityId,
+					userId,
+					beforeState: { status: "pending", email: "test@test.com" },
+					afterState: { status: "approved" },
+					metadata: { source: "test" },
+				})
+		);
 
 		// 2. Query for the event
 		const adminT = await getAdminTest(t);
-		const queriedEvents = await adminT.query(api.auditEvents.getEventsForEntity, {
-			entityType: ENTITY_TYPES.PENDING_TRANSFER,
-			entityId,
-		});
+		const queriedEvents = await adminT.query(
+			api.auditEvents.getEventsForEntity,
+			{
+				entityType: ENTITY_TYPES.PENDING_TRANSFER,
+				entityId,
+			}
+		);
 
 		expect(queriedEvents.length).toBe(1);
 		expect(queriedEvents[0]._id).toBe(eventId);

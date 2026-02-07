@@ -26,7 +26,8 @@ import {
 	User,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -62,8 +63,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
 
 type AlertItem = (typeof api.alerts.getAllUserAlerts._returnType)[number];
+
+// Email validation regex - moved to top level for performance
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ============================================================================
 // Types
@@ -121,15 +126,13 @@ function RejectionHistoryItem({
 }
 
 function ResolutionActions({
-	dealId,
 	onAction,
 	isLoading,
 }: {
-	dealId: Id<"deals">;
 	onAction: (action: "approve" | "cancel" | "contact") => Promise<void>;
 	isLoading: boolean;
 }) {
-	const [forceApproveOpen, setForceApproveOpen] = useState(false);
+	const [_forceApproveOpen, _setForceApproveOpen] = useState(false);
 	const [cancelOpen, setCancelOpen] = useState(false);
 	const [cancelReason, setCancelReason] = useState("");
 
@@ -281,6 +284,22 @@ function EscalatedDealCard({
 	);
 
 	async function handleAction(action: "approve" | "cancel" | "contact") {
+		if (action === "contact") {
+			const email = deal.investorEmail?.trim();
+			const isValidEmail =
+				typeof email === "string" &&
+				email.length > 0 &&
+				EMAIL_REGEX.test(email);
+
+			if (!isValidEmail) {
+				toast.error("Investor email unavailable", {
+					description:
+						"No valid investor email found for this deal. Please follow up manually.",
+				});
+				return;
+			}
+		}
+
 		setIsLoading(true);
 		try {
 			if (action === "approve") {
@@ -313,15 +332,14 @@ function EscalatedDealCard({
 				onResolved?.();
 			} else if (action === "contact") {
 				// Open email client with pre-filled message
+				const email = deal.investorEmail.trim();
 				const subject = encodeURIComponent(
 					"Action Required: Your Deal Transfer Review"
 				);
 				const body = encodeURIComponent(
 					`Dear ${deal.investorName},\n\nWe need additional information regarding your investment transfer for the property at ${deal.mortgageAddress || "your mortgage"}.\n\nPlease contact us at your earliest convenience.\n\nBest regards,\nFairLend Team`
 				);
-				window.open(
-					`mailto:${deal.investorEmail}?subject=${subject}&body=${body}`
-				);
+				window.open(`mailto:${email}?subject=${subject}&body=${body}`);
 				toast.info("Email client opened");
 			}
 		} catch (error) {
@@ -335,7 +353,7 @@ function EscalatedDealCard({
 
 	return (
 		<Card className="border-red-200 dark:border-red-800">
-			<CardHeader className="bg-gradient-to-r from-red-50 to-amber-50 dark:from-red-950/30 dark:to-amber-950/30">
+			<CardHeader className="bg-linear-to-r from-red-50 to-amber-50 dark:from-red-950/30 dark:to-amber-950/30">
 				<div className="flex items-start justify-between gap-4">
 					<div className="flex items-center gap-3">
 						<div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50">
@@ -411,13 +429,66 @@ function EscalatedDealCard({
 				<Separator />
 
 				{/* Action Buttons */}
-				<ResolutionActions
-					dealId={deal._id}
-					isLoading={isLoading}
-					onAction={handleAction}
-				/>
+				<ResolutionActions isLoading={isLoading} onAction={handleAction} />
 			</CardContent>
 		</Card>
+	);
+}
+
+function EscalatedDealCardContainer({
+	alert,
+	onResolved,
+}: {
+	alert: AlertItem;
+	onResolved?: () => void;
+}) {
+	const dealDetails = useAuthenticatedQuery(
+		api.deals.getDealWithDetails,
+		alert.relatedDealId ? { dealId: alert.relatedDealId } : "skip"
+	);
+	const investor = useAuthenticatedQuery(api.users.getUserByIdAdmin, {
+		userId: alert.userId,
+	});
+
+	if (!alert.relatedDealId) {
+		return null;
+	}
+
+	if (dealDetails === null || investor === null) {
+		return null;
+	}
+
+	if (!(dealDetails?.deal && investor)) {
+		return <Skeleton className="h-40 w-full" />;
+	}
+
+	const investorName =
+		[investor.first_name, investor.last_name].filter(Boolean).join(" ") ||
+		investor.email;
+	const mortgageAddress = dealDetails.mortgage?.address
+		? `${dealDetails.mortgage.address.street}, ${dealDetails.mortgage.address.city}, ${dealDetails.mortgage.address.state} ${dealDetails.mortgage.address.zip}`
+		: undefined;
+
+	return (
+		<EscalatedDealCard
+			deal={{
+				_id: dealDetails.deal._id,
+				investorId: alert.userId,
+				mortgageId: dealDetails.deal.mortgageId,
+				currentState:
+					dealDetails.deal.currentState ?? "pending_ownership_review",
+				rejectionHistory: [
+					{
+						reason: alert.message,
+						timestamp: alert.createdAt,
+					},
+				],
+				investorName,
+				investorEmail: investor.email,
+				mortgageAddress,
+			}}
+			onResolved={onResolved}
+		/>
 	);
 }
 
@@ -430,6 +501,8 @@ export function ManualResolutionPanel({
 	onResolved,
 }: ManualResolutionPanelProps) {
 	const { user, loading: authLoading } = useAuth();
+	const router = useRouter();
+	const [isRefreshing, startTransition] = useTransition();
 
 	// Query for deals requiring manual resolution
 	// For now, we query deals in pending_ownership_review with rejection count >= 2
@@ -443,8 +516,22 @@ export function ManualResolutionPanel({
 		(alert: AlertItem) =>
 			alert.type === "ownership_transfer_rejected" &&
 			alert.severity === "warning" &&
+			Boolean(alert.relatedDealId) &&
 			(!dealId || alert.relatedDealId === dealId)
 	);
+
+	function handleRefresh() {
+		try {
+			startTransition(() => {
+				router.refresh();
+			});
+		} catch (error) {
+			toast.error("Failed to refresh alerts", {
+				description:
+					error instanceof Error ? error.message : "Unknown error occurred",
+			});
+		}
+	}
 
 	// Loading state
 	if (authLoading || alerts === undefined) {
@@ -491,29 +578,29 @@ export function ManualResolutionPanel({
 						{manualResolutionAlerts.length} deal(s) require admin intervention
 					</p>
 				</div>
-				<Button size="sm" variant="outline">
-					<RefreshCw className="mr-2 h-4 w-4" />
-					Refresh
+				<Button
+					disabled={isRefreshing}
+					onClick={handleRefresh}
+					size="sm"
+					variant="outline"
+				>
+					{isRefreshing ? (
+						<>
+							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							Refreshing...
+						</>
+					) : (
+						<>
+							<RefreshCw className="mr-2 h-4 w-4" />
+							Refresh
+						</>
+					)}
 				</Button>
 			</div>
 
 			{manualResolutionAlerts.map((alert: AlertItem) => (
-				<EscalatedDealCard
-					deal={{
-						_id: alert.relatedDealId as Id<"deals">,
-						investorId: alert.userId,
-						mortgageId: "" as Id<"mortgages">, // Will be populated from deal query
-						currentState: "pending_ownership_review",
-						rejectionHistory: [
-							{
-								reason: alert.message,
-								timestamp: alert.createdAt,
-							},
-						],
-						investorName: "Investor",
-						investorEmail: "",
-						mortgageAddress: undefined,
-					}}
+				<EscalatedDealCardContainer
+					alert={alert}
 					key={alert._id}
 					onResolved={onResolved}
 				/>

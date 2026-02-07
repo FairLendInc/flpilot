@@ -41,12 +41,19 @@
 
 import type { Validator } from "convex/values";
 import { v } from "convex/values";
-import { customMutation, customCtxAndArgs } from "convex-helpers/server/customFunctions";
+import {
+	customCtxAndArgs,
+	customMutation,
+} from "convex-helpers/server/customFunctions";
 import { createError } from "../../../lib/errors";
-import type { MutationCtx } from "../../_generated/server";
-import { mutation, internalMutation } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { sanitizeState, type EntityType, type OwnershipEventType } from "./types";
+import type { MutationCtx } from "../../_generated/server";
+import { internalMutation, mutation } from "../../_generated/server";
+import {
+	type EntityType,
+	type OwnershipEventType,
+	sanitizeState,
+} from "./types";
 
 // ============================================================================
 // Types
@@ -55,7 +62,7 @@ import { sanitizeState, type EntityType, type OwnershipEventType } from "./types
 /**
  * Configuration for an audited mutation
  */
-export interface AuditedMutationConfig<Args extends Record<string, unknown>> {
+export type AuditedMutationConfig<Args extends Record<string, unknown>> = {
 	/** Event type to emit (e.g., "ownership.transfer.approved") */
 	eventType: OwnershipEventType | string;
 	/** Entity type being modified (e.g., "pending_ownership_transfer") */
@@ -69,11 +76,8 @@ export interface AuditedMutationConfig<Args extends Record<string, unknown>> {
 	/** Return type validator */
 	returns?: Validator<unknown, "required", string>;
 	/** Handler function */
-	handler: (
-		ctx: AuditedMutationCtx,
-		args: Args
-	) => Promise<unknown>;
-}
+	handler: (ctx: AuditedMutationCtx, args: Args) => Promise<unknown>;
+};
 
 /**
  * Extended context with audit event emission capabilities
@@ -90,7 +94,7 @@ export interface AuditedMutationCtx extends MutationCtx {
 /**
  * Parameters for emitting an audit event
  */
-export interface EmitEventParams {
+export type EmitEventParams = {
 	/** The entity ID being modified */
 	entityId: string;
 	/** State before the modification (will be sanitized) */
@@ -99,7 +103,7 @@ export interface EmitEventParams {
 	afterState?: Record<string, unknown>;
 	/** Additional metadata */
 	metadata?: Record<string, unknown>;
-}
+};
 
 // ============================================================================
 // Role Check (duplicated from server.ts to avoid circular imports)
@@ -151,8 +155,8 @@ export const createAuditEventInternal = internalMutation({
 		afterState: v.optional(v.any()),
 		metadata: v.optional(v.any()),
 	},
-	handler: async (ctx, args) => {
-		return await ctx.db.insert("audit_events", {
+	handler: async (ctx, args) =>
+		await ctx.db.insert("audit_events", {
 			eventType: args.eventType,
 			entityType: args.entityType,
 			entityId: args.entityId,
@@ -162,8 +166,7 @@ export const createAuditEventInternal = internalMutation({
 			afterState: args.afterState,
 			metadata: args.metadata,
 			emitFailures: 0,
-		});
-	},
+		}),
 });
 
 // ============================================================================
@@ -222,7 +225,10 @@ export function createAuditedMutation<Args extends Record<string, unknown>>(
 	return customMutation(
 		mutation,
 		customCtxAndArgs({
-			args: config.args as Record<string, Validator<unknown, "required", string>>,
+			args: config.args as Record<
+				string,
+				Validator<unknown, "required", string>
+			>,
 			input: async (baseCtx, args) => {
 				// Authenticate
 				const identity = await baseCtx.auth.getUserIdentity();
@@ -236,7 +242,9 @@ export function createAuditedMutation<Args extends Record<string, unknown>>(
 				}
 
 				// Authorize roles
-				if (!roleCheck({ userRole: identity.role as string | undefined, roles })) {
+				if (
+					!roleCheck({ userRole: identity.role as string | undefined, roles })
+				) {
 					throw createError({
 						code: "auth",
 						status: 403,

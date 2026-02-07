@@ -146,9 +146,7 @@ export function DealsByStateWidget() {
 	}
 
 	// Sort states by count (descending)
-	const sortedStates = Object.entries(
-		metrics.byState as Record<string, number>
-	)
+	const sortedStates = Object.entries(metrics.byState as Record<string, number>)
 		.filter(([state]) => state !== "archived") // Exclude archived from this view
 		.sort(([, a], [, b]) => b - a);
 

@@ -19,14 +19,14 @@ const HorizontalRuleToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						variant="ghost"
-						size="icon"
 						className={cn("h-8 w-8 p-0 sm:h-9 sm:w-9", className)}
 						onClick={(e) => {
 							editor?.chain().focus().setHorizontalRule().run();
 							onClick?.(e);
 						}}
 						ref={ref}
+						size="icon"
+						variant="ghost"
 						{...props}
 					>
 						{children ?? <SeparatorHorizontal className="h-4 w-4" />}
@@ -37,7 +37,7 @@ const HorizontalRuleToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				</TooltipContent>
 			</Tooltip>
 		);
-	},
+	}
 );
 
 HorizontalRuleToolbar.displayName = "HorizontalRuleToolbar";

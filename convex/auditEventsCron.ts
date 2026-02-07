@@ -47,9 +47,9 @@ export const emitPendingEvents = internalAction({
 			entityId: string;
 			userId: Id<"users">;
 			timestamp: number;
-			beforeState?: any;
-			afterState?: any;
-			metadata?: any;
+			beforeState?: unknown;
+			afterState?: unknown;
+			metadata?: unknown;
 			emittedAt?: number;
 			emitFailures?: number;
 		}> = await ctx.runQuery(internal.auditEvents.getUnemittedEvents, {
@@ -133,8 +133,8 @@ export const pruneOldEvents = internalAction({
 		const deletedCount: number = await ctx.runMutation(
 			internal.auditEvents.deleteOldEvents,
 			{
-			cutoffTimestamp,
-			limit: 500,
+				cutoffTimestamp,
+				limit: 500,
 			}
 		);
 

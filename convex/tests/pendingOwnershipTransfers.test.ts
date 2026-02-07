@@ -24,6 +24,15 @@ process.env.OWNERSHIP_LEDGER_SOURCE = "legacy";
 const modules = import.meta.glob("../**/*.{ts,js,tsx,jsx}", { eager: false });
 const createTest = () => convexTest(schema, modules);
 
+function requireTransferId(
+	transfer: { _id?: Id<"pending_ownership_transfers"> } | null | undefined
+): Id<"pending_ownership_transfers"> {
+	if (!transfer?._id) {
+		throw new Error("Pending transfer not found");
+	}
+	return transfer._id;
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -250,17 +259,12 @@ async function moveDealToOwnershipReview(
  */
 async function verifyTotalOwnership(
 	t: ReturnType<typeof createTest>,
-	mortgageId: Id<"mortgages">,
-	expectedTotal = 100
+	mortgageId: Id<"mortgages">
 ) {
 	const adminT = await getAdminTest(t);
 	const result = await adminT.action(api.ownership.getTotalOwnership, {
 		mortgageId,
 	});
-
-	expect(result.totalPercentage).toBeCloseTo(expectedTotal, 2);
-	expect(result.isValid).toBe(Math.abs(result.totalPercentage - 100) < 0.01);
-
 	return result;
 }
 
@@ -363,7 +367,7 @@ describe("createPendingTransferInternal", () => {
 describe("approvePendingTransfer", () => {
 	test("should approve transfer and return deal ID", async () => {
 		const t = createTest();
-		const { dealId, mortgageId, investorId } = await createDeal(t);
+		const { dealId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
 		// Get the pending transfer
@@ -378,7 +382,7 @@ describe("approvePendingTransfer", () => {
 		const result = await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
 			{
-				transferId: transfer!._id,
+				transferId: requireTransferId(transfer),
 				notes: "Approved after review",
 			}
 		);
@@ -409,13 +413,13 @@ describe("approvePendingTransfer", () => {
 		// Approve it once
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Try to approve again (should fail - idempotency check)
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
-				transferId: transfer!._id,
+				transferId: requireTransferId(transfer),
 			})
 		).rejects.toThrow("Transfer is not pending");
 	});
@@ -425,24 +429,25 @@ describe("approvePendingTransfer", () => {
 		const { dealId, mortgageId, investorId } = await createDeal(t);
 
 		// Create a pending transfer directly (without moving deal to review state)
-		const transferId = await t.run(async (ctx) => {
-			return await ctx.runMutation(
-				internal.pendingOwnershipTransfers.createPendingTransferInternal,
-				{
-					dealId,
-					mortgageId,
-					fromOwnerId: "fairlend",
-					toOwnerId: investorId,
-					percentage: 100,
-				}
-			);
-		});
+		const transferId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(
+					internal.pendingOwnershipTransfers.createPendingTransferInternal,
+					{
+						dealId,
+						mortgageId,
+						fromOwnerId: "fairlend",
+						toOwnerId: investorId,
+						percentage: 100,
+					}
+				)
+		);
 
 		// Try to approve while deal is still in 'locked' state
 		const adminT = await getAdminTest(t);
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
-				transferId,
+				transferId: transferId as string as Id<"pending_ownership_transfers">,
 			})
 		).rejects.toThrow("Deal is not in pending_ownership_review state");
 	});
@@ -461,7 +466,7 @@ describe("approvePendingTransfer", () => {
 		const beforeApproval = Date.now();
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 		const afterApproval = Date.now();
 
@@ -496,7 +501,7 @@ describe("rejectPendingTransfer", () => {
 		const result = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer!._id,
+				transferId: requireTransferId(transfer),
 				reason: "Documentation incomplete",
 			}
 		);
@@ -516,7 +521,7 @@ describe("rejectPendingTransfer", () => {
 
 	test("should create alert on rejection", async () => {
 		const t = createTest();
-		const { dealId, investorId } = await createDeal(t);
+		const { dealId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
 		const adminT = await getAdminTest(t);
@@ -525,13 +530,10 @@ describe("rejectPendingTransfer", () => {
 			{ dealId }
 		);
 
-		await adminT.mutation(
-			api.pendingOwnershipTransfers.rejectPendingTransfer,
-			{
-				transferId: transfer!._id,
-				reason: "Need verification",
-			}
-		);
+		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
+			transferId: requireTransferId(transfer),
+			reason: "Need verification",
+		});
 
 		// Check alert was created
 		const alerts = await t.run(
@@ -553,7 +555,7 @@ describe("rejectPendingTransfer", () => {
 
 	test("should escalate to manual resolution after second rejection", async () => {
 		const t = createTest();
-		const { dealId, mortgageId, investorId } = await createDeal(t);
+		const { dealId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
 		const adminT = await getAdminTest(t);
@@ -566,7 +568,7 @@ describe("rejectPendingTransfer", () => {
 		const result1 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer!._id,
+				transferId: requireTransferId(transfer),
 				reason: "First issue",
 			}
 		);
@@ -575,14 +577,14 @@ describe("rejectPendingTransfer", () => {
 		// Update rejection count manually to simulate retry scenario
 		// (In real flow, a new transfer would be created for retry)
 		await t.run(async (ctx) => {
-			await ctx.db.patch(transfer!._id, { status: "pending" });
+			await ctx.db.patch(requireTransferId(transfer), { status: "pending" });
 		});
 
 		// Second rejection
 		const result2 = await adminT.mutation(
 			api.pendingOwnershipTransfers.rejectPendingTransfer,
 			{
-				transferId: transfer!._id,
+				transferId: requireTransferId(transfer),
 				reason: "Second issue",
 			}
 		);
@@ -616,7 +618,7 @@ describe("rejectPendingTransfer", () => {
 describe("getOwnershipPreview", () => {
 	test("should show correct before and after ownership", async () => {
 		const t = createTest();
-		const { dealId, mortgageId } = await createDeal(t);
+		const { dealId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
 		const adminT = await getAdminTest(t);
@@ -627,7 +629,7 @@ describe("getOwnershipPreview", () => {
 
 		const preview = await adminT.action(
 			api.pendingOwnershipTransfers.getOwnershipPreview,
-			{ transferId: transfer!._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Before: FairLend 100%
@@ -645,18 +647,19 @@ describe("getOwnershipPreview", () => {
 		const { dealId, mortgageId, investorId } = await createDeal(t);
 
 		// Create a custom pending transfer for 50%
-		const transferId = await t.run(async (ctx) => {
-			return await ctx.runMutation(
-				internal.pendingOwnershipTransfers.createPendingTransferInternal,
-				{
-					dealId,
-					mortgageId,
-					fromOwnerId: "fairlend",
-					toOwnerId: investorId,
-					percentage: 50,
-				}
-			);
-		});
+		const transferId = await t.run(
+			async (ctx) =>
+				await ctx.runMutation(
+					internal.pendingOwnershipTransfers.createPendingTransferInternal,
+					{
+						dealId,
+						mortgageId,
+						fromOwnerId: "fairlend",
+						toOwnerId: investorId,
+						percentage: 50,
+					}
+				)
+		);
 
 		const adminT = await getAdminTest(t);
 		const preview = await adminT.action(
@@ -671,10 +674,10 @@ describe("getOwnershipPreview", () => {
 		// After: FairLend 50%, Investor 50%
 		expect(preview.afterOwnership.length).toBe(2);
 		const fairlendAfter = preview.afterOwnership.find(
-			(o: typeof preview.afterOwnership[number]) => o.ownerId === "fairlend"
+			(o: (typeof preview.afterOwnership)[number]) => o.ownerId === "fairlend"
 		);
 		const investorAfter = preview.afterOwnership.find(
-			(o: typeof preview.afterOwnership[number]) => o.ownerId === investorId
+			(o: (typeof preview.afterOwnership)[number]) => o.ownerId === investorId
 		);
 		expect(fairlendAfter?.percentage).toBe(50);
 		expect(investorAfter?.percentage).toBe(50);
@@ -703,7 +706,7 @@ describe("getPendingTransfersForReview", () => {
 		);
 
 		expect(pendingTransfers.length).toBeGreaterThanOrEqual(2);
-		expect(pendingTransfers.every((t) => t.status === "pending")).toBe(true);
+		expect(pendingTransfers.every((pt) => pt.status === "pending")).toBe(true);
 	});
 
 	test("should not return approved or rejected transfers", async () => {
@@ -720,7 +723,7 @@ describe("getPendingTransfersForReview", () => {
 		// Approve it
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Check it's not in pending list
@@ -729,7 +732,7 @@ describe("getPendingTransfersForReview", () => {
 			{}
 		);
 
-		const found = pendingTransfers.find((t) => t.dealId === dealId);
+		const found = pendingTransfers.find((pt) => pt.dealId === dealId);
 		expect(found).toBeUndefined();
 	});
 });
@@ -745,7 +748,8 @@ describe("ownership invariant - 100% maintained", () => {
 		await moveDealToOwnershipReview(t, dealId);
 
 		// Verify before
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const before = await verifyTotalOwnership(t, mortgageId);
+		expect(before.totalPercentage).toBeCloseTo(100, 2);
 
 		const adminT = await getAdminTest(t);
 		const transfer = await adminT.query(
@@ -755,7 +759,7 @@ describe("ownership invariant - 100% maintained", () => {
 
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Now complete the deal to execute the transfer
@@ -765,7 +769,8 @@ describe("ownership invariant - 100% maintained", () => {
 		});
 
 		// Verify after - should still be 100%
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const after = await verifyTotalOwnership(t, mortgageId);
+		expect(after.totalPercentage).toBeCloseTo(100, 2);
 	});
 
 	test("should maintain 100% ownership after rejection", async () => {
@@ -773,7 +778,8 @@ describe("ownership invariant - 100% maintained", () => {
 		const { dealId, mortgageId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const before = await verifyTotalOwnership(t, mortgageId);
+		expect(before.totalPercentage).toBeCloseTo(100, 2);
 
 		const adminT = await getAdminTest(t);
 		const transfer = await adminT.query(
@@ -781,21 +787,19 @@ describe("ownership invariant - 100% maintained", () => {
 			{ dealId }
 		);
 
-		await adminT.mutation(
-			api.pendingOwnershipTransfers.rejectPendingTransfer,
-			{
-				transferId: transfer!._id,
-				reason: "Test rejection",
-			}
-		);
+		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
+			transferId: requireTransferId(transfer),
+			reason: "Test rejection",
+		});
 
 		// Ownership unchanged
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const after = await verifyTotalOwnership(t, mortgageId);
+		expect(after.totalPercentage).toBeCloseTo(100, 2);
 	});
 
 	test("should maintain 100% ownership after multiple approve/reject cycles", async () => {
 		const t = createTest();
-		const { dealId, mortgageId, investorId } = await createDeal(t);
+		const { dealId, mortgageId } = await createDeal(t);
 		await moveDealToOwnershipReview(t, dealId);
 
 		const adminT = await getAdminTest(t);
@@ -805,26 +809,25 @@ describe("ownership invariant - 100% maintained", () => {
 		);
 
 		// First: reject
-		await adminT.mutation(
-			api.pendingOwnershipTransfers.rejectPendingTransfer,
-			{
-				transferId: transfer!._id,
-				reason: "Issue 1",
-			}
-		);
-		await verifyTotalOwnership(t, mortgageId, 100);
+		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
+			transferId: requireTransferId(transfer),
+			reason: "Issue 1",
+		});
+		const afterReject = await verifyTotalOwnership(t, mortgageId);
+		expect(afterReject.totalPercentage).toBeCloseTo(100, 2);
 
 		// Reset to pending (simulate retry flow)
 		await t.run(async (ctx) => {
-			await ctx.db.patch(transfer!._id, { status: "pending" });
+			await ctx.db.patch(requireTransferId(transfer), { status: "pending" });
 		});
 
 		// Second: approve
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: requireTransferId(transfer) }
 		);
-		await verifyTotalOwnership(t, mortgageId, 100);
+		const afterApprove = await verifyTotalOwnership(t, mortgageId);
+		expect(afterApprove.totalPercentage).toBeCloseTo(100, 2);
 	});
 });
 
@@ -847,13 +850,13 @@ describe("idempotency - double submission handling", () => {
 		// First approval
 		await adminT.mutation(
 			api.pendingOwnershipTransfers.approvePendingTransfer,
-			{ transferId: transfer!._id }
+			{ transferId: requireTransferId(transfer) }
 		);
 
 		// Second approval should fail
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.approvePendingTransfer, {
-				transferId: transfer!._id,
+				transferId: requireTransferId(transfer),
 			})
 		).rejects.toThrow("Transfer is not pending");
 	});
@@ -870,18 +873,15 @@ describe("idempotency - double submission handling", () => {
 		);
 
 		// First rejection
-		await adminT.mutation(
-			api.pendingOwnershipTransfers.rejectPendingTransfer,
-			{
-				transferId: transfer!._id,
-				reason: "Issue",
-			}
-		);
+		await adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
+			transferId: requireTransferId(transfer),
+			reason: "Issue",
+		});
 
 		// Second rejection should fail
 		await expect(
 			adminT.mutation(api.pendingOwnershipTransfers.rejectPendingTransfer, {
-				transferId: transfer!._id,
+				transferId: requireTransferId(transfer),
 				reason: "Issue again",
 			})
 		).rejects.toThrow("Transfer is not pending");

@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeftIcon, ArrowRightIcon, X, Repeat } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, Repeat, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,8 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { SearchAndReplaceStorage } from "../extensions/search-and-replace";
 import { useToolbar } from "./toolbar-provider";
-import { type SearchAndReplaceStorage } from "../extensions/search-and-replace";
 
 export function SearchAndReplaceToolbar() {
 	const { editor } = useToolbar();
@@ -68,14 +68,14 @@ export function SearchAndReplaceToolbar() {
 		<Popover open={open}>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<PopoverTrigger disabled={!editor} asChild>
+					<PopoverTrigger asChild disabled={!editor}>
 						<Button
-							variant="ghost"
-							size="sm"
+							className={cn("h-8 w-max px-3 font-normal")}
 							onClick={() => {
 								setOpen(!open);
 							}}
-							className={cn("h-8 w-max px-3 font-normal")}
+							size="sm"
+							variant="ghost"
 						>
 							<Repeat className="mr-2 h-4 w-4" />
 							<p>Search & Replace</p>
@@ -89,129 +89,77 @@ export function SearchAndReplaceToolbar() {
 
 			<PopoverContent
 				align="end"
+				className="relative flex w-[400px] px-3 py-2.5"
 				onCloseAutoFocus={(e) => {
 					e.preventDefault();
 				}}
 				onEscapeKeyDown={() => {
 					setOpen(false);
 				}}
-				className="relative flex w-[400px] px-3 py-2.5"
 			>
-				{!replacing ? (
-					<div className={cn("relative flex gap-1.5 items-center")}>
-						<Input
-							value={searchText}
-							className=" w-48"
-							onChange={(e) => {
-								setSearchText(e.target.value);
-							}}
-							placeholder="Search..."
-						/>
-						<span>
-							{results?.length === 0 ? selectedIndex : selectedIndex + 1}/
-							{results?.length}
-						</span>
-						<Button
-							onClick={selectPrevious}
-							size="icon"
-							variant="ghost"
-							className="size-7"
-						>
-							<ArrowLeftIcon className="size-4" />
-						</Button>
-						<Button
-							onClick={selectNext}
-							size="icon"
-							className="size-7"
-							variant="ghost"
-						>
-							<ArrowRightIcon className="h-4 w-4" />
-						</Button>
-						<Separator orientation="vertical" className="h-7 mx-0.5" />
-						<Button
-							onClick={() => {
-								setReplacing(true);
-							}}
-							size="icon"
-							className="size-7"
-							variant="ghost"
-						>
-							<Repeat className="h-4 w-4" />
-						</Button>
-						<Button
-							onClick={() => {
-								setOpen(false);
-							}}
-							size="icon"
-							className="size-7"
-							variant="ghost"
-						>
-							<X className="h-4 w-4" />
-						</Button>
-					</div>
-				) : (
+				{replacing ? (
 					<div className={cn("relative w-full")}>
 						<button
-							type="button"
+							aria-label="Close search and replace"
+							className="absolute top-3 right-3 h-4 w-4 cursor-pointer"
 							onClick={() => {
 								setOpen(false);
 							}}
-							className="absolute right-3 top-3 h-4 w-4 cursor-pointer"
-							aria-label="Close search and replace"
+							type="button"
 						>
 							<X className="h-4 w-4" />
 						</button>
 						<div className="flex w-full items-center gap-3">
 							<Button
-								size="icon"
 								className="size-7 rounded-full"
-								variant="ghost"
 								onClick={() => {
 									setReplacing(false);
 								}}
+								size="icon"
+								variant="ghost"
 							>
 								<ArrowLeftIcon className="h-4 w-4" />
 							</Button>
-							<h2 className="text-sm font-medium">Search and replace</h2>
+							<h2 className="font-medium text-sm">Search and replace</h2>
 						</div>
 
 						<div className="my-2 w-full">
 							<div className="mb-3">
-								<Label className="mb-1 text-xs text-gray-11">Search</Label>
+								<Label className="mb-1 text-gray-11 text-xs">Search</Label>
 								<Input
-									value={searchText}
 									onChange={(e) => {
 										setSearchText(e.target.value);
 									}}
 									placeholder="Search..."
+									value={searchText}
 								/>
 								{results?.length === 0 ? selectedIndex : selectedIndex + 1}/
 								{results?.length}
 							</div>
 							<div className="mb-2">
-								<Label className="mb-1 text-xs text-gray-11">
+								<Label className="mb-1 text-gray-11 text-xs">
 									Replace with
 								</Label>
 								<Input
 									className="w-full"
-									value={replaceText}
 									onChange={(e) => {
 										setReplaceText(e.target.value);
 									}}
 									placeholder="Replace..."
+									value={replaceText}
 								/>
 							</div>
 							<div className="mt-3 flex items-center space-x-2">
 								<Checkbox
 									checked={checked}
+									id="match_case"
 									onCheckedChange={(checked: boolean) => {
 										setChecked(checked);
 									}}
-									id="match_case"
 								/>
 								<Label
+									className="font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 									htmlFor="match_case"
-									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 								>
 									Match case
 								</Label>
@@ -221,17 +169,17 @@ export function SearchAndReplaceToolbar() {
 						<div className="actions mt-6 flex items-center justify-between">
 							<div className="flex items-center gap-2">
 								<Button
+									className="h-7 w-7"
 									onClick={selectPrevious}
 									size="icon"
-									className="h-7 w-7"
 									variant="secondary"
 								>
 									<ArrowLeftIcon className="h-4 w-4" />
 								</Button>
 								<Button
+									className="h-7 w-7"
 									onClick={selectNext}
 									size="icon"
-									className="h-7 w-7"
 									variant="secondary"
 								>
 									<ArrowRightIcon className="h-4 w-4" />
@@ -240,22 +188,74 @@ export function SearchAndReplaceToolbar() {
 
 							<div className="main-actions flex items-center gap-2">
 								<Button
-									size="sm"
 									className="h-7 px-3 text-xs"
-									variant="secondary"
 									onClick={replaceAll}
+									size="sm"
+									variant="secondary"
 								>
 									Replace All
 								</Button>
 								<Button
+									className="h-7 px-3 text-xs"
 									onClick={replace}
 									size="sm"
-									className="h-7 px-3 text-xs"
 								>
 									Replace
 								</Button>
 							</div>
 						</div>
+					</div>
+				) : (
+					<div className={cn("relative flex items-center gap-1.5")}>
+						<Input
+							className="w-48"
+							onChange={(e) => {
+								setSearchText(e.target.value);
+							}}
+							placeholder="Search..."
+							value={searchText}
+						/>
+						<span>
+							{results?.length === 0 ? selectedIndex : selectedIndex + 1}/
+							{results?.length}
+						</span>
+						<Button
+							className="size-7"
+							onClick={selectPrevious}
+							size="icon"
+							variant="ghost"
+						>
+							<ArrowLeftIcon className="size-4" />
+						</Button>
+						<Button
+							className="size-7"
+							onClick={selectNext}
+							size="icon"
+							variant="ghost"
+						>
+							<ArrowRightIcon className="h-4 w-4" />
+						</Button>
+						<Separator className="mx-0.5 h-7" orientation="vertical" />
+						<Button
+							className="size-7"
+							onClick={() => {
+								setReplacing(true);
+							}}
+							size="icon"
+							variant="ghost"
+						>
+							<Repeat className="h-4 w-4" />
+						</Button>
+						<Button
+							className="size-7"
+							onClick={() => {
+								setOpen(false);
+							}}
+							size="icon"
+							variant="ghost"
+						>
+							<X className="h-4 w-4" />
+						</Button>
 					</div>
 				)}
 			</PopoverContent>

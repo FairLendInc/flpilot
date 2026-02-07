@@ -137,6 +137,23 @@ export type AuthenticationRequiredParams = {
 };
 
 // ============================================================================
+// AUTHENTICATED CONTEXT TYPES
+// ============================================================================
+
+export type AuthorizedIdentity = {
+	role?: string;
+	subject?: string;
+	email?: string | null;
+	org_id?: string | null;
+	permissions?: string[] | null;
+	roles?: string[] | null;
+};
+
+export type AuthorizedQueryCtx = QueryCtx & AuthorizedIdentity;
+export type AuthorizedMutationCtx = MutationCtx & AuthorizedIdentity;
+export type AuthorizedActionCtx = ActionCtx & AuthorizedIdentity;
+
+// ============================================================================
 // AUTHENTICATION FUNCTIONS
 // ============================================================================
 
@@ -582,7 +599,19 @@ export const createAuthorizedQuery = (
 					});
 				}
 
-				return { ctx, args };
+				// Extend context with identity properties
+				return {
+					ctx: {
+						...ctx,
+						role: identity.role,
+						subject: identity.subject,
+						email: identity.email,
+						org_id: identity.org_id,
+						permissions: identity.permissions,
+						roles: identity.roles,
+					},
+					args,
+				};
 			},
 		})
 	);

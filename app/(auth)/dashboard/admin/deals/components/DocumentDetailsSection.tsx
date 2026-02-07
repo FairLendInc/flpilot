@@ -22,8 +22,10 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
 
-type DealDocument = (typeof api.deal_documents.getDealDocuments._returnType)[number];
+type DealDocument =
+	(typeof api.deal_documents.getDealDocuments._returnType)[number];
 type DealDocumentSigner = DealDocument["signatories"][number];
+
 import { AddDocumentDialog } from "./AddDocumentDialog";
 
 type DocumentDetailsSectionProps = {

@@ -13,20 +13,20 @@ import type { AuditEventRecord } from "./types";
 /**
  * Event emission result
  */
-export interface EmitResult {
+export type EmitResult = {
 	success: boolean;
 	error?: string;
 	timestamp?: number;
-}
+};
 
 /**
  * Event emitter interface - implement this for different backends
  */
-export interface IEventEmitter {
+export type IEventEmitter = {
 	emit(event: AuditEventRecord): Promise<EmitResult>;
 	emitBatch(events: AuditEventRecord[]): Promise<EmitResult[]>;
 	healthCheck(): Promise<boolean>;
-}
+};
 
 /**
  * Console Event Emitter - Development/Stubbed Implementation

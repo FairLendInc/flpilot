@@ -17,15 +17,15 @@ graph TD
     A --> D[AUM Portfolio]
     A --> E[Distributions]
     A --> F[Settings]
-    
+
     C --> C1[Add Investor]
     C --> C2[Manage Investors]
     C --> C3[Redemptions]
-    
+
     D --> D1[Active AUMs]
     D --> D2[Sales / Transfers]
     D --> D3[State Management]
-    
+
     E --> E1[Monthly Close]
     E --> E2[Distribution History]
     E --> E3[CSV Export]
@@ -42,6 +42,7 @@ graph TD
 **Trigger Location:** Persistent button in the MIC Admin header (visible on all MIC pages)
 
 **Trigger UI:**
+
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │ 🎯 [Live Demo]  │  Admin > MIC Management                      │
@@ -55,6 +56,7 @@ graph TD
 **Component:** `MICLiveDemoModal`
 
 **Modal Layout:**
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                      MIC Lifecycle Demo                         [X]  │
@@ -116,19 +118,19 @@ graph TD
 
 ### - [ ] Demo Phases (9 Steps)
 
-Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///Users/connor/Dev/flpilot/docs/LEDGER-MIC/e2eSampleFlow.mermaid) diagram.
+Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](./e2eSampleFlow.mermaid) diagram.
 
-| Phase | Name | Description | Ledger Transactions |
-|-------|------|-------------|---------------------|
-| **A0** | Investor Subscribe | Investor contributes $250,000 to MIC | Cash inflow + MICCAP unit mint |
-| **B1** | Origination (Netted Fee) | MIC funds mortgage M123, nets 1% lending fee | Fund principal, collect fee, allocate shares |
-| **C** | Listing Fee | MIC pays 0.5% listing fee to platform | Fee accrual + settlement |
-| **D** | Pre-Sale Accrual | Accrue interest and servicing to MIC (pre-sale) | Interest + servicing accrual |
-| **E** | Mid-Month Sale (80%) | MIC sells 80% of mortgage to buyer | Share transfer + cash proceeds |
-| **F** | Post-Sale Accrual | Accrue interest split 20/80 MIC/Buyer | Pro-rata interest accrual |
-| **H** | Month-End Settlement | Borrower PAD payment, settle all accruals | PAD → settlements |
-| **H4** | Fund Management Fee | Accrue and pay fund management fee | Fee accrual + payment |
-| **H5** | MIC Distribution (Net-Zero) | Distribute all MIC cash to investors | Distribution + net-zero validation |
+| Phase  | Name                        | Description                                     | Ledger Transactions                          |
+| ------ | --------------------------- | ----------------------------------------------- | -------------------------------------------- |
+| **A0** | Investor Subscribe          | Investor contributes $250,000 to MIC            | Cash inflow + MICCAP unit mint               |
+| **B1** | Origination (Netted Fee)    | MIC funds mortgage M123, nets 1% lending fee    | Fund principal, collect fee, allocate shares |
+| **C**  | Listing Fee                 | MIC pays 0.5% listing fee to platform           | Fee accrual + settlement                     |
+| **D**  | Pre-Sale Accrual            | Accrue interest and servicing to MIC (pre-sale) | Interest + servicing accrual                 |
+| **E**  | Mid-Month Sale (80%)        | MIC sells 80% of mortgage to buyer              | Share transfer + cash proceeds               |
+| **F**  | Post-Sale Accrual           | Accrue interest split 20/80 MIC/Buyer           | Pro-rata interest accrual                    |
+| **H**  | Month-End Settlement        | Borrower PAD payment, settle all accruals       | PAD → settlements                            |
+| **H4** | Fund Management Fee         | Accrue and pay fund management fee              | Fee accrual + payment                        |
+| **H5** | MIC Distribution (Net-Zero) | Distribute all MIC cash to investors            | Distribution + net-zero validation           |
 
 ---
 
@@ -139,10 +141,12 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** An investor subscribes capital to the MIC fund. Cash is deposited and MICCAP units are minted.
 
 **Transactions:**
+
 1. `demo:ext:inv1` → `demo:mic:FLMIC:cash` : **CAD $250,000**
 2. `demo:mic:FLMIC:capital:treasury` → `demo:mic:FLMIC:capital:investor:inv1` : **250,000 MICCAP-FLMIC/0**
 
 **Expected State After:**
+
 - MIC Cash: $250,000
 - Investor 1 MICCAP: 250,000 units
 - Investor 1 Ownership: 100%
@@ -154,11 +158,13 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** MIC funds mortgage M123 for $100,000 principal. 1% lending fee ($1,000) is netted from borrower proceeds.
 
 **Transactions:**
+
 1. `demo:mic:FLMIC:cash` → `demo:ext:borrower:M123` : **CAD $100,000** (principal)
 2. `demo:ext:borrower:M123` → `demo:mic:FLMIC:cash` : **CAD $1,000** (1% lending fee)
 3. `demo:mortgage:M123:share:treasury` → `demo:investors:MIC_FLMIC:mortgage:M123:position` : **100,000 MORT-M123/0** (100% ownership)
 
 **Expected State After:**
+
 - MIC Cash: $151,000 ($250k - $100k + $1k)
 - MIC owns 100% of mortgage M123
 - Lending fee income: $1,000
@@ -170,10 +176,12 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** MIC incurs 0.5% listing fee on the mortgage principal.
 
 **Transactions:**
+
 1. `demo:mic:FLMIC:cash` → `demo:mic:FLMIC:expense:listing_fee_accrued` : **CAD $500** (accrue)
 2. `demo:mic:FLMIC:expense:listing_fee_accrued` → `demo:ext:platform` : **CAD $500** (pay)
 
 **Expected State After:**
+
 - MIC Cash: $150,500
 - Listing fee paid to platform: $500
 
@@ -184,10 +192,12 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** Before mid-month sale, accrue interest and servicing fees to MIC as 100% owner.
 
 **Transactions:**
+
 1. `demo:mortgage:M123:interest:receivable` → `demo:accrued:mortgage:M123:investor:MIC_FLMIC` : **CAD $416.67** (half-month interest at 10% annual)
 2. `demo:mortgage:M123:interest:receivable` → `demo:mic:FLMIC:income:servicing_fee` : **CAD $41.67** (0.5% servicing, half-month)
 
 **Expected State After:**
+
 - MIC accrued interest: $416.67
 - MIC accrued servicing: $41.67
 
@@ -198,11 +208,13 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** MIC sells 80% of mortgage to external buyer. Pre-condition: accrual boundary enforced.
 
 **Transactions:**
+
 1. `demo:investors:MIC_FLMIC:mortgage:M123:position` → `demo:investors:buyer1:mortgage:M123:position` : **80,000 MORT-M123/0** (80% transfer)
 2. `demo:ext:buyer1` → `demo:mic:FLMIC:cash` : **CAD $80,000** (sale proceeds)
 3. (Future servicing fee now routes to management for sold portion)
 
 **Expected State After:**
+
 - MIC Cash: $230,500
 - MIC owns 20% of M123
 - Buyer owns 80% of M123
@@ -215,11 +227,13 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** For remainder of month, accrue interest split 20% to MIC, 80% to Buyer.
 
 **Transactions:**
+
 1. `demo:mortgage:M123:interest:receivable` → `demo:accrued:mortgage:M123:investor:MIC_FLMIC` : **CAD $83.33** (20% of half-month)
 2. `demo:mortgage:M123:interest:receivable` → `demo:accrued:mortgage:M123:investor:buyer1` : **CAD $333.33** (80% of half-month)
 3. `demo:mortgage:M123:interest:receivable` → `demo:ext:mgmt:servicing` : **CAD $33.33** (servicing on sold portion)
 
 **Expected State After:**
+
 - MIC total accrued interest: $500 ($416.67 + $83.33)
 - Buyer accrued interest: $333.33
 - Management servicing accrued: $33.33
@@ -231,6 +245,7 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** Borrower makes PAD payment. All accrued amounts settle to cash/wallets.
 
 **Transactions:**
+
 1. `demo:ext:borrower:M123` → `demo:mortgage:M123:collect` : **CAD $833.33** (interest paid)
 2. `demo:mortgage:M123:collect` → `demo:mortgage:M123:interest:receivable` : **CAD $833.33** (settle receivable)
 3. `demo:mic:FLMIC:income:servicing_fee` → `demo:ext:mgmt:servicing` : **CAD $33.33** (servicing to mgmt)
@@ -238,6 +253,7 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 5. `demo:accrued:mortgage:M123:investor:buyer1` → `demo:ext:buyer1:wallet` : **CAD $333.33** (Buyer payout)
 
 **Expected State After:**
+
 - MIC Cash: $231,000 ($230,500 + $500)
 - Buyer wallet: +$333.33
 - All accruals cleared
@@ -249,10 +265,12 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** Accrue and pay monthly fund management fee (assume 1% annual = ~$2,083/month on $250k).
 
 **Transactions:**
+
 1. `demo:mic:FLMIC:cash` → `demo:mic:FLMIC:expense:fund_mgmt_accrued` : **CAD $208.33** (accrue)
 2. `demo:mic:FLMIC:expense:fund_mgmt_accrued` → `demo:ext:fund_manager` : **CAD $208.33** (pay)
 
 **Expected State After:**
+
 - MIC Cash: $230,791.67
 - Fund management fee paid: $208.33
 
@@ -263,11 +281,13 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 **Description:** Distribute all remaining MIC cash to investors pro-rata. Verify net-zero invariant.
 
 **Transactions:**
+
 1. `demo:mic:FLMIC:cash` → `demo:mic:FLMIC:distribution:payable` : **CAD $230,791.67** (declare)
 2. `demo:mic:FLMIC:distribution:payable` → `demo:ext:inv1:wallet` : **CAD $230,791.67** (pay to 100% owner)
 3. (Any rounding remainder → `demo:mic:FLMIC:rounding`)
 
 **Expected State After:**
+
 - MIC Cash: **$0.00** ✓ (Net-zero invariant satisfied)
 - Investor 1 receives: $230,791.67
 
@@ -279,16 +299,16 @@ Each phase corresponds to a subgraph in the [e2eSampleFlow.mermaid](file:///User
 
 All demo accounts use the **`demo:`** prefix to clearly identify test data:
 
-| Pattern | Example | Purpose |
-|---------|---------|---------|
-| `demo:ext:<entity>` | `demo:ext:inv1`, `demo:ext:borrower:M123` | External parties |
-| `demo:mic:<MIC_ID>:cash` | `demo:mic:FLMIC:cash` | MIC cash account |
-| `demo:mic:<MIC_ID>:capital:*` | `demo:mic:FLMIC:capital:investor:inv1` | MICCAP positions |
-| `demo:mic:<MIC_ID>:expense:*` | `demo:mic:FLMIC:expense:listing_fee_accrued` | Expense accruals |
-| `demo:mic:<MIC_ID>:income:*` | `demo:mic:FLMIC:income:servicing_fee` | Income accruals |
-| `demo:mortgage:<ID>:*` | `demo:mortgage:M123:interest:receivable` | Mortgage accounts |
-| `demo:investors:*` | `demo:investors:MIC_FLMIC:mortgage:M123:position` | Investor positions |
-| `demo:accrued:*` | `demo:accrued:mortgage:M123:investor:MIC_FLMIC` | Accrued entitlements |
+| Pattern                       | Example                                           | Purpose              |
+| ----------------------------- | ------------------------------------------------- | -------------------- |
+| `demo:ext:<entity>`           | `demo:ext:inv1`, `demo:ext:borrower:M123`         | External parties     |
+| `demo:mic:<MIC_ID>:cash`      | `demo:mic:FLMIC:cash`                             | MIC cash account     |
+| `demo:mic:<MIC_ID>:capital:*` | `demo:mic:FLMIC:capital:investor:inv1`            | MICCAP positions     |
+| `demo:mic:<MIC_ID>:expense:*` | `demo:mic:FLMIC:expense:listing_fee_accrued`      | Expense accruals     |
+| `demo:mic:<MIC_ID>:income:*`  | `demo:mic:FLMIC:income:servicing_fee`             | Income accruals      |
+| `demo:mortgage:<ID>:*`        | `demo:mortgage:M123:interest:receivable`          | Mortgage accounts    |
+| `demo:investors:*`            | `demo:investors:MIC_FLMIC:mortgage:M123:position` | Investor positions   |
+| `demo:accrued:*`              | `demo:accrued:mortgage:M123:investor:MIC_FLMIC`   | Accrued entitlements |
 
 > [!IMPORTANT]
 > The `demo:` prefix ensures test transactions are easily identifiable and can be filtered/excluded in production queries.
@@ -304,6 +324,7 @@ All demo accounts use the **`demo:`** prefix to clearly identify test data:
 **File:** `components/admin/mic/LiveDemoTrigger.tsx`
 
 **Appearance:**
+
 - Pill-shaped button with play icon
 - Subtle pulsing animation when demo is active
 - Badge shows current step (e.g., "3/9") when demo in progress
@@ -324,6 +345,7 @@ All demo accounts use the **`demo:`** prefix to clearly identify test data:
 **File:** `components/admin/mic/demo/DemoProgressStepper.tsx`
 
 **Features:**
+
 - Horizontal stepper showing all 9 phases
 - Completed steps: filled circle with checkmark
 - Current step: highlighted with pulse animation
@@ -339,6 +361,7 @@ All demo accounts use the **`demo:`** prefix to clearly identify test data:
 **File:** `components/admin/mic/demo/DemoPhaseCard.tsx`
 
 **Sections:**
+
 1. **Phase Header:** Step number, name, status badge
 2. **Description:** Natural language explanation
 3. **Transaction Preview:** Visual flow diagram (mermaid-style)
@@ -354,6 +377,7 @@ All demo accounts use the **`demo:`** prefix to clearly identify test data:
 **File:** `components/admin/mic/demo/DemoLedgerStatePanel.tsx`
 
 **Features:**
+
 - Live table of all `demo:*` accounts
 - Before/after balance comparison
 - Auto-refresh after step execution
@@ -379,15 +403,15 @@ All demo accounts use the **`demo:`** prefix to clearly identify test data:
 
 ### - [ ] New Components Summary (Demo Module)
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `MICLiveDemoModal` | `components/admin/mic/demo/MICLiveDemoModal.tsx` | Main modal container |
-| `LiveDemoTrigger` | `components/admin/mic/LiveDemoTrigger.tsx` | Header trigger button |
-| `DemoProgressStepper` | `components/admin/mic/demo/DemoProgressStepper.tsx` | 9-step progress indicator |
-| `DemoPhaseCard` | `components/admin/mic/demo/DemoPhaseCard.tsx` | Phase description + preview |
-| `DemoTransactionPreview` | `components/admin/mic/demo/DemoTransactionPreview.tsx` | Visual transaction flow |
-| `DemoLedgerStatePanel` | `components/admin/mic/demo/DemoLedgerStatePanel.tsx` | Live account balances |
-| `DemoControlBar` | `components/admin/mic/demo/DemoControlBar.tsx` | Navigation + execute controls |
+| Component                | File                                                   | Purpose                       |
+| ------------------------ | ------------------------------------------------------ | ----------------------------- |
+| `MICLiveDemoModal`       | `components/admin/mic/demo/MICLiveDemoModal.tsx`       | Main modal container          |
+| `LiveDemoTrigger`        | `components/admin/mic/LiveDemoTrigger.tsx`             | Header trigger button         |
+| `DemoProgressStepper`    | `components/admin/mic/demo/DemoProgressStepper.tsx`    | 9-step progress indicator     |
+| `DemoPhaseCard`          | `components/admin/mic/demo/DemoPhaseCard.tsx`          | Phase description + preview   |
+| `DemoTransactionPreview` | `components/admin/mic/demo/DemoTransactionPreview.tsx` | Visual transaction flow       |
+| `DemoLedgerStatePanel`   | `components/admin/mic/demo/DemoLedgerStatePanel.tsx`   | Live account balances         |
+| `DemoControlBar`         | `components/admin/mic/demo/DemoControlBar.tsx`         | Navigation + execute controls |
 
 ---
 
@@ -412,6 +436,7 @@ Landing page showing key MIC metrics at a glance with quick action buttons. Foll
 | `QuickActionsBar` | Buttons for common actions: Add Investor, Add AUM, Run Distribution |
 
 **Appearance:**
+
 - Header with breadcrumb: `Admin > MIC Management`
 - 4-column metric card row at top (consistent with existing admin dashboard)
 - 2-column layout below: left for activity feed, right for pending actions
@@ -429,6 +454,7 @@ Landing page showing key MIC metrics at a glance with quick action buttons. Foll
 Primary data table view showing all MIC investors with their capital positions, governance units, and status. Clicking a row opens a detail sheet.
 
 **Sub-sections:**
+
 - **All Investors** (default tab)
 - **Pending Redemptions** (filtered view)
 - **Governance Holders** (filtered view)
@@ -451,6 +477,7 @@ Primary data table view showing all MIC investors with their capital positions, 
 | Actions | Buttons | — | View, Edit, Redeem |
 
 **Table Features:**
+
 - Search/filter by investor name
 - Filter by status
 - Bulk select for batch operations
@@ -467,6 +494,7 @@ Primary data table view showing all MIC investors with their capital positions, 
 **Trigger:** "Add Investor" button or row action
 
 **Sheet Content:**
+
 ```
 ┌─────────────────────────────────────┐
 │ ← Add New Investor                  │
@@ -505,6 +533,7 @@ Primary data table view showing all MIC investors with their capital positions, 
 ```
 
 **Fields:**
+
 - Investor selection (existing user autocomplete or new user form)
 - Capital contribution amount (CAD)
 - Bank confirmation reference/upload
@@ -512,11 +541,13 @@ Primary data table view showing all MIC investors with their capital positions, 
 - Optional: Governance unit allocation
 
 **Validation:**
+
 - Amount must be positive
 - Bank confirmation required before confirmation
 - Preview shows calculated MICCAP units and new ownership %
 
 **On Submit:**
+
 - Executes ledger transaction: `external:bank → mic:<MIC_ID>:cash`
 - Mints MICCAP units to investor position
 - Optional: Mints governance units
@@ -531,6 +562,7 @@ Primary data table view showing all MIC investors with their capital positions, 
 **Trigger:** Row click on investors table
 
 **Sections:**
+
 1. **Header:** Investor name, email, status badge
 2. **Position Summary:**
    - MICCAP balance
@@ -552,6 +584,7 @@ Primary data table view showing all MIC investors with their capital positions, 
 **Trigger:** "Redeem" button on investor row/detail
 
 **Sheet Content:**
+
 ```
 ┌─────────────────────────────────────┐
 │ ← Process Redemption                │
@@ -589,10 +622,12 @@ Primary data table view showing all MIC investors with their capital positions, 
 ```
 
 **Pre-conditions Checked:**
+
 - All accruals complete to redemption date
 - Sufficient MIC cash available
 
 **On Submit:**
+
 - Burns investor MICCAP units
 - Transfers cash from `mic:<MIC_ID>:cash` to investor wallet
 - Updates cap table
@@ -628,6 +663,7 @@ Data table showing all mortgages where MIC holds ownership, with filtering by ow
 | Actions | Buttons | — | View, List for Sale, Manage State |
 
 **Filters:**
+
 - Ownership: Full (100%), Partial (<100%), Any
 - State: Active, Missed, Default, Recovery
 - Date range for origination
@@ -643,6 +679,7 @@ Data table showing all mortgages where MIC holds ownership, with filtering by ow
 **Trigger:** "Add AUM" button
 
 **Sheet Content:**
+
 ```
 ┌─────────────────────────────────────┐
 │ ← Deploy Capital to AUM             │
@@ -680,6 +717,7 @@ Data table showing all mortgages where MIC holds ownership, with filtering by ow
 ```
 
 **On Submit:**
+
 - Executes atomic ledger transaction
 - MIC funds borrower (net of lending fee)
 - Lending fee accrued
@@ -696,6 +734,7 @@ Data table showing all mortgages where MIC holds ownership, with filtering by ow
 **Trigger:** "List for Sale" or "Sell" action on AUM row
 
 **Sheet Content:**
+
 ```
 ┌─────────────────────────────────────┐
 │ ← Sell AUM Ownership                │
@@ -741,10 +780,12 @@ Data table showing all mortgages where MIC holds ownership, with filtering by ow
 ```
 
 **Pre-conditions:**
+
 - Forces accrual to sale timestamp before ownership transfer
 - Validates buyer exists
 
 **On Submit:**
+
 - Accrues interest to sale boundary
 - Transfers mortgage share units
 - Credits sale proceeds to MIC cash
@@ -761,14 +802,16 @@ Data table showing all mortgages where MIC holds ownership, with filtering by ow
 **Trigger:** "Manage State" action on AUM row
 
 **Sections:**
+
 1. **Current State:** Visual state indicator with transition history
 2. **State Timeline:** Chronological view of all state changes
 3. **Available Transitions:** Based on current state
 4. **Recovery Handling:** (if in default/recovery) Payment application form
 
 **State Badges:**
+
 - 🟢 Active (green)
-- 🟡 Missed Payment (yellow)  
+- 🟡 Missed Payment (yellow)
 - 🔴 Default (red)
 - 🔵 Recovery (blue)
 
@@ -792,6 +835,7 @@ Workflow-driven screen for managing the monthly distribution cycle. Shows curren
 **Sections:**
 
 1. **Current Period Card:**
+
    ```
    ┌─────────────────────────────────────────────┐
    │ December 2024 Distribution                  │
@@ -812,7 +856,6 @@ Workflow-driven screen for managing the monthly distribution cycle. Shows curren
 2. **Pre-Disbursement Preview Table:**
    | Investor | MICCAP Balance | Ownership % | Payout Amount | Wallet |
    |----------|----------------|-------------|---------------|--------|
-   
 3. **Distribution History Table:** Past distributions with status and totals
 
 ---
@@ -824,6 +867,7 @@ Workflow-driven screen for managing the monthly distribution cycle. Shows curren
 **Trigger:** "Preview Distribution" button
 
 **Content:**
+
 - Full breakdown of all investor payouts
 - Calculation methodology shown
 - Outstanding accruals warning (if any)
@@ -831,6 +875,7 @@ Workflow-driven screen for managing the monthly distribution cycle. Shows curren
 - Confirm to execute button
 
 **CSV Export Format:**
+
 ```csv
 investor_id,investor_name,amount,wallet_account,reference_period
 INV-001,John Doe,1234.56,wallet:INV-001:main,2024-12
@@ -845,12 +890,14 @@ INV-001,John Doe,1234.56,wallet:INV-001:main,2024-12
 **Trigger:** "Run Monthly Close" or "Confirm" in preview
 
 **Content:**
+
 - Summary totals
 - Net-zero confirmation checkbox
 - Final execute button
 - Warning about irreversible action
 
 **Post-Execution:**
+
 - Shows success summary
 - Link to distribution record
 - Confirmation that `mic:<MIC_ID>:cash == 0`
@@ -866,18 +913,21 @@ INV-001,John Doe,1234.56,wallet:INV-001:main,2024-12
 **Sections:**
 
 #### - [ ] 5.1 Fee Configuration
+
 - Listing fee (bps) — default 50 (0.5%)
-- Lending fee (bps) — default 100 (1%)  
+- Lending fee (bps) — default 100 (1%)
 - Management fee model — dropdown selector
 - Servicing fee configuration
 
 #### - [ ] 5.2 MIC Metadata
+
 - MIC ID display
 - Unit model (capital-share)
 - Distribution policy (net-zero)
 - Associated assets display
 
 #### - [ ] 5.3 Audit View
+
 - Current invariant checks:
   - Σ MICCAP balances = total MIC ownership
   - `mic:<MIC_ID>:cash` balance (expected 0 after distributions)
@@ -890,83 +940,81 @@ INV-001,John Doe,1234.56,wallet:INV-001:main,2024-12
 
 ### - [ ] New Screens (6)
 
-| Screen | Route | Priority |
-|--------|-------|----------|
-| MIC Overview Dashboard | `/dashboard/admin/mic` | HIGH |
-| Investor Management | `/dashboard/admin/mic/investors` | HIGH |
-| AUM Portfolio | `/dashboard/admin/mic/aum` | HIGH |
-| Distributions | `/dashboard/admin/mic/distributions` | HIGH |
-| MIC Settings | `/dashboard/admin/mic/settings` | MEDIUM |
-| Investor Portal (Read-only) | `/dashboard/investor/mic` | LOW |
+| Screen                      | Route                                | Priority |
+| --------------------------- | ------------------------------------ | -------- |
+| MIC Overview Dashboard      | `/dashboard/admin/mic`               | HIGH     |
+| Investor Management         | `/dashboard/admin/mic/investors`     | HIGH     |
+| AUM Portfolio               | `/dashboard/admin/mic/aum`           | HIGH     |
+| Distributions               | `/dashboard/admin/mic/distributions` | HIGH     |
+| MIC Settings                | `/dashboard/admin/mic/settings`      | MEDIUM   |
+| Investor Portal (Read-only) | `/dashboard/investor/mic`            | LOW      |
 
 ### - [ ] New Data Table Components (4)
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `MICInvestorsTable` | `components/admin/mic/MICInvestorsTable.tsx` | Investor management table |
-| `MICAUMTable` | `components/admin/mic/MICAUMTable.tsx` | AUM portfolio table |
-| `DistributionHistoryTable` | `components/admin/mic/DistributionHistoryTable.tsx` | Past distributions |
+| Component                  | File                                                | Purpose                      |
+| -------------------------- | --------------------------------------------------- | ---------------------------- |
+| `MICInvestorsTable`        | `components/admin/mic/MICInvestorsTable.tsx`        | Investor management table    |
+| `MICAUMTable`              | `components/admin/mic/MICAUMTable.tsx`              | AUM portfolio table          |
+| `DistributionHistoryTable` | `components/admin/mic/DistributionHistoryTable.tsx` | Past distributions           |
 | `InvestorTransactionTable` | `components/admin/mic/InvestorTransactionTable.tsx` | Investor transaction history |
 
 ### - [ ] New Sheet Components (7)
 
-| Component | File | User Story |
-|-----------|------|------------|
-| `AddInvestorSheet` | `components/admin/mic/sheets/AddInvestorSheet.tsx` | 7.1 Add MIC Investor |
-| `InvestorDetailSheet` | `components/admin/mic/sheets/InvestorDetailSheet.tsx` | View investor details |
-| `InvestorRedemptionSheet` | `components/admin/mic/sheets/InvestorRedemptionSheet.tsx` | 7.2 Remove Investor |
-| `AddAUMSheet` | `components/admin/mic/sheets/AddAUMSheet.tsx` | 7.3 Add New AUM |
-| `SellAUMSheet` | `components/admin/mic/sheets/SellAUMSheet.tsx` | 7.4 Sell AUM Fraction |
-| `AUMStateSheet` | `components/admin/mic/sheets/AUMStateSheet.tsx` | 7.5 AUM State Transitions |
-| `DistributionPreviewSheet` | `components/admin/mic/sheets/DistributionPreviewSheet.tsx` | 7.6 Pre-Disbursement |
+| Component                  | File                                                       | User Story                |
+| -------------------------- | ---------------------------------------------------------- | ------------------------- |
+| `AddInvestorSheet`         | `components/admin/mic/sheets/AddInvestorSheet.tsx`         | 7.1 Add MIC Investor      |
+| `InvestorDetailSheet`      | `components/admin/mic/sheets/InvestorDetailSheet.tsx`      | View investor details     |
+| `InvestorRedemptionSheet`  | `components/admin/mic/sheets/InvestorRedemptionSheet.tsx`  | 7.2 Remove Investor       |
+| `AddAUMSheet`              | `components/admin/mic/sheets/AddAUMSheet.tsx`              | 7.3 Add New AUM           |
+| `SellAUMSheet`             | `components/admin/mic/sheets/SellAUMSheet.tsx`             | 7.4 Sell AUM Fraction     |
+| `AUMStateSheet`            | `components/admin/mic/sheets/AUMStateSheet.tsx`            | 7.5 AUM State Transitions |
+| `DistributionPreviewSheet` | `components/admin/mic/sheets/DistributionPreviewSheet.tsx` | 7.6 Pre-Disbursement      |
 
 ### [x] New Widget/Card Components (8)
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `MICFundMetricsRow` | `components/admin/mic/widgets/MICFundMetricsRow.tsx` | Dashboard metrics |
-| `MICCashHealthCard` | `components/admin/mic/widgets/MICCashHealthCard.tsx` | Cash position indicator |
-| `RecentActivityFeed` | `components/admin/mic/widgets/RecentActivityFeed.tsx` | Transaction timeline |
-| `PendingActionsCard` | `components/admin/mic/widgets/PendingActionsCard.tsx` | Action items |
-| `CurrentPeriodCard` | `components/admin/mic/widgets/CurrentPeriodCard.tsx` | Distribution period status |
-| `InvestorPositionCard` | `components/admin/mic/widgets/InvestorPositionCard.tsx` | Investor summary in sheet |
-| `AUMSummaryCard` | `components/admin/mic/widgets/AUMSummaryCard.tsx` | AUM details in sheet |
-| `InvariantCheckCard` | `components/admin/mic/widgets/InvariantCheckCard.tsx` | Audit invariant display |
+| Component              | File                                                    | Purpose                    |
+| ---------------------- | ------------------------------------------------------- | -------------------------- |
+| `MICFundMetricsRow`    | `components/admin/mic/widgets/MICFundMetricsRow.tsx`    | Dashboard metrics          |
+| `MICCashHealthCard`    | `components/admin/mic/widgets/MICCashHealthCard.tsx`    | Cash position indicator    |
+| `RecentActivityFeed`   | `components/admin/mic/widgets/RecentActivityFeed.tsx`   | Transaction timeline       |
+| `PendingActionsCard`   | `components/admin/mic/widgets/PendingActionsCard.tsx`   | Action items               |
+| `CurrentPeriodCard`    | `components/admin/mic/widgets/CurrentPeriodCard.tsx`    | Distribution period status |
+| `InvestorPositionCard` | `components/admin/mic/widgets/InvestorPositionCard.tsx` | Investor summary in sheet  |
+| `AUMSummaryCard`       | `components/admin/mic/widgets/AUMSummaryCard.tsx`       | AUM details in sheet       |
+| `InvariantCheckCard`   | `components/admin/mic/widgets/InvariantCheckCard.tsx`   | Audit invariant display    |
 
-### [/] New Data Table Components (4)
-...
 ### [x] Shared/Reusable Components (3)
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `MICCapBadge` | `components/admin/mic/MICCapBadge.tsx` | Capital ownership badge |
-| `OwnershipPieChart` | `components/admin/mic/OwnershipPieChart.tsx` | Mini pie chart for ownership |
-| `AccrualStatusIndicator` | `components/admin/mic/AccrualStatusIndicator.tsx` | Shows accrual state |
+| Component                | File                                              | Purpose                      |
+| ------------------------ | ------------------------------------------------- | ---------------------------- |
+| `MICCapBadge`            | `components/admin/mic/MICCapBadge.tsx`            | Capital ownership badge      |
+| `OwnershipPieChart`      | `components/admin/mic/OwnershipPieChart.tsx`      | Mini pie chart for ownership |
+| `AccrualStatusIndicator` | `components/admin/mic/AccrualStatusIndicator.tsx` | Shows accrual state          |
 
 ### - [ ] Live Demo Modal Components (7)
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `MICLiveDemoModal` | `components/admin/mic/demo/MICLiveDemoModal.tsx` | Main modal container for stakeholder walkthrough |
-| `LiveDemoTrigger` | `components/admin/mic/LiveDemoTrigger.tsx` | Persistent header trigger button |
-| `DemoProgressStepper` | `components/admin/mic/demo/DemoProgressStepper.tsx` | 9-step horizontal progress indicator |
-| `DemoPhaseCard` | `components/admin/mic/demo/DemoPhaseCard.tsx` | Phase description with transaction preview |
-| `DemoTransactionPreview` | `components/admin/mic/demo/DemoTransactionPreview.tsx` | Visual account-to-account flow diagram |
-| `DemoLedgerStatePanel` | `components/admin/mic/demo/DemoLedgerStatePanel.tsx` | Live table of `demo:*` account balances |
-| `DemoControlBar` | `components/admin/mic/demo/DemoControlBar.tsx` | Navigation and execute step controls |
+| Component                | File                                                   | Purpose                                          |
+| ------------------------ | ------------------------------------------------------ | ------------------------------------------------ |
+| `MICLiveDemoModal`       | `components/admin/mic/demo/MICLiveDemoModal.tsx`       | Main modal container for stakeholder walkthrough |
+| `LiveDemoTrigger`        | `components/admin/mic/LiveDemoTrigger.tsx`             | Persistent header trigger button                 |
+| `DemoProgressStepper`    | `components/admin/mic/demo/DemoProgressStepper.tsx`    | 9-step horizontal progress indicator             |
+| `DemoPhaseCard`          | `components/admin/mic/demo/DemoPhaseCard.tsx`          | Phase description with transaction preview       |
+| `DemoTransactionPreview` | `components/admin/mic/demo/DemoTransactionPreview.tsx` | Visual account-to-account flow diagram           |
+| `DemoLedgerStatePanel`   | `components/admin/mic/demo/DemoLedgerStatePanel.tsx`   | Live table of `demo:*` account balances          |
+| `DemoControlBar`         | `components/admin/mic/demo/DemoControlBar.tsx`         | Navigation and execute step controls             |
 
 ---
 
 ## - [ ] User Story to Component Mapping
 
-| User Story | Components Required | Sheet? |
-|------------|---------------------|--------|
-| 7.1 Add MIC Investor | `MICInvestorsTable`, `AddInvestorSheet` | ✓ |
-| 7.2 Remove MIC Investor | `MICInvestorsTable`, `InvestorRedemptionSheet` | ✓ |
-| 7.3 Add New AUM | `MICAUMTable`, `AddAUMSheet` | ✓ |
-| 7.4 Sell AUM Fraction | `MICAUMTable`, `SellAUMSheet` | ✓ |
-| 7.5 AUM State Transitions | `MICAUMTable`, `AUMStateSheet` | ✓ |
-| 7.6 Pre-Disbursement Review | `DistributionDashboard`, `DistributionPreviewSheet`, `DistributionHistoryTable` | ✓ |
+| User Story                  | Components Required                                                             | Sheet? |
+| --------------------------- | ------------------------------------------------------------------------------- | ------ |
+| 7.1 Add MIC Investor        | `MICInvestorsTable`, `AddInvestorSheet`                                         | ✓      |
+| 7.2 Remove MIC Investor     | `MICInvestorsTable`, `InvestorRedemptionSheet`                                  | ✓      |
+| 7.3 Add New AUM             | `MICAUMTable`, `AddAUMSheet`                                                    | ✓      |
+| 7.4 Sell AUM Fraction       | `MICAUMTable`, `SellAUMSheet`                                                   | ✓      |
+| 7.5 AUM State Transitions   | `MICAUMTable`, `AUMStateSheet`                                                  | ✓      |
+| 7.6 Pre-Disbursement Review | `DistributionDashboard`, `DistributionPreviewSheet`, `DistributionHistoryTable` | ✓      |
 
 ---
 
@@ -1004,6 +1052,7 @@ INV-001,John Doe,1234.56,wallet:INV-001:main,2024-12
 **Description:** Read-only dashboard for MIC investors to view their position and distribution history.
 
 **Components:**
+
 - `InvestorMICPositionCard` — Shows MICCAP balance, ownership %, value
 - `InvestorDistributionHistory` — Table of received distributions
 - `InvestorMICDocuments` — Tax documents, statements
@@ -1018,10 +1067,13 @@ INV-001,John Doe,1234.56,wallet:INV-001:main,2024-12
 1. **Multi-MIC Support:** Current design assumes single MIC. If multiple MICs, add MIC selector to navigation.
 
 2. **Transaction Detail View:** Should ledger transactions link to a detailed transaction explorer?
-- Yes, but in next phase. 
+
+- Yes, but in next phase.
 
 3. **Approval Workflows:** Should critical actions (large redemptions, distributions) require multi-admin approval?
-- Single admin approval for now. With a confirmation modal. 
+
+- Single admin approval for now. With a confirmation modal.
 
 4. **Real-time vs Polling:** Should tables use real-time subscriptions or polling for updates?
-- Simplest implementation first. Each component should just display data. It should be agnostic to the data fetching method and be fully testable within storybook. 
+
+- Simplest implementation first. Each component should just display data. It should be agnostic to the data fetching method and be fully testable within storybook.

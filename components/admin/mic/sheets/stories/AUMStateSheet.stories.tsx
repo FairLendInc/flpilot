@@ -43,12 +43,16 @@ export const Default: Story = {
 	],
 };
 
+const noop = () => {
+	// Intentional no-op for Storybook stories
+};
+
 export const PendingState: Story = {
 	args: {
 		open: true,
 		assetName: "Commercial Bridge Loan",
 		currentState: "pending",
-		onOpenChange: () => {},
+		onOpenChange: noop,
 		onStateChange: (state) => {
 			if (!state) return;
 		},

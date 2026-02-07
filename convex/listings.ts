@@ -1002,7 +1002,7 @@ export const listListingsInternal = internalQuery({
 		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
 		const paginated = paginateByCreation(filtered, limit, args.cursor);
 
-		const result = [];
+		const result: Record<string, unknown>[] = [];
 		for (const listing of paginated.items) {
 			const record: Record<string, unknown> = { ...listing };
 			if (args.includeMortgage !== false) {

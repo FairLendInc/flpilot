@@ -39,7 +39,7 @@ export type EntityType = (typeof ENTITY_TYPES)[keyof typeof ENTITY_TYPES];
 /**
  * Audit event input - what is provided when creating an event
  */
-export interface AuditEventInput {
+export type AuditEventInput = {
 	eventType: OwnershipEventType | string;
 	entityType: EntityType | string;
 	entityId: string;
@@ -47,7 +47,7 @@ export interface AuditEventInput {
 	beforeState?: Record<string, unknown>;
 	afterState?: Record<string, unknown>;
 	metadata?: Record<string, unknown>;
-}
+};
 
 /**
  * Audit event record - what is stored in the database

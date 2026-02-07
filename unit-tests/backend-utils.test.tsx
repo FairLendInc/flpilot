@@ -1,5 +1,5 @@
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useMICStore } from "@/lib/stores/useMICStore";
 
@@ -8,10 +8,16 @@ describe("useMediaQuery", () => {
 		const listeners: Array<(event: MediaQueryListEvent) => void> = [];
 		const matchMediaMock = vi.fn().mockReturnValue({
 			matches: false,
-			addEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) => {
+			addEventListener: (
+				_: string,
+				listener: (event: MediaQueryListEvent) => void
+			) => {
 				listeners.push(listener);
 			},
-			removeEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) => {
+			removeEventListener: (
+				_: string,
+				listener: (event: MediaQueryListEvent) => void
+			) => {
 				const index = listeners.indexOf(listener);
 				if (index >= 0) listeners.splice(index, 1);
 			},
@@ -66,15 +72,14 @@ describe("useMICStore", () => {
 		const originalCash = useMICStore.getState().metrics.cashBalance;
 
 		if (target) {
-			useMICStore.getState().sellAUM(
-				target.id,
-				originalOwnership + 1,
-				"buyer",
-				500
-			);
+			useMICStore
+				.getState()
+				.sellAUM(target.id, originalOwnership + 1, "buyer", 500);
 		}
 
-		const updated = useMICStore.getState().aums.find((aum) => aum.id === target?.id);
+		const updated = useMICStore
+			.getState()
+			.aums.find((aum) => aum.id === target?.id);
 		expect(updated?.micOwnership).toBe(originalOwnership);
 		expect(useMICStore.getState().metrics.cashBalance).toBe(originalCash);
 	});

@@ -9,7 +9,13 @@ import { toast } from "sonner";
 import { OwnershipTransferReview } from "@/components/admin/deals/OwnershipTransferReview";
 import { DealPortalLoading } from "@/components/deal-portal/DealPortalLoading";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
@@ -22,11 +28,13 @@ import {
 	mapDocumensoToDocument,
 	mapDocumensoToDocumentLegacy,
 } from "@/lib/mappers/documenso";
-import type { DocumensoDocumentSummary } from "@/lib/types/documenso";
 import { DEAL_STATE_LABELS_INVESTOR } from "@/lib/types/dealTypes";
+import type { DocumensoDocumentSummary } from "@/lib/types/documenso";
 import { LawyerInviteManagement } from "@/stories/dealPortal/components/LawyerInviteManagement";
 import { LawyerRepresentationConfirmation } from "@/stories/dealPortal/components/LawyerRepresentationConfirmation";
 import DealPortal from "@/stories/dealPortal/DealPortal";
+
+type UserIdentityWithRole = UserIdentity & { role?: string };
 
 function PendingLawyerState({
 	deal,
@@ -35,7 +43,7 @@ function PendingLawyerState({
 }: {
 	deal: Doc<"deals">;
 	dealId: Id<"deals">;
-	viewer: UserIdentity;
+	viewer: UserIdentityWithRole;
 }) {
 	if (viewer === undefined) {
 		return <DealPortalLoading />;
@@ -68,10 +76,10 @@ function PendingOwnershipReviewState({
 	viewer,
 }: {
 	dealId: Id<"deals">;
-	viewer: UserIdentity;
+	viewer: UserIdentityWithRole;
 }) {
 	// Check if user is admin
-	const isAdmin = (viewer as { role?: string })?.role === "admin";
+	const isAdmin = viewer?.role === "admin";
 
 	if (isAdmin) {
 		return (
@@ -116,8 +124,8 @@ function PendingOwnershipReviewState({
 				<CardContent className="space-y-4 text-center">
 					<p className="text-muted-foreground text-sm">
 						Our team is reviewing the ownership transfer details. This process
-						typically takes 1-2 business days. You&apos;ll receive a notification
-						once the transfer is complete.
+						typically takes 1-2 business days. You&apos;ll receive a
+						notification once the transfer is complete.
 					</p>
 					<Badge
 						className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"

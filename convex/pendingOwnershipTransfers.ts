@@ -13,12 +13,16 @@
  */
 
 import { v } from "convex/values";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { emitAuditEvent } from "./auditEvents";
-import { api, internal } from "./_generated/api";
-import { adminAction, adminMutation, adminQuery } from "./lib/authorizedFunctions";
+import {
+	adminAction,
+	adminMutation,
+	adminQuery,
+} from "./lib/authorizedFunctions";
 import { ENTITY_TYPES, OWNERSHIP_EVENT_TYPES } from "./lib/events/types";
 import { isLedgerSourceOfTruth } from "./lib/ownershipConfig";
 
@@ -49,37 +53,21 @@ type PendingTransferRecord = {
 	rejectionCount?: number;
 };
 
-type OwnershipPreview = {
-	transfer: {
-		_id: Id<"pending_ownership_transfers">;
-		fromOwnerId: "fairlend" | Id<"users">;
-		toOwnerId: Id<"users">;
-		percentage: number;
-	};
-	currentOwnership: Array<{
-		ownerId: "fairlend" | Id<"users">;
-		percentage: number;
-		ownerName: string;
-	}>;
-	afterOwnership: Array<{
-		ownerId: "fairlend" | Id<"users">;
-		percentage: number;
-		ownerName: string;
-	}>;
-};
+// OwnershipPreview type is defined inline in the function return type
 
 async function getLedgerOwnershipSnapshot(
 	ctx: ActionCtx
-): Promise<Record<string, Array<OwnershipRecord>>> {
+): Promise<Record<string, OwnershipRecord[]>> {
 	const result = await ctx.runAction(api.ledger.getOwnershipSnapshot, {});
 	if (!result.success) {
 		throw new Error(result.error ?? "Failed to load ledger ownership snapshot");
 	}
 
-	const snapshot =
-		(result.ownershipByMortgage ??
-			{}) as Record<string, Array<{ ownerId: string; percentage: number }>>;
-	const normalized: Record<string, Array<OwnershipRecord>> = {};
+	const snapshot = (result.ownershipByMortgage ?? {}) as Record<
+		string,
+		Array<{ ownerId: string; percentage: number }>
+	>;
+	const normalized: Record<string, OwnershipRecord[]> = {};
 
 	for (const [mortgageId, entries] of Object.entries(snapshot)) {
 		normalized[mortgageId] = entries.map((entry) => ({
@@ -535,12 +523,12 @@ export const getOwnershipPreview: ReturnType<typeof adminAction> = adminAction({
 			throw new Error("Transfer not found");
 		}
 
-		let ownershipRecords: Array<OwnershipRecord> = [];
+		let ownershipRecords: OwnershipRecord[] = [];
 		if (isLedgerSourceOfTruth()) {
 			const snapshot = await getLedgerOwnershipSnapshot(ctx);
 			ownershipRecords = snapshot[transfer.mortgageId.toString()] ?? [];
 		} else {
-			const legacyRecords: Array<LegacyOwnershipRecord> = await ctx.runQuery(
+			const legacyRecords: LegacyOwnershipRecord[] = await ctx.runQuery(
 				internal.ownership.getMortgageOwnershipLegacy,
 				{ mortgageId: transfer.mortgageId }
 			);

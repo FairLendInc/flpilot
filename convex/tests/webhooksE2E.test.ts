@@ -82,7 +82,7 @@ describe("End-to-End Workflows", () => {
 			}),
 		});
 		expect(mortgageRes.status).toBe(201);
-		const mortgageBody = (await mortgageRes.json()) as {
+		const _mortgageBody = (await mortgageRes.json()) as {
 			result: { mortgageId: string };
 		};
 

@@ -15,8 +15,6 @@ export type {
 	DealStateValue,
 } from "@/convex/dealStateMachine";
 
-// Import for local use
-import type { DealStateValue } from "@/convex/dealStateMachine";
 import {
 	canCancelFromState,
 	getNextState,
@@ -24,7 +22,6 @@ import {
 	isTerminalState,
 } from "@/convex/dealStateMachine";
 
-// biome-ignore lint/performance/noBarrelFile: Intentional re-export for convenience and type safety
 export {
 	canCancelFromState,
 	DEAL_STATES,

@@ -151,11 +151,11 @@ export function PendingActionsCard({
 										</div>
 									</div>
 									<Button
+										aria-label={`Perform ${action.title}`}
 										className="h-8 w-8 shrink-0 rounded-lg group-hover:bg-background group-hover:shadow-sm"
 										onClick={() => onActionClick?.(action)}
 										size="icon"
 										variant="ghost"
-										aria-label={`Perform ${action.title}`}
 									>
 										<ArrowRight className="size-4" />
 									</Button>

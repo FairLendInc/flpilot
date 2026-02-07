@@ -19,19 +19,19 @@ const OrderedListToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						variant="ghost"
-						size="icon"
 						className={cn(
 							"h-8 w-8 p-0 sm:h-9 sm:w-9",
 							editor?.isActive("orderedList") && "bg-accent",
-							className,
+							className
 						)}
+						disabled={!editor?.can().chain().focus().toggleOrderedList().run()}
 						onClick={(e) => {
 							editor?.chain().focus().toggleOrderedList().run();
 							onClick?.(e);
 						}}
-						disabled={!editor?.can().chain().focus().toggleOrderedList().run()}
 						ref={ref}
+						size="icon"
+						variant="ghost"
 						{...props}
 					>
 						{children ?? <ListOrdered className="h-4 w-4" />}
@@ -42,7 +42,7 @@ const OrderedListToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				</TooltipContent>
 			</Tooltip>
 		);
-	},
+	}
 );
 
 OrderedListToolbar.displayName = "OrderedListToolbar";

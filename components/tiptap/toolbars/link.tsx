@@ -8,19 +8,18 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-
-import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { useToolbar } from "./toolbar-provider";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getUrlFromString } from "@/lib/tiptap-utils";
+import { cn } from "@/lib/utils";
+import { useToolbar } from "./toolbar-provider";
 
 const LinkToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 	({ className, ...props }, ref) => {
@@ -42,18 +41,18 @@ const LinkToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<PopoverTrigger
-							disabled={!editor?.can().chain().setLink({ href: "" }).run()}
 							asChild
+							disabled={!editor?.can().chain().setLink({ href: "" }).run()}
 						>
 							<Button
-								variant="ghost"
-								size="sm"
 								className={cn(
 									"h-8 w-max px-3 font-normal",
 									editor?.isActive("link") && "bg-accent",
-									className,
+									className
 								)}
 								ref={ref}
+								size="sm"
+								variant="ghost"
 								{...props}
 							>
 								<p className="mr-2 text-base">↗</p>
@@ -69,47 +68,47 @@ const LinkToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				</Tooltip>
 
 				<PopoverContent
+					asChild
+					className="relative px-3 py-2.5"
 					onCloseAutoFocus={(e) => {
 						e.preventDefault();
 					}}
-					asChild
-					className="relative px-3 py-2.5"
 				>
 					<div className="relative">
-						<PopoverClose className="absolute right-3 top-3">
+						<PopoverClose className="absolute top-3 right-3">
 							<X className="h-4 w-4" />
 						</PopoverClose>
 						<form onSubmit={handleSubmit}>
 							<Label>Link</Label>
-							<p className="text-sm text-gray-11">
+							<p className="text-gray-11 text-sm">
 								Attach a link to the selected text
 							</p>
 							<div className="mt-3 flex flex-col items-end justify-end gap-3">
 								<Input
-									value={link}
+									className="w-full"
 									onChange={(e) => {
 										setLink(e.target.value);
 									}}
-									className="w-full"
 									placeholder="https://example.com"
+									value={link}
 								/>
 								<div className="flex items-center gap-3">
 									{editor?.getAttributes("link").href && (
 										<Button
-											type="reset"
-											size="sm"
 											className="h-8 text-gray-11"
-											variant="ghost"
 											onClick={() => {
 												editor?.chain().focus().unsetLink().run();
 												setLink("");
 											}}
+											size="sm"
+											type="reset"
+											variant="ghost"
 										>
 											<Trash2 className="mr-2 h-4 w-4" />
 											Remove
 										</Button>
 									)}
-									<Button size="sm" className="h-8">
+									<Button className="h-8" size="sm">
 										{editor?.getAttributes("link").href ? "Update" : "Confirm"}
 									</Button>
 								</div>
@@ -119,7 +118,7 @@ const LinkToolbar = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				</PopoverContent>
 			</Popover>
 		);
-	},
+	}
 );
 
 LinkToolbar.displayName = "LinkToolbar";
