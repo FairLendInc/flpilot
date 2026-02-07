@@ -13,7 +13,8 @@
  */
 
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
+import { getMortgageShareAsset } from "../lib/ledger/utils";
+import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
@@ -25,13 +26,13 @@ import {
 } from "./lib/authorizedFunctions";
 import { ENTITY_TYPES, OWNERSHIP_EVENT_TYPES } from "./lib/events/types";
 import { isLedgerSourceOfTruth } from "./lib/ownershipConfig";
+import {
+	DEFAULT_LEDGER,
+	fromShareUnits,
+	OWNERSHIP_ACCOUNTS,
+} from "./lib/ownershipLedger";
 
 type OwnershipRecord = {
-	ownerId: "fairlend" | Id<"users">;
-	percentage: number;
-};
-
-type LegacyOwnershipRecord = {
 	mortgageId: Id<"mortgages">;
 	ownerId: "fairlend" | Id<"users">;
 	ownershipPercentage: number;
@@ -55,7 +56,7 @@ type PendingTransferRecord = {
 
 // OwnershipPreview type is defined inline in the function return type
 
-async function getLedgerOwnershipSnapshot(
+async function _getLedgerOwnershipSnapshot(
 	ctx: ActionCtx
 ): Promise<Record<string, OwnershipRecord[]>> {
 	const result = await ctx.runAction(api.ledger.getOwnershipSnapshot, {});
@@ -71,11 +72,12 @@ async function getLedgerOwnershipSnapshot(
 
 	for (const [mortgageId, entries] of Object.entries(snapshot)) {
 		normalized[mortgageId] = entries.map((entry) => ({
+			mortgageId: mortgageId as Id<"mortgages">,
 			ownerId:
 				entry.ownerId === "fairlend"
 					? "fairlend"
 					: (entry.ownerId as Id<"users">),
-			percentage: entry.percentage,
+			ownershipPercentage: entry.percentage,
 		}));
 	}
 
@@ -488,9 +490,9 @@ export const getPendingTransfersForReview = adminQuery({
  * Get ownership preview for a pending transfer
  * Shows current cap table and what it will look like after transfer
  */
-export const getOwnershipPreview: ReturnType<typeof adminAction> = adminAction({
+export const getOwnershipPreview = adminAction({
 	args: {
-		transferId: v.id("pending_ownership_transfers"),
+		dealId: v.id("deals"),
 	},
 	returns: v.object({
 		transfer: v.object({
@@ -513,107 +515,342 @@ export const getOwnershipPreview: ReturnType<typeof adminAction> = adminAction({
 				ownerName: v.string(),
 			})
 		),
+		// Ledger state information
+		ledgerState: v.object({
+			assetIdentifier: v.string(),
+			sourceAccount: v.object({
+				address: v.string(),
+				ownerName: v.string(),
+				ownerId: v.union(v.literal("fairlend"), v.id("users")),
+				currentBalance: v.number(),
+				projectedBalance: v.number(),
+				balanceChange: v.number(),
+			}),
+			destinationAccount: v.object({
+				address: v.string(),
+				ownerName: v.string(),
+				ownerId: v.id("users"),
+				currentBalance: v.number(),
+				projectedBalance: v.number(),
+				balanceChange: v.number(),
+			}),
+		}),
 	}),
-	handler: async (ctx, args) => {
+	handler: async (
+		ctx,
+		args
+	): Promise<{
+		transfer: {
+			_id: Id<"pending_ownership_transfers">;
+			fromOwnerId: "fairlend" | Id<"users">;
+			toOwnerId: Id<"users">;
+			percentage: number;
+		};
+		currentOwnership: Array<{
+			ownerId: "fairlend" | Id<"users">;
+			percentage: number;
+			ownerName: string;
+		}>;
+		afterOwnership: Array<{
+			ownerId: "fairlend" | Id<"users">;
+			percentage: number;
+			ownerName: string;
+		}>;
+		ledgerState: {
+			assetIdentifier: string;
+			sourceAccount: {
+				address: string;
+				ownerName: string;
+				ownerId: "fairlend" | Id<"users">;
+				currentBalance: number;
+				projectedBalance: number;
+				balanceChange: number;
+			};
+			destinationAccount: {
+				address: string;
+				ownerName: string;
+				ownerId: Id<"users">;
+				currentBalance: number;
+				projectedBalance: number;
+				balanceChange: number;
+			};
+		};
+	}> => {
+		// Get the deal
+		const deal = await ctx.runQuery(api.deals.getDeal, {
+			dealId: args.dealId,
+		});
+		if (!deal) {
+			throw new Error("Deal not found");
+		}
+
+		// Get the transfer record
 		const transfer: PendingTransferRecord | null = await ctx.runQuery(
-			internal.pendingOwnershipTransfers.getTransferByIdInternal,
-			{ transferId: args.transferId }
+			api.pendingOwnershipTransfers.getPendingTransferByDeal,
+			{ dealId: args.dealId }
 		);
 		if (!transfer) {
-			throw new Error("Transfer not found");
+			throw new Error("No pending transfer found for this deal");
 		}
 
-		let ownershipRecords: OwnershipRecord[] = [];
-		if (isLedgerSourceOfTruth()) {
-			const snapshot = await getLedgerOwnershipSnapshot(ctx);
-			ownershipRecords = snapshot[transfer.mortgageId.toString()] ?? [];
-		} else {
-			const legacyRecords: LegacyOwnershipRecord[] = await ctx.runQuery(
-				internal.ownership.getMortgageOwnershipLegacy,
-				{ mortgageId: transfer.mortgageId }
+		// Get owner names
+		const toOwner = await ctx.runQuery(api.users.getUserByIdAdmin, {
+			userId: transfer.toOwnerId,
+		});
+		const toOwnerName: string = toOwner
+			? `${toOwner.first_name || ""} ${toOwner.last_name || ""}`.trim() ||
+				toOwner.email
+			: "Unknown User";
+
+		const fromOwnerName: string =
+			transfer.fromOwnerId === "fairlend"
+				? "FairLend"
+				: (
+						await ctx.runQuery(api.users.getUserByIdAdmin, {
+							userId: transfer.fromOwnerId as Id<"users">,
+						})
+					)?.email || "Unknown User";
+
+		// Get ledger asset identifier and account addresses
+		const mortgageIdString = transfer.mortgageId.toString();
+		const assetIdentifier = getMortgageShareAsset(mortgageIdString);
+
+		const sourceAccountAddress =
+			transfer.fromOwnerId === "fairlend"
+				? OWNERSHIP_ACCOUNTS.fairlendInventory
+				: OWNERSHIP_ACCOUNTS.investorInventory(transfer.fromOwnerId);
+		const destinationAccountAddress = OWNERSHIP_ACCOUNTS.investorInventory(
+			transfer.toOwnerId
+		);
+
+		// Fetch current balances from ledger (SOURCE OF TRUTH)
+		// If ledger is unavailable, show clear error - DO NOT fall back to deprecated ownership table
+		const [sourceBalanceResult, destBalanceResult] = await Promise.all([
+			ctx.runAction(api.ledger.getBalances, {
+				ledgerName: DEFAULT_LEDGER,
+				address: sourceAccountAddress,
+			}),
+			ctx.runAction(api.ledger.getBalances, {
+				ledgerName: DEFAULT_LEDGER,
+				address: destinationAccountAddress,
+			}),
+		]);
+
+		// Parse balances - Formance returns Record<string, Record<string, bigint>>
+		const parseBalance = (
+			result: { success: boolean; data?: unknown; error?: string },
+			asset: string
+		): number => {
+			if (!(result.success && result.data)) return 0;
+			const balances = result.data as Record<string, Record<string, bigint>>;
+			const assetBalances = balances[Object.keys(balances)[0]] || {};
+			const balance = assetBalances[asset];
+			return balance ? fromShareUnits(Number(balance)) : 0;
+		};
+
+		// Try to fetch balances from ledger
+		const sourceCurrentBalance = parseBalance(
+			sourceBalanceResult,
+			assetIdentifier
+		);
+		const destCurrentBalance = parseBalance(destBalanceResult, assetIdentifier);
+
+		// Check if ledger is unavailable or accounts are not provisioned
+		// Use explicit type guard to narrow the union type
+		const hasError = (result: {
+			success: boolean;
+			data?: unknown;
+			error?: string;
+		}): result is { success: false; error: string } =>
+			!result.success && typeof result.error === "string";
+
+		const ledgerUnavailable =
+			hasError(sourceBalanceResult) &&
+			sourceBalanceResult.error.includes("LEDGER_NOT_FOUND");
+		const accountsNotProvisioned =
+			(hasError(sourceBalanceResult) &&
+				sourceBalanceResult.error.includes("ACCOUNT_NOT_FOUND")) ||
+			(hasError(destBalanceResult) &&
+				destBalanceResult.error.includes("ACCOUNT_NOT_FOUND"));
+
+		if (ledgerUnavailable) {
+			throw new Error(
+				"Formance ledger is not available. Please provision the ledger before proceeding with ownership transfers. See Admin > Ledger > Settings for setup."
 			);
-			ownershipRecords = legacyRecords.map((record) => ({
-				ownerId: record.ownerId,
-				percentage: record.ownershipPercentage,
-			}));
 		}
 
-		// Build current ownership with names
+		if (accountsNotProvisioned) {
+			throw new Error(
+				"One or more accounts are not provisioned in the ledger. Please provision all required accounts before proceeding with ownership transfers. See Admin > Ledger > Accounts for setup."
+			);
+		}
+
+		// VALIDATION: Check if source has sufficient balance
+		if (sourceCurrentBalance < transfer.percentage) {
+			throw new Error(
+				`Insufficient balance for transfer. Source has ${sourceCurrentBalance.toFixed(2)}%, attempting to transfer ${transfer.percentage.toFixed(2)}%`
+			);
+		}
+
+		// Calculate projected balances
+		const sourceProjectedBalance = sourceCurrentBalance - transfer.percentage;
+		const destProjectedBalance = destCurrentBalance + transfer.percentage;
+
+		// VALIDATION: Check for negative projected balances (should never happen with above validation)
+		if (sourceProjectedBalance < 0 || destProjectedBalance < 0) {
+			throw new Error(
+				`Invalid transfer: would result in negative balance. Source: ${sourceProjectedBalance.toFixed(2)}%, Dest: ${destProjectedBalance.toFixed(2)}%`
+			);
+		}
+
+		// Build current ownership from ledger balances
+		// Include source, destination, and any other owners we can identify
 		const currentOwnership: Array<{
 			ownerId: "fairlend" | Id<"users">;
 			percentage: number;
 			ownerName: string;
 		}> = [];
 
-		for (const record of ownershipRecords) {
-			let ownerName = "FairLend";
-			if (record.ownerId !== "fairlend") {
-				const user = await ctx.runQuery(internal.users.getUserById, {
-					userId: record.ownerId as Id<"users">,
-				});
-				ownerName = user
-					? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() ||
-						user.email
-					: "Unknown";
-			}
+		// Add source owner if they have a balance
+		if (sourceCurrentBalance > 0 || transfer.fromOwnerId === "fairlend") {
 			currentOwnership.push({
-				ownerId: record.ownerId,
-				percentage: record.percentage,
-				ownerName,
+				ownerId: transfer.fromOwnerId,
+				percentage: sourceCurrentBalance,
+				ownerName: fromOwnerName,
 			});
 		}
 
-		// Calculate after ownership
+		// Add destination owner if they have a balance (and they're different from source)
+		if (destCurrentBalance > 0 && transfer.toOwnerId !== transfer.fromOwnerId) {
+			currentOwnership.push({
+				ownerId: transfer.toOwnerId,
+				percentage: destCurrentBalance,
+				ownerName: toOwnerName,
+			});
+		}
+
+		// Add FairLend as remainder owner (100% invariant)
+		const totalOwnedSoFar = currentOwnership.reduce(
+			(sum, o) => sum + o.percentage,
+			0
+		);
+		if (!(transfer.fromOwnerId === "fairlend") && totalOwnedSoFar < 100) {
+			currentOwnership.push({
+				ownerId: "fairlend",
+				percentage: 100 - totalOwnedSoFar,
+				ownerName: "FairLend",
+			});
+		}
+
+		// Build after ownership - CRITICAL: Ensure destination is always included
 		const afterOwnership: Array<{
 			ownerId: "fairlend" | Id<"users">;
 			percentage: number;
 			ownerName: string;
 		}> = [];
 
-		for (const record of currentOwnership) {
-			if (record.ownerId === transfer.fromOwnerId) {
-				// Source loses the transfer amount
-				const newPercentage = record.percentage - transfer.percentage;
-				if (newPercentage > 0) {
-					afterOwnership.push({
-						...record,
-						percentage: newPercentage,
-					});
-				}
-				// If percentage becomes 0, owner is removed from cap table
-			} else {
-				afterOwnership.push(record);
+		// Start with current ownership and apply the transfer
+		const ownershipMap = new Map<
+			"fairlend" | Id<"users">,
+			{ percentage: number; ownerName: string }
+		>();
+
+		for (const owner of currentOwnership) {
+			let newPercentage = owner.percentage;
+
+			// Adjust source balance
+			if (owner.ownerId === transfer.fromOwnerId) {
+				newPercentage = Math.max(0, owner.percentage - transfer.percentage);
+			}
+
+			// Adjust destination balance
+			if (owner.ownerId === transfer.toOwnerId) {
+				newPercentage = owner.percentage + transfer.percentage;
+			}
+
+			// Only include if there's still ownership
+			if (newPercentage > 0) {
+				ownershipMap.set(owner.ownerId, {
+					percentage: newPercentage,
+					ownerName: owner.ownerName,
+				});
 			}
 		}
 
-		// Add destination owner
-		const existingDest = afterOwnership.find(
-			(o) => o.ownerId === transfer.toOwnerId
-		);
-		if (existingDest) {
-			existingDest.percentage += transfer.percentage;
-		} else {
-			// New owner
-			let destName = "FairLend";
-			if (transfer.toOwnerId !== "fairlend") {
-				const user = await ctx.runQuery(internal.users.getUserById, {
-					userId: transfer.toOwnerId,
-				});
-				destName = user
-					? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() ||
-						user.email
-					: "Unknown";
-			}
-			afterOwnership.push({
-				ownerId: transfer.toOwnerId,
+		// CRITICAL: Ensure destination owner is included even if they had 0% before
+		if (!ownershipMap.has(transfer.toOwnerId)) {
+			ownershipMap.set(transfer.toOwnerId, {
 				percentage: transfer.percentage,
-				ownerName: destName,
+				ownerName: toOwnerName,
 			});
 		}
 
-		// Sort by percentage descending
-		currentOwnership.sort((a, b) => b.percentage - a.percentage);
+		// Convert map to array - sorted by percentage descending
+		afterOwnership.push(
+			...Array.from(ownershipMap.entries())
+				.map(([ownerId, data]) => ({ ownerId, ...data }))
+				.sort((a, b) => b.percentage - a.percentage)
+		);
+
+		// Verify total is 100%
+		const totalAfter = afterOwnership.reduce((sum, o) => sum + o.percentage, 0);
+		if (Math.abs(totalAfter - 100) > 0.01) {
+			// Adjust FairLend's percentage to maintain 100% invariant
+			const fairlendEntry = afterOwnership.find(
+				(o) => o.ownerId === "fairlend"
+			);
+			if (fairlendEntry) {
+				fairlendEntry.percentage += 100 - totalAfter;
+			}
+		}
+
+		// Sort final afterOwnership by percentage
 		afterOwnership.sort((a, b) => b.percentage - a.percentage);
+
+		// Build source account info
+		const sourceOwnerId: "fairlend" | Id<"users"> =
+			transfer.fromOwnerId === "fairlend" ? "fairlend" : transfer.fromOwnerId;
+		const sourceOwnerDisplayName: string =
+			sourceOwnerId === "fairlend" ? "FairLend" : fromOwnerName;
+
+		// Build ledger state object
+		const ledgerState: {
+			assetIdentifier: string;
+			sourceAccount: {
+				address: string;
+				ownerName: string;
+				ownerId: "fairlend" | Id<"users">;
+				currentBalance: number;
+				projectedBalance: number;
+				balanceChange: number;
+			};
+			destinationAccount: {
+				address: string;
+				ownerName: string;
+				ownerId: Id<"users">;
+				currentBalance: number;
+				projectedBalance: number;
+				balanceChange: number;
+			};
+		} = {
+			assetIdentifier,
+			sourceAccount: {
+				address: sourceAccountAddress,
+				ownerName: sourceOwnerDisplayName,
+				ownerId: sourceOwnerId,
+				currentBalance: sourceCurrentBalance,
+				projectedBalance: sourceProjectedBalance,
+				balanceChange: -transfer.percentage,
+			},
+			destinationAccount: {
+				address: destinationAccountAddress,
+				ownerName: toOwnerName,
+				ownerId: transfer.toOwnerId,
+				currentBalance: destCurrentBalance,
+				projectedBalance: destProjectedBalance,
+				balanceChange: transfer.percentage,
+			},
+		};
 
 		return {
 			transfer: {
@@ -624,6 +861,7 @@ export const getOwnershipPreview: ReturnType<typeof adminAction> = adminAction({
 			},
 			currentOwnership,
 			afterOwnership,
+			ledgerState,
 		};
 	},
 });

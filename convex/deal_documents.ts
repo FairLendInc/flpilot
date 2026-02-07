@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { createAuthorizedMutation, createAuthorizedQuery } from "./lib/server";
 
@@ -19,6 +20,15 @@ export const getDealDocuments = authorizedQuery({
 			.withIndex("by_deal", (q) => q.eq("dealId", args.dealId))
 			.collect();
 	},
+});
+
+export const getDealDocumentsInternal = internalQuery({
+	args: { dealId: v.id("deals") },
+	handler: async (ctx, args) =>
+		await ctx.db
+			.query("deal_documents")
+			.withIndex("by_deal", (q) => q.eq("dealId", args.dealId))
+			.collect(),
 });
 
 /**
@@ -89,6 +99,20 @@ export const updateDocumentStatus = adminAuthorizedMutation({
 			status: args.status,
 			updatedAt: Date.now(),
 		});
+
+		// If status is "signed", trigger check for deal completion
+		if (args.status === "signed") {
+			const doc = await ctx.db.get(args.documentId);
+			if (doc) {
+				await ctx.scheduler.runAfter(
+					0,
+					internal.deals.checkDealDocsCompletion,
+					{
+						dealId: doc.dealId,
+					}
+				);
+			}
+		}
 	},
 });
 
@@ -107,5 +131,106 @@ export const areAllDocumentsSigned = internalQuery({
 		if (documents.length === 0) return false;
 
 		return documents.every((doc) => doc.status === "signed");
+	},
+});
+
+/**
+ * Internal mutation to update document status
+ * Used by sync action to bypass RBAC since source of truth is Documenso
+ */
+export const updateDocumentStatusInternal = internalMutation({
+	args: {
+		documentId: v.id("deal_documents"),
+		status: v.union(
+			v.literal("draft"),
+			v.literal("pending"),
+			v.literal("signed"),
+			v.literal("rejected")
+		),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.documentId, {
+			status: args.status,
+			updatedAt: Date.now(),
+		});
+
+		// If status is "signed", trigger check for deal completion
+		if (args.status === "signed") {
+			const doc = await ctx.db.get(args.documentId);
+			if (doc) {
+				await ctx.scheduler.runAfter(
+					0,
+					internal.deals.checkDealDocsCompletion,
+					{
+						dealId: doc.dealId,
+					}
+				);
+			}
+		}
+	},
+});
+
+import { getDocument as getDocumensoDocument } from "../lib/documenso";
+import { authenticatedAction } from "./lib/authorizedFunctions";
+
+/**
+ * Sync document status with Documenso
+ * Called by client on load to ensure DB is up to date
+ */
+export const syncDealDocuments = authenticatedAction({
+	args: { dealId: v.id("deals") },
+	handler: async (ctx, args) => {
+		// 1. Get documents for the deal
+		// We use runQuery to get the documents via internal query
+		const documents = await ctx.runQuery(
+			internal.deal_documents.getDealDocumentsInternal,
+			{
+				dealId: args.dealId,
+			}
+		);
+
+		let updatedCount = 0;
+
+		for (const doc of documents) {
+			if (!doc.documensoDocumentId) continue;
+			if (doc.status === "signed") continue; // Already final state
+
+			try {
+				const documensoDoc = await getDocumensoDocument(
+					doc.documensoDocumentId
+				);
+
+				// Map Documenso status to our status
+				// Documenso statuses: DRAFT, PENDING, COMPLETED, ARCHIVED/REJECTED?
+				let newStatus: "draft" | "pending" | "signed" | "rejected" | null =
+					null;
+
+				if (documensoDoc.status === "COMPLETED") {
+					newStatus = "signed";
+				} else if (documensoDoc.status === "DRAFT") {
+					newStatus = "draft";
+				} else if (documensoDoc.status === "PENDING") {
+					newStatus = "pending";
+				}
+
+				if (newStatus && newStatus !== doc.status) {
+					console.log(
+						`Syncing document ${doc._id}: ${doc.status} -> ${newStatus}`
+					);
+					await ctx.runMutation(
+						internal.deal_documents.updateDocumentStatusInternal,
+						{
+							documentId: doc._id,
+							status: newStatus,
+						}
+					);
+					updatedCount += 1;
+				}
+			} catch (err) {
+				console.error(`Failed to sync document ${doc._id}:`, err);
+			}
+		}
+
+		return updatedCount;
 	},
 });

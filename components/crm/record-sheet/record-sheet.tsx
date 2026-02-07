@@ -74,7 +74,7 @@ function EmptyState({
 // ============================================================================
 
 type RecordSheetRootProps = {
-	children: ReactNode;
+	children?: ReactNode;
 	defaultTab?: string;
 	description?: string;
 	homeContent: {
@@ -98,7 +98,7 @@ type RecordSheetRootProps = {
  * @extensibility - Controlled mode via `open` and `onOpenChange`
  */
 export function RecordSheetRoot({
-	_children,
+	children,
 	defaultTab = "home",
 	description,
 	homeContent,
@@ -165,6 +165,7 @@ export function RecordSheetRoot({
 						/>
 					</TabsContent>
 				</Tabs>
+				{children}
 			</SheetContent>
 		</Sheet>
 	);

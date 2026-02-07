@@ -25,17 +25,10 @@ export function DocumentDetailDSM() {
     currentUser: currentUser2,
     selectedDocument: selectedDocument2,
     setSelectedDocument: setSelectedDocument2,
-    // getSigningTokenForUser,
-    // userRole,
-    // refreshDocuments,
+    userRole,
+    refreshDocuments,
     getDocState: getDocState2,
   } = useDealStore()
-  
-  // Mock functions
-  const userRole = "buyer" // Mock role
-  const refreshDocuments = () => console.log("Refreshing documents...")
-  // Return null to trigger fallback to demo document
-  const getSigningTokenForUser = (docId: string, email: string) => null
 
   // State for full-screen signing modal
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
@@ -72,12 +65,12 @@ export function DocumentDetailDSM() {
       return `https://app.documenso.com/sign/${token}`
     }
 
-    console.log(`getSigningUrlForCurrentUser: No token found for user ${currentUser2.email}, using fallback`)
-    return getSigningTokenForUser(selectedDocument2.id, currentUser2.email)
+    console.log(`getSigningUrlForCurrentUser: No token found for user ${currentUser2.email}`)
+    return null
   }
 
   const signingUrl = getSigningUrlForCurrentUser()
-  const EMBEDDED_DOC_URL = signingUrl || "https://app.documenso.com/sign/g23SSsbqSBhIubRicNRDs" // fallback
+  const EMBEDDED_DOC_URL = signingUrl
 
   if (!selectedDocument2) {
     return (

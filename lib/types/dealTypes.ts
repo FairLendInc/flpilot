@@ -7,6 +7,7 @@
  */
 
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { DealStateValue } from "@/convex/dealStateMachine";
 
 // Re-export state machine types from backend
 export type {

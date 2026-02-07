@@ -33,10 +33,30 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
-type Broker = NonNullable<
-	ReturnType<typeof api.brokers.management.listBrokers._returnType>[number]
->;
+type Broker = {
+	_creationTime: number;
+	_id: Id<"brokers">;
+	branding?: {
+		brandName?: string;
+		logoStorageId?: Id<"_storage">;
+		primaryColor?: string;
+		secondaryColor?: string;
+	};
+	commission?: {
+		ratePercentage?: number;
+	};
+	customDomain?: string;
+	status: "active" | "suspended" | "revoked";
+	subdomain: string;
+	userId: Id<"users">;
+	workosOrgId: string;
+	userName: string | null;
+	approvedAt: string;
+	createdAt: string;
+	updatedAt?: string;
+};
 
 export default function ManagedBrokersPage() {
 	const { isLoading: authLoading, isAuthenticated } = useConvexAuth();

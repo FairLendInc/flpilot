@@ -1,10 +1,17 @@
-import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+
+// ============================================
+// Top-level regex patterns for performance
+// ============================================
+
+const LOADING_REGEX = /loading/i;
+
+import { render, screen } from "@testing-library/react";
+import { useAction, useConvexAuth, useMutation } from "convex/react";
+import { useRouter } from "next/navigation";
 import { OnboardingExperience } from "@/components/onboarding/OnboardingExperience";
 import { useOnboardingMachine } from "@/components/onboarding/useOnboardingMachine";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
-import { useAction, useConvexAuth, useMutation } from "convex/react";
-import { useRouter } from "next/navigation";
 
 vi.mock("convex/react", () => ({
 	useAction: vi.fn(),
@@ -68,7 +75,7 @@ describe("OnboardingExperience", () => {
 		render(<OnboardingExperience />);
 
 		expect(
-			screen.getByRole("status", { name: /loading/i })
+			screen.getByRole("status", { name: LOADING_REGEX })
 		).toBeInTheDocument();
 	});
 });

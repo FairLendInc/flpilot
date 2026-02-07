@@ -29,7 +29,8 @@ export default function BrandingSettingsPage() {
 	const [secondaryColor, setSecondaryColor] = useState(
 		broker?.branding?.secondaryColor || "#FBBF24"
 	);
-	const [brandName, setBrandName] = useState(broker?.branding?.brandName || "");
+	// brandName is stored as local state only for display purposes
+	const [brandName, setBrandName] = useState(broker?.subdomain || "");
 
 	const _isLoading = authLoading || !broker;
 
@@ -47,11 +48,15 @@ export default function BrandingSettingsPage() {
 	}
 
 	const handleSave = async () => {
+		if (!broker) {
+			toast.error("Broker not found");
+			return;
+		}
 		try {
 			await updateBroker({
+				brokerId: broker._id,
 				branding: {
-					...broker?.branding,
-					brandName,
+					...broker.branding,
 					primaryColor,
 					secondaryColor,
 				},
@@ -167,7 +172,7 @@ export default function BrandingSettingsPage() {
 							<p className="mt-2 text-white/80">
 								{broker?.subdomain}.flpilot.com
 							</p>
-						</div>{" "}
+						</div>
 					</CardContent>
 				</Card>
 

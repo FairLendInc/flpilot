@@ -1,11 +1,7 @@
 "use client";
 
-import {
-	useAction,
-	useConvexAuth,
-	useMutation,
-} from "convex/react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAction, useConvexAuth, useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
 	AlertTriangle,
@@ -22,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import * as z from "zod";
+import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -233,10 +229,7 @@ const brokerRepresentativeSchema = z.object({
 	firstName: z.string().min(1, "First name is required"),
 	lastName: z.string().min(1, "Last name is required"),
 	role: z.string().min(1, "Role/title is required"),
-	email: z
-		.string()
-		.min(1, "Email is required")
-		.email("Email must be valid"),
+	email: z.string().min(1, "Email is required").email("Email must be valid"),
 	phone: z.string().min(1, "Phone is required"),
 	hasAuthority: z.boolean(),
 });
@@ -425,7 +418,7 @@ export function OnboardingExperience() {
 				setPendingPersona(null);
 			}
 		},
-		[startJourney, currentState, isAuthenticated, journey, persona]
+		[startJourney]
 	);
 
 	const persistState = useCallback(
@@ -548,7 +541,9 @@ export function OnboardingExperience() {
 			await advanceBrokerIntro({});
 		} catch (error: unknown) {
 			const message =
-				error instanceof Error ? error.message : "Unable to continue onboarding";
+				error instanceof Error
+					? error.message
+					: "Unable to continue onboarding";
 			toast.error(message);
 		} finally {
 			setSavingState(null);
@@ -615,11 +610,13 @@ export function OnboardingExperience() {
 			};
 			const existingDocs = (brokerContext?.documents ?? []) as BrokerDocument[];
 			// Strip uploadedAt from existing docs before sending to mutation
-			const docsForMutation = existingDocs.map(({ storageId, label, type }) => ({
-				storageId,
-				label,
-				type,
-			}));
+			const docsForMutation = existingDocs.map(
+				({ storageId, label, type }) => ({
+					storageId,
+					label,
+					type,
+				})
+			);
 			await saveBrokerDocuments({
 				documents: [...docsForMutation, newDoc],
 			});
@@ -1024,7 +1021,10 @@ function InvestorProfileForm({
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>
-					<form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+					<form
+						className="space-y-6"
+						onSubmit={form.handleSubmit(handleSubmit)}
+					>
 						<div className="grid gap-4">
 							<FormField
 								control={form.control}
@@ -1139,10 +1139,7 @@ function InvestorProfileForm({
 							<Button disabled type="button" variant="ghost">
 								<ArrowLeft className="mr-2 size-4" /> Back
 							</Button>
-							<Button
-								disabled={!form.formState.isValid || busy}
-								type="submit"
-							>
+							<Button disabled={!form.formState.isValid || busy} type="submit">
 								{busy ? "Saving..." : "Continue"}
 								<ArrowRight className="ml-2 size-4" />
 							</Button>
@@ -1163,7 +1160,9 @@ function InvestorPreferencesForm({
 	onSubmit: (values: InvestorPreferencesValues) => Promise<void>;
 	busy: boolean;
 }) {
-	type InvestorPreferencesFormValues = z.infer<typeof investorPreferencesSchema>;
+	type InvestorPreferencesFormValues = z.infer<
+		typeof investorPreferencesSchema
+	>;
 
 	const form = useForm<InvestorPreferencesFormValues>({
 		resolver: zodResolver(investorPreferencesSchema),
@@ -1198,9 +1197,9 @@ function InvestorPreferencesForm({
 			liquidityHorizonMonths: Number(values.liquidityHorizonMonths),
 			focusRegions:
 				values.focusRegions
-				?.split(",")
-				.map((value) => value.trim())
-				.filter(Boolean) ?? [],
+					?.split(",")
+					.map((value) => value.trim())
+					.filter(Boolean) ?? [],
 		});
 	};
 
@@ -1211,7 +1210,10 @@ function InvestorPreferencesForm({
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>
-					<form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+					<form
+						className="space-y-6"
+						onSubmit={form.handleSubmit(handleSubmit)}
+					>
 						<div className="grid gap-4 md:grid-cols-2">
 							<FormField
 								control={form.control}
@@ -1345,10 +1347,7 @@ function InvestorPreferencesForm({
 								<ArrowLeft className="mr-2 size-4" />
 								Back
 							</Button>
-							<Button
-								disabled={!form.formState.isValid || busy}
-								type="submit"
-							>
+							<Button disabled={!form.formState.isValid || busy} type="submit">
 								{busy ? "Saving..." : "Continue"}
 								<ArrowRight className="ml-2 size-4" />
 							</Button>
@@ -1464,11 +1463,11 @@ function InvestorDocumentsStep({
 									{doc.label}
 								</span>
 								<Button
-									onClick={() => {
+									onClick={() =>
 										onRemove(doc.storageId).catch(() => {
 											// Error already handled in onRemove
-										});
-									}}
+										})
+									}
 									size="sm"
 									variant="ghost"
 								>
@@ -1538,7 +1537,7 @@ function InvestorReviewStep({
 					) : (
 						<ul className="list-disc pl-5 text-muted-foreground text-sm">
 							{investor?.documents?.map((doc) => (
-								<li key={doc.storageId}>{doc.label}</li>
+								<li key={doc.storageId ?? doc.label}>{doc.label}</li>
 							))}
 						</ul>
 					)}
@@ -1875,8 +1874,7 @@ export function BrokerCompanyInfoForm({
 																.split("_")
 																.map(
 																	(word) =>
-																		word.charAt(0).toUpperCase() +
-																		word.slice(1)
+																		word.charAt(0).toUpperCase() + word.slice(1)
 																)
 																.join(" ")}
 														</SelectItem>
@@ -1904,7 +1902,7 @@ export function BrokerCompanyInfoForm({
 						</div>
 
 						<div className="space-y-3">
-							<p className="text-sm font-medium">Registered address</p>
+							<p className="font-medium text-sm">Registered address</p>
 							<div className="grid gap-3">
 								<FormField
 									control={form.control}
@@ -2006,7 +2004,6 @@ export function BrokerCompanyInfoForm({
 								)}
 							/>
 						</div>
-
 						<div className="flex justify-end gap-3">
 							<Button disabled={busy} type="submit">
 								{busy ? "Saving..." : "Continue"}
@@ -2086,8 +2083,7 @@ function BrokerLicensingForm({
 																.split("_")
 																.map(
 																	(word) =>
-																		word.charAt(0).toUpperCase() +
-																		word.slice(1)
+																		word.charAt(0).toUpperCase() + word.slice(1)
 																)
 																.join(" ")}
 														</SelectItem>
@@ -2207,7 +2203,7 @@ function BrokerLicensingForm({
 														{jurisdictions.map((jurisdiction, index) => (
 															<Badge
 																className="cursor-pointer"
-																key={`${jurisdiction}-${index}`}
+																key={jurisdiction}
 																onClick={() => handleRemoveJurisdiction(index)}
 																variant="secondary"
 															>
@@ -2224,7 +2220,6 @@ function BrokerLicensingForm({
 								);
 							}}
 						/>
-
 						<div className="flex justify-end gap-3">
 							<Button disabled={!form.formState.isValid || busy} type="submit">
 								{busy ? "Saving..." : "Continue"}
@@ -2452,10 +2447,15 @@ function BrokerRepresentativesForm({
 													<input
 														checked={Boolean(field.value)}
 														id="repAuthority"
-														onChange={(event) => field.onChange(event.target.checked)}
+														onChange={(event) =>
+															field.onChange(event.target.checked)
+														}
 														type="checkbox"
 													/>
-													<Label className="cursor-pointer" htmlFor="repAuthority">
+													<Label
+														className="cursor-pointer"
+														htmlFor="repAuthority"
+													>
 														Yes
 													</Label>
 												</div>

@@ -175,38 +175,30 @@ export default function DSMPortalPage({
 
   
   
-  // Track if we've already initialized to prevent re-initialization on every render
-  const initializedRef = React.useRef(false)
-  
-  // Initialize store with props if needed
+  // Reactively sync store with props
   useEffect(() => {
-    // Only initialize once on mount, not on every props change
-    if (initializedRef.current) {
-      return
-    }
-
-    
-    if (initialDocuments && initialDocuments.length > 0) {
+    if (initialDocuments !== undefined) {
       setDocuments(initialDocuments)
     }
 
-    if (initialUsers && initialUsers.length > 0) {
+    if (initialUsers !== undefined) {
       setAvailableUsers(initialUsers)
     }
 
     if (deal) {
       useDealStore.getState().setDeal(deal)
     }
-    
-    // Mark as initialized only after attempting to set both
-    initializedRef.current = true
-  }, [initialDocuments, initialUsers, deal, setDocuments, setAvailableUsers])
+
+    if (dealId) {
+      useDealStore.getState().setDealId(dealId)
+    }
+  }, [initialDocuments, initialUsers, deal, dealId, setDocuments, setAvailableUsers])
   
   return (
     <ErrorBoundary>
       <Suspense fallback={<DSMLoadingFallback />}>
         <DSMPortalContent 
-          dealId={dealId || "DEAL-123"} 
+          dealId={dealId || ""} 
           user={user} 
           profile={profile} 
           role={role || "buyer"} 

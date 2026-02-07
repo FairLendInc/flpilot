@@ -107,8 +107,19 @@ export function FundsTransferVerification() {
 
   // Get current upload from deal data
   // deal.deal is where the actual deal object is, based on getDealWithDetails return
+  // Get current upload from deal data
+  // deal.deal is where the actual deal object is, based on getDealWithDetails return
   const currentUpload = deal?.deal?.currentUpload;
   const isApproved = deal?.deal?.validationChecks?.fundsReceived; // Or verified? Using fundsReceived as proxy for now or add a field
+
+  // Sync documents on mount to ensure status is up to date
+  const syncDocs = useAction(api.deal_documents.syncDealDocuments);
+  
+  useEffect(() => {
+    if (dealId && dealId !== "DEAL-123") {
+      syncDocs({ dealId: dealId as Id<"deals"> }).catch(console.error);
+    }
+  }, [dealId, syncDocs]);
 
   // Check document completion status
   useEffect(() => {
