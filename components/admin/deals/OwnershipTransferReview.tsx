@@ -160,22 +160,24 @@ type OwnershipPreview = {
 };
 
 function formatUserName(
-user:
-| {
-first_name?: string;
-last_name?: string;
-email?: string;
-_id?: string;
-   }
-| null
+	user:
+		| {
+				first_name?: string;
+				last_name?: string;
+				email?: string;
+				_id?: string;
+		  }
+		| null
 		| undefined
 ): string | null {
-if (!user) return null;
-const name = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+	if (!user) return null;
+	const name = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
 	return name || user.email || null;
 }
 
-function isFairlendOwnerId(ownerId: string | Id<"users">): ownerId is "fairlend" {
+function isFairlendOwnerId(
+	ownerId: string | Id<"users">
+): ownerId is "fairlend" {
 	return ownerId === "fairlend";
 }
 
@@ -895,14 +897,15 @@ export function OwnershipTransferReview({
 				}
 
 				const currentOwnership: OwnershipEntry[] = ownershipEntries
-				.map(
-				(entry): OwnershipEntry => ({
-				ownerId: isFairlendOwnerId(entry.ownerId)
-				 ? "fairlend"
-				  : (entry.ownerId as Id<"users">),
-				 percentage: entry.percentage,
-						ownerName: resolveOwnerName(entry.ownerId),
-					}))
+					.map(
+						(entry): OwnershipEntry => ({
+							ownerId: isFairlendOwnerId(entry.ownerId)
+								? "fairlend"
+								: (entry.ownerId as Id<"users">),
+							percentage: entry.percentage,
+							ownerName: resolveOwnerName(entry.ownerId),
+						})
+					)
 					.sort((a, b) => b.percentage - a.percentage);
 
 				const ownershipMap = new Map<

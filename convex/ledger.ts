@@ -3,6 +3,7 @@
 import { SDK } from "@formance/formance-sdk";
 import { v } from "convex/values";
 import { logger } from "../lib/logger";
+import { env } from "./lib/env";
 import { action, internalAction } from "./_generated/server";
 
 /**
@@ -23,9 +24,9 @@ let formanceClient: SDK | null = null;
 
 function getFormanceClient(): SDK {
 	if (!formanceClient) {
-		const clientID = process.env.FORMANCE_CLIENT_ID;
-		const clientSecret = process.env.FORMANCE_CLIENT_SECRET;
-		const serverURL = process.env.FORMANCE_SERVER_URL;
+		const clientID = env.FORMANCE_CLIENT_ID;
+		const clientSecret = env.FORMANCE_CLIENT_SECRET;
+		const serverURL = env.FORMANCE_SERVER_URL;
 
 		if (!(clientID && clientSecret)) {
 			throw new Error(
@@ -400,9 +401,9 @@ export const executeNumscript = action({
 			// Validate env vars exist
 			getFormanceClient();
 
-			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
-			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
 
 			// DEBUG: Log request details before API call
 			logger.info("executeNumscript: Starting request", {
@@ -693,9 +694,9 @@ send [$asset 100] (
 			const _sdk = getFormanceClient();
 
 			// Get token
-			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
-			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
 
 			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
 				method: "POST",
@@ -858,9 +859,9 @@ send [$asset ${shareAmount}] (
 `.trim();
 
 		try {
-			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
-			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
 
 			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
 				method: "POST",
@@ -987,9 +988,9 @@ export const burnMortgageShares = action({
 		const reference = `burn:admin:${mortgageId}:${Date.now()}`;
 
 		try {
-			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
-			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
 
 			// Get auth token
 			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
@@ -1186,9 +1187,9 @@ export const getOwnershipFromLedger = action({
 		const shareAsset = getMortgageShareAsset(mortgageId);
 
 		try {
-			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
-			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
 
 			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
 				method: "POST",
@@ -1385,9 +1386,9 @@ export const provisionInvestorAccounts = action({
 		const inventoryAccount = OWNERSHIP_ACCOUNTS.investorInventory(userId);
 
 		try {
-			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
-			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
 
 			// Get auth token
 			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
@@ -1476,9 +1477,9 @@ export const getOwnershipSnapshot = action({
 	}),
 	handler: async () => {
 		try {
-			const serverURL = process.env.FORMANCE_SERVER_URL ?? "";
-			const clientID = process.env.FORMANCE_CLIENT_ID ?? "";
-			const clientSecret = process.env.FORMANCE_CLIENT_SECRET ?? "";
+			const serverURL = env.FORMANCE_SERVER_URL ?? "";
+			const clientID = env.FORMANCE_CLIENT_ID ?? "";
+			const clientSecret = env.FORMANCE_CLIENT_SECRET ?? "";
 
 			const tokenResponse = await fetch(`${serverURL}/api/auth/oauth/token`, {
 				method: "POST",

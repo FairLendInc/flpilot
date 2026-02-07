@@ -161,6 +161,92 @@ describe("Onboarding journeys", () => {
 		).rejects.toThrow("Minimum ticket cannot exceed maximum ticket");
 	});
 
+	test("lawyer flow persists verifications and submits", async () => {
+		const t = createTest();
+		const subject = "member-lawyer";
+		await createUser(t, subject);
+		const member = withIdentity(t, subject, "member");
+
+		await member.mutation(api.onboarding.ensureJourney, {});
+		await member.mutation(api.onboarding.startJourney, { persona: "lawyer" });
+		await member.mutation(api.onboarding.advanceLawyerStep, {
+			stateValue: "lawyer.profile",
+		});
+		await member.mutation(api.onboarding.saveLawyerProfile, {
+			stateValue: "lawyer.identity_verification",
+			profile: {
+				firstName: "Ada",
+				middleName: "",
+				lastName: "Lovelace",
+				lsoNumber: "LSO-10001",
+				firmName: "Analytical Law",
+				email: "ada@example.com",
+				phone: "555-1010",
+				jurisdiction: "ON",
+			},
+		});
+
+		const identityResult = await member.mutation(
+			api.onboarding.runLawyerIdentityVerification,
+			{ simulateMismatch: false }
+		);
+		expect(identityResult?.context?.lawyer?.identityVerification?.status).toBe(
+			"verified"
+		);
+
+		const lsoResult = await member.mutation(
+			api.onboarding.runLawyerLsoVerification,
+			{}
+		);
+		expect(lsoResult?.context?.lawyer?.lsoVerification?.status).toBe(
+			"verified"
+		);
+
+		const submitted = await member.mutation(
+			api.onboarding.submitLawyerJourney,
+			{
+				finalNotes: "ready",
+			}
+		);
+		expect(submitted?.status).toBe("awaiting_admin");
+		expect(submitted?.stateValue).toBe("lawyer.pending_admin");
+	});
+
+	test("lawyer identity mismatch blocks submission", async () => {
+		const t = createTest();
+		const subject = "member-lawyer-mismatch";
+		await createUser(t, subject);
+		const member = withIdentity(t, subject, "member");
+
+		await member.mutation(api.onboarding.ensureJourney, {});
+		await member.mutation(api.onboarding.startJourney, { persona: "lawyer" });
+		await member.mutation(api.onboarding.advanceLawyerStep, {
+			stateValue: "lawyer.profile",
+		});
+		await member.mutation(api.onboarding.saveLawyerProfile, {
+			stateValue: "lawyer.identity_verification",
+			profile: {
+				firstName: "Alan",
+				middleName: "",
+				lastName: "Turing",
+				lsoNumber: "LSO-10002",
+				firmName: "Enigma Legal",
+				email: "alan@example.com",
+				phone: "555-2020",
+				jurisdiction: "ON",
+			},
+		});
+
+		await member.mutation(api.onboarding.runLawyerIdentityVerification, {
+			simulateMismatch: true,
+		});
+		await member.mutation(api.onboarding.runLawyerLsoVerification, {});
+
+		await expect(
+			member.mutation(api.onboarding.submitLawyerJourney, {})
+		).rejects.toThrow("Identity verification must be completed");
+	});
+
 	test("admins can approve and rejection locks persona", async () => {
 		const t = createTest();
 		const applicantSubject = "member-approval";

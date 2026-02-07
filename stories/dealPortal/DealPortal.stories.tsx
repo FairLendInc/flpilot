@@ -58,6 +58,18 @@ export const Buyer: Story = {
   },
 }
 
+export const Default: Story = {
+  args: { dealId: "deal-123" },
+  parameters: {
+    mockState: {
+      userRole: FairLendRole.BUYER,
+      users: mockUsers,
+      currentUser: mockUsers[0],
+      documents: [createMockDocument({})],
+    },
+  },
+}
+
 export const BuyerLawyer: Story = {
   args: { dealId: "deal-123" },
   parameters: {

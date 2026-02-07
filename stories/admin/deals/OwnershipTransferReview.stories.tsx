@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ComponentProps } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { OwnershipTransferReviewContent } from "@/components/admin/deals/OwnershipTransferReview";
 
@@ -29,10 +30,10 @@ const mockAfterOwnership = [
 ] as const;
 
 // Types for mock casting
-type PendingTransfer = React.ComponentProps<
+type PendingTransfer = ComponentProps<
 	typeof OwnershipTransferReviewContent
 >["pendingTransfer"];
-type OwnershipEntry = React.ComponentProps<
+type OwnershipEntry = ComponentProps<
 	typeof OwnershipTransferReviewContent
 >["currentOwnership"][number];
 
@@ -164,4 +165,3 @@ export const RejectedState: Story = {
 		onReject: (async () => {}) as any,
 	},
 };
-

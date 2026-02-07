@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { env, isTestEnv } from "../lib/env";
 import type { AuthorizedActionCtx } from "../lib/server";
 import { createAuthorizedAction } from "../lib/server";
 
@@ -24,7 +25,7 @@ export const provisionBrokerOrganization = internalAction({
 		brokerUserId: v.string(),
 	}),
 	handler: async (ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey) {
 			console.warn(
@@ -111,7 +112,7 @@ export const provisionClientOrganization = internalAction({
 		clientUserId: v.string(),
 	}),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey) {
 			console.warn(
@@ -195,10 +196,7 @@ export const assignBrokerRole = internalAction({
 	},
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			console.warn(
@@ -292,10 +290,7 @@ export const assignClientRole = internalAction({
 	},
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			console.warn(
@@ -384,10 +379,7 @@ export const removeBrokerMember = internalAction({
 	},
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			console.warn(
@@ -451,10 +443,7 @@ export const updateBrokerOrganization = internalAction({
 	},
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			console.warn(
@@ -511,10 +500,7 @@ export const suspendBrokerOrganization = internalAction({
 	},
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			console.warn(
@@ -576,10 +562,7 @@ export const reactivateBrokerOrganization = internalAction({
 	},
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			console.warn(
@@ -629,10 +612,7 @@ export const deleteBrokerOrganization = internalAction({
 	},
 	returns: v.null(),
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv =
-			process.env.NODE_ENV === "test" ||
-			typeof process.env.VITEST_WORKER_ID === "string";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			console.warn(
@@ -887,8 +867,7 @@ export const verifyBrokerWorkOSStatus = createAuthorizedAction(["admin"])({
 		suggestedOrgId: string | null;
 		error?: string;
 	}> => {
-		const apiKey = process.env.WORKOS_API_KEY;
-		const isTestEnv = process.env.NODE_ENV === "test";
+		const apiKey = env.WORKOS_API_KEY;
 
 		if (!apiKey || isTestEnv) {
 			return {

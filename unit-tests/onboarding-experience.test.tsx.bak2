@@ -1,0 +1,74 @@
+import { render, screen } from "@testing-library/react";
+import { useAction, useConvexAuth, useMutation } from "convex/react";
+import { useRouter } from "next/navigation";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { OnboardingExperience } from "@/components/onboarding/OnboardingExperience";
+import { useOnboardingMachine } from "@/components/onboarding/useOnboardingMachine";
+import { useAuthenticatedQuery } from "@/convex/lib/client";
+
+vi.mock("convex/react", () => ({
+	useAction: vi.fn(),
+	useConvexAuth: vi.fn(),
+	useMutation: vi.fn(),
+}));
+
+vi.mock("@/convex/lib/client", () => ({
+	useAuthenticatedQuery: vi.fn(),
+}));
+
+vi.mock("@/components/onboarding/useOnboardingMachine", () => ({
+	useOnboardingMachine: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+	useRouter: vi.fn(),
+}));
+
+const mockedUseAuthenticatedQuery = useAuthenticatedQuery as unknown as Mock;
+const mockedUseConvexAuth = useConvexAuth as unknown as Mock;
+const mockedUseMutation = useMutation as unknown as Mock;
+const mockedUseAction = useAction as unknown as Mock;
+const mockedUseOnboardingMachine = useOnboardingMachine as unknown as Mock;
+const mockedUseRouter = useRouter as unknown as Mock;
+
+describe("OnboardingExperience", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockedUseRouter.mockReturnValue({ replace: vi.fn() });
+		mockedUseMutation.mockReturnValue(vi.fn().mockResolvedValue({}));
+		mockedUseAction.mockReturnValue(vi.fn());
+		mockedUseOnboardingMachine.mockReturnValue({
+			snapshot: {
+				value: "personaSelection",
+				context: { persona: "unselected", status: "draft" },
+			},
+		});
+	});
+
+	it("shows a loading spinner while auth is unauthenticated", () => {
+		mockedUseConvexAuth.mockReturnValue({
+			isLoading: false,
+			isAuthenticated: false,
+		});
+		mockedUseAuthenticatedQuery
+			.mockReturnValueOnce({
+				_id: "journey_1",
+				userId: "user_1",
+				persona: "unselected",
+				stateValue: "personaSelection",
+				status: "draft",
+				context: {},
+				lastTouchedAt: "2026-01-28T00:00:00.000Z",
+			})
+			.mockReturnValueOnce({
+				user: { _id: "user_1" },
+				workOsIdentity: { subject: "user_1" },
+			});
+
+		render(<OnboardingExperience />);
+
+		expect(
+			screen.getByRole("status", { name: /loading/i })
+		).toBeInTheDocument();
+	});
+});

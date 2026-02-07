@@ -134,7 +134,7 @@ export default function ClientOnboardPage() {
 								</div>
 								<Button
 									className="w-full"
-									disabled={!email?.includes("@") || !clientName?.trim()}
+									disabled={!(email?.includes("@") && clientName?.trim())}
 									onClick={() => setActiveTab("filters")}
 								>
 									Continue to Filter Configuration
@@ -196,10 +196,8 @@ export default function ClientOnboardPage() {
 								</div>
 								<div className="rounded-lg border p-4">
 									<h4 className="font-medium">Filter Configuration</h4>
-									<p className="text-muted-foreground">
-										Default constraints:
-									</p>
-									<ul className="ml-4 mt-1 list-disc text-muted-foreground">
+									<p className="text-muted-foreground">Default constraints:</p>
+									<ul className="mt-1 ml-4 list-disc text-muted-foreground">
 										<li>Property Types: All</li>
 										<li>Locations: All</li>
 										<li>Risk Profile: Balanced</li>

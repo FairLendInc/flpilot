@@ -267,7 +267,9 @@ export default function BrokerDetailPage() {
 							<Building2 className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="font-bold text-2xl">{stats?.deals?.dealCount || 0}</div>
+							<div className="font-bold text-2xl">
+								{stats?.deals?.dealCount || 0}
+							</div>
 						</CardContent>
 					</Card>
 
@@ -594,8 +596,8 @@ export default function BrokerDetailPage() {
 									<div className="space-y-4">
 										{applicationData.representatives.map((rep, index) => (
 											<div
-											 className="flex items-start gap-4 rounded-lg border p-4"
-											 key={`${rep.email}-${index}`}
+												className="flex items-start gap-4 rounded-lg border p-4"
+												key={`${rep.email}-${index}`}
 											>
 												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
 													<User className="h-5 w-5 text-primary" />
@@ -649,8 +651,8 @@ export default function BrokerDetailPage() {
 									<div className="space-y-4">
 										{applicationData.documents.map((doc, index) => (
 											<div
-											 className="flex items-center gap-4 rounded-lg border p-4"
-											 key={`${doc.storageId}-${index}`}
+												className="flex items-center gap-4 rounded-lg border p-4"
+												key={`${doc.storageId}-${index}`}
 											>
 												<FileText className="h-8 w-8 shrink-0 text-primary" />
 												<div className="flex-1">
@@ -686,10 +688,15 @@ export default function BrokerDetailPage() {
 								) : (
 									<div className="space-y-2">
 										{clients?.clients?.map((client) => (
-											<div className="flex items-center justify-between rounded-lg border p-3" key={client._id}>
+											<div
+												className="flex items-center justify-between rounded-lg border p-3"
+												key={client._id}
+											>
 												<div>
 													<p className="font-medium">
-														{client.userName || client.userEmail || "Not specified"}
+														{client.userName ||
+															client.userEmail ||
+															"Not specified"}
 													</p>
 													<p className="text-muted-foreground text-sm">
 														Status: {client.onboardingStatus}
@@ -738,9 +745,9 @@ export default function BrokerDetailPage() {
 										</Label>
 										<div className="flex items-center gap-2">
 											<div
-											 className="h-6 w-6 rounded border"
-											 style={{
-												 backgroundColor:
+												className="h-6 w-6 rounded border"
+												style={{
+													backgroundColor:
 														broker.branding?.primaryColor || "#3b82f6",
 												}}
 											/>
@@ -755,9 +762,9 @@ export default function BrokerDetailPage() {
 										</Label>
 										<div className="flex items-center gap-2">
 											<div
-											 className="h-6 w-6 rounded border"
-											 style={{
-												 backgroundColor:
+												className="h-6 w-6 rounded border"
+												style={{
+													backgroundColor:
 														broker.branding?.secondaryColor || "#64748b",
 												}}
 											/>
@@ -808,17 +815,17 @@ export default function BrokerDetailPage() {
 												<Label htmlFor="primaryColor">Primary Color</Label>
 												<div className="flex gap-2">
 													<Input
-													 className="h-10 w-20 p-1"
-													 id="primaryColor"
-													 onChange={(e) => setPrimaryColor(e.target.value)}
-													 type="color"
-													 value={primaryColor}
+														className="h-10 w-20 p-1"
+														id="primaryColor"
+														onChange={(e) => setPrimaryColor(e.target.value)}
+														type="color"
+														value={primaryColor}
 													/>
 													<Input
-													 className="flex-1 font-mono"
-													 onChange={(e) => setPrimaryColor(e.target.value)}
-													 placeholder="#3b82f6"
-													 value={primaryColor}
+														className="flex-1 font-mono"
+														onChange={(e) => setPrimaryColor(e.target.value)}
+														placeholder="#3b82f6"
+														value={primaryColor}
 													/>
 												</div>
 											</div>
@@ -826,17 +833,17 @@ export default function BrokerDetailPage() {
 												<Label htmlFor="secondaryColor">Secondary Color</Label>
 												<div className="flex gap-2">
 													<Input
-													 className="h-10 w-20 p-1"
-													 id="secondaryColor"
-													 onChange={(e) => setSecondaryColor(e.target.value)}
-													 type="color"
-													 value={secondaryColor}
+														className="h-10 w-20 p-1"
+														id="secondaryColor"
+														onChange={(e) => setSecondaryColor(e.target.value)}
+														type="color"
+														value={secondaryColor}
 													/>
 													<Input
-													 className="flex-1 font-mono"
-													 onChange={(e) => setSecondaryColor(e.target.value)}
-													 placeholder="#64748b"
-													 value={secondaryColor}
+														className="flex-1 font-mono"
+														onChange={(e) => setSecondaryColor(e.target.value)}
+														placeholder="#64748b"
+														value={secondaryColor}
 													/>
 												</div>
 											</div>
@@ -991,7 +998,7 @@ export default function BrokerDetailPage() {
 											>
 												<DialogTrigger asChild>
 													<Button
-													 onClick={() => setNewSubdomain(broker.subdomain)}
+														onClick={() => setNewSubdomain(broker.subdomain)}
 														size="sm"
 														variant="outline"
 													>
@@ -1085,7 +1092,7 @@ export default function BrokerDetailPage() {
 											>
 												<DialogTrigger asChild>
 													<Button
-													 onClick={() =>
+														onClick={() =>
 															setNewCustomDomain(broker.customDomain || "")
 														}
 														size="sm"
@@ -1228,7 +1235,7 @@ export default function BrokerDetailPage() {
 												</div>
 												<DialogFooter>
 													<Button
-													 onClick={() => setReassignAllDialogOpen(false)}
+														onClick={() => setReassignAllDialogOpen(false)}
 														variant="outline"
 													>
 														Cancel
@@ -1262,7 +1269,10 @@ export default function BrokerDetailPage() {
 								{brokerClients && brokerClients.length > 0 ? (
 									<div className="space-y-2">
 										{brokerClients.map((client) => (
-											<div className="flex items-center justify-between rounded-lg border p-3" key={client._id}>
+											<div
+												className="flex items-center justify-between rounded-lg border p-3"
+												key={client._id}
+											>
 												<div>
 													<p className="font-medium">
 														{client.user?.firstName && client.user?.lastName
@@ -1337,8 +1347,8 @@ export default function BrokerDetailPage() {
 											)}
 											{verificationResult?.isSynced && (
 												<Badge
-												 className="border-green-500 text-green-600"
-												 variant="outline"
+													className="border-green-500 text-green-600"
+													variant="outline"
 												>
 													<CheckCircle2 className="mr-1 h-3 w-3" />
 													Synced
@@ -1358,8 +1368,8 @@ export default function BrokerDetailPage() {
 													{broker.workosOrgId}
 												</code>
 												<Button
-												 className="h-8 w-8"
-												 onClick={() => {
+													className="h-8 w-8"
+													onClick={() => {
 														navigator.clipboard.writeText(broker.workosOrgId);
 														setCopiedOrgId(true);
 														setTimeout(() => setCopiedOrgId(false), 2000);
@@ -1470,10 +1480,10 @@ export default function BrokerDetailPage() {
 													WorkOS Verification Results
 												</Label>
 												<Button
-												 className="h-6 px-2 text-xs"
-												 onClick={() => setVerificationResult(null)}
-												 size="sm"
-												 variant="ghost"
+													className="h-6 px-2 text-xs"
+													onClick={() => setVerificationResult(null)}
+													size="sm"
+													variant="ghost"
 												>
 													Clear
 												</Button>
@@ -1502,16 +1512,16 @@ export default function BrokerDetailPage() {
 																{verificationResult.workosData.memberships.map(
 																	(membership) => (
 																		<div
-																		 className="rounded border bg-background p-2 text-sm"
-																		 key={membership.id}
+																			className="rounded border bg-background p-2 text-sm"
+																			key={membership.id}
 																		>
 																			<div className="flex items-center justify-between">
 																				<code className="font-mono text-xs">
 																					{membership.organizationId}
 																				</code>
 																				<Badge
-																				 className="text-xs"
-																				 variant="outline"
+																					className="text-xs"
+																					variant="outline"
 																				>
 																					{membership.status}
 																				</Badge>
@@ -1542,7 +1552,8 @@ export default function BrokerDetailPage() {
 															<div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
 																<p className="text-blue-800 text-sm">
 																	<CheckCircle2 className="mr-1 inline h-4 w-4" />
-																	Found a WorkOS organization for this user that can be linked.
+																	Found a WorkOS organization for this user that
+																	can be linked.
 																</p>
 																<Button
 																	disabled={isSyncingFromWorkOS}
@@ -1550,11 +1561,14 @@ export default function BrokerDetailPage() {
 																		setIsSyncingFromWorkOS(true);
 																		try {
 																			if (!verificationResult.suggestedOrgId) {
-																				throw new Error("No organization ID to sync");
+																				throw new Error(
+																					"No organization ID to sync"
+																				);
 																			}
 																			const result = await updateWorkOSOrg({
 																				brokerId,
-																				workosOrgId: verificationResult.suggestedOrgId,
+																				workosOrgId:
+																					verificationResult.suggestedOrgId,
 																			});
 																			if (result.success) {
 																				toast.success(
@@ -1593,7 +1607,7 @@ export default function BrokerDetailPage() {
 																	)}
 																</Button>
 															</div>
-													 )}
+														)}
 
 													{/* Out of sync warning */}
 													{!verificationResult.isSynced &&
@@ -1621,7 +1635,7 @@ export default function BrokerDetailPage() {
 										>
 											<DialogTrigger asChild>
 												<Button
-												 onClick={() => {
+													onClick={() => {
 														setNewOrgName(
 															broker.branding?.brandName || broker.subdomain
 														);
@@ -1659,7 +1673,7 @@ export default function BrokerDetailPage() {
 												</div>
 												<DialogFooter>
 													<Button
-													 onClick={() => setProvisionOrgDialogOpen(false)}
+														onClick={() => setProvisionOrgDialogOpen(false)}
 														variant="outline"
 													>
 														Cancel
@@ -1744,13 +1758,13 @@ export default function BrokerDetailPage() {
 															WorkOS Organization ID
 														</Label>
 														<Input
-														 className="font-mono"
-														 id="assignOrgId"
-														 onChange={(e) =>
+															className="font-mono"
+															id="assignOrgId"
+															onChange={(e) =>
 																setNewWorkosOrgId(e.target.value)
 															}
-														 placeholder="org_xxxxxxxx"
-														 value={newWorkosOrgId}
+															placeholder="org_xxxxxxxx"
+															value={newWorkosOrgId}
 														/>
 														<p className="text-muted-foreground text-xs">
 															Enter the WorkOS organization ID (starts with
@@ -1760,7 +1774,7 @@ export default function BrokerDetailPage() {
 												</div>
 												<DialogFooter>
 													<Button
-													 onClick={() => setAssignExistingDialogOpen(false)}
+														onClick={() => setAssignExistingDialogOpen(false)}
 														variant="outline"
 													>
 														Cancel
@@ -1842,13 +1856,13 @@ export default function BrokerDetailPage() {
 															New Organization ID
 														</Label>
 														<Input
-														 className="font-mono"
-														 id="newOrgId"
-														 onChange={(e) =>
+															className="font-mono"
+															id="newOrgId"
+															onChange={(e) =>
 																setNewWorkosOrgId(e.target.value)
 															}
-														 placeholder="org_xxxxxxxx"
-														 value={newWorkosOrgId}
+															placeholder="org_xxxxxxxx"
+															value={newWorkosOrgId}
 														/>
 														<p className="text-muted-foreground text-xs">
 															Enter the WorkOS organization ID (starts with
@@ -1866,7 +1880,7 @@ export default function BrokerDetailPage() {
 												</div>
 												<DialogFooter>
 													<Button
-													 onClick={() => setChangeOrgDialogOpen(false)}
+														onClick={() => setChangeOrgDialogOpen(false)}
 														variant="outline"
 													>
 														Cancel
@@ -2002,7 +2016,7 @@ export default function BrokerDetailPage() {
 												</div>
 												<DialogFooter>
 													<Button
-													 onClick={() => setSuspendDialogOpen(false)}
+														onClick={() => setSuspendDialogOpen(false)}
 														variant="outline"
 													>
 														Cancel
@@ -2081,7 +2095,7 @@ export default function BrokerDetailPage() {
 											</div>
 											<DialogFooter>
 												<Button
-												 onClick={() => setRevokeDialogOpen(false)}
+													onClick={() => setRevokeDialogOpen(false)}
 													variant="outline"
 												>
 													Cancel
@@ -2158,18 +2172,18 @@ export default function BrokerDetailPage() {
 														deletion
 													</Label>
 													<Input
-													 id="deleteConfirm"
-													 onChange={(e) =>
+														id="deleteConfirm"
+														onChange={(e) =>
 															setDeleteConfirmation(e.target.value)
 														}
-													 placeholder={broker.subdomain}
+														placeholder={broker.subdomain}
 														value={deleteConfirmation}
 													/>
 												</div>
 											</div>
 											<DialogFooter>
 												<Button
-												 onClick={() => setDeleteDialogOpen(false)}
+													onClick={() => setDeleteDialogOpen(false)}
 													variant="outline"
 												>
 													Cancel
