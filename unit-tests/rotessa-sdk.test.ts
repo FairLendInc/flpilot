@@ -118,8 +118,8 @@ describe("Rotessa SDK", () => {
 		vi.useFakeTimers();
 		try {
 			const fetchFn = vi.fn(
-				(_url: string, init?: { signal?: AbortSignal }) =>
-					new Promise((_, reject) => {
+				(_url: URL | RequestInfo, init?: RequestInit): Promise<Response> =>
+					new Promise<Response>((_, reject) => {
 						const signal = init?.signal;
 						if (!signal) return;
 						if (signal.aborted) {
