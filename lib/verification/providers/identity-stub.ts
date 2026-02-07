@@ -30,8 +30,7 @@ class IdentityStubProvider
 	readonly type = "identity" as const;
 	private readonly simulateDelay = 500; // ms
 
-	async initialize(config: IdentityVerificationConfig): Promise<void> {
-		this.config = config;
+	async initialize(_config: IdentityVerificationConfig): Promise<void> {
 		// Stub initialization - nothing to do
 	}
 

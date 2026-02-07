@@ -70,8 +70,6 @@ class RotessaProvider
 	private client: RotessaClient | null = null;
 
 	async initialize(config: PaymentProviderConfig): Promise<void> {
-		this.config = config;
-
 		// Determine base URL based on environment
 		const baseUrl =
 			config.baseUrl ??
