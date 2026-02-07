@@ -49,6 +49,8 @@ import type * as lib_authorizedFunctions from "../lib/authorizedFunctions.js";
 import type * as lib_broker from "../lib/broker.js";
 import type * as lib_brokerLedger from "../lib/brokerLedger.js";
 import type * as lib_client from "../lib/client.js";
+import type * as lib_env from "../lib/env.js";
+import type * as lib_envAuth from "../lib/envAuth.js";
 import type * as lib_events_auditedMutation from "../lib/events/auditedMutation.js";
 import type * as lib_events_emitter from "../lib/events/emitter.js";
 import type * as lib_events_index from "../lib/events/index.js";
@@ -127,6 +129,8 @@ declare const fullApi: ApiFromModules<{
   "lib/broker": typeof lib_broker;
   "lib/brokerLedger": typeof lib_brokerLedger;
   "lib/client": typeof lib_client;
+  "lib/env": typeof lib_env;
+  "lib/envAuth": typeof lib_envAuth;
   "lib/events/auditedMutation": typeof lib_events_auditedMutation;
   "lib/events/emitter": typeof lib_events_emitter;
   "lib/events/index": typeof lib_events_index;

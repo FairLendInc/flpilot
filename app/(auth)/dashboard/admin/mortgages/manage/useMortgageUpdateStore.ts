@@ -64,6 +64,11 @@ const createInitialMortgage = (): {
 		method: string;
 		company: string;
 		date: string;
+		// New optional fields for renovation details
+		description?: string;
+		imageStorageIds?: string[];
+		projectedCompletionDate?: string;
+		cost?: number;
 	} | null;
 } => ({
 	mortgageId: null,
@@ -127,7 +132,19 @@ type MortgageUpdateStore = {
 		method: string;
 		company: string;
 		date: string;
+		// New optional fields for renovation details
+		description?: string;
+		imageStorageIds?: string[];
+		projectedCompletionDate?: string;
+		cost?: number;
 	} | null;
+
+	// As-if appraisal images with preview URLs for upload state
+	asIfAppraisalImages: Array<{
+		storageId: string;
+		previewUrl?: string;
+		url?: string;
+	}>;
 
 	// Media arrays
 	images: MortgageImageEntry[];
@@ -165,8 +182,18 @@ type MortgageUpdateStore = {
 			method: string;
 			company: string;
 			date: string;
+			description?: string;
+			imageStorageIds?: string[];
+			projectedCompletionDate?: string;
+			cost?: number;
 		} | null
 	) => void;
+	addAsIfAppraisalImage: (entry: {
+		storageId: string;
+		previewUrl?: string;
+		url?: string;
+	}) => void;
+	removeAsIfAppraisalImage: (index: number) => void;
 	addImage: (entry: MortgageImageEntry) => void;
 	updateImage: (index: number, entry: Partial<MortgageImageEntry>) => void;
 	removeImage: (index: number) => void;
@@ -214,6 +241,10 @@ type MortgageUpdateStore = {
 			method: string;
 			company: string;
 			date: string;
+			description?: string;
+			imageStorageIds?: string[];
+			projectedCompletionDate?: string;
+			cost?: number;
 		} | null;
 		images?: Array<{
 			storageId: Id<"_storage">;
@@ -244,6 +275,7 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 		...createInitialMortgage(),
 		images: [],
 		documents: [],
+		asIfAppraisalImages: [],
 		errors: {},
 		isSubmitting: false,
 		isLoading: false,
@@ -290,9 +322,24 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 					errors = removeError(errors, "asIfAppraisalMethod");
 					errors = removeError(errors, "asIfAppraisalCompany");
 					errors = removeError(errors, "asIfAppraisalDate");
+					errors = removeError(errors, "asIfAppraisalDescription");
+					errors = removeError(errors, "asIfAppraisalProjectedCompletionDate");
+					errors = removeError(errors, "asIfAppraisalCost");
 				}
 				return { asIfAppraisal: data, errors };
 			}),
+
+		addAsIfAppraisalImage: (entry) =>
+			set((state) => ({
+				asIfAppraisalImages: [...state.asIfAppraisalImages, entry],
+			})),
+
+		removeAsIfAppraisalImage: (index) =>
+			set((state) => ({
+				asIfAppraisalImages: state.asIfAppraisalImages.filter(
+					(_, i) => i !== index
+				),
+			})),
 
 		addImage: (entry) =>
 			set((state) => ({
@@ -393,6 +440,13 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 				},
 				priorEncumbrance: mortgage.priorEncumbrance ?? null,
 				asIfAppraisal: mortgage.asIfAppraisal ?? null,
+				asIfAppraisalImages: (
+					mortgage.asIfAppraisal?.imageStorageIds ?? []
+				).map((storageId) => ({
+					storageId,
+					previewUrl: undefined,
+					url: undefined,
+				})),
 				images: (mortgage.images ?? []).map((img) => ({
 					storageId: img.storageId,
 					alt: img.alt ?? "",
@@ -422,6 +476,7 @@ export const useMortgageUpdateStore = create<MortgageUpdateStore>(
 				...createInitialMortgage(),
 				images: [],
 				documents: [],
+				asIfAppraisalImages: [],
 				errors: {},
 				isSubmitting: false,
 				isLoading: false,

@@ -1,4 +1,6 @@
-const clientId = process.env.WORKOS_CLIENT_ID;
+import { envAuth } from "./lib/envAuth";
+
+const clientId = envAuth.WORKOS_CLIENT_ID;
 
 const authConfig = {
 	providers: [

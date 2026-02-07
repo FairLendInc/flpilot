@@ -18,9 +18,9 @@
 
 import { WorkOS } from "@workos-inc/node";
 import { v } from "convex/values";
-import { env } from "./lib/env";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
+import { env } from "./lib/env";
 
 type WorkOSMetadata = Record<string, unknown>;
 
