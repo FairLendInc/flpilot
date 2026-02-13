@@ -52,8 +52,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
               </div>
             )}
             <div className="mt-4">
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onPress={() => window.location.reload()}
               >
                 <Icon icon="lucide:refresh-cw" className="w-4 h-4 mr-2" />
@@ -174,8 +174,8 @@ export default function DSMPortalPage({
   const setDocuments = useDealStore((state) => state.setDocuments)
   const setAvailableUsers = useDealStore((state) => state.setAvailableUsers)
 
-  
-  
+
+
   // Reactively sync store with props
   useEffect(() => {
     if (initialDocuments !== undefined) {
@@ -196,7 +196,8 @@ export default function DSMPortalPage({
 
     // Auto-set currentUser based on authenticated user identity
     if (user?.email) {
-      const matchedUser = initialUsers?.find((u: { email: string }) => u.email === user.email)
+      const userEmailLower = user.email.toLowerCase()
+      const matchedUser = initialUsers?.find((u: { email: string }) => u.email.toLowerCase() === userEmailLower)
       if (matchedUser) {
         useDealStore.getState().setCurrentUser(matchedUser)
       } else {
@@ -205,21 +206,21 @@ export default function DSMPortalPage({
           id: user.subject || 'auth-user',
           email: user.email,
           name: user.name || user.email,
-          role: FairLendRole.NONE
+          role: role === "admin" ? FairLendRole.ADMIN : role === "investor" ? FairLendRole.BUYER : role === "lawyer" ? FairLendRole.LAWYER : FairLendRole.NONE
         })
       }
     }
-  }, [initialDocuments, initialUsers, deal, dealId, user, setDocuments, setAvailableUsers])
-  
+  }, [initialDocuments, initialUsers, deal, dealId, user, role, setDocuments, setAvailableUsers])
+
   return (
     <ErrorBoundary>
       <Suspense fallback={<DSMLoadingFallback />}>
-        <DSMPortalContent 
-          dealId={dealId || ""} 
-          user={user} 
-          profile={profile} 
-          role={role || "buyer"} 
-          testData={testData} 
+        <DSMPortalContent
+          dealId={dealId || ""}
+          user={user}
+          profile={profile}
+          role={role || "buyer"}
+          testData={testData}
           deal={deal}
           paymentSuccess={paymentSuccess}
           sessionId={sessionId}

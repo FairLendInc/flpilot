@@ -2,13 +2,11 @@
 
 import React from "react"
 
-import HorizontalSteps from "./ui/horizontal-steps"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Separator } from "@/components/ui/separator"
 import { AlertCircle, AlertTriangle, CheckCircle, ChevronRight, Clock, File, FileText, Upload, CheckSquare } from "lucide-react"
 import { useDealStore } from "../store/dealStore"
@@ -160,46 +158,16 @@ const DocumentCard = ({ groupId, showActions = true }: DocumentCardProps) => {
           </span>
           <span>{percent}% Complete</span>
         </div>
-        {/* Accordion showing each document with its signing steps */}
         {group2.length > 0 && (
-          <Accordion type="single" collapsible className="w-full mt-2">
-            {group2.map((doc) => {
-              const docSteps = doc.signingSteps 
-                ? [...doc.signingSteps]
-                    .sort((a, b) => a.order - b.order)
-                    .map(s => ({
-                      title: (
-                        <>
-                          {s.name || s.email}
-                          <br />
-                          {String(s.role) === "LAWYER" ? "Review" : "Sign"}
-                        </>
-                      )
-                    }))
-                : []
-              const currentStepIndex = doc.signingSteps
-                ? [...doc.signingSteps].sort((a, b) => a.order - b.order).findIndex(s => s.status !== 'SIGNED')
-                : -1
-              const currentStep = currentStepIndex === -1 ? docSteps.length : currentStepIndex
-              
-              if (docSteps.length === 0) return null
-              
-              return (
-                <AccordionItem key={doc.id} value={doc.id}>
-                  <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="truncate">{doc.name}</span>
-                      {doc.isComplete && <CheckCircle className="h-3 w-3 text-success" />}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <HorizontalSteps currentStep={currentStep} steps={docSteps} />
-                  </AccordionContent>
-                </AccordionItem>
-              )
-            })}
-          </Accordion>
+          <div className="mt-2 space-y-1">
+            {group2.map((doc) => (
+              <div key={doc.id} className="flex items-center gap-2 py-2 text-sm">
+                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="truncate">{doc.name}</span>
+                {doc.isComplete && <CheckCircle className="ml-auto h-3 w-3 shrink-0 text-success" />}
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
       {showActions && (

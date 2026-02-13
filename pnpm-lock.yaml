@@ -10,40 +10,40 @@ importers:
     dependencies:
       '@convex-dev/action-retrier':
         specifier: ^0.3.0
-        version: 0.3.0(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+        version: 0.3.0(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       '@convex-dev/crons':
         specifier: ^0.2.0
-        version: 0.2.0(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+        version: 0.2.0(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       '@convex-dev/migrations':
         specifier: ^0.2.9
-        version: 0.2.9(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+        version: 0.2.9(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       '@convex-dev/presence':
         specifier: ^0.3.0
-        version: 0.3.0(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
+        version: 0.3.0(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
       '@convex-dev/rate-limiter':
         specifier: ^0.3.2
-        version: 0.3.2(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
+        version: 0.3.2(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
       '@convex-dev/resend':
         specifier: ^0.1.13
-        version: 0.1.13(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
+        version: 0.1.13(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
       '@convex-dev/stripe':
         specifier: ^0.1.3
-        version: 0.1.3(@types/node@20.19.23)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
+        version: 0.1.3(@types/node@20.19.23)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
       '@convex-dev/twilio':
         specifier: ^0.2.1
-        version: 0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+        version: 0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       '@convex-dev/workflow':
         specifier: ^0.3.4
-        version: 0.3.4(@convex-dev/workpool@0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027)))(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+        version: 0.3.4(@convex-dev/workpool@0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027)))(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       '@convex-dev/workos':
         specifier: ^0.0.1
-        version: 0.0.1(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)
+        version: 0.0.1(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)
       '@convex-dev/workos-authkit':
         specifier: ^0.1.5
-        version: 0.1.5(@edge-runtime/vm@5.0.0)(@standard-schema/spec@1.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(next@16.0.7(@babel/core@7.28.5)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)(zod@4.1.12)
+        version: 0.1.5(@edge-runtime/vm@5.0.0)(@standard-schema/spec@1.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(next@16.0.7(@babel/core@7.28.5)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)(zod@4.1.12)
       '@convex-dev/workpool':
         specifier: ^0.3.1
-        version: 0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+        version: 0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       '@documenso/embed-react':
         specifier: ^0.3.0
         version: 0.3.0(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
@@ -58,7 +58,7 @@ importers:
         version: 4.6.1
       '@gilhrpenner/convex-files-control':
         specifier: ^0.5.1
-        version: 0.5.1(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+        version: 0.5.1(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       '@headlessui/react':
         specifier: ^2.2.9
         version: 2.2.9(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
@@ -249,14 +249,14 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
       convex:
-        specifier: ^1.31.6
-        version: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+        specifier: ^1.31.7
+        version: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
       convex-fs:
         specifier: ^0.2.1
-        version: 0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+        version: 0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       convex-helpers:
         specifier: ^0.1.104
-        version: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+        version: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -428,7 +428,7 @@ importers:
         version: 1.0.0
       convex-test:
         specifier: ^0.0.38
-        version: 0.0.38(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+        version: 0.0.38(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -679,8 +679,8 @@ packages:
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/code-frame@7.28.6':
-    resolution: {integrity: sha512-JYgintcMjRiCvS8mMECzaEn+m3PfoQiyqukOMCCVQtoJGYJw8j/8LBJEiqkHLkfwCcs74E3pbAUFNg7d9VNJ+Q==}
+  '@babel/code-frame@7.29.0':
+    resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/compat-data@7.28.5':
@@ -4882,8 +4882,8 @@ packages:
     peerDependencies:
       convex: ^1.16.4
 
-  convex@1.31.6:
-    resolution: {integrity: sha512-9cIsOzepa3s9DURRF+fZHxbNuzLgilg9XGQCc45v0Xx4FemqeIezpPFSJF9WHC9ckk43TDUUXLecvLVt9djPkw==}
+  convex@1.31.7:
+    resolution: {integrity: sha512-PtNMe1mAIOvA8Yz100QTOaIdgt2rIuWqencVXrb4McdhxBHZ8IJ1eXTnrgCC9HydyilGT1pOn+KNqT14mqn9fQ==}
     engines: {node: '>=18.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
@@ -8120,7 +8120,7 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
-  '@babel/code-frame@7.28.6':
+  '@babel/code-frame@7.29.0':
     dependencies:
       '@babel/helper-validator-identifier': 7.28.5
       js-tokens: 4.0.0
@@ -8296,60 +8296,60 @@ snapshots:
       picocolors: 1.1.1
       sisteransi: 1.0.5
 
-  '@convex-dev/action-retrier@0.3.0(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))':
+  '@convex-dev/action-retrier@0.3.0(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
 
-  '@convex-dev/crons@0.2.0(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))':
+  '@convex-dev/crons@0.2.0(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
       cron-parser: 4.9.0
 
-  '@convex-dev/migrations@0.2.9(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))':
+  '@convex-dev/migrations@0.2.9(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
 
-  '@convex-dev/presence@0.3.0(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
+  '@convex-dev/presence@0.3.0(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
       react: 19.3.0-canary-b4455a6e-20251027
       react-dom: 19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027)
 
-  '@convex-dev/rate-limiter@0.2.14(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
+  '@convex-dev/rate-limiter@0.2.14(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
     optionalDependencies:
       react: 19.3.0-canary-b4455a6e-20251027
 
-  '@convex-dev/rate-limiter@0.3.2(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
+  '@convex-dev/rate-limiter@0.3.2(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
     optionalDependencies:
       react: 19.3.0-canary-b4455a6e-20251027
 
-  '@convex-dev/resend@0.1.13(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
+  '@convex-dev/resend@0.1.13(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
     dependencies:
-      '@convex-dev/rate-limiter': 0.2.14(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
-      '@convex-dev/workpool': 0.2.19(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      '@convex-dev/rate-limiter': 0.2.14(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
+      '@convex-dev/workpool': 0.2.19(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       remeda: 2.32.0
       svix: 1.80.0
     transitivePeerDependencies:
       - react
 
-  '@convex-dev/stripe@0.1.3(@types/node@20.19.23)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
+  '@convex-dev/stripe@0.1.3(@types/node@20.19.23)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
       react: 19.3.0-canary-b4455a6e-20251027
       stripe: 20.2.0(@types/node@20.19.23)
     transitivePeerDependencies:
       - '@types/node'
 
-  '@convex-dev/twilio@0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)':
+  '@convex-dev/twilio@0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
@@ -8357,21 +8357,21 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/workflow@0.3.4(@convex-dev/workpool@0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027)))(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))':
+  '@convex-dev/workflow@0.3.4(@convex-dev/workpool@0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027)))(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))':
     dependencies:
-      '@convex-dev/workpool': 0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+      '@convex-dev/workpool': 0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       async-channel: 0.2.0
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
 
-  '@convex-dev/workos-authkit@0.1.5(@edge-runtime/vm@5.0.0)(@standard-schema/spec@1.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(next@16.0.7(@babel/core@7.28.5)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)(zod@4.1.12)':
+  '@convex-dev/workos-authkit@0.1.5(@edge-runtime/vm@5.0.0)(@standard-schema/spec@1.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(next@16.0.7(@babel/core@7.28.5)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)(zod@4.1.12)':
     dependencies:
-      '@convex-dev/workos': 0.0.1(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)
-      '@convex-dev/workpool': 0.2.19(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
+      '@convex-dev/workos': 0.0.1(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)
+      '@convex-dev/workpool': 0.2.19(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
       '@workos-inc/authkit-react': 0.13.0(react@19.3.0-canary-b4455a6e-20251027)
       '@workos-inc/node': 7.82.0(next@16.0.7(@babel/core@7.28.5)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027))
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       react: 19.3.0-canary-b4455a6e-20251027
       type-fest: 5.4.2
     transitivePeerDependencies:
@@ -8409,10 +8409,10 @@ snapshots:
       - yaml
       - zod
 
-  '@convex-dev/workos@0.0.1(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)':
+  '@convex-dev/workos@0.0.1(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(@typescript/native-preview@7.0.0-dev.20251023.1)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(react@19.3.0-canary-b4455a6e-20251027)(terser@5.44.0)(typescript@5.9.3)':
     dependencies:
       '@workos-inc/authkit-react': 0.11.0(react@19.3.0-canary-b4455a6e-20251027)
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
       react: 19.3.0-canary-b4455a6e-20251027
       tsdown: 0.12.9(@typescript/native-preview@7.0.0-dev.20251023.1)(typescript@5.9.3)
       vitest: 3.2.4(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(@vitest/browser@4.0.2(vite@7.1.12(@types/node@20.19.23)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0))(vitest@4.0.2(@edge-runtime/vm@5.0.0)(@types/node@20.19.23)(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)))(jiti@2.6.1)(jsdom@27.1.0)(lightningcss@1.30.2)(terser@5.44.0)
@@ -8445,15 +8445,15 @@ snapshots:
       - vue-tsc
       - yaml
 
-  '@convex-dev/workpool@0.2.19(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))':
+  '@convex-dev/workpool@0.2.19(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
 
-  '@convex-dev/workpool@0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))':
+  '@convex-dev/workpool@0.3.1(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12))(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))':
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
 
   '@csstools/color-helpers@5.1.0': {}
 
@@ -8720,13 +8720,13 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@gilhrpenner/convex-files-control@0.5.1(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)':
+  '@gilhrpenner/convex-files-control@0.5.1(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)':
     dependencies:
       '@aws-sdk/client-s3': 3.975.0
       '@aws-sdk/s3-request-presigner': 3.975.0
-      '@convex-dev/action-retrier': 0.3.0(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      '@convex-dev/action-retrier': 0.3.0(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       react: 19.3.0-canary-b4455a6e-20251027
     transitivePeerDependencies:
       - '@standard-schema/spec'
@@ -11641,7 +11641,7 @@ snapshots:
 
   '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.28.6
+      '@babel/code-frame': 7.29.0
       '@babel/runtime': 7.28.6
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
@@ -12910,10 +12910,10 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-fs@0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12):
+  convex-fs@0.2.1(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12):
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
-      convex-helpers: 0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
+      convex-helpers: 0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       fast-json-stable-stringify: 2.1.0
       react: 19.3.0-canary-b4455a6e-20251027
     transitivePeerDependencies:
@@ -12922,29 +12922,29 @@ snapshots:
       - typescript
       - zod
 
-  convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12):
+  convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12):
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
     optionalDependencies:
       '@standard-schema/spec': 1.0.0
       react: 19.3.0-canary-b4455a6e-20251027
       typescript: 5.9.3
       zod: 4.1.12
 
-  convex-helpers@0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12):
+  convex-helpers@0.1.111(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12):
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
     optionalDependencies:
       '@standard-schema/spec': 1.0.0
       react: 19.3.0-canary-b4455a6e-20251027
       typescript: 5.9.3
       zod: 4.1.12
 
-  convex-test@0.0.38(convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027)):
+  convex-test@0.0.38(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027)):
     dependencies:
-      convex: 1.31.6(react@19.3.0-canary-b4455a6e-20251027)
+      convex: 1.31.7(react@19.3.0-canary-b4455a6e-20251027)
 
-  convex@1.31.6(react@19.3.0-canary-b4455a6e-20251027):
+  convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027):
     dependencies:
       esbuild: 0.27.0
       prettier: 3.6.2

@@ -78,8 +78,7 @@ const DocumentCard = ({
   const requiredAction = !docManager2.isComplete ? { assignedToEmail: docManager2.assignedTo, type: docManager2.requiredAction } : null
   const isCompleted = docManager2.isComplete
   
-  // const currentUser2 = getCurrentUser2()
-  const hasUserAction = requiredAction?.assignedToEmail === currentUser2?.email
+  const hasUserAction = requiredAction?.assignedToEmail?.toLowerCase() === currentUser2?.email?.toLowerCase()
 
   // Get document steps using signingSteps property, sorted by order
   const steps = document.signingSteps 

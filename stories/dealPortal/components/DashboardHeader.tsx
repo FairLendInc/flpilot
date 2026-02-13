@@ -29,12 +29,14 @@ export function DashboardHeader({ userRole }: { userRole?: string }) {
       </div>
 
       <div className="flex w-full items-center justify-between gap-3 overflow-x-scroll sm:w-auto sm:justify-end sm:gap-6">
-          <Link href="/admin/dashboard/docprep">
-            <Button variant="outline" size="sm">
-              <FileTextIcon className="mr-2 h-4 w-4" />
-              Document Prep
-            </Button>
-          </Link>
+          {userRole === "admin" && (
+            <Link href="/admin/dashboard/docprep">
+              <Button variant="outline" size="sm">
+                <FileTextIcon className="mr-2 h-4 w-4" />
+                Document Prep
+              </Button>
+            </Link>
+          )}
 
         {currentUser && (
           <div className="flex items-center gap-2">
