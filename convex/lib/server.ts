@@ -10,6 +10,10 @@ import {
 import { createError } from "../../lib/errors";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
 import { action, mutation, query } from "../_generated/server";
+import { resolveTelemetryConfig, shouldSample } from "./telemetry/config";
+import { endSpan, endSpanFromAction } from "./telemetry/spanWriter";
+import type { OtelEnvelope, TelemetryConfig } from "./telemetry/types";
+import { generateSpanId, generateTraceId } from "./telemetry/types";
 
 // ============================================================================
 // AUTHENTICATION HELPERS - PREVENTING RACE CONDITIONS
@@ -149,9 +153,21 @@ export type AuthorizedIdentity = {
 	roles?: string[] | null;
 };
 
-export type AuthorizedQueryCtx = QueryCtx & AuthorizedIdentity;
-export type AuthorizedMutationCtx = MutationCtx & AuthorizedIdentity;
-export type AuthorizedActionCtx = ActionCtx & AuthorizedIdentity;
+export type TelemetryCtx = {
+	_telemetry?: {
+		traceId: string;
+		spanId: string;
+		parentSpanId?: string;
+		requestId?: string;
+		sampled: boolean;
+	};
+};
+
+export type AuthorizedQueryCtx = QueryCtx & AuthorizedIdentity & TelemetryCtx;
+export type AuthorizedMutationCtx = MutationCtx &
+	AuthorizedIdentity &
+	TelemetryCtx;
+export type AuthorizedActionCtx = ActionCtx & AuthorizedIdentity & TelemetryCtx;
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
@@ -449,6 +465,214 @@ export async function AuthenticationRequired({
 	};
 }
 
+// ============================================================================
+// TELEMETRY HELPERS
+// ============================================================================
+
+/** Convex validator for the consumed `_otel` envelope arg. */
+const otelEnvelopeValidator = v.optional(
+	v.object({
+		traceId: v.string(),
+		spanId: v.string(),
+		parentSpanId: v.optional(v.string()),
+		requestId: v.optional(v.string()),
+		functionName: v.optional(v.string()),
+		sampled: v.boolean(),
+		debugMode: v.optional(v.boolean()),
+	})
+);
+
+/** Resolved telemetry state — null if tracing is disabled or not sampled. */
+type TelemetryState = {
+	traceId: string;
+	spanId: string;
+	parentSpanId?: string;
+	requestId?: string;
+	functionName?: string;
+	sampled: true;
+	startedAt: number;
+	/** Auth attributes attached after input resolves (for error spans). */
+	attributes?: Record<string, unknown>;
+};
+
+/**
+ * Resolve whether this request should be traced, combining the client
+ * envelope (if present) with server-side config/sampling.
+ */
+function resolveTelemetryState(
+	envelope: OtelEnvelope | undefined,
+	config: TelemetryConfig
+): TelemetryState | null {
+	if (!config.enabled) return null;
+
+	const sampled = envelope?.sampled ?? shouldSample(config);
+	if (!sampled) return null;
+
+	return {
+		traceId: envelope?.traceId ?? generateTraceId(),
+		spanId: envelope?.spanId ?? generateSpanId(),
+		parentSpanId: envelope?.parentSpanId,
+		requestId: envelope?.requestId,
+		functionName: envelope?.functionName,
+		sampled: true,
+		startedAt: Date.now(),
+	};
+}
+
+/**
+ * Build auth-related span attributes based on sampling mode.
+ * Dev mode includes high-cardinality data; prod mode is minimal.
+ */
+function buildAuthAttributes(
+	identity: UserIdentity,
+	config: TelemetryConfig,
+	requiredRoles: string[],
+	requiredPermissions: string[],
+	authenticated: boolean
+): Record<string, unknown> {
+	const attrs: Record<string, unknown> = {
+		"fairlend.auth.role": identity.role,
+		"fairlend.auth.org_id": identity.org_id,
+		"fairlend.function.authenticated": authenticated,
+	};
+
+	if (config.samplingMode === "full-dev") {
+		attrs["fairlend.auth.subject"] = identity.subject;
+		attrs["fairlend.auth.email"] = identity.email;
+		attrs["fairlend.auth.permissions"] = identity.permissions;
+		attrs["fairlend.auth.roles"] = identity.roles;
+		attrs["fairlend.function.requiredRoles"] = requiredRoles;
+		attrs["fairlend.function.requiredPermissions"] = requiredPermissions;
+	}
+
+	return attrs;
+}
+
+/** Convert an unknown thrown value into a SpanError shape. */
+function extractSpanError(err: unknown): {
+	message: string;
+	code?: string;
+	stack?: string;
+} {
+	if (err instanceof Error) {
+		return {
+			message: err.message,
+			code: err.name,
+			stack: err.stack,
+		};
+	}
+	return { message: String(err) };
+}
+
+/**
+ * Internal symbol-like key for stashing telemetry state on the original ctx.
+ * Used to pass state from `input` to the error-catching wrapper.
+ */
+const TEL_STATE_KEY = "__telState";
+
+/**
+ * Wrap the base `mutation` builder to add try/catch for error span recording.
+ *
+ * How it works:
+ * 1. `customCtxAndArgs.input` runs → stashes TelemetryState on `ctx.__telState`
+ * 2. User handler runs inside the try block
+ * 3. On success → `onSuccess` fires and records success span (handled by customCtxAndArgs)
+ * 4. On error → catch block reads `ctx.__telState` and records error span
+ *
+ * This preserves TypeScript inference because `customMutation` derives its
+ * generic types from the Customization, not the base builder.
+ */
+const instrumentedMutation = ((fnDef: {
+	args?: Record<string, unknown>;
+	returns?: unknown;
+	handler: (
+		ctx: MutationCtx,
+		args: Record<string, unknown>
+	) => Promise<unknown>;
+}) =>
+	mutation({
+		...fnDef,
+		handler: async (ctx: MutationCtx, args: Record<string, unknown>) => {
+			try {
+				return await fnDef.handler(ctx, args);
+			} catch (err) {
+				const telState = (ctx as unknown as Record<string, unknown>)[
+					TEL_STATE_KEY
+				] as TelemetryState | undefined;
+				if (telState?.sampled) {
+					try {
+						await endSpan(
+							ctx,
+							{
+								traceId: telState.traceId,
+								spanId: telState.spanId,
+								parentSpanId: telState.parentSpanId,
+								requestId: telState.requestId,
+								sampled: true,
+								functionName: telState.functionName ?? "unknown.mutation",
+								kind: "mutation",
+								startedAt: telState.startedAt,
+								attributes: telState.attributes,
+							},
+							extractSpanError(err)
+						);
+					} catch {
+						// Telemetry failures must never mask business errors
+					}
+				}
+				throw err;
+			}
+		},
+	} as Parameters<typeof mutation>[0])) as typeof mutation;
+
+/**
+ * Wrap the base `action` builder to add try/catch for error span recording.
+ * Same pattern as instrumentedMutation but uses `endSpanFromAction` (scheduled writes).
+ */
+const instrumentedAction = ((fnDef: {
+	args?: Record<string, unknown>;
+	returns?: unknown;
+	handler: (ctx: ActionCtx, args: Record<string, unknown>) => Promise<unknown>;
+}) =>
+	action({
+		...fnDef,
+		handler: async (ctx: ActionCtx, args: Record<string, unknown>) => {
+			try {
+				return await fnDef.handler(ctx, args);
+			} catch (err) {
+				const telState = (ctx as unknown as Record<string, unknown>)[
+					TEL_STATE_KEY
+				] as TelemetryState | undefined;
+				if (telState?.sampled) {
+					try {
+						await endSpanFromAction(
+							ctx,
+							{
+								traceId: telState.traceId,
+								spanId: telState.spanId,
+								parentSpanId: telState.parentSpanId,
+								requestId: telState.requestId,
+								sampled: true,
+								functionName: telState.functionName ?? "unknown.action",
+								kind: "action",
+								startedAt: telState.startedAt,
+								attributes: telState.attributes,
+							},
+							extractSpanError(err)
+						);
+					} catch {
+						// Telemetry failures must never mask business errors
+					}
+				}
+				throw err;
+			}
+		},
+	} as Parameters<typeof action>[0])) as typeof action;
+
+// ============================================================================
+// ROLE & PERMISSION CHECKS
+// ============================================================================
+
 const _fairLendRoles = v.union(
 	v.literal("admin"),
 	v.literal("member"),
@@ -457,7 +681,7 @@ const _fairLendRoles = v.union(
 	v.literal("broker")
 );
 
-function roleCheck({
+export function roleCheck({
 	identity,
 	roles,
 }: {
@@ -477,7 +701,7 @@ function roleCheck({
 	return false;
 }
 
-async function permissionsCheck({
+export async function permissionsCheck({
 	identity,
 	permissions,
 }: {
@@ -562,10 +786,14 @@ export const createAuthorizedQuery = (
 		customCtxAndArgs({
 			args: {
 				orgs: v.optional(v.string()),
+				_otel: otelEnvelopeValidator,
 			},
 			input: async (ctx, args) => {
+				// Strip _otel from forwarded args
+				const { _otel, ...restArgs } = args;
+
 				if (!auth) {
-					return { ctx, args };
+					return { ctx, args: restArgs };
 				}
 
 				const identity = await ctx.auth.getUserIdentity();
@@ -599,7 +827,13 @@ export const createAuthorizedQuery = (
 					});
 				}
 
-				// Extend context with identity properties
+				// Resolve telemetry state (queries don't record spans server-side)
+				const config = resolveTelemetryConfig();
+				const telState = resolveTelemetryState(
+					_otel as OtelEnvelope | undefined,
+					config
+				);
+
 				return {
 					ctx: {
 						...ctx,
@@ -609,8 +843,17 @@ export const createAuthorizedQuery = (
 						org_id: identity.org_id,
 						permissions: identity.permissions,
 						roles: identity.roles,
+						_telemetry: telState
+							? {
+									traceId: telState.traceId,
+									spanId: telState.spanId,
+									parentSpanId: telState.parentSpanId,
+									requestId: telState.requestId,
+									sampled: telState.sampled,
+								}
+							: undefined,
 					},
-					args,
+					args: restArgs,
 				};
 			},
 		})
@@ -622,14 +865,17 @@ export const createAuthorizedMutation = (
 	auth = true
 ) =>
 	customMutation(
-		mutation,
+		instrumentedMutation,
 		customCtxAndArgs({
 			args: {
 				orgs: v.optional(v.string()),
+				_otel: otelEnvelopeValidator,
 			},
 			input: async (ctx, args) => {
+				const { _otel, ...restArgs } = args;
+
 				if (!auth) {
-					return { ctx, args };
+					return { ctx, args: restArgs };
 				}
 
 				const identity = await ctx.auth.getUserIdentity();
@@ -663,7 +909,60 @@ export const createAuthorizedMutation = (
 					});
 				}
 
-				// Extend context with identity properties
+				// Resolve telemetry
+				const config = resolveTelemetryConfig();
+				const telState = resolveTelemetryState(
+					_otel as OtelEnvelope | undefined,
+					config
+				);
+
+				const authAttrs =
+					telState && config.samplingMode !== "errors-only"
+						? buildAuthAttributes(
+								identity,
+								config,
+								requiredRoles,
+								requiredPermissions,
+								auth
+							)
+						: undefined;
+
+				// Stash telemetry state on the original ctx so the
+				// instrumentedMutation try/catch can record error spans.
+				if (telState) {
+					(ctx as unknown as Record<string, unknown>)[TEL_STATE_KEY] = {
+						...telState,
+						attributes: authAttrs,
+					};
+				}
+
+				// Build onSuccess callback via closure over original ctx
+				const onSuccess = telState
+					? async ({
+							ctx: originalCtx,
+						}: {
+							ctx: MutationCtx;
+							args: Record<string, unknown>;
+							result: unknown;
+						}) => {
+							try {
+								await endSpan(originalCtx, {
+									traceId: telState.traceId,
+									spanId: telState.spanId,
+									parentSpanId: telState.parentSpanId,
+									requestId: telState.requestId,
+									sampled: true,
+									functionName: telState.functionName ?? "unknown.mutation",
+									kind: "mutation",
+									startedAt: telState.startedAt,
+									attributes: authAttrs,
+								});
+							} catch {
+								// Telemetry failures must never break business logic
+							}
+						}
+					: undefined;
+
 				return {
 					ctx: {
 						...ctx,
@@ -673,8 +972,18 @@ export const createAuthorizedMutation = (
 						org_id: identity.org_id,
 						permissions: identity.permissions,
 						roles: identity.roles,
+						_telemetry: telState
+							? {
+									traceId: telState.traceId,
+									spanId: telState.spanId,
+									parentSpanId: telState.parentSpanId,
+									requestId: telState.requestId,
+									sampled: telState.sampled,
+								}
+							: undefined,
 					},
-					args,
+					args: restArgs,
+					onSuccess,
 				};
 			},
 		})
@@ -686,14 +995,17 @@ export const createAuthorizedAction = (
 	auth = true
 ) =>
 	customAction(
-		action,
+		instrumentedAction,
 		customCtxAndArgs({
 			args: {
 				orgs: v.optional(v.string()),
+				_otel: otelEnvelopeValidator,
 			},
 			input: async (ctx, args) => {
+				const { _otel, ...restArgs } = args;
+
 				if (!auth) {
-					return { ctx, args };
+					return { ctx, args: restArgs };
 				}
 
 				const identity = await ctx.auth.getUserIdentity();
@@ -727,7 +1039,60 @@ export const createAuthorizedAction = (
 					});
 				}
 
-				// Extend context with identity properties
+				// Resolve telemetry
+				const config = resolveTelemetryConfig();
+				const telState = resolveTelemetryState(
+					_otel as OtelEnvelope | undefined,
+					config
+				);
+
+				const authAttrs =
+					telState && config.samplingMode !== "errors-only"
+						? buildAuthAttributes(
+								identity,
+								config,
+								requiredRoles,
+								requiredPermissions,
+								auth
+							)
+						: undefined;
+
+				// Stash telemetry state on the original ctx so the
+				// instrumentedAction try/catch can record error spans.
+				if (telState) {
+					(ctx as unknown as Record<string, unknown>)[TEL_STATE_KEY] = {
+						...telState,
+						attributes: authAttrs,
+					};
+				}
+
+				// Build onSuccess callback — actions schedule writes via scheduler
+				const onSuccess = telState
+					? async ({
+							ctx: originalCtx,
+						}: {
+							ctx: ActionCtx;
+							args: Record<string, unknown>;
+							result: unknown;
+						}) => {
+							try {
+								await endSpanFromAction(originalCtx, {
+									traceId: telState.traceId,
+									spanId: telState.spanId,
+									parentSpanId: telState.parentSpanId,
+									requestId: telState.requestId,
+									sampled: true,
+									functionName: telState.functionName ?? "unknown.action",
+									kind: "action",
+									startedAt: telState.startedAt,
+									attributes: authAttrs,
+								});
+							} catch {
+								// Telemetry failures must never break business logic
+							}
+						}
+					: undefined;
+
 				return {
 					ctx: {
 						...ctx,
@@ -737,8 +1102,18 @@ export const createAuthorizedAction = (
 						org_id: identity.org_id,
 						permissions: identity.permissions,
 						roles: identity.roles,
+						_telemetry: telState
+							? {
+									traceId: telState.traceId,
+									spanId: telState.spanId,
+									parentSpanId: telState.parentSpanId,
+									requestId: telState.requestId,
+									sampled: telState.sampled,
+								}
+							: undefined,
 					},
-					args,
+					args: restArgs,
+					onSuccess,
 				};
 			},
 		})

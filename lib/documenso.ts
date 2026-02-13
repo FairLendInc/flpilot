@@ -12,6 +12,8 @@ import type {
 	DocumensoRecipientRole,
 	DocumensoRecipientSendStatus,
 	DocumensoRecipientSigningStatus,
+	DocumensoTemplateField,
+	PrefillField,
 } from "./types/documenso";
 
 const DEFAULT_DOCUMENSO_BASE_URL = "https://app.documenso.com/api/v2";
@@ -69,6 +71,7 @@ export type DocumensoTemplate = {
 		role: DocumensoRecipientRole;
 		signingOrder: number | null;
 	}[];
+	fields?: DocumensoTemplateField[];
 };
 
 export type DocumensoTemplateSummary = {
@@ -91,6 +94,7 @@ export type CreateDocumentFromTemplateParams = {
 		name: string;
 		role?: DocumensoRecipientRole;
 	}[];
+	prefillFields?: PrefillField[];
 };
 
 export type BatchCreateDocumentResult = {
@@ -256,6 +260,8 @@ type DocumensoTemplateApiResponse = {
 		role: DocumensoRecipientRole;
 		signingOrder: number | null;
 	}[];
+	Field?: DocumensoTemplateField[];
+	fields?: DocumensoTemplateField[];
 };
 
 export async function searchTemplates(
@@ -317,10 +323,11 @@ export async function getTemplateDetails(
 	const template = await documensoRequest<DocumensoTemplateApiResponse>(
 		`template/${numericId}`
 	);
-	// Normalize API response: ensure template has recipients field
+	// Normalize API response: ensure template has recipients and fields
 	return {
 		...template,
 		recipients: template.recipients || template.Recipient || [],
+		fields: template.fields || template.Field || [],
 	};
 }
 
@@ -329,6 +336,7 @@ export async function getTemplateDetails(
 export async function generateDocumentFromTemplate({
 	templateId,
 	recipients,
+	prefillFields,
 }: CreateDocumentFromTemplateParams): Promise<DocumensoDocument> {
 	return await documensoRequest<DocumensoDocument>("template/use", {
 		method: "POST",
@@ -336,6 +344,7 @@ export async function generateDocumentFromTemplate({
 			templateId,
 			recipients,
 			distributeDocument: true,
+			...(prefillFields && prefillFields.length > 0 ? { prefillFields } : {}),
 		}),
 		timeout: DOCUMENSO_CREATE_TIMEOUT_MS,
 	});

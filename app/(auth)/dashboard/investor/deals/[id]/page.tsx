@@ -1,17 +1,18 @@
 /**
- * Deal Detail Page
+ * Investor Deal Detail Page
  *
- * Admin-only page showing complete details of a single deal including:
+ * Read-only view of a single deal for the investor. Shows:
  * - Current state and progression
  * - Full audit trail
  * - Property and investor details
- * - Actions: Cancel, Archive, Transfer Ownership
+ * - Lawyer information
+ *
+ * No admin actions (cancel, archive, transfer) are available.
  */
 
 "use client";
 
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import {
 	AlertTriangle,
@@ -21,31 +22,18 @@ import {
 	Calendar,
 	CheckCircle,
 	ClipboardCheck,
+	ExternalLink,
 	FileSignature,
 	Lock,
 	MapPin,
 	Scale,
 	SearchCheck,
-	TrendingUp,
 	User,
 	XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
-import { toast } from "sonner";
-import { OwnershipTransferReview } from "@/components/admin/deals/OwnershipTransferReview";
-import { FundTransferUploadCard } from "@/components/deals/FundTransferUploadCard";
-import { FundVerificationCard } from "@/components/deals/FundVerificationCard";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { use } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,34 +43,20 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuthenticatedQuery } from "@/convex/lib/client";
 import {
-	canArchive,
-	canCancel,
-	canTransferOwnership,
 	DEAL_STATE_COLORS,
 	DEAL_STATE_LABELS,
 	type DealStateValue,
 	formatDealValue,
 	getDaysInState,
-	isOwnershipReviewState,
 } from "@/lib/types/dealTypes";
-import { DocumentDetailsSection } from "../components/DocumentDetailsSection";
 
 const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	locked: Lock,
@@ -96,7 +70,7 @@ const STATE_ICONS: Record<DealStateValue, typeof Lock> = {
 	archived: Archive,
 };
 
-export default function DealDetailPage({
+export default function InvestorDealDetailPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
@@ -106,81 +80,11 @@ export default function DealDetailPage({
 	const router = useRouter();
 	const { loading: authLoading } = useAuth();
 
-	const [showCancelDialog, setShowCancelDialog] = useState(false);
-	const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-	const [showTransferDialog, setShowTransferDialog] = useState(false);
-	const [cancelReason, setCancelReason] = useState("");
+	const dealData = useAuthenticatedQuery(
+		api.deals.getInvestorDealWithDetails,
+		{ dealId }
+	);
 
-	// Use authenticated query - automatically handles auth checking
-	const dealData = useAuthenticatedQuery(api.deals.getDealWithDetails, {
-		dealId,
-	});
-	const cancelDeal = useMutation(api.deals.cancelDeal);
-	const archiveDeal = useMutation(api.deals.archiveDeal);
-	const completeDeal = useMutation(api.deals.completeDeal);
-
-	const handleCancel = async () => {
-		if (!cancelReason.trim()) {
-			toast.error("Cancellation reason required");
-			return;
-		}
-
-		try {
-			await cancelDeal({ dealId, reason: cancelReason });
-			toast.success("Deal Cancelled", {
-				description: "Deal has been cancelled and listing unlocked",
-			});
-			setShowCancelDialog(false);
-			setCancelReason("");
-		} catch (error) {
-			console.error("Failed to cancel deal:", error);
-			toast.error("Failed to Cancel Deal", {
-				description:
-					error instanceof Error
-						? error.message
-						: "An unexpected error occurred",
-			});
-		}
-	};
-
-	const handleArchive = async () => {
-		try {
-			await archiveDeal({ dealId });
-			toast.success("Deal Archived", {
-				description: "Deal has been moved to archive",
-			});
-			setShowArchiveDialog(false);
-			router.push("/dashboard/admin/deals");
-		} catch (error) {
-			console.error("Failed to archive deal:", error);
-			toast.error("Failed to Archive Deal", {
-				description:
-					error instanceof Error
-						? error.message
-						: "An unexpected error occurred",
-			});
-		}
-	};
-
-	const handleTransferOwnership = async () => {
-		try {
-			await completeDeal({ dealId });
-			toast.success("Ownership Transferred!", {
-				description: "Mortgage ownership has been transferred to the investor",
-			});
-			setShowTransferDialog(false);
-		} catch (error) {
-			console.error("Failed to transfer ownership:", error);
-			toast.error("Failed to Transfer Ownership", {
-				description:
-					error instanceof Error
-						? error.message
-						: "An unexpected error occurred",
-			});
-		}
-	};
-
-	// Show loading state while auth is loading or query is pending
 	if (authLoading || !dealData) {
 		return (
 			<>
@@ -211,10 +115,13 @@ export default function DealDetailPage({
 							<AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
 							<h2 className="mb-2 font-semibold text-2xl">Deal Not Found</h2>
 							<p className="mb-4 text-muted-foreground">
-								The deal you're looking for doesn't exist or has been deleted.
+								The deal you're looking for doesn't exist or you don't have
+								access.
 							</p>
-							<Button onClick={() => router.push("/dashboard/admin/deals")}>
-								Back to Deals
+							<Button
+								onClick={() => router.push("/dashboard/investor/deals")}
+							>
+								Back to My Deals
 							</Button>
 						</CardContent>
 					</Card>
@@ -240,45 +147,26 @@ export default function DealDetailPage({
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-4">
 						<Button
-							onClick={() => router.push("/dashboard/admin/deals")}
+							onClick={() => router.push("/dashboard/investor/deals")}
 							size="sm"
 							variant="ghost"
 						>
 							<ArrowLeft className="mr-2 h-4 w-4" />
-							Back to Deals
+							Back to My Deals
 						</Button>
 						<div>
-							<h1 className="font-bold text-3xl tracking-tight">
-								Deal Details
-							</h1>
+							<h1 className="font-bold text-3xl tracking-tight">Deal Details</h1>
 							<p className="text-muted-foreground text-sm">
 								Created {format(new Date(deal.createdAt), "MMM d, yyyy")}
 							</p>
 						</div>
 					</div>
-
-					<div className="flex items-center gap-2">
-						{canArchive(deal) && (
-							<Button
-								onClick={() => setShowArchiveDialog(true)}
-								size="sm"
-								variant="outline"
-							>
-								<Archive className="mr-2 h-4 w-4" />
-								Archive
-							</Button>
-						)}
-						{canCancel(deal) && (
-							<Button
-								onClick={() => setShowCancelDialog(true)}
-								size="sm"
-								variant="destructive"
-							>
-								<XCircle className="mr-2 h-4 w-4" />
-								Cancel Deal
-							</Button>
-						)}
-					</div>
+					<Button asChild>
+						<Link href={`/dealportal/${deal._id}`}>
+							Deal Portal
+							<ExternalLink className="ml-2 h-4 w-4" />
+						</Link>
+					</Button>
 				</div>
 
 				<div className="grid gap-6 lg:grid-cols-3">
@@ -320,24 +208,6 @@ export default function DealDetailPage({
 									</Badge>
 								</div>
 
-								{/* Transfer Ownership Button (only for completed deals) */}
-								{canTransferOwnership(deal) && (
-									<div className="border-t pt-4">
-										<Button
-											className="w-full"
-											onClick={() => setShowTransferDialog(true)}
-											size="lg"
-										>
-											<TrendingUp className="mr-2 h-4 w-4" />
-											Transfer Ownership to Investor
-										</Button>
-										<p className="mt-2 text-center text-muted-foreground text-xs">
-											This will transfer 100% ownership of the mortgage to the
-											investor
-										</p>
-									</div>
-								)}
-
 								{deal.currentState === "completed" && deal.completedAt && (
 									<div className="border-t pt-4">
 										<Badge className="text-sm" variant="success">
@@ -357,32 +227,6 @@ export default function DealDetailPage({
 								)}
 							</CardContent>
 						</Card>
-
-						{/* Fund Verification - shown when in pending_verification state */}
-						<FundVerificationCard
-							currentState={deal.currentState}
-							currentUpload={deal.currentUpload}
-							dealId={deal._id}
-							dealValue={deal.dealValue}
-						/>
-
-						{/* Ownership Transfer Review - shown when in pending_ownership_review state */}
-						{deal.currentState && isOwnershipReviewState(deal.currentState) && (
-							<OwnershipTransferReview
-								dealId={deal._id}
-								onApproved={() => {
-									toast.success("Ownership Transfer Approved", {
-										description:
-											"The ownership transfer has been executed successfully.",
-									});
-								}}
-								onRejected={() => {
-									toast.info("Transfer Rejected", {
-										description: "The deal has been returned for review.",
-									});
-								}}
-							/>
-						)}
 
 						{/* Property Details */}
 						{mortgage && (
@@ -438,12 +282,6 @@ export default function DealDetailPage({
 							</Card>
 						)}
 
-						{/* Document Details */}
-						<DocumentDetailsSection
-							dealId={deal._id}
-							dealData={dealData}
-						/>
-
 						{/* Audit Trail */}
 						<Card>
 							<CardHeader>
@@ -497,13 +335,6 @@ export default function DealDetailPage({
 
 					{/* Sidebar - Right Column */}
 					<div className="space-y-6">
-						<FundTransferUploadCard
-							currentState={deal.currentState}
-							currentUpload={deal.currentUpload}
-							dealId={deal._id}
-							uploadHistory={deal.uploadHistory}
-						/>
-
 						{/* Deal Summary */}
 						<Card>
 							<CardHeader>
@@ -565,7 +396,7 @@ export default function DealDetailPage({
 						{investor && (
 							<Card>
 								<CardHeader>
-									<CardTitle>Investor</CardTitle>
+									<CardTitle>Your Details</CardTitle>
 								</CardHeader>
 								<CardContent className="space-y-3">
 									<div className="flex items-center gap-3">
@@ -617,112 +448,6 @@ export default function DealDetailPage({
 						)}
 					</div>
 				</div>
-
-				{/* Cancel Dialog */}
-				<Dialog onOpenChange={setShowCancelDialog} open={showCancelDialog}>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>Cancel Deal</DialogTitle>
-							<DialogDescription>
-								This will cancel the deal and unlock the listing. The investor
-								and admins will be notified.
-							</DialogDescription>
-						</DialogHeader>
-						<div className="space-y-4 py-4">
-							<div className="space-y-2">
-								<Label htmlFor="cancel-reason">
-									Cancellation Reason (Required)
-								</Label>
-								<Textarea
-									id="cancel-reason"
-									onChange={(e) => setCancelReason(e.target.value)}
-									placeholder="Enter reason for cancellation..."
-									rows={4}
-									value={cancelReason}
-								/>
-							</div>
-						</div>
-						<DialogFooter>
-							<Button
-								onClick={() => {
-									setShowCancelDialog(false);
-									setCancelReason("");
-								}}
-								variant="outline"
-							>
-								Cancel
-							</Button>
-							<Button
-								disabled={!cancelReason.trim()}
-								onClick={handleCancel}
-								variant="destructive"
-							>
-								Confirm Cancellation
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
-
-				{/* Archive Dialog */}
-				<AlertDialog
-					onOpenChange={setShowArchiveDialog}
-					open={showArchiveDialog}
-				>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Archive Deal</AlertDialogTitle>
-							<AlertDialogDescription>
-								This will move the deal to the archive. Archived deals can no
-								longer be modified but remain accessible for audit purposes.
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						<AlertDialogFooter>
-							<AlertDialogCancel>Cancel</AlertDialogCancel>
-							<AlertDialogAction onClick={handleArchive}>
-								Archive Deal
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
-
-				{/* Transfer Ownership Dialog */}
-				<AlertDialog
-					onOpenChange={setShowTransferDialog}
-					open={showTransferDialog}
-				>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
-							<AlertDialogDescription>
-								This will transfer <strong>100%</strong> ownership of the
-								mortgage to the investor. This action cannot be undone.
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						{mortgage && investor && (
-							<div className="space-y-1 rounded-md bg-muted p-3 text-sm">
-								<div>
-									<strong>Property:</strong> {mortgage.address.street}
-								</div>
-								<div>
-									<strong>Investor:</strong>{" "}
-									{investor.first_name && investor.last_name
-										? `${investor.first_name} ${investor.last_name}`
-										: investor.email}
-								</div>
-								<div>
-									<strong>Amount:</strong>{" "}
-									{formatDealValue(deal.dealValue ?? 0)}
-								</div>
-							</div>
-						)}
-						<AlertDialogFooter>
-							<AlertDialogCancel>Cancel</AlertDialogCancel>
-							<AlertDialogAction onClick={handleTransferOwnership}>
-								Transfer Ownership
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
 			</div>
 		</>
 	);

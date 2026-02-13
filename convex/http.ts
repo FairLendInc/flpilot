@@ -1869,6 +1869,12 @@ http.route({
 
 				case "organization_membership.created": {
 					logger.info("Processing organization_membership.created event");
+
+					// Ensure the organization record exists in Convex before saving the membership
+					await ctx.runAction(internal.workos.syncSingleOrganization, {
+						organizationId: normalizedData.organization_id,
+					});
+
 					const res = await ctx.runMutation(
 						internal.organizations.createOrUpdateMembership,
 						{
@@ -1919,6 +1925,12 @@ http.route({
 
 				case "organization_membership.updated": {
 					logger.info("Processing organization_membership.updated event");
+
+					// Ensure the organization record exists in Convex
+					await ctx.runAction(internal.workos.syncSingleOrganization, {
+						organizationId: normalizedData.organization_id,
+					});
+
 					const res = await ctx.runMutation(
 						internal.organizations.createOrUpdateMembership,
 						{

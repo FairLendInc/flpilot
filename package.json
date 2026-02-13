@@ -117,7 +117,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "convex": "^1.31.6",
+    "convex": "^1.31.7",
     "convex-fs": "^0.2.1",
     "convex-helpers": "^0.1.104",
     "date-fns": "^4.1.0",

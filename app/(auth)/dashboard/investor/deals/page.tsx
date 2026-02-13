@@ -1,7 +1,6 @@
-import { Briefcase } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { DealKanbanBoard } from "../../admin/deals/components/DealKanbanBoard";
 
 export default function InvestorDealsPage() {
 	return (
@@ -9,24 +8,23 @@ export default function InvestorDealsPage() {
 			<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
 				<SidebarTrigger className="-ml-1" />
 				<Separator className="mr-2 h-4" orientation="vertical" />
-				<h1 className="font-semibold text-lg">Deals</h1>
+				<h1 className="font-semibold text-lg">My Deals</h1>
 			</header>
 
 			<div className="flex flex-1 flex-col gap-6 p-6">
-				<Card>
-					<CardHeader>
-						<CardTitle>Active Deals</CardTitle>
-					</CardHeader>
-					<CardContent className="flex flex-col items-center justify-center py-12">
-						<div className="mb-4 rounded-full bg-primary/10 p-6">
-							<Briefcase className="h-12 w-12 text-primary" />
-						</div>
-						<h3 className="mb-2 font-semibold text-lg">Deal Management</h3>
-						<p className="text-center text-muted-foreground text-sm">
-							Track and manage your investment deals
+				<div className="flex items-center justify-between">
+					<div>
+						<h2 className="font-bold text-3xl tracking-tight">My Deals</h2>
+						<p className="mt-1 text-muted-foreground">
+							Track the progress of your mortgage investments
 						</p>
-					</CardContent>
-				</Card>
+					</div>
+				</div>
+
+				<DealKanbanBoard
+					readOnly
+					dealBasePath="/dashboard/investor/deals"
+				/>
 			</div>
 		</>
 	);

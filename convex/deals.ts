@@ -28,6 +28,8 @@ import {
 import {
 	adminAction,
 	authenticatedMutation,
+	investorQuery,
+	lawyerQuery,
 	investorLawyerAdminAction,
 	investorLawyerAdminMutation,
 } from "./lib/authorizedFunctions";
@@ -296,6 +298,470 @@ export const getAllActiveDeals = query({
 });
 
 /**
+ * Get deals for the currently authenticated investor.
+ * Returns the same shape as getAllActiveDeals but filtered to only
+ * deals where the investor is the current user.
+ */
+export const getInvestorDeals = investorQuery({
+	args: {},
+	returns: v.array(
+		v.object({
+			_id: v.id("deals"),
+			lockRequestId: v.optional(v.id("lock_requests")),
+			listingId: v.id("listings"),
+			mortgageId: v.id("mortgages"),
+			investorId: v.id("users"),
+			currentState: v.optional(v.string()),
+			purchasePercentage: v.optional(v.number()),
+			dealValue: v.optional(v.number()),
+			createdAt: v.number(),
+			completedAt: v.optional(v.number()),
+			updatedAt: v.number(),
+			mortgageAddress: v.string(),
+			investorName: v.string(),
+		})
+	),
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) return [];
+
+		const user = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+
+		if (!user) return [];
+
+		const deals = await ctx.db
+			.query("deals")
+			.withIndex("by_investor", (q) => q.eq("investorId", user._id))
+			.collect();
+
+		const dealsWithDetails = await Promise.all(
+			deals
+				.filter((deal) => deal.currentState !== "archived")
+				.map(async (deal) => {
+					const mortgage = await ctx.db.get(deal.mortgageId);
+					const mortgageAddress = mortgage
+						? `${mortgage.address.street}, ${mortgage.address.city}, ${mortgage.address.state} ${mortgage.address.zip}`
+						: "Address not available";
+
+					const investorName =
+						user.first_name && user.last_name
+							? `${user.first_name} ${user.last_name}`
+							: user.email || "Investor";
+
+					return {
+						_id: deal._id,
+						lockRequestId: deal.lockRequestId,
+						listingId: deal.listingId,
+						mortgageId: deal.mortgageId,
+						investorId: deal.investorId,
+						currentState: deal.currentState,
+						purchasePercentage: deal.purchasePercentage,
+						dealValue: deal.dealValue,
+						createdAt: deal.createdAt,
+						updatedAt: deal.updatedAt,
+						completedAt: deal.completedAt,
+						mortgageAddress,
+						investorName,
+					};
+				})
+		);
+
+		return dealsWithDetails;
+	},
+});
+
+/**
+ * Get a single deal with full details for the currently authenticated investor.
+ * Same shape as getDealWithDetails but verifies the investor owns this deal.
+ */
+export const getInvestorDealWithDetails = investorQuery({
+	args: { dealId: v.id("deals") },
+	returns: v.union(
+		v.object({
+			deal: v.object({
+				_id: v.id("deals"),
+				_creationTime: v.number(),
+				lockRequestId: v.optional(v.id("lock_requests")),
+				listingId: v.id("listings"),
+				mortgageId: v.id("mortgages"),
+				investorId: v.id("users"),
+				stateMachineState: v.optional(v.string()),
+				currentState: v.optional(v.string()),
+				purchasePercentage: v.optional(v.number()),
+				dealValue: v.optional(v.number()),
+				createdAt: v.number(),
+				updatedAt: v.number(),
+				completedAt: v.optional(v.number()),
+				archivedAt: v.optional(v.number()),
+				cancelledAt: v.optional(v.number()),
+				brokerId: v.optional(v.id("users")),
+				brokerName: v.optional(v.string()),
+				brokerEmail: v.optional(v.string()),
+				lawyerName: v.optional(v.string()),
+				lawyerEmail: v.optional(v.string()),
+				lawyerLSONumber: v.optional(v.string()),
+				stateHistory: v.optional(
+					v.array(
+						v.object({
+							fromState: v.string(),
+							toState: v.string(),
+							timestamp: v.number(),
+							triggeredBy: v.id("users"),
+							notes: v.optional(v.string()),
+						})
+					)
+				),
+				validationChecks: v.optional(
+					v.object({
+						lawyerConfirmed: v.boolean(),
+						docsComplete: v.boolean(),
+						fundsReceived: v.boolean(),
+						fundsVerified: v.boolean(),
+					})
+				),
+				currentUpload: v.optional(
+					v.object({
+						storageId: v.id("_storage"),
+						uploadedBy: v.string(),
+						uploadedAt: v.number(),
+						fileName: v.string(),
+						fileType: v.string(),
+					})
+				),
+				uploadHistory: v.optional(
+					v.array(
+						v.object({
+							storageId: v.id("_storage"),
+							uploadedBy: v.string(),
+							uploadedAt: v.number(),
+							fileName: v.string(),
+							fileType: v.string(),
+						})
+					)
+				),
+			}),
+			lockRequest: v.union(
+				v.object({
+					_id: v.id("lock_requests"),
+					status: v.string(),
+					lawyerName: v.string(),
+					lawyerEmail: v.string(),
+					lawyerLSONumber: v.string(),
+				}),
+				v.null()
+			),
+			listing: v.union(
+				v.object({
+					_id: v.id("listings"),
+					visible: v.boolean(),
+					locked: v.boolean(),
+				}),
+				v.null()
+			),
+			mortgage: v.union(
+				v.object({
+					_id: v.id("mortgages"),
+					loanAmount: v.number(),
+					interestRate: v.number(),
+					address: v.object({
+						street: v.string(),
+						city: v.string(),
+						state: v.string(),
+						zip: v.string(),
+						country: v.string(),
+					}),
+					propertyType: v.string(),
+					originationDate: v.string(),
+					maturityDate: v.string(),
+				}),
+				v.null()
+			),
+			borrower: v.union(
+				v.object({
+					_id: v.id("borrowers"),
+					name: v.string(),
+				}),
+				v.null()
+			),
+			investor: v.union(
+				v.object({
+					_id: v.id("users"),
+					email: v.string(),
+					first_name: v.optional(v.string()),
+					last_name: v.optional(v.string()),
+				}),
+				v.null()
+			),
+		}),
+		v.null()
+	),
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) return null;
+
+		const user = await ctx.db
+			.query("users")
+			.withIndex("by_idp_id", (q) => q.eq("idp_id", identity.subject))
+			.unique();
+		if (!user) return null;
+
+		const deal = await ctx.db.get(args.dealId);
+		if (!deal) return null;
+
+		// Verify the current user is the investor on this deal
+		if (deal.investorId !== user._id) return null;
+
+		const lockRequest = deal.lockRequestId
+			? await ctx.db.get(deal.lockRequestId)
+			: null;
+		const listing = await ctx.db.get(deal.listingId);
+		const mortgage = await ctx.db.get(deal.mortgageId);
+		const borrower = mortgage?.borrowerId
+			? await ctx.db.get(mortgage.borrowerId)
+			: null;
+
+		return {
+			deal,
+			lockRequest: lockRequest
+				? {
+						_id: lockRequest._id,
+						status: lockRequest.status,
+						lawyerName: lockRequest.lawyerName,
+						lawyerEmail: lockRequest.lawyerEmail,
+						lawyerLSONumber: lockRequest.lawyerLSONumber,
+					}
+				: null,
+			listing: listing
+				? {
+						_id: listing._id,
+						visible: listing.visible,
+						locked: listing.locked,
+					}
+				: null,
+			mortgage: mortgage
+				? {
+						_id: mortgage._id,
+						loanAmount: mortgage.loanAmount,
+						interestRate: mortgage.interestRate,
+						address: mortgage.address,
+						propertyType: mortgage.propertyType,
+						originationDate: mortgage.originationDate,
+						maturityDate: mortgage.maturityDate,
+					}
+				: null,
+			borrower: borrower
+				? {
+						_id: borrower._id,
+						name: borrower.name,
+					}
+				: null,
+			investor: {
+				_id: user._id,
+				email: user.email,
+				first_name: user.first_name,
+				last_name: user.last_name,
+			},
+		};
+	},
+});
+
+/**
+ * Get a single deal with full details for the currently authenticated lawyer.
+ * Same shape as getDealWithDetails but verifies the lawyer is assigned to this deal
+ * via email match (deals store lawyerEmail, not a lawyerId foreign key).
+ */
+export const getLawyerDealWithDetails = lawyerQuery({
+	args: { dealId: v.id("deals") },
+	returns: v.union(
+		v.object({
+			deal: v.object({
+				_id: v.id("deals"),
+				_creationTime: v.number(),
+				lockRequestId: v.optional(v.id("lock_requests")),
+				listingId: v.id("listings"),
+				mortgageId: v.id("mortgages"),
+				investorId: v.id("users"),
+				stateMachineState: v.optional(v.string()),
+				currentState: v.optional(v.string()),
+				purchasePercentage: v.optional(v.number()),
+				dealValue: v.optional(v.number()),
+				createdAt: v.number(),
+				updatedAt: v.number(),
+				completedAt: v.optional(v.number()),
+				archivedAt: v.optional(v.number()),
+				cancelledAt: v.optional(v.number()),
+				brokerId: v.optional(v.id("users")),
+				brokerName: v.optional(v.string()),
+				brokerEmail: v.optional(v.string()),
+				lawyerName: v.optional(v.string()),
+				lawyerEmail: v.optional(v.string()),
+				lawyerLSONumber: v.optional(v.string()),
+				stateHistory: v.optional(
+					v.array(
+						v.object({
+							fromState: v.string(),
+							toState: v.string(),
+							timestamp: v.number(),
+							triggeredBy: v.id("users"),
+							notes: v.optional(v.string()),
+						})
+					)
+				),
+				validationChecks: v.optional(
+					v.object({
+						lawyerConfirmed: v.boolean(),
+						docsComplete: v.boolean(),
+						fundsReceived: v.boolean(),
+						fundsVerified: v.boolean(),
+					})
+				),
+				currentUpload: v.optional(
+					v.object({
+						storageId: v.id("_storage"),
+						uploadedBy: v.string(),
+						uploadedAt: v.number(),
+						fileName: v.string(),
+						fileType: v.string(),
+					})
+				),
+				uploadHistory: v.optional(
+					v.array(
+						v.object({
+							storageId: v.id("_storage"),
+							uploadedBy: v.string(),
+							uploadedAt: v.number(),
+							fileName: v.string(),
+							fileType: v.string(),
+						})
+					)
+				),
+			}),
+			lockRequest: v.union(
+				v.object({
+					_id: v.id("lock_requests"),
+					status: v.string(),
+					lawyerName: v.string(),
+					lawyerEmail: v.string(),
+					lawyerLSONumber: v.string(),
+				}),
+				v.null()
+			),
+			listing: v.union(
+				v.object({
+					_id: v.id("listings"),
+					visible: v.boolean(),
+					locked: v.boolean(),
+				}),
+				v.null()
+			),
+			mortgage: v.union(
+				v.object({
+					_id: v.id("mortgages"),
+					loanAmount: v.number(),
+					interestRate: v.number(),
+					address: v.object({
+						street: v.string(),
+						city: v.string(),
+						state: v.string(),
+						zip: v.string(),
+						country: v.string(),
+					}),
+					propertyType: v.string(),
+					originationDate: v.string(),
+					maturityDate: v.string(),
+				}),
+				v.null()
+			),
+			borrower: v.union(
+				v.object({
+					_id: v.id("borrowers"),
+					name: v.string(),
+				}),
+				v.null()
+			),
+			investor: v.union(
+				v.object({
+					_id: v.id("users"),
+					email: v.string(),
+					first_name: v.optional(v.string()),
+					last_name: v.optional(v.string()),
+				}),
+				v.null()
+			),
+		}),
+		v.null()
+	),
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity?.email) return null;
+
+		const deal = await ctx.db.get(args.dealId);
+		if (!deal) return null;
+
+		// Verify the current user is the lawyer assigned to this deal
+		if (deal.lawyerEmail !== identity.email) return null;
+
+		const lockRequest = deal.lockRequestId
+			? await ctx.db.get(deal.lockRequestId)
+			: null;
+		const listing = await ctx.db.get(deal.listingId);
+		const mortgage = await ctx.db.get(deal.mortgageId);
+		const borrower = mortgage?.borrowerId
+			? await ctx.db.get(mortgage.borrowerId)
+			: null;
+		const investor = await ctx.db.get(deal.investorId);
+
+		return {
+			deal,
+			lockRequest: lockRequest
+				? {
+						_id: lockRequest._id,
+						status: lockRequest.status,
+						lawyerName: lockRequest.lawyerName,
+						lawyerEmail: lockRequest.lawyerEmail,
+						lawyerLSONumber: lockRequest.lawyerLSONumber,
+					}
+				: null,
+			listing: listing
+				? {
+						_id: listing._id,
+						visible: listing.visible,
+						locked: listing.locked,
+					}
+				: null,
+			mortgage: mortgage
+				? {
+						_id: mortgage._id,
+						loanAmount: mortgage.loanAmount,
+						interestRate: mortgage.interestRate,
+						address: mortgage.address,
+						propertyType: mortgage.propertyType,
+						originationDate: mortgage.originationDate,
+						maturityDate: mortgage.maturityDate,
+					}
+				: null,
+			borrower: borrower
+				? {
+						_id: borrower._id,
+						name: borrower.name,
+					}
+				: null,
+			investor: investor
+				? {
+						_id: investor._id,
+						email: investor.email,
+						first_name: investor.first_name,
+						last_name: investor.last_name,
+					}
+				: null,
+		};
+	},
+});
+
+/**
  * Get deals by specific state (for filtering Kanban columns)
  */
 export const getDealsByState = query({
@@ -432,6 +898,13 @@ export const getDealWithDetails = query({
 				updatedAt: v.number(),
 				completedAt: v.optional(v.number()),
 				archivedAt: v.optional(v.number()),
+				cancelledAt: v.optional(v.number()),
+				brokerId: v.optional(v.id("users")),
+				brokerName: v.optional(v.string()),
+				brokerEmail: v.optional(v.string()),
+				lawyerName: v.optional(v.string()),
+				lawyerEmail: v.optional(v.string()),
+				lawyerLSONumber: v.optional(v.string()),
 				stateHistory: v.optional(
 					v.array(
 						v.object({
