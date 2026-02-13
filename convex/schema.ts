@@ -1198,7 +1198,8 @@ export default defineSchema({
 		.index("by_investor", ["investorId"])
 		// .index("by_status", ["status"])
 		.index("by_current_state", ["currentState"])
-		.index("by_created_at", ["createdAt"]),
+		.index("by_created_at", ["createdAt"])
+		.index("by_lawyer_email", ["lawyerEmail"]),
 
 	deal_documents: defineTable({
 		dealId: v.id("deals"),
@@ -1551,4 +1552,95 @@ export default defineSchema({
 		.index("by_borrower", ["borrowerId"])
 		.index("by_mortgage", ["mortgageId"])
 		.index("by_status", ["status"]),
+
+	// ============================================================================
+	// Telemetry / OTel Tracing Tables
+	// ============================================================================
+
+	/**
+	 * Trace runs — one record per top-level trace.
+	 * Aggregates metadata across all spans in the trace.
+	 */
+	trace_runs: defineTable({
+		traceId: v.string(),
+		requestId: v.optional(v.string()),
+		rootFunction: v.string(),
+		status: v.union(
+			v.literal("started"),
+			v.literal("completed"),
+			v.literal("error")
+		),
+		startedAt: v.number(),
+		endedAt: v.optional(v.number()),
+		durationMs: v.optional(v.number()),
+		environment: v.optional(v.string()),
+		spanCount: v.optional(v.number()),
+		// OTLP export tracking
+		exportedAt: v.optional(v.number()),
+		exportError: v.optional(v.string()),
+	})
+		.index("by_traceId", ["traceId"])
+		.index("by_status", ["status"])
+		.index("by_startedAt", ["startedAt"])
+		.index("by_exported", ["exportedAt"]),
+
+	/**
+	 * Individual spans within a trace.
+	 * Each function invocation (query/mutation/action) produces one span.
+	 */
+	trace_spans: defineTable({
+		traceId: v.string(),
+		spanId: v.string(),
+		parentSpanId: v.optional(v.string()),
+		functionName: v.string(),
+		kind: v.union(
+			v.literal("query"),
+			v.literal("mutation"),
+			v.literal("action"),
+			v.literal("internal")
+		),
+		status: v.union(
+			v.literal("started"),
+			v.literal("completed"),
+			v.literal("error")
+		),
+		startedAt: v.number(),
+		endedAt: v.optional(v.number()),
+		durationMs: v.optional(v.number()),
+		attributes: v.optional(v.any()),
+		payloadRef: v.optional(v.string()),
+		error: v.optional(
+			v.object({
+				message: v.string(),
+				code: v.optional(v.string()),
+				stack: v.optional(v.string()),
+			})
+		),
+	})
+		.index("by_traceId", ["traceId"])
+		.index("by_traceId_startedAt", ["traceId", "startedAt"]),
+
+	/**
+	 * Captured payloads (args, results, errors) for dev-mode inspection.
+	 * Linked to spans via payloadRef.
+	 */
+	trace_payloads: defineTable({
+		payloadRef: v.string(),
+		traceId: v.string(),
+		spanId: v.string(),
+		kind: v.union(
+			v.literal("args"),
+			v.literal("context"),
+			v.literal("state"),
+			v.literal("result"),
+			v.literal("error")
+		),
+		content: v.string(),
+		sizeBytes: v.number(),
+		redacted: v.boolean(),
+		createdAt: v.number(),
+	})
+		.index("by_payloadRef", ["payloadRef"])
+		.index("by_traceId_spanId", ["traceId", "spanId"])
+		.index("by_createdAt", ["createdAt"]),
 });

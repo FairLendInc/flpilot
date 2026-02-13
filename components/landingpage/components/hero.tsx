@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
@@ -11,7 +11,6 @@ export const Hero = () => {
 	const ref = useRef<HTMLDivElement>(null);
 	// const [showWaitlistModal, setShowWaitlistModal] = useState(false); // Removed local state
 	const { setShowWaitlistModal } = useWaitlist();
-	const [email, setEmail] = useState("");
 	const { scrollYProgress } = useScroll({
 		target: ref,
 		offset: ["start start", "end start"],
@@ -88,9 +87,9 @@ export const Hero = () => {
 						transition={{ duration: 1, ease: "easeOut", delay: 0.5 }}
 					>
 						<span className="text-white drop-shadow-md drop-shadow-black/50">
-
-						Fairlend: Smarter Mortgage Investing.
-						</span>
+						Conservative Underwriting.<br />
+						Two Engines of Above-Market Returns.
+					</span>
 					</motion.h1>
 					<motion.p 
 						className="text-lg md:text-2xl font-medium text-gray-100 drop-shadow-md drop-shadow-black/70 opacity-0" // Added opacity-0 to prevent flash
@@ -99,8 +98,8 @@ export const Hero = () => {
 						transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
 					>
 						<span className="text-gray-100 drop-shadow-md drop-shadow-black/70">
-						Earn lending fees like private equity. Without the hassle.
-						</span>
+						Two distinct engines of alpha. One conservative portfolio. Built by a team with $2B+ in mortgage expertise.
+					</span>
 					</motion.p>
 				</motion.div>
 
@@ -109,30 +108,25 @@ export const Hero = () => {
 					className="pointer-events-auto flex flex-col items-center gap-4 max-w-2xl w-full"
 					style={{ opacity: ctaOpacity }}
 				>
-					<motion.div 
-						className="flex w-full items-center gap-3 rounded-full border-3 border-green-500/50 bg-black/30 px-4 py-3 shadow-2xl backdrop-blur-lg"
+					<motion.div
+						className="flex flex-col sm:flex-row items-center gap-4"
 						initial={{ opacity: 0, scale: 0.9 }}
 						animate={{ opacity: 1, scale: 1 }}
 						transition={{ duration: 0.5, ease: "easeOut", delay: 0.9 }}
 					>
-						<input
-							className="w-full bg-transparent shadow-2xl shadow-black/50 text-base md:text-lg text-white placeholder:text-white outline-none"
-							placeholder="Enter your email"
-							type="email"
-							aria-label="Email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === 'Enter') setShowWaitlistModal(true);
-							}}
-						/>
 						<button
 							type="button"
 							onClick={() => setShowWaitlistModal(true)}
-							className="flex size-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition hover:bg-emerald-700 cursor-pointer"
+							className="rounded-full bg-emerald-600 px-8 py-4 font-bold text-lg text-white shadow-2xl transition hover:scale-105 hover:bg-emerald-700 cursor-pointer"
 						>
-							<ArrowRight className="size-5" />
+							Request the Investor Package
 						</button>
+						<a
+							href="#engines"
+							className="flex items-center gap-2 font-semibold text-lg text-white/90 transition hover:text-white hover:underline"
+						>
+							See How Both Engines Work <ArrowRight className="size-5" />
+						</a>
 					</motion.div>
 				</motion.div>
 			</motion.div>

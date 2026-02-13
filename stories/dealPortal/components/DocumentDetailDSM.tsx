@@ -59,9 +59,13 @@ export function DocumentDetailDSM() {
     }
 
     // Check for direct token in document (populated from Documenso recipients)
-    if (selectedDocument2.recipientTokens && selectedDocument2.recipientTokens[currentUser2.email]) {
-      const token = selectedDocument2.recipientTokens[currentUser2.email]
-      console.log(`getSigningUrlForCurrentUser: Found token for user ${currentUser2.email}: ${token}`)
+    // Use case-insensitive lookup since WorkOS and Documenso may store emails differently
+    const userEmailLower = currentUser2.email.toLowerCase()
+    const tokenEntry = selectedDocument2.recipientTokens
+      ? Object.entries(selectedDocument2.recipientTokens).find(([email]) => email.toLowerCase() === userEmailLower)
+      : undefined
+    if (tokenEntry) {
+      const [, token] = tokenEntry
       return `https://app.documenso.com/sign/${token}`
     }
 
@@ -196,9 +200,9 @@ export function DocumentDetailDSM() {
 
         <CardContent className="space-y-4 p-0">
           {/* Check if current user has already signed */}
-          {selectedDocument2.recipientStatus && 
-           currentUser2 && 
-           selectedDocument2.recipientStatus[currentUser2.email] === 'SIGNED' ? (
+          {selectedDocument2.recipientStatus &&
+           currentUser2 &&
+           Object.entries(selectedDocument2.recipientStatus).some(([email, status]) => email.toLowerCase() === currentUser2.email.toLowerCase() && status === 'SIGNED') ? (
             <div className="flex h-[400px] flex-col items-center justify-center space-y-6 bg-gradient-to-b from-background to-muted/20 p-8 text-center">
               <div className="relative">
                 <div className="absolute -inset-4 animate-pulse rounded-full bg-success/20 blur-xl" />

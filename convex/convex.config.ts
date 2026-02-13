@@ -13,6 +13,7 @@ import crons from "@convex-dev/crons/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import resend from "@convex-dev/resend/convex.config";
 import workflow from "@convex-dev/workflow/convex.config";
+import workOSAuthKit from "@convex-dev/workos-authkit/convex.config";
 import filesControl from "@gilhrpenner/convex-files-control/convex.config";
 import { defineApp } from "convex/server";
 
@@ -20,6 +21,7 @@ const app = defineApp();
 
 // Secure document management
 app.use(filesControl, { name: "filesControl" });
+app.use(workOSAuthKit, { name: "authKit" });
 
 // Durable workflows for approvals
 app.use(workflow, { name: "workflow" });

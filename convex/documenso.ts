@@ -125,6 +125,17 @@ export const createDocumentFromTemplateAction = authenticatedAction({
 				),
 			})
 		),
+		prefillFields: v.optional(
+			v.array(
+				v.object({
+					id: v.number(),
+					type: v.union(v.literal("text"), v.literal("number")),
+					label: v.optional(v.string()),
+					placeholder: v.optional(v.string()),
+					value: v.string(),
+				})
+			)
+		),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -144,6 +155,7 @@ export const createDocumentFromTemplateAction = authenticatedAction({
 		const document = await generateDocumentFromTemplate({
 			templateId: args.templateId,
 			recipients: args.recipients,
+			prefillFields: args.prefillFields,
 		});
 
 		// 3. Record in Convex

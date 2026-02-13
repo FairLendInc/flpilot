@@ -11,6 +11,7 @@
 import type * as alerts from "../alerts.js";
 import type * as auditEvents from "../auditEvents.js";
 import type * as auditEventsCron from "../auditEventsCron.js";
+import type * as auth from "../auth.js";
 import type * as authTests from "../authTests.js";
 import type * as borrowerOnboarding from "../borrowerOnboarding.js";
 import type * as borrowers from "../borrowers.js";
@@ -52,7 +53,6 @@ import type * as lib_broker from "../lib/broker.js";
 import type * as lib_brokerLedger from "../lib/brokerLedger.js";
 import type * as lib_client from "../lib/client.js";
 import type * as lib_env from "../lib/env.js";
-import type * as lib_envAuth from "../lib/envAuth.js";
 import type * as lib_events_auditedMutation from "../lib/events/auditedMutation.js";
 import type * as lib_events_emitter from "../lib/events/emitter.js";
 import type * as lib_events_index from "../lib/events/index.js";
@@ -60,6 +60,16 @@ import type * as lib_events_types from "../lib/events/types.js";
 import type * as lib_ownershipConfig from "../lib/ownershipConfig.js";
 import type * as lib_ownershipLedger from "../lib/ownershipLedger.js";
 import type * as lib_server from "../lib/server.js";
+import type * as lib_telemetry_clientHooks from "../lib/telemetry/clientHooks.js";
+import type * as lib_telemetry_config from "../lib/telemetry/config.js";
+import type * as lib_telemetry_exporter from "../lib/telemetry/exporter.js";
+import type * as lib_telemetry_index from "../lib/telemetry/index.js";
+import type * as lib_telemetry_instrumentedWrappers from "../lib/telemetry/instrumentedWrappers.js";
+import type * as lib_telemetry_payloadCapture from "../lib/telemetry/payloadCapture.js";
+import type * as lib_telemetry_queries from "../lib/telemetry/queries.js";
+import type * as lib_telemetry_retention from "../lib/telemetry/retention.js";
+import type * as lib_telemetry_spanWriter from "../lib/telemetry/spanWriter.js";
+import type * as lib_telemetry_types from "../lib/telemetry/types.js";
 import type * as lib_webhookPagination from "../lib/webhookPagination.js";
 import type * as listings from "../listings.js";
 import type * as lockRequests from "../lockRequests.js";
@@ -96,6 +106,7 @@ declare const fullApi: ApiFromModules<{
   alerts: typeof alerts;
   auditEvents: typeof auditEvents;
   auditEventsCron: typeof auditEventsCron;
+  auth: typeof auth;
   authTests: typeof authTests;
   borrowerOnboarding: typeof borrowerOnboarding;
   borrowers: typeof borrowers;
@@ -137,7 +148,6 @@ declare const fullApi: ApiFromModules<{
   "lib/brokerLedger": typeof lib_brokerLedger;
   "lib/client": typeof lib_client;
   "lib/env": typeof lib_env;
-  "lib/envAuth": typeof lib_envAuth;
   "lib/events/auditedMutation": typeof lib_events_auditedMutation;
   "lib/events/emitter": typeof lib_events_emitter;
   "lib/events/index": typeof lib_events_index;
@@ -145,6 +155,16 @@ declare const fullApi: ApiFromModules<{
   "lib/ownershipConfig": typeof lib_ownershipConfig;
   "lib/ownershipLedger": typeof lib_ownershipLedger;
   "lib/server": typeof lib_server;
+  "lib/telemetry/clientHooks": typeof lib_telemetry_clientHooks;
+  "lib/telemetry/config": typeof lib_telemetry_config;
+  "lib/telemetry/exporter": typeof lib_telemetry_exporter;
+  "lib/telemetry/index": typeof lib_telemetry_index;
+  "lib/telemetry/instrumentedWrappers": typeof lib_telemetry_instrumentedWrappers;
+  "lib/telemetry/payloadCapture": typeof lib_telemetry_payloadCapture;
+  "lib/telemetry/queries": typeof lib_telemetry_queries;
+  "lib/telemetry/retention": typeof lib_telemetry_retention;
+  "lib/telemetry/spanWriter": typeof lib_telemetry_spanWriter;
+  "lib/telemetry/types": typeof lib_telemetry_types;
   "lib/webhookPagination": typeof lib_webhookPagination;
   listings: typeof listings;
   lockRequests: typeof lockRequests;
@@ -568,6 +588,43 @@ export declare const components: {
           storageProvider: "convex" | "r2";
           virtualPath: string | null;
         }
+      >;
+    };
+  };
+  authKit: {
+    lib: {
+      enqueueWebhookEvent: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          apiKey: string;
+          event: string;
+          eventId: string;
+          eventTypes?: Array<string>;
+          logLevel?: "DEBUG";
+          onEventHandle?: string;
+          updatedAt?: string;
+        },
+        any
+      >;
+      getAuthUser: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        {
+          createdAt: string;
+          email: string;
+          emailVerified: boolean;
+          externalId?: null | string;
+          firstName?: null | string;
+          id: string;
+          lastName?: null | string;
+          lastSignInAt?: null | string;
+          locale?: null | string;
+          metadata: Record<string, any>;
+          profilePictureUrl?: null | string;
+          updatedAt: string;
+        } | null
       >;
     };
   };

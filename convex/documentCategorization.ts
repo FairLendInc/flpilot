@@ -438,10 +438,11 @@ export const batchResolveDocumentGroups = authenticatedQuery({
 	handler: async (ctx, args): Promise<BatchResolutionResult[]> => {
 		const results: BatchResolutionResult[] = await Promise.all(
 			args.documents.map(async (doc): Promise<BatchResolutionResult> => {
+				const { id, ...document } = doc;
 				const resolution = await ctx.runQuery(
 					internal.documentCategorization.resolveDocumentGroupInternal,
 					{
-						document: doc,
+						document,
 						includeInactiveGroups: args.includeInactiveGroups,
 					}
 				);

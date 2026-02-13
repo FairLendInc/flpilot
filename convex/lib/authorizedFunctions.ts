@@ -31,8 +31,13 @@ export const brokerQuery = createAuthorizedQuery(["broker"]);
 export const brokerMutation = createAuthorizedMutation(["broker"]);
 export const brokerAction = createAuthorizedAction(["broker"]);
 
+export const investorQuery = createAuthorizedQuery(["investor"]);
 export const investorMutation = createAuthorizedMutation(["investor"]);
 export const investorAction = createAuthorizedAction(["investor"]);
+
+export const lawyerQuery = createAuthorizedQuery(["lawyer"]);
+export const lawyerMutation = createAuthorizedMutation(["lawyer"]);
+export const lawyerAction = createAuthorizedAction(["lawyer"]);
 
 export const investorLawyerAdminMutation = createAuthorizedMutation([
 	"investor",

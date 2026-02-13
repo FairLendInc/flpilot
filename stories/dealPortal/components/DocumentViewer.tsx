@@ -68,7 +68,6 @@ const DocumentViewer = () => {
     getSelectedDocumentWithFileData,
     getDocumentVersions,
     handleFileSelect,
-    activeDocumentGroup,
     completeDocumentAction,
     userRole,
     uploadState,
@@ -157,7 +156,7 @@ const DocumentViewer = () => {
 
   // Modified function to handle E-Signing
   const handleESign = () => {
-    if (!selectedDocument || !activeDocumentGroup) return
+    if (!selectedDocument) return
 
     try {
       // Complete the e-sign action
