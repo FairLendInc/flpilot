@@ -47,8 +47,6 @@ export interface DealStoreState {
   // UI navigation state
   activeTab: string
   setActiveTab: (tab: string) => void
-  activeDocumentGroup: string | null
-  setActiveDocumentGroup: (group: string | null) => void
   selectedDocument: Document | null
   setSelectedDocument: (doc: Document | null) => void
 
@@ -146,8 +144,6 @@ export const useDealStore = create<DealStoreState>((set, get) => ({
 
   activeTab: 'documents',
   setActiveTab: (tab) => set({ activeTab: tab }),
-  activeDocumentGroup: null,
-  setActiveDocumentGroup: (group) => set({ activeDocumentGroup: group }),
   selectedDocument: null,
   setSelectedDocument: (doc) => set({ selectedDocument: doc }),
 

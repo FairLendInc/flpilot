@@ -31,7 +31,6 @@ export function PortalContent({
   // Use selectors to avoid unnecessary re-renders
   const activeTab2 = useDealStore((state) => state.activeTab)
   const setActiveTab2 = useDealStore((state) => state.setActiveTab)
-  const activeDocumentGroup2 = useDealStore((state) => state.activeDocumentGroup)
   const selectedDocument2 = useDealStore((state) => state.selectedDocument)
   const isLoadingDocuments2 = useDealStore((state) => state.isLoadingDocuments)
   const documentsError2 = useDealStore((state) => state.documentsError)
@@ -48,17 +47,6 @@ export function PortalContent({
       description: `Viewed ${activeTab2} tab`,
     })
   }, [activeTab2, logEvent2])
-
-  // Log document group view when activeDocumentGroup changes
-  useEffect(() => {
-    if (activeDocumentGroup2) {
-      logEvent2({
-        type: "view",
-        viewType: "document_group",
-        description: `Viewed ${activeDocumentGroup2} group`,
-      })
-    }
-  }, [activeDocumentGroup2, logEvent2])
 
   // Log document view when selectedDocument changes
   useEffect(() => {

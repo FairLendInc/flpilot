@@ -1,15 +1,14 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { AlertTriangle, AlertCircle, CheckCircle, ChevronLeft, Clock, FileText, ShieldCheck, Stamp, HandCoins } from "lucide-react"
+import { AlertCircle, CheckCircle, Clock, FileText } from "lucide-react"
 import HorizontalSteps from "./ui/horizontal-steps"
 import { useDealStore } from "../store/dealStore"
-import { ActionTypeEnum, Document as DocumensoDoc, ActionAssignment, FairLendRole } from "../utils/dealLogic"
+import { ActionTypeEnum, Document as DocumensoDoc, ActionAssignment } from "../utils/dealLogic"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const actionToTitle = (action: ActionAssignment) => {
@@ -53,8 +52,6 @@ const DocumentCard = ({
   }
 
   // Get document manager with error handling
-  // const docManager2 = dsm2.getDoc(document.id)
-  // Mock docManager
   const docManager2 = documents.find((d) => d.id === document.id)
 
   if (!docManager2) {
@@ -62,8 +59,7 @@ const DocumentCard = ({
     return null
   }
 
-  // Get document state with error handling  
-  // const docState = dsm2.getDocState(document.id)
+  // Get document state with error handling
   const docState = getDocState2(document.id)
 
   if (!docState) {
@@ -71,17 +67,14 @@ const DocumentCard = ({
     return null
   }
 
-  // const requiredAction = docManager2.getCurrentAssignment()
-  // const isCompleted = docManager2.isComplete()
-  
   // Use document properties
   const requiredAction = !docManager2.isComplete ? { assignedToEmail: docManager2.assignedTo, type: docManager2.requiredAction } : null
   const isCompleted = docManager2.isComplete
-  
+
   const hasUserAction = requiredAction?.assignedToEmail?.toLowerCase() === currentUser2?.email?.toLowerCase()
 
   // Get document steps using signingSteps property, sorted by order
-  const steps = document.signingSteps 
+  const steps = document.signingSteps
     ? [...document.signingSteps]
         .sort((a, b) => a.order - b.order)
         .map(s => ({
@@ -90,9 +83,9 @@ const DocumentCard = ({
           status: s.status
         }))
     : []
-  
+
   // Calculate current step based on first non-signed step (after sorting)
-  const sortedSigningSteps = document.signingSteps 
+  const sortedSigningSteps = document.signingSteps
     ? [...document.signingSteps].sort((a, b) => a.order - b.order)
     : []
   const currentStepIndex = sortedSigningSteps.findIndex(s => s.status !== 'SIGNED')
@@ -106,10 +99,10 @@ const DocumentCard = ({
   const assignedToName = docManager2.assignedTo || "Unknown"
 
   // Generate action text with better logic
-  const actionText = hasUserAction ? 
-    `${actionType}` : 
-    hasAction ? 
-      `${actionType} by ${assignedToName}` : 
+  const actionText = hasUserAction ?
+    `${actionType}` :
+    hasAction ?
+      `${actionType} by ${assignedToName}` :
       "Complete"
 
   const actionTextObject = {
@@ -117,24 +110,6 @@ const DocumentCard = ({
     assignedTo: assignedToName,
     action: actionType,
   }
-
-
-  // Get status icon and label from document state
-  const getStatusIcon = () => {
-    if (isCompleted) return <CheckCircle className="text-success h-4 w-4" />
-    if (hasUserAction) return <AlertCircle className="text-destructive h-4 w-4" />
-    if (hasAction) return <Clock className="text-warning h-4 w-4" />
-    return <CheckCircle className="text-success h-4 w-4" />
-  }
-
-  const getStatusLabel = () => {
-    if (isCompleted) return "COMPLETE"
-    if (hasUserAction) return "Action Required"
-    if (hasAction) return "BLOCKED"
-    return "COMPLETE"
-  }
-
-  // These are computed inline in JSX for efficiency
 
   return (
     <div
@@ -206,7 +181,6 @@ const DocumentCard = ({
               >
                 <AlertCircle className="h-4 w-4" />
                 <div>
-                  {/* <AlertTitle className="text-sm">{action.docName.toString()}</AlertTitle> */}
                   <AlertDescription className="text-sm">
                     {"Action Required: "}
                     <Badge variant="outline" className="mx-2">
@@ -249,80 +223,66 @@ const DocumentCard = ({
 export function DocumentListDSM() {
   const {
     documents,
-    activeDocumentGroup: activeDocumentGroup2,
-    setActiveDocumentGroup: setActiveDocumentGroup2,
-    selectedDocument: selectedDocument2,
-    setSelectedDocument: setSelectedDocument2,
-    getDocumentGroupName,
-    calculateGroupStatus,
+    selectedDocument,
+    setSelectedDocument,
+    isLoadingDocuments,
+    documentsError,
   } = useDealStore()
-  
-  const [groupDocuments, setGroupDocuments] = useState<any[]>([])
 
-  useEffect(() => {
-    if (!activeDocumentGroup2 || !documents) return
+  // Compute overall progress across all documents
+  const completedCount = documents.filter(d => d.isComplete).length
+  const totalCount = documents.length
+  const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
-    // const group2 = dsm2.getGroup(activeDocumentGroup2)
-    const group2 = documents.filter((d) => d.group === activeDocumentGroup2)
+  // Show loading state
+  if (isLoadingDocuments) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-pulse">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="group overflow-hidden rounded-lg shadow-sm">
+            <div className="bg-muted h-1 w-full rounded-t-lg" />
+            <CardHeader className="pb-2">
+              <div className="bg-muted h-4 w-32 rounded" />
+            </CardHeader>
+            <CardContent className="pt-2 pb-0">
+              <div className="bg-muted h-2 w-full rounded" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 
-    if (group2) {
-      const docs = group2.map((doc) => doc)
-      setGroupDocuments(docs)
-      console.log("DocumentListDSM: Loaded documents for group", activeDocumentGroup2, docs.length)
-    } else {
-      console.log("DocumentListDSM: No group found for", activeDocumentGroup2)
-      setGroupDocuments([])
-    }
-  }, [documents, activeDocumentGroup2])
+  // Show error state
+  if (documentsError) {
+    return (
+      <Card className="group overflow-hidden rounded-lg shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <AlertCircle size={16} />
+            Error Loading Documents
+          </CardTitle>
+        </CardHeader>
+      </Card>
+    )
+  }
 
-  if (!activeDocumentGroup2) {
+  // Show empty state
+  if (!documents || documents.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center py-12">
         <FileText className="text-muted-foreground/50 mb-4 h-16 w-16" />
-        <h3 className="mb-2 text-lg font-medium">No Document Group Selected</h3>
+        <h3 className="mb-2 text-lg font-medium">No Documents</h3>
         <p className="text-muted-foreground max-w-md text-center">
-          Select a document group to view the documents within it.
+          No documents have been added to this deal yet.
         </p>
       </div>
     )
   }
 
-
-  // Small helper to choose an icon per group for visual identity
-  const GroupIcon = ({ id }: { id: string }) => {
-    switch (id) {
-      case "mortgage":
-        return <HandCoins className="h-4 w-4" />
-      case "closing":
-        return <Stamp className="h-4 w-4" />
-      case "servicing":
-        return <ShieldCheck className="h-4 w-4" />
-      default:
-        return <FileText className="h-4 w-4" />
-    }
-  }
-
-  const { percent, status } = calculateGroupStatus(activeDocumentGroup2)
-  console.log("DOC GROUP PERCENT: ", percent)
-
   return (
-    <div className="animate-in fade-in slide-in-from-right-4 duration-200">
+    <div className="animate-in fade-in slide-in-from-left-4 duration-200">
       <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveDocumentGroup2(null)}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <h2 className="text-xl sm:text-2xl font-semibold">
-            {getDocumentGroupName(activeDocumentGroup2)}
-          </h2>
-        </div>
-        
         <div className="flex items-center gap-2">
           <Progress
             value={percent}
@@ -332,34 +292,17 @@ export function DocumentListDSM() {
           <span className="text-muted-foreground text-xs tabular-nums">{percent}%</span>
         </div>
 
-        <Card className="bg-background border-none shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Documents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {groupDocuments.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {groupDocuments.map((doc) => {
-                  return (
-                    <DocumentCard
-                      key={doc.id}
-                      document={doc}
-                      onClick={() => setSelectedDocument2(doc)}
-                      isSelected={selectedDocument2?.id === doc.id}
-                    />
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="flex h-24 flex-col items-center justify-center text-center">
-                <FileText className="text-muted-foreground/50 mb-2 h-8 w-8" />
-                <p className="text-muted-foreground">No documents in this group.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {documents.map((doc) => (
+            <DocumentCard
+              key={doc.id}
+              document={doc}
+              onClick={() => setSelectedDocument(doc)}
+              isSelected={selectedDocument?.id === doc.id}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )
 }
-
