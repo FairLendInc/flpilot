@@ -31,7 +31,7 @@ export type ExtractedPlaceholder = {
  * De-duplicates by placeholder key and collects all matching field IDs with their types.
  */
 export function extractPlaceholders(
-	fields: DocumensoTemplateField[],
+	fields: DocumensoTemplateField[]
 ): ExtractedPlaceholder[] {
 	const placeholderMap = new Map<string, ExtractedPlaceholder>();
 
@@ -75,7 +75,7 @@ function formatPlaceholderLabel(key: string): string {
  * Build a Zod schema from extracted placeholders for use with AutoForm.
  */
 export function buildPrefillSchema(
-	placeholders: ExtractedPlaceholder[],
+	placeholders: ExtractedPlaceholder[]
 ): z.ZodObject<Record<string, z.ZodString>> {
 	const shape: Record<string, z.ZodString> = {};
 	for (const p of placeholders) {
@@ -110,7 +110,7 @@ export type DealDataForPrefill = {
  * Returns a partial record — only keys with available data are included.
  */
 export function getAutoFillValues(
-	dealData: DealDataForPrefill,
+	dealData: DealDataForPrefill
 ): Record<string, string> {
 	const values: Record<string, string> = {};
 
@@ -156,7 +156,7 @@ export function getAutoFillValues(
  */
 export function calculateTerm(
 	originationDate: string,
-	maturityDate: string,
+	maturityDate: string
 ): string {
 	const start = new Date(originationDate);
 	const end = new Date(maturityDate);
@@ -191,7 +191,7 @@ function toPrefillType(fieldType: string): "text" | "number" {
  */
 export function buildPrefillFieldsPayload(
 	placeholders: ExtractedPlaceholder[],
-	values: Record<string, string>,
+	values: Record<string, string>
 ): PrefillField[] {
 	const prefillFields: PrefillField[] = [];
 

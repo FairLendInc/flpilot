@@ -51,21 +51,21 @@ export function AddDocumentDialog({
 }: AddDocumentDialogProps) {
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState<"template" | "prefill" | "signatories">(
-		"template",
+		"template"
 	);
 	const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
-		null,
+		null
 	);
 	const [signatories, setSignatories] = useState<SignatoryConfig[]>([]);
 	const [placeholders, setPlaceholders] = useState<ExtractedPlaceholder[]>([]);
 	const [prefillValues, setPrefillValues] = useState<Record<string, string>>(
-		{},
+		{}
 	);
 	const [loading, setLoading] = useState(false);
 
 	const getTemplateDetails = useAction(api.documenso.getTemplateDetailsAction);
 	const createDocument = useAction(
-		api.documenso.createDocumentFromTemplateAction,
+		api.documenso.createDocumentFromTemplateAction
 	);
 
 	const DOCUMENSO_ROLES: DocumensoRecipientRole[] = [
@@ -107,7 +107,7 @@ export function AddDocumentDialog({
 					name: "",
 					email: "",
 					signingOrder: r.signingOrder ?? null,
-				})),
+				}))
 			);
 
 			// Extract placeholder fields from template
@@ -144,10 +144,10 @@ export function AddDocumentDialog({
 	const handleSignatoryChange = (
 		id: number,
 		field: "name" | "email",
-		value: string,
+		value: string
 	) => {
 		setSignatories((prev) =>
-			prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)),
+			prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
 		);
 	};
 
@@ -163,7 +163,7 @@ export function AddDocumentDialog({
 		try {
 			const prefillFieldsPayload = buildPrefillFieldsPayload(
 				placeholders,
-				prefillValues,
+				prefillValues
 			);
 
 			await createDocument({
@@ -271,9 +271,7 @@ export function AddDocumentDialog({
 						<div className="space-y-6">
 							<div className="space-y-4">
 								<div className="flex items-center justify-between">
-									<h4 className="font-medium text-sm">
-										Configure Signatories
-									</h4>
+									<h4 className="font-medium text-sm">Configure Signatories</h4>
 									<Button
 										onClick={() => resetState()}
 										size="sm"
@@ -284,10 +282,7 @@ export function AddDocumentDialog({
 								</div>
 
 								{signatories
-									.sort(
-										(a, b) =>
-											(a.signingOrder || 0) - (b.signingOrder || 0),
-									)
+									.sort((a, b) => (a.signingOrder || 0) - (b.signingOrder || 0))
 									.map((signer) => (
 										<div
 											className="space-y-3 rounded-lg border p-4"
@@ -314,7 +309,7 @@ export function AddDocumentDialog({
 															handleSignatoryChange(
 																signer.id,
 																"name",
-																e.target.value,
+																e.target.value
 															)
 														}
 														placeholder="Signer Name"
@@ -329,7 +324,7 @@ export function AddDocumentDialog({
 															handleSignatoryChange(
 																signer.id,
 																"email",
-																e.target.value,
+																e.target.value
 															)
 														}
 														placeholder="signer@example.com"
@@ -365,18 +360,14 @@ export function AddDocumentDialog({
 							<Button
 								disabled={loading}
 								onClick={() =>
-									placeholders.length > 0
-										? setStep("prefill")
-										: setOpen(false)
+									placeholders.length > 0 ? setStep("prefill") : setOpen(false)
 								}
 								variant="outline"
 							>
 								{placeholders.length > 0 ? "Back" : "Cancel"}
 							</Button>
 							<Button disabled={loading} onClick={handleSubmit}>
-								{loading && (
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								)}
+								{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 								Create Document
 							</Button>
 						</>

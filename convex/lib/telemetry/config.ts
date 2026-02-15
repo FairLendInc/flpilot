@@ -16,7 +16,7 @@ import type { SamplingMode, TelemetryConfig } from "./types";
 const DEFAULT_SAMPLING_MODE: SamplingMode = "off";
 const DEFAULT_SAMPLING_RATE = 1.0;
 const DEFAULT_MAX_PAYLOAD_SIZE_BYTES = 64 * 1024; // 64 KB
-const DEFAULT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const _DEFAULT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DEFAULT_SERVICE_NAME = "flpilot";
 const DEFAULT_ENVIRONMENT = "development";
 

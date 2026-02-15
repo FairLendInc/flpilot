@@ -80,10 +80,9 @@ export default function InvestorDealDetailPage({
 	const router = useRouter();
 	const { loading: authLoading } = useAuth();
 
-	const dealData = useAuthenticatedQuery(
-		api.deals.getInvestorDealWithDetails,
-		{ dealId }
-	);
+	const dealData = useAuthenticatedQuery(api.deals.getInvestorDealWithDetails, {
+		dealId,
+	});
 
 	if (authLoading || !dealData) {
 		return (
@@ -118,9 +117,7 @@ export default function InvestorDealDetailPage({
 								The deal you're looking for doesn't exist or you don't have
 								access.
 							</p>
-							<Button
-								onClick={() => router.push("/dashboard/investor/deals")}
-							>
+							<Button onClick={() => router.push("/dashboard/investor/deals")}>
 								Back to My Deals
 							</Button>
 						</CardContent>
@@ -155,7 +152,9 @@ export default function InvestorDealDetailPage({
 							Back to My Deals
 						</Button>
 						<div>
-							<h1 className="font-bold text-3xl tracking-tight">Deal Details</h1>
+							<h1 className="font-bold text-3xl tracking-tight">
+								Deal Details
+							</h1>
 							<p className="text-muted-foreground text-sm">
 								Created {format(new Date(deal.createdAt), "MMM d, yyyy")}
 							</p>

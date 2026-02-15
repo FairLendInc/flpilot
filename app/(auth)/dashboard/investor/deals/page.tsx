@@ -21,10 +21,7 @@ export default function InvestorDealsPage() {
 					</div>
 				</div>
 
-				<DealKanbanBoard
-					readOnly
-					dealBasePath="/dashboard/investor/deals"
-				/>
+				<DealKanbanBoard dealBasePath="/dashboard/investor/deals" readOnly />
 			</div>
 		</>
 	);

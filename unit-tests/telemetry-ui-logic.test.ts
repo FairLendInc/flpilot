@@ -38,7 +38,7 @@ function buildTree(spans: Span[]): TreeNode[] {
 	const roots: TreeNode[] = [];
 	for (const node of byId.values()) {
 		if (node.parentSpanId && byId.has(node.parentSpanId)) {
-			byId.get(node.parentSpanId)!.children.push(node);
+			byId.get(node.parentSpanId)?.children.push(node);
 		} else {
 			roots.push(node);
 		}

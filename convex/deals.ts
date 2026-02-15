@@ -28,10 +28,10 @@ import {
 import {
 	adminAction,
 	authenticatedMutation,
-	investorQuery,
-	lawyerQuery,
 	investorLawyerAdminAction,
 	investorLawyerAdminMutation,
+	investorQuery,
+	lawyerQuery,
 } from "./lib/authorizedFunctions";
 import { getBrokerOfRecord } from "./lib/broker";
 import { isLedgerSourceOfTruth } from "./lib/ownershipConfig";

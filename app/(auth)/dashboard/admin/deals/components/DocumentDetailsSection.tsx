@@ -51,7 +51,7 @@ export function DocumentDetailsSection({
 						Status of signable documents for this deal
 					</CardDescription>
 				</div>
-				<AddDocumentDialog dealId={dealId} dealData={dealData} />
+				<AddDocumentDialog dealData={dealData} dealId={dealId} />
 			</CardHeader>
 			<CardContent>
 				{documents === undefined ? (

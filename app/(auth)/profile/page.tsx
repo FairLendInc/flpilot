@@ -416,13 +416,13 @@ export default function ProfilePage() {
 							</SelectTrigger>
 							<SelectContent>
 								{(composed?.organizations ?? [])
-								.filter((o) => o.id)
-								.map((o) => (
-									<SelectItem key={o.id} value={o.id}>
-										{o.name}
-										{o.isMock ? " (Demo)" : ""}
-									</SelectItem>
-								))}
+									.filter((o) => o.id)
+									.map((o) => (
+										<SelectItem key={o.id} value={o.id}>
+											{o.name}
+											{o.isMock ? " (Demo)" : ""}
+										</SelectItem>
+									))}
 							</SelectContent>
 						</Select>
 						<div className="mt-3">

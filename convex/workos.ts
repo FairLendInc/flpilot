@@ -261,33 +261,26 @@ export const syncSingleOrganization = internalAction({
 			const organizationDomains =
 				(organization as { domains?: WorkOsDomain[] }).domains ?? [];
 
-			await ctx.runMutation(
-				internal.organizations.createOrUpdateOrganization,
-				{
-					id: organization.id,
-					name: organization.name,
-					external_id: organization.externalId || undefined,
-					metadata: organization.metadata,
-					created_at: organization.createdAt,
-					updated_at: organization.updatedAt,
-					domains: organizationDomains.map((domain) => ({
-						id: domain.id || `${organization.id}-${domain.domain}`,
-						domain: domain.domain,
-						organization_id: organization.id,
-						object: "organization_domain",
-						created_at: domain.createdAt,
-						updated_at: domain.updatedAt,
-					})),
-				},
-			);
+			await ctx.runMutation(internal.organizations.createOrUpdateOrganization, {
+				id: organization.id,
+				name: organization.name,
+				external_id: organization.externalId || undefined,
+				metadata: organization.metadata,
+				created_at: organization.createdAt,
+				updated_at: organization.updatedAt,
+				domains: organizationDomains.map((domain) => ({
+					id: domain.id || `${organization.id}-${domain.domain}`,
+					domain: domain.domain,
+					organization_id: organization.id,
+					object: "organization_domain",
+					created_at: domain.createdAt,
+					updated_at: domain.updatedAt,
+				})),
+			});
 
 			return { success: true };
 		} catch (error) {
-			console.error(
-				"Failed to sync organization:",
-				organizationId,
-				error,
-			);
+			console.error("Failed to sync organization:", organizationId, error);
 			return { success: false };
 		}
 	},

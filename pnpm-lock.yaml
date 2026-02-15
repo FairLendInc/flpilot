@@ -95,6 +95,9 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
+      '@radix-ui/colors':
+        specifier: ^3.0.0
+        version: 3.0.0
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
@@ -273,8 +276,8 @@ importers:
         specifier: ^0.1.104
         version: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.31.7(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)(typescript@5.9.3)(zod@4.1.12)
       date-fns:
-        specifier: ^3.35.0
-        version: 4.1.0
+        specifier: ^3.6.0
+        version: 3.6.0
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
@@ -285,7 +288,7 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(next@16.0.7(@babel/core@7.28.5)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027))(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
       framer-motion:
-        specifier: ^4.1.0
+        specifier: ^12.0.0
         version: 12.23.24(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0-canary-b4455a6e-20251027(react@19.3.0-canary-b4455a6e-20251027))(react@19.3.0-canary-b4455a6e-20251027)
       fuzzy-search:
         specifier: ^3.2.1
@@ -1873,6 +1876,9 @@ packages:
 
   '@quansync/fs@0.1.5':
     resolution: {integrity: sha512-lNS9hL2aS2NZgNW7BBj+6EBl4rOf8l+tQ0eRY6JWCI8jI2kc53gSoqbjojU0OnAWhzoXiOjFyGsHcDGePB3lhA==}
+
+  '@radix-ui/colors@3.0.0':
+    resolution: {integrity: sha512-FUOsGBkHrYJwCSEtWRCIfQbZG7q1e6DgxCIOe1SUQzDe/7rXXeA47s8yCn6fuTNQAj1Zq4oTFi9Yjp3wzElcxg==}
 
   '@radix-ui/number@1.1.1':
     resolution: {integrity: sha512-MkKCwxlXTgz6CFoJx3pCwn07GKp36+aZyu/u2Ln2VrA5DcdyCZkASEDBTd8x5whTQQL5CiYf4prXKLcgQdv29g==}
@@ -5144,6 +5150,9 @@ packages:
 
   date-fns-jalali@4.1.0-0:
     resolution: {integrity: sha512-hTIP/z+t+qKwBDcmmsnmjWTduxCg+5KfdqWQvb2X/8C9+knYY6epN/pfxdDuyVlSVeFz0sM5eEfwIUQ70U4ckg==}
+
+  date-fns@3.6.0:
+    resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
 
   date-fns@4.1.0:
     resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
@@ -9495,6 +9504,8 @@ snapshots:
     dependencies:
       quansync: 0.2.11
 
+  '@radix-ui/colors@3.0.0': {}
+
   '@radix-ui/number@1.1.1': {}
 
   '@radix-ui/primitive@1.1.3': {}
@@ -13443,6 +13454,8 @@ snapshots:
       is-data-view: 1.0.2
 
   date-fns-jalali@4.1.0-0: {}
+
+  date-fns@3.6.0: {}
 
   date-fns@4.1.0: {}
 

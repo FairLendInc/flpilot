@@ -1,8 +1,8 @@
 "use client";
 
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useAction } from "convex/react";
 import type { UserIdentity } from "convex/server";
-import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { format } from "date-fns";
 import {
 	AlertCircle,
@@ -552,7 +552,11 @@ export default function DealPortalPage() {
 	// WorkOS access tokens may not include `email` in JWT claims,
 	// so merge the guaranteed email from the WorkOS session user
 	const viewerWithEmail = viewer
-		? { ...viewer, email: viewer.email ?? authUser?.email, name: viewer.name ?? authUser?.firstName ?? undefined }
+		? {
+				...viewer,
+				email: viewer.email ?? authUser?.email,
+				name: viewer.name ?? authUser?.firstName ?? undefined,
+			}
 		: undefined;
 	const params = useParams();
 	const dealId =
@@ -605,7 +609,7 @@ export default function DealPortalPage() {
 
 	const documentGroups = useAuthenticatedQuery(
 		api.documentCategorization.batchResolveDocumentGroups,
-		batchInput.length > 0 ? { documents: batchInput } : "skip",
+		batchInput.length > 0 ? { documents: batchInput } : "skip"
 	);
 
 	useEffect(() => {
@@ -616,7 +620,7 @@ export default function DealPortalPage() {
 			}
 
 			const docsWithDocumenso = dealDocuments.filter(
-				(d) => d.documensoDocumentId,
+				(d) => d.documensoDocumentId
 			);
 			if (docsWithDocumenso.length === 0) {
 				setLoading(false);
@@ -632,8 +636,8 @@ export default function DealPortalPage() {
 					}).then((doc) => ({
 						documensoDocumentId: d.documensoDocumentId as number,
 						doc,
-					})),
-				),
+					}))
+				)
 			);
 
 			const newMap = new Map<number, DocumensoDocumentSummary>();
@@ -641,16 +645,10 @@ export default function DealPortalPage() {
 
 			for (const result of results) {
 				if (result.status === "fulfilled") {
-					newMap.set(
-						result.value.documensoDocumentId,
-						result.value.doc,
-					);
+					newMap.set(result.value.documensoDocumentId, result.value.doc);
 				} else {
 					failedCount++;
-					console.error(
-						"Error fetching Documenso document:",
-						result.reason,
-					);
+					console.error("Error fetching Documenso document:", result.reason);
 				}
 			}
 
@@ -660,7 +658,7 @@ export default function DealPortalPage() {
 				setDocumensoError("Failed to load documents from Documenso");
 			} else if (failedCount > 0) {
 				toast.warning(
-					`${failedCount} document(s) failed to load from Documenso`,
+					`${failedCount} document(s) failed to load from Documenso`
 				);
 			}
 
@@ -713,8 +711,13 @@ export default function DealPortalPage() {
 	}
 
 	// Handle pending_ownership_review state - admins can review, investors see status
-	if (dealData.deal.currentState === "pending_ownership_review" && viewerWithEmail) {
-		return <PendingOwnershipReviewState dealId={dealId} viewer={viewerWithEmail} />;
+	if (
+		dealData.deal.currentState === "pending_ownership_review" &&
+		viewerWithEmail
+	) {
+		return (
+			<PendingOwnershipReviewState dealId={dealId} viewer={viewerWithEmail} />
+		);
 	}
 
 	if (dealData.deal.currentState === "completed") {
@@ -750,7 +753,16 @@ export default function DealPortalPage() {
 	}
 
 	// Build lookup from documentId → resolved group
-	const groupLookup = new Map<string, { group: string; displayName: string; icon?: string; color?: string; resolutionMethod: string }>();
+	const groupLookup = new Map<
+		string,
+		{
+			group: string;
+			displayName: string;
+			icon?: string;
+			color?: string;
+			resolutionMethod: string;
+		}
+	>();
 	if (documentGroups) {
 		for (const g of documentGroups) {
 			groupLookup.set(g.documentId, g);
@@ -776,7 +788,11 @@ export default function DealPortalPage() {
 	});
 
 	// Determine viewer role from which query succeeded
-	const viewerRole = adminDealData ? "admin" : investorDealData ? "investor" : "lawyer";
+	const viewerRole = adminDealData
+		? "admin"
+		: investorDealData
+			? "investor"
+			: "lawyer";
 
 	return (
 		<DealPortal

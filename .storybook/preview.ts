@@ -35,6 +35,22 @@ const preview: Preview = {
 			],
 		},
 	},
+	// Configure stories to find test utilities from twentycomponents
+	globalTypes: {
+		theme: {
+			description: 'Global theme for components',
+			defaultValue: 'light',
+			toolbar: {
+				title: 'Theme',
+				icon: 'circlehollow',
+				items: [
+					{ value: 'light', icon: 'circlehollow', title: 'Light' },
+					{ value: 'dark', icon: 'circle', title: 'Dark' },
+				],
+				dynamicTitle: true,
+			},
+		},
+	},
 };
 
 export default preview;

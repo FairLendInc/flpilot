@@ -10,6 +10,7 @@ const config: StorybookConfig = {
 		"../components/admin/mic/stories/*.stories.@(js|jsx|mjs|ts|tsx)",
 		"../components/admin/mic/widgets/stories/*.stories.@(js|jsx|mjs|ts|tsx)",
 		"../components/admin/mic/**/stories/*.stories.@(js|jsx|mjs|ts|tsx)",
+		"../ui/twentycomponents/**/__stories__/**/*.stories.@(js|jsx|mjs|ts|tsx)",
 	],
 	addons: [
 		"@chromatic-com/storybook",
@@ -22,9 +23,6 @@ const config: StorybookConfig = {
 		options: {},
 	},
 	staticDirs: ["../public"],
-	docs: {
-		autodocs: "tag",
-	},
 	swc: () => ({
 		jsc: {
 			transform: {

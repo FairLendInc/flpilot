@@ -366,9 +366,7 @@ export function DealKanbanBoard({
 											columnId={column.id}
 											deal={deal}
 											key={deal._id}
-											onClick={() =>
-												router.push(`${dealBasePath}/${deal._id}`)
-											}
+											onClick={() => router.push(`${dealBasePath}/${deal._id}`)}
 											onDragStart={handleDragStart}
 											readOnly={readOnly}
 										/>
@@ -381,54 +379,58 @@ export function DealKanbanBoard({
 			</div>
 
 			{/* Transition Confirmation Dialog (admin only) */}
-			{!readOnly && <AlertDialog
-				onOpenChange={setShowTransitionDialog}
-				open={showTransitionDialog}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Confirm State Transition</AlertDialogTitle>
-						{transitionTarget && (
-							<>
-								<AlertDialogDescription>
-									You are about to move this deal from{" "}
-									<strong>
-										{DEAL_STATE_LABELS[transitionTarget.fromState]}
-									</strong>{" "}
-									to{" "}
-									<strong>{DEAL_STATE_LABELS[transitionTarget.toState]}</strong>
-									.
-								</AlertDialogDescription>
-								<div className="space-y-2 pt-2">
-									<div className="space-y-1 rounded-md bg-muted p-3 text-sm">
-										<div>
-											<strong>Property:</strong>{" "}
-											{transitionTarget.deal.mortgageAddress}
+			{!readOnly && (
+				<AlertDialog
+					onOpenChange={setShowTransitionDialog}
+					open={showTransitionDialog}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Confirm State Transition</AlertDialogTitle>
+							{transitionTarget && (
+								<>
+									<AlertDialogDescription>
+										You are about to move this deal from{" "}
+										<strong>
+											{DEAL_STATE_LABELS[transitionTarget.fromState]}
+										</strong>{" "}
+										to{" "}
+										<strong>
+											{DEAL_STATE_LABELS[transitionTarget.toState]}
+										</strong>
+										.
+									</AlertDialogDescription>
+									<div className="space-y-2 pt-2">
+										<div className="space-y-1 rounded-md bg-muted p-3 text-sm">
+											<div>
+												<strong>Property:</strong>{" "}
+												{transitionTarget.deal.mortgageAddress}
+											</div>
+											<div>
+												<strong>Investor:</strong>{" "}
+												{transitionTarget.deal.investorName}
+											</div>
+											<div>
+												<strong>Deal Value:</strong>{" "}
+												{formatDealValue(transitionTarget.deal.dealValue)}
+											</div>
 										</div>
-										<div>
-											<strong>Investor:</strong>{" "}
-											{transitionTarget.deal.investorName}
-										</div>
-										<div>
-											<strong>Deal Value:</strong>{" "}
-											{formatDealValue(transitionTarget.deal.dealValue)}
-										</div>
+										<p className="text-muted-foreground text-xs">
+											This action will be logged in the deal's audit trail.
+										</p>
 									</div>
-									<p className="text-muted-foreground text-xs">
-										This action will be logged in the deal's audit trail.
-									</p>
-								</div>
-							</>
-						)}
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction onClick={handleTransitionConfirm}>
-							Confirm Transition
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>}
+								</>
+							)}
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction onClick={handleTransitionConfirm}>
+								Confirm Transition
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 		</>
 	);
 }
@@ -501,43 +503,45 @@ function DealCard({
 				</Button>
 
 				{!readOnly && (
-				<div className="flex gap-2 pt-2">
-					{canGoBackward({ currentState: deal.currentState } as Deal) && (
-						<Button
-							className="h-7 flex-1 px-2 text-xs"
-							onClick={(e) => {
-								e.stopPropagation();
-								// TODO: Trigger backward transition
-								toast.info("Backward transition", {
-									description: "This feature is being implemented",
-								});
-							}}
-							size="sm"
-							variant="ghost"
-						>
-							<ArrowLeft className="mr-1 h-3 w-3" />
-							Back
-						</Button>
-					)}
-					{canProgressForward({ currentState: deal.currentState } as Deal) && (
-						<Button
-							className="h-7 flex-1 px-2 text-xs"
-							onClick={(e) => {
-								e.stopPropagation();
-								// TODO: Trigger forward transition
-								toast.info("Forward transition", {
-									description: "This feature is being implemented",
-								});
-							}}
-							size="sm"
-							variant="ghost"
-						>
-							<ArrowRight className="mr-1 h-3 w-3" />
-							Next
-						</Button>
-					)}
-				</div>
-			)}
+					<div className="flex gap-2 pt-2">
+						{canGoBackward({ currentState: deal.currentState } as Deal) && (
+							<Button
+								className="h-7 flex-1 px-2 text-xs"
+								onClick={(e) => {
+									e.stopPropagation();
+									// TODO: Trigger backward transition
+									toast.info("Backward transition", {
+										description: "This feature is being implemented",
+									});
+								}}
+								size="sm"
+								variant="ghost"
+							>
+								<ArrowLeft className="mr-1 h-3 w-3" />
+								Back
+							</Button>
+						)}
+						{canProgressForward({
+							currentState: deal.currentState,
+						} as Deal) && (
+							<Button
+								className="h-7 flex-1 px-2 text-xs"
+								onClick={(e) => {
+									e.stopPropagation();
+									// TODO: Trigger forward transition
+									toast.info("Forward transition", {
+										description: "This feature is being implemented",
+									});
+								}}
+								size="sm"
+								variant="ghost"
+							>
+								<ArrowRight className="mr-1 h-3 w-3" />
+								Next
+							</Button>
+						)}
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	);
