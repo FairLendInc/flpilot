@@ -27,9 +27,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { Hero } from "@/components/landingpage/components/hero";
-import {
-	WaitlistTrigger,
-} from "@/components/landingpage/components/waitlist-trigger";
+import { WaitlistTrigger } from "@/components/landingpage/components/waitlist-trigger";
 import { LandingPageWrapper } from "@/components/landingpage/landing-wrapper";
 
 export default function Home() {
@@ -58,8 +56,8 @@ export default function Home() {
 							},
 						].map((stat) => (
 							<div
-								key={stat.label}
 								className="rounded-2xl border border-border/50 bg-card p-6 text-center shadow-sm"
+								key={stat.label}
 							>
 								<div className="mb-2 font-bold text-3xl text-emerald-600 md:text-4xl">
 									{stat.value}
@@ -89,8 +87,9 @@ export default function Home() {
 							<p className="text-lg text-muted-foreground leading-relaxed">
 								Top 1% mortgage broker in Canada by volume. $2B+ in deals
 								arranged over a near-30-year career. First broker at Mortgage
-								Intelligence, Canada&apos;s largest brokerage. Scotiabank retains
-								him at $2,000/hour to consult on mortgage product strategy.
+								Intelligence, Canada&apos;s largest brokerage. Scotiabank
+								retains him at $2,000/hour to consult on mortgage product
+								strategy.
 							</p>
 							<p className="text-lg text-muted-foreground leading-relaxed">
 								Elie has personally built 20+ custom homes and completed 50-60+
@@ -98,22 +97,22 @@ export default function Home() {
 								foundation of both engines of return. For the capital cycle, his
 								nearly three decades of industry relationships produced the
 								distribution channels that allow FairLend to sell conservatively
-								underwritten mortgages within 60 days, consistently and at scale.
-								For the multiplex construction program, he walks every site,
-								evaluates every builder, and catches construction problems that no
-								spreadsheet can detect. Most MIC managers have deep lending
-								expertise or deep construction expertise. Almost none have both.
-								This is the capability moat that makes FairLend&apos;s model
-								possible.
+								underwritten mortgages within 60 days, consistently and at
+								scale. For the multiplex construction program, he walks every
+								site, evaluates every builder, and catches construction problems
+								that no spreadsheet can detect. Most MIC managers have deep
+								lending expertise or deep construction expertise. Almost none
+								have both. This is the capability moat that makes
+								FairLend&apos;s model possible.
 							</p>
 							<p className="text-lg text-muted-foreground leading-relaxed">
 								Elie&apos;s network — contractors, project managers, specialized
 								trades, industry contacts built over nearly 30 years — is the
 								operational backbone of the construction lending program. When a
 								build goes off track, FairLend doesn&apos;t file paperwork and
-								wait. The team deploys the right people to get the project back on
-								course, because they know who to call and those people pick up the
-								phone.
+								wait. The team deploys the right people to get the project back
+								on course, because they know who to call and those people pick
+								up the phone.
 							</p>
 						</div>
 					</div>
@@ -145,8 +144,8 @@ export default function Home() {
 								},
 							].map((team) => (
 								<div
-									key={team.title}
 									className="rounded-2xl border border-border/50 bg-card p-8 shadow-sm"
+									key={team.title}
 								>
 									<div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-900/20">
 										<team.icon className="size-6 text-emerald-600 dark:text-emerald-400" />
@@ -189,12 +188,12 @@ export default function Home() {
 								</div>
 								<p className="text-muted-foreground leading-relaxed">
 									While the broader market continued building single-family
-									homes, Elie identified that government incentives — elimination
-									of approximately $450K in development levies per 5-plex, HST
-									rebates, and CMHC MLI Select financing — had fundamentally
-									changed the economics. FairLend pivoted to multiplex
-									construction lending before the opportunity became crowded and
-									margins compressed.
+									homes, Elie identified that government incentives —
+									elimination of approximately $450K in development levies per
+									5-plex, HST rebates, and CMHC MLI Select financing — had
+									fundamentally changed the economics. FairLend pivoted to
+									multiplex construction lending before the opportunity became
+									crowded and margins compressed.
 								</p>
 							</div>
 
@@ -207,14 +206,14 @@ export default function Home() {
 								</div>
 								<p className="text-muted-foreground leading-relaxed">
 									What constitutes a &ldquo;good deal&rdquo; in private lending
-									shifts constantly. Over the past three decades, Elie has watched
-									condos go from highly conservative to nearly uninvestable in
-									certain markets. Single-family builds went from the default play
-									to an overcrowded, margin-compressed market. Managers who run a
-									fixed playbook eventually get caught on the wrong side of a
-									shift. FairLend&apos;s investment thesis evolves with the market
-									because its leadership understands when the underlying math
-									changes.
+									shifts constantly. Over the past three decades, Elie has
+									watched condos go from highly conservative to nearly
+									uninvestable in certain markets. Single-family builds went
+									from the default play to an overcrowded, margin-compressed
+									market. Managers who run a fixed playbook eventually get
+									caught on the wrong side of a shift. FairLend&apos;s
+									investment thesis evolves with the market because its
+									leadership understands when the underlying math changes.
 								</p>
 							</div>
 						</div>
@@ -253,11 +252,12 @@ export default function Home() {
 								</h3>
 							</div>
 							<p className="text-muted-foreground leading-relaxed">
-								You already know the first type. Opaque reporting. Fee structures
-								that reward origination volume over loan quality. Returns that
-								look good until the defaults start surfacing and management has
-								already collected its fees. You&apos;ve either invested with one
-								of these managers or you&apos;ve made a career of avoiding them.
+								You already know the first type. Opaque reporting. Fee
+								structures that reward origination volume over loan quality.
+								Returns that look good until the defaults start surfacing and
+								management has already collected its fees. You&apos;ve either
+								invested with one of these managers or you&apos;ve made a career
+								of avoiding them.
 							</p>
 						</div>
 
@@ -274,11 +274,11 @@ export default function Home() {
 							<p className="text-muted-foreground leading-relaxed">
 								So you moved your capital to the second type: conservative,
 								well-run MICs with disciplined underwriting and solid track
-								records. The kind of manager you can trust. The problem is, their
-								returns are pegged to the market. Conservative underwriting plus
-								an originate-and-hold model produces conservative returns.
-								You&apos;ve protected your capital, but you haven&apos;t put it
-								to work.
+								records. The kind of manager you can trust. The problem is,
+								their returns are pegged to the market. Conservative
+								underwriting plus an originate-and-hold model produces
+								conservative returns. You&apos;ve protected your capital, but
+								you haven&apos;t put it to work.
 							</p>
 						</div>
 
@@ -293,8 +293,8 @@ export default function Home() {
 							<p className="text-muted-foreground leading-relaxed">
 								Then there&apos;s the third type — and it&apos;s the most
 								insidious because it starts as the second type. A conservative,
-								well-run MIC builds a strong track record. Capital flows in. Then
-								more capital flows in. Now the MIC has $500 million under
+								well-run MIC builds a strong track record. Capital flows in.
+								Then more capital flows in. Now the MIC has $500 million under
 								management but only $300 million in quality loan opportunities.
 								The pressure to deploy becomes the pressure to lower standards —
 								because capital sitting in cash dilutes every investor&apos;s
@@ -317,8 +317,8 @@ export default function Home() {
 							the marketplace structure that powers the capital cycle also gives
 							FairLend control levers that no traditional MIC possesses — the
 							ability to slow, pause, or reprice deployments when quality deal
-							flow doesn&apos;t match available capital. The difference isn&apos;t
-							the loan quality. It&apos;s the operating model.
+							flow doesn&apos;t match available capital. The difference
+							isn&apos;t the loan quality. It&apos;s the operating model.
 						</p>
 					</div>
 				</div>
@@ -355,7 +355,7 @@ export default function Home() {
 								Conservative underwriting and above-market returns are
 								structurally incompatible in an originate-and-hold model.
 							</p>
-							<p className="font-semibold text-lg text-emerald-700 dark:text-emerald-400">
+							<p className="font-semibold text-emerald-700 text-lg dark:text-emerald-400">
 								FairLend&apos;s capital cycle breaks that constraint.
 							</p>
 						</div>
@@ -389,8 +389,8 @@ export default function Home() {
 								},
 							].map((item) => (
 								<div
-									key={item.step}
 									className="rounded-2xl border border-border/50 bg-card p-8 shadow-sm"
+									key={item.step}
 								>
 									<div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
 										{item.step}
@@ -423,8 +423,8 @@ export default function Home() {
 							<p className="text-muted-foreground leading-relaxed">
 								The secondary marketplace that powers the capital cycle gives
 								FairLend something no originate-and-hold MIC has: direct control
-								over the pace of capital deployment. When quality deal flow slows,
-								FairLend doesn&apos;t face the deploy-or-dilute pressure.
+								over the pace of capital deployment. When quality deal flow
+								slows, FairLend doesn&apos;t face the deploy-or-dilute pressure.
 								Instead:
 							</p>
 							<div className="grid gap-4 md:grid-cols-3">
@@ -449,8 +449,8 @@ export default function Home() {
 									},
 								].map((lever) => (
 									<div
-										key={lever.title}
 										className="rounded-xl border border-border/50 bg-card p-6 shadow-sm"
+										key={lever.title}
 									>
 										<lever.icon className="mb-3 size-6 text-emerald-600 dark:text-emerald-400" />
 										<h5 className="mb-2 font-bold text-sm">{lever.title}</h5>
@@ -487,10 +487,10 @@ export default function Home() {
 								FairLend&apos;s multiplex construction lending program generates
 								returns of approximately 14% — roughly 2-5% above comparable
 								private mortgage positions. Most MICs don&apos;t operate in
-								construction lending because it requires something they don&apos;t
-								have: the ability to actually evaluate a build.
+								construction lending because it requires something they
+								don&apos;t have: the ability to actually evaluate a build.
 							</p>
-							<p className="font-semibold text-lg text-emerald-700 dark:text-emerald-400">
+							<p className="font-semibold text-emerald-700 text-lg dark:text-emerald-400">
 								FairLend can, because its management team has done the work
 								themselves.
 							</p>
@@ -524,8 +524,8 @@ export default function Home() {
 								},
 							].map((edge) => (
 								<div
-									key={edge.title}
 									className="rounded-2xl border border-border/50 bg-card p-8 shadow-sm"
+									key={edge.title}
 								>
 									<edge.icon className="mb-4 size-6 text-emerald-600 dark:text-emerald-400" />
 									<h4 className="mb-3 font-bold text-lg">{edge.title}</h4>
@@ -538,18 +538,20 @@ export default function Home() {
 
 						{/* The conviction framework */}
 						<div className="rounded-2xl border border-border/50 bg-card p-8 shadow-sm">
-							<h4 className="mb-3 font-bold text-lg">The conviction framework</h4>
+							<h4 className="mb-3 font-bold text-lg">
+								The conviction framework
+							</h4>
 							<p className="text-muted-foreground leading-relaxed">
 								Elie applies a clear mental model to every construction
-								opportunity: when the completed property value exceeds the cost of
-								land plus cost of construction, the deal creates real equity — and
-								FairLend is bullish. When value merely equals costs, the position
-								is neutral. When value falls below costs, FairLend declines
-								regardless of how attractive the borrower profile looks. This
-								framework — grounded in Elie&apos;s ability to independently
-								assess construction costs — means FairLend only enters
-								construction positions where the math creates value, not just
-								moves money.
+								opportunity: when the completed property value exceeds the cost
+								of land plus cost of construction, the deal creates real equity
+								— and FairLend is bullish. When value merely equals costs, the
+								position is neutral. When value falls below costs, FairLend
+								declines regardless of how attractive the borrower profile
+								looks. This framework — grounded in Elie&apos;s ability to
+								independently assess construction costs — means FairLend only
+								enters construction positions where the math creates value, not
+								just moves money.
 							</p>
 						</div>
 
@@ -564,8 +566,8 @@ export default function Home() {
 								appraised completion value but have no ability to assess whether
 								the builder can actually deliver. FairLend&apos;s builder
 								expertise, active site monitoring, draw verification, and
-								contractor network eliminate the primary risk factors. The higher
-								return isn&apos;t compensation for higher risk. It&apos;s
+								contractor network eliminate the primary risk factors. The
+								higher return isn&apos;t compensation for higher risk. It&apos;s
 								compensation for expertise that most lenders don&apos;t possess.
 							</p>
 						</div>
@@ -576,8 +578,8 @@ export default function Home() {
 						<p className="text-lg leading-relaxed">
 							<strong>
 								Combined, these two engines create a portfolio that delivers
-								above-market returns through operational capability — not through
-								relaxed credit standards.
+								above-market returns through operational capability — not
+								through relaxed credit standards.
 							</strong>{" "}
 							The capital cycle generates alpha through velocity. The multiplex
 							program generates alpha through expertise. Both operate under the
@@ -652,8 +654,8 @@ export default function Home() {
 							},
 						].map((layer) => (
 							<div
-								key={layer.title}
 								className="rounded-2xl border border-border/50 bg-card p-8 shadow-sm"
+								key={layer.title}
 							>
 								<layer.icon className="mb-4 size-8 text-emerald-600 dark:text-emerald-400" />
 								<div className="mb-1 font-semibold text-emerald-600 text-xs uppercase tracking-wider dark:text-emerald-400">
@@ -724,8 +726,8 @@ export default function Home() {
 							},
 						].map((item) => (
 							<div
-								key={item.title + item.description}
 								className="rounded-2xl border border-white/10 bg-white/5 p-6 transition-colors hover:bg-white/10"
+								key={item.title + item.description}
 							>
 								<item.icon className="mb-4 size-8 text-emerald-400" />
 								<h3 className="mb-2 font-bold text-lg">{item.title}</h3>
@@ -737,9 +739,9 @@ export default function Home() {
 					<p className="mx-auto max-w-3xl text-center text-slate-400 leading-relaxed">
 						Compare this to what you currently receive from your MIC allocation.
 						Most managers — even good ones — send a quarterly PDF summarizing
-						portfolio performance at the aggregate level. FairLend eliminates that
-						trust requirement. Every position, every money flow, and every vetting
-						decision is visible in real time.{" "}
+						portfolio performance at the aggregate level. FairLend eliminates
+						that trust requirement. Every position, every money flow, and every
+						vetting decision is visible in real time.{" "}
 						<strong className="text-white">
 							The system keeps us accountable — by design, not by promise.
 						</strong>
@@ -786,8 +788,8 @@ export default function Home() {
 								100% Recovery
 							</div>
 							<p className="text-muted-foreground">
-								Every dollar of principal and every dollar of interest returned to
-								investors.
+								Every dollar of principal and every dollar of interest returned
+								to investors.
 							</p>
 						</div>
 
@@ -852,8 +854,8 @@ export default function Home() {
 							},
 						].map((item) => (
 							<div
-								key={item.title}
 								className="rounded-2xl border border-border/50 bg-card p-8 shadow-sm"
+								key={item.title}
 							>
 								<item.icon className="mb-4 size-6 text-emerald-600 dark:text-emerald-400" />
 								<h3 className="mb-3 font-bold text-lg">{item.title}</h3>
@@ -867,8 +869,8 @@ export default function Home() {
 					<p className="border-emerald-500 border-l-4 bg-emerald-50/50 py-4 pl-6 text-lg text-muted-foreground italic dark:bg-emerald-900/10">
 						When borrowers are treated fairly, they perform better. When they
 						perform better, default rates stay low. When default rates stay low,
-						your capital compounds. Alignment isn&apos;t a philosophy — it&apos;s
-						the operating structure.
+						your capital compounds. Alignment isn&apos;t a philosophy —
+						it&apos;s the operating structure.
 					</p>
 				</div>
 			</section>
@@ -927,9 +929,7 @@ export default function Home() {
 						].map((faq) => (
 							<div className="border-border border-b pb-8" key={faq.q}>
 								<h3 className="mb-3 font-bold text-lg">{faq.q}</h3>
-								<p className="text-muted-foreground leading-relaxed">
-									{faq.a}
-								</p>
+								<p className="text-muted-foreground leading-relaxed">{faq.a}</p>
 							</div>
 						))}
 					</div>
@@ -957,10 +957,10 @@ export default function Home() {
 							builder + lender dual capability, institutional-grade technology,
 							and two distinct engines of above-market return — a capital cycle
 							that compounds origination fees through rapid redeployment, and a
-							multiplex construction lending program generating approximately 14%
-							returns through expertise most MICs don&apos;t possess. All
-							structured around six independent layers of investor protection and
-							complete real-time transparency.
+							multiplex construction lending program generating approximately
+							14% returns through expertise most MICs don&apos;t possess. All
+							structured around six independent layers of investor protection
+							and complete real-time transparency.
 						</p>
 						<p>
 							Fully regulated. Tax-advantaged. Built on the thesis that
