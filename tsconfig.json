@@ -19,7 +19,14 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/modules-ui/*": ["./ui/twenty-front-modules-ui/*"],
+      "@/modules/object-record/*": ["./modules/object-record/*"],
+      "@/modules/object-metadata/*": ["./modules/object-metadata/*"],
+      "@/modules/views/*": ["./modules/views/*"],
+      "@lingui/core": ["./ui/twentycomponents/lib/lingui-stub.ts"],
+      "@lingui/core/macro": ["./ui/twentycomponents/lib/lingui-stub.ts"],
+      "@lingui/react/macro": ["./ui/twentycomponents/lib/lingui-stub.ts"]
     },
     "strictNullChecks": true
   },
