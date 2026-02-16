@@ -9,6 +9,10 @@
     "ignoreUnknown": false,
     "includes": [
       "app/**",
+      "ui/twentycomponents/**",
+      "ui/twenty-front-modules-ui/**",
+      "ui/twentycomponents/",
+      "ui/twenty-front-modules-ui/",
       "!.vscode",
       "!.vscode/*",
       "!.vscode/settings.json",

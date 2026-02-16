@@ -44,6 +44,30 @@ export type DocumensoDocumentSummary = {
 	recipients: SignatoryOption[];
 };
 
+export type DocumensoTemplateField = {
+	id: number;
+	recipientId: number;
+	type: string; // "SIGNATURE" | "INITIALS" | "TEXT" | "NAME" | "DATE" | etc.
+	fieldMeta?: {
+		label?: string;
+		placeholder?: string;
+		readOnly?: boolean;
+		required?: boolean;
+		fontSize?: number;
+		type?: string;
+		text?: string;
+		textAlign?: string;
+	} | null;
+};
+
+export type PrefillField = {
+	id: number;
+	type: "text" | "number";
+	label?: string;
+	placeholder?: string;
+	value: string;
+};
+
 export type DocumensoTemplate = {
 	id: number;
 	title: string;
@@ -57,4 +81,5 @@ export type DocumensoTemplate = {
 		role: DocumensoRecipientRole;
 		signingOrder: number | null;
 	}[];
+	fields?: DocumensoTemplateField[];
 };

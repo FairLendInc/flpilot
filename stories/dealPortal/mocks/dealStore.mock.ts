@@ -15,7 +15,6 @@ export const createMockDealStoreState = (): Partial<DealStoreState> => ({
   dealStatus: "In Progress",
   dealData: { lawyerUserId: 'user-1' },
   activeTab: 'documents',
-  activeDocumentGroup: null,
   selectedDocument: null,
   showNotePanel: false,
   showApproveModal: false,

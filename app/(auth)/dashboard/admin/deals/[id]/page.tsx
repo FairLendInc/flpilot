@@ -439,7 +439,7 @@ export default function DealDetailPage({
 						)}
 
 						{/* Document Details */}
-						<DocumentDetailsSection dealId={deal._id} />
+						<DocumentDetailsSection dealData={dealData} dealId={deal._id} />
 
 						{/* Audit Trail */}
 						<Card>

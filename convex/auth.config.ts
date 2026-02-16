@@ -1,7 +1,7 @@
-import { envAuth } from "./lib/envAuth";
+// import { envAuth } from "./lib/envAuth";
 
-const clientId = envAuth.WORKOS_CLIENT_ID;
-
+// const clientId = envAuth.WORKOS_CLIENT_ID;
+const clientId = process.env.WORKOS_CLIENT_ID;
 const authConfig = {
 	providers: [
 		{
@@ -9,7 +9,7 @@ const authConfig = {
 			issuer: "https://api.workos.com/",
 			algorithm: "RS256",
 			jwks: `https://api.workos.com/sso/jwks/${clientId}`,
-			applicationID: clientId,
+			applicationID: process.env.clientId,
 		},
 		{
 			type: "customJwt",

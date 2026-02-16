@@ -3,7 +3,7 @@
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useAction, useMutation } from "convex/react";
 import { Pencil, Upload } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { WorkOSIdentity } from "@/app/(auth)/profilev2/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -144,6 +144,16 @@ export default function ProfilePage() {
 		);
 		setUsingMocks((data.memberships?.length ?? 0) === 0);
 	}, [data]);
+
+	// Auto-sync organizations from WorkOS on first load when user exists
+	const hasSyncedOrgs = useRef(false);
+	useEffect(() => {
+		if (!data?.user || hasSyncedOrgs.current) return;
+		hasSyncedOrgs.current = true;
+		syncOrganizations({}).catch((e) => {
+			console.error("Auto-sync organizations failed:", e);
+		});
+	}, [data?.user, syncOrganizations]);
 
 	const dirty = useMemo(() => {
 		if (!data?.user) return false;
@@ -405,27 +415,27 @@ export default function ProfilePage() {
 								<SelectValue placeholder="Select organization" />
 							</SelectTrigger>
 							<SelectContent>
-								{(composed?.organizations ?? []).map((o) => (
-									<SelectItem key={o.id} value={o.id}>
-										{o.name}
-										{o.isMock ? " (Demo)" : ""}
-									</SelectItem>
-								))}
+								{(composed?.organizations ?? [])
+									.filter((o) => o.id)
+									.map((o) => (
+										<SelectItem key={o.id} value={o.id}>
+											{o.name}
+											{o.isMock ? " (Demo)" : ""}
+										</SelectItem>
+									))}
 							</SelectContent>
 						</Select>
-						{usingMocks && (
-							<div className="mt-3">
-								<Button
-									className="w-full"
-									disabled={isSyncing}
-									onClick={() => onSyncOrganizations()}
-									size="sm"
-									variant="outline"
-								>
-									{isSyncing ? "Syncing..." : "Sync Organizations from WorkOS"}
-								</Button>
-							</div>
-						)}
+						<div className="mt-3">
+							<Button
+								className="w-full"
+								disabled={isSyncing}
+								onClick={() => onSyncOrganizations()}
+								size="sm"
+								variant="outline"
+							>
+								{isSyncing ? "Syncing..." : "Refresh Organizations"}
+							</Button>
+						</div>
 					</Card>
 				</div>
 

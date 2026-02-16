@@ -26,14 +26,17 @@ type DealDocument =
 	(typeof api.deal_documents.getDealDocuments._returnType)[number];
 type DealDocumentSigner = DealDocument["signatories"][number];
 
+import type { DealDataForPrefill } from "@/lib/documenso-prefill";
 import { AddDocumentDialog } from "./AddDocumentDialog";
 
 type DocumentDetailsSectionProps = {
 	dealId: Id<"deals">;
+	dealData?: DealDataForPrefill;
 };
 
 export function DocumentDetailsSection({
 	dealId,
+	dealData,
 }: DocumentDetailsSectionProps) {
 	const documents = useAuthenticatedQuery(api.deal_documents.getDealDocuments, {
 		dealId,
@@ -48,7 +51,7 @@ export function DocumentDetailsSection({
 						Status of signable documents for this deal
 					</CardDescription>
 				</div>
-				<AddDocumentDialog dealId={dealId} />
+				<AddDocumentDialog dealData={dealData} dealId={dealId} />
 			</CardHeader>
 			<CardContent>
 				{documents === undefined ? (

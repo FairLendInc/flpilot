@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useAction } from "convex/react";
 import type { UserIdentity } from "convex/server";
 import { format } from "date-fns";
@@ -37,7 +38,7 @@ import {
 	useAuthenticatedQuery,
 	useAuthenticatedQueryWithStatus,
 } from "@/convex/lib/client";
-import { useDocumentGroupResolution } from "@/hooks/useDocumentCategorization";
+
 import {
 	extractUsers,
 	mapDocumensoToDocument,
@@ -546,17 +547,41 @@ function DealCompleteState({
 }
 
 export default function DealPortalPage() {
+	const { user: authUser } = useAuth();
 	const viewer = useAuthenticatedQuery(api.profile.getUserIdentity, {});
+	// WorkOS access tokens may not include `email` in JWT claims,
+	// so merge the guaranteed email from the WorkOS session user
+	const viewerWithEmail = viewer
+		? {
+				...viewer,
+				email: viewer.email ?? authUser?.email,
+				name: viewer.name ?? authUser?.firstName ?? undefined,
+			}
+		: undefined;
 	const params = useParams();
 	const dealId =
 		typeof params.dealId === "string"
 			? (params.dealId as Id<"deals">)
 			: undefined;
 
-	const { data: dealData, isPending } = useAuthenticatedQueryWithStatus(
-		api.deals.getDealWithDetails,
-		dealId ? { dealId } : "skip"
-	);
+	// Query admin, investor, and lawyer endpoints in parallel — the wrong-role queries return null
+	const { data: adminDealData, isPending: adminPending } =
+		useAuthenticatedQueryWithStatus(
+			api.deals.getDealWithDetails,
+			dealId ? { dealId } : "skip"
+		);
+	const { data: investorDealData, isPending: investorPending } =
+		useAuthenticatedQueryWithStatus(
+			api.deals.getInvestorDealWithDetails,
+			dealId ? { dealId } : "skip"
+		);
+	const { data: lawyerDealData, isPending: lawyerPending } =
+		useAuthenticatedQueryWithStatus(
+			api.deals.getLawyerDealWithDetails,
+			dealId ? { dealId } : "skip"
+		);
+	const dealData = adminDealData ?? investorDealData ?? lawyerDealData;
+	const isPending = adminPending && investorPending && lawyerPending;
 
 	const dealDocuments = useAuthenticatedQuery(
 		api.deal_documents.getDealDocuments,
@@ -565,62 +590,83 @@ export default function DealPortalPage() {
 
 	const getDocumensoDocument = useAction(api.documenso.getDocumentAction);
 
-	const [documensoData, setDocumensoData] =
-		useState<DocumensoDocumentSummary | null>(null);
+	const [documensoDataMap, setDocumensoDataMap] = useState<
+		Map<number, DocumensoDocumentSummary>
+	>(new Map());
 	const [loading, setLoading] = useState(true);
 	const [documensoError, setDocumensoError] = useState<string | null>(null);
 
-	// Use dynamic document group resolution for Documenso documents
-	const documentGroup = useDocumentGroupResolution(
-		documensoData
-			? {
-					type: "documenso_document", // Generic type for Documenso documents
-					metadata: {
-						documentId: documensoData.id,
-						externalId: documensoData.externalId,
-						title: documensoData.title,
-					},
-				}
-			: undefined
+	// Batch resolve document groups for all fetched Documenso documents
+	const batchInput = Array.from(documensoDataMap.values()).map((doc) => ({
+		id: String(doc.id),
+		type: "documenso_document",
+		metadata: {
+			documentId: doc.id,
+			externalId: doc.externalId,
+			title: doc.title,
+		},
+	}));
+
+	const documentGroups = useAuthenticatedQuery(
+		api.documentCategorization.batchResolveDocumentGroups,
+		batchInput.length > 0 ? { documents: batchInput } : "skip"
 	);
 
 	useEffect(() => {
-		async function fetchDocumensoDocuments() {
+		async function fetchAllDocumensoDocuments() {
 			if (!dealDocuments || dealDocuments.length === 0) {
 				setLoading(false);
 				return;
 			}
 
-			const firstDoc = dealDocuments[0];
-			if (firstDoc?.documensoDocumentId) {
-				try {
-					// Clear any previous errors
-					setDocumensoError(null);
+			const docsWithDocumenso = dealDocuments.filter(
+				(d) => d.documensoDocumentId
+			);
+			if (docsWithDocumenso.length === 0) {
+				setLoading(false);
+				return;
+			}
 
-					const doc = await getDocumensoDocument({
-						documentId: firstDoc.documensoDocumentId,
-					});
-					setDocumensoData(doc);
-				} catch (error) {
-					const errorMessage =
-						error instanceof Error
-							? error.message
-							: "Failed to load document from Documenso";
+			setDocumensoError(null);
 
-					setDocumensoError(errorMessage);
-					console.error("Error fetching Documenso document:", error);
+			const results = await Promise.allSettled(
+				docsWithDocumenso.map((d) =>
+					getDocumensoDocument({
+						documentId: d.documensoDocumentId,
+					}).then((doc) => ({
+						documensoDocumentId: d.documensoDocumentId as number,
+						doc,
+					}))
+				)
+			);
 
-					// Show user-visible error notification
-					toast.error("Failed to load document", {
-						description: errorMessage,
-					});
+			const newMap = new Map<number, DocumensoDocumentSummary>();
+			let failedCount = 0;
+
+			for (const result of results) {
+				if (result.status === "fulfilled") {
+					newMap.set(result.value.documensoDocumentId, result.value.doc);
+				} else {
+					failedCount++;
+					console.error("Error fetching Documenso document:", result.reason);
 				}
 			}
+
+			setDocumensoDataMap(newMap);
+
+			if (newMap.size === 0 && failedCount > 0) {
+				setDocumensoError("Failed to load documents from Documenso");
+			} else if (failedCount > 0) {
+				toast.warning(
+					`${failedCount} document(s) failed to load from Documenso`
+				);
+			}
+
 			setLoading(false);
 		}
 
 		if (dealDocuments !== undefined) {
-			fetchDocumensoDocuments();
+			fetchAllDocumensoDocuments();
 		}
 	}, [dealDocuments, getDocumensoDocument]);
 
@@ -654,27 +700,32 @@ export default function DealPortalPage() {
 		);
 	}
 
-	if (dealData.deal.currentState === "pending_lawyer" && viewer) {
+	if (dealData.deal.currentState === "pending_lawyer" && viewerWithEmail) {
 		return (
 			<PendingLawyerState
 				deal={dealData.deal}
 				dealId={dealId}
-				viewer={viewer}
+				viewer={viewerWithEmail}
 			/>
 		);
 	}
 
 	// Handle pending_ownership_review state - admins can review, investors see status
-	if (dealData.deal.currentState === "pending_ownership_review" && viewer) {
-		return <PendingOwnershipReviewState dealId={dealId} viewer={viewer} />;
+	if (
+		dealData.deal.currentState === "pending_ownership_review" &&
+		viewerWithEmail
+	) {
+		return (
+			<PendingOwnershipReviewState dealId={dealId} viewer={viewerWithEmail} />
+		);
 	}
 
 	if (dealData.deal.currentState === "completed") {
 		return <DealCompleteState dealData={dealData} />;
 	}
 
-	// Show error banner if Documenso fetch failed
-	if (documensoError) {
+	// Show error banner only if ALL Documenso documents failed to load
+	if (documensoError && documensoDataMap.size === 0) {
 		return (
 			<div className="flex flex-1 items-center justify-center p-6">
 				<Card className="max-w-md">
@@ -701,13 +752,47 @@ export default function DealPortalPage() {
 		);
 	}
 
-	const mappedDocuments =
-		documensoData && documentGroup
-			? [mapDocumensoToDocument(documensoData, documentGroup)]
-			: documensoData
-				? [mapDocumensoToDocumentLegacy(documensoData)] // Fallback if group resolution not ready
-				: [];
-	const initialUsers = documensoData ? extractUsers(documensoData) : [];
+	// Build lookup from documentId → resolved group
+	const groupLookup = new Map<
+		string,
+		{
+			group: string;
+			displayName: string;
+			icon?: string;
+			color?: string;
+			resolutionMethod: string;
+		}
+	>();
+	if (documentGroups) {
+		for (const g of documentGroups) {
+			groupLookup.set(g.documentId, g);
+		}
+	}
+
+	// Map ALL fetched Documenso documents
+	const mappedDocuments = Array.from(documensoDataMap.values()).map((doc) => {
+		const resolved = groupLookup.get(String(doc.id));
+		return resolved
+			? mapDocumensoToDocument(doc, resolved)
+			: mapDocumensoToDocumentLegacy(doc);
+	});
+
+	// Merge users from ALL documents, deduplicated by email
+	const allUsers = Array.from(documensoDataMap.values()).flatMap(extractUsers);
+	const seenEmails = new Set<string>();
+	const initialUsers = allUsers.filter((u) => {
+		const key = u.email.toLowerCase();
+		if (seenEmails.has(key)) return false;
+		seenEmails.add(key);
+		return true;
+	});
+
+	// Determine viewer role from which query succeeded
+	const viewerRole = adminDealData
+		? "admin"
+		: investorDealData
+			? "investor"
+			: "lawyer";
 
 	return (
 		<DealPortal
@@ -721,7 +806,8 @@ export default function DealPortalPage() {
 						.filter(Boolean)
 						.join(" ") || "Investor",
 			}}
-			user={viewer}
+			role={viewerRole}
+			user={viewerWithEmail}
 		/>
 	);
 }

@@ -29,10 +29,5 @@
         "corsOrigins": ["https://${buildEnv.VERCEL_PROJECT_PRODUCTION_URL}"]
       }
     }
-  },
-  "components": {
-    "resend": {
-      "type": "resend"
-    }
   }
 }

@@ -5,6 +5,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DocumensoTemplateAutocomplete } from "@/components/admin/DocumensoTemplateAutocomplete";
+import AutoForm from "@/components/ui/auto-form";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -19,27 +20,47 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import type {
+	DealDataForPrefill,
+	ExtractedPlaceholder,
+} from "@/lib/documenso-prefill";
+import {
+	buildPrefillFieldsPayload,
+	buildPrefillSchema,
+	extractPlaceholders,
+	getAutoFillValues,
+} from "@/lib/documenso-prefill";
 import type { DocumensoRecipientRole } from "@/lib/types/documenso";
 
 type AddDocumentDialogProps = {
 	dealId: Id<"deals">;
+	dealData?: DealDataForPrefill;
 };
 
 type SignatoryConfig = {
-	id: number; // Template recipient ID
+	id: number;
 	role: DocumensoRecipientRole;
 	name: string;
 	email: string;
 	signingOrder: number | null;
 };
 
-export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
+export function AddDocumentDialog({
+	dealId,
+	dealData,
+}: AddDocumentDialogProps) {
 	const [open, setOpen] = useState(false);
-	const [step, setStep] = useState<"template" | "signatories">("template");
+	const [step, setStep] = useState<"template" | "prefill" | "signatories">(
+		"template"
+	);
 	const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
 		null
 	);
 	const [signatories, setSignatories] = useState<SignatoryConfig[]>([]);
+	const [placeholders, setPlaceholders] = useState<ExtractedPlaceholder[]>([]);
+	const [prefillValues, setPrefillValues] = useState<Record<string, string>>(
+		{}
+	);
 	const [loading, setLoading] = useState(false);
 
 	const getTemplateDetails = useAction(api.documenso.getTemplateDetailsAction);
@@ -83,12 +104,26 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 				templateRecipients.map((r) => ({
 					id: r.id,
 					role: requireDocumensoRole(r.role),
-					name: "", // User must fill this
-					email: "", // User must fill this
+					name: "",
+					email: "",
 					signingOrder: r.signingOrder ?? null,
 				}))
 			);
-			setStep("signatories");
+
+			// Extract placeholder fields from template
+			const fields = details.fields || [];
+			const extracted = extractPlaceholders(fields);
+			setPlaceholders(extracted);
+
+			if (extracted.length > 0) {
+				// Auto-fill from deal data where available
+				const autoFilled = dealData ? getAutoFillValues(dealData) : {};
+				setPrefillValues(autoFilled);
+				setStep("prefill");
+			} else {
+				// No prefillable fields — skip to signatories
+				setStep("signatories");
+			}
 		} catch (error) {
 			console.error("Failed to load template details:", error);
 			toast.error("Failed to load template details", {
@@ -97,10 +132,10 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 						? error.message
 						: "Please try again or select a different template",
 			});
-			// Reset to clean state on error
 			setSelectedTemplateId(null);
 			setSignatories([]);
-			// Keep step at "template" - don't progress on error
+			setPlaceholders([]);
+			setPrefillValues({});
 		} finally {
 			setLoading(false);
 		}
@@ -119,7 +154,6 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 	const handleSubmit = async () => {
 		if (!selectedTemplateId) return;
 
-		// Validate all fields filled
 		if (signatories.some((s) => !(s.name && s.email))) {
 			toast.error("Please fill in all signatory details");
 			return;
@@ -127,6 +161,11 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 
 		setLoading(true);
 		try {
+			const prefillFieldsPayload = buildPrefillFieldsPayload(
+				placeholders,
+				prefillValues
+			);
+
 			await createDocument({
 				dealId,
 				templateId: selectedTemplateId,
@@ -136,13 +175,12 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 					name: s.name,
 					role: s.role,
 				})),
+				prefillFields:
+					prefillFieldsPayload.length > 0 ? prefillFieldsPayload : undefined,
 			});
 			toast.success("Document created successfully");
 			setOpen(false);
-			// Reset state
-			setStep("template");
-			setSelectedTemplateId(null);
-			setSignatories([]);
+			resetState();
 		} catch (error) {
 			console.error("Failed to create document:", error);
 			toast.error("Failed to create document", {
@@ -153,8 +191,22 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 		}
 	};
 
+	const resetState = () => {
+		setStep("template");
+		setSelectedTemplateId(null);
+		setSignatories([]);
+		setPlaceholders([]);
+		setPrefillValues({});
+	};
+
 	return (
-		<Dialog onOpenChange={setOpen} open={open}>
+		<Dialog
+			onOpenChange={(isOpen) => {
+				setOpen(isOpen);
+				if (!isOpen) resetState();
+			}}
+			open={open}
+		>
 			<DialogTrigger asChild>
 				<Button size="sm" variant="outline">
 					<Plus className="mr-2 h-4 w-4" />
@@ -170,7 +222,7 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 				</DialogHeader>
 
 				<div className="py-4">
-					{step === "template" ? (
+					{step === "template" && (
 						<div className="space-y-4">
 							<Label>Select Template</Label>
 							<DocumensoTemplateAutocomplete
@@ -183,13 +235,45 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 								</div>
 							)}
 						</div>
-					) : (
+					)}
+
+					{step === "prefill" && (
+						<div className="space-y-4">
+							<div className="flex items-center justify-between">
+								<h4 className="font-medium text-sm">
+									Pre-fill Document Fields
+								</h4>
+								<Button
+									onClick={() => {
+										resetState();
+									}}
+									size="sm"
+									variant="ghost"
+								>
+									Change Template
+								</Button>
+							</div>
+							<p className="text-muted-foreground text-sm">
+								These values will be pre-filled in the document. You can edit
+								them before proceeding.
+							</p>
+							<AutoForm
+								formSchema={buildPrefillSchema(placeholders)}
+								onValuesChange={(values) =>
+									setPrefillValues(values as Record<string, string>)
+								}
+								values={prefillValues}
+							/>
+						</div>
+					)}
+
+					{step === "signatories" && (
 						<div className="space-y-6">
 							<div className="space-y-4">
 								<div className="flex items-center justify-between">
 									<h4 className="font-medium text-sm">Configure Signatories</h4>
 									<Button
-										onClick={() => setStep("template")}
+										onClick={() => resetState()}
 										size="sm"
 										variant="ghost"
 									>
@@ -257,14 +341,30 @@ export function AddDocumentDialog({ dealId }: AddDocumentDialogProps) {
 				</div>
 
 				<DialogFooter>
+					{step === "prefill" && (
+						<>
+							<Button
+								onClick={() => setStep("signatories")}
+								size="sm"
+								variant="ghost"
+							>
+								Skip
+							</Button>
+							<Button onClick={() => setStep("signatories")}>
+								Continue to Signatories
+							</Button>
+						</>
+					)}
 					{step === "signatories" && (
 						<>
 							<Button
 								disabled={loading}
-								onClick={() => setOpen(false)}
+								onClick={() =>
+									placeholders.length > 0 ? setStep("prefill") : setOpen(false)
+								}
 								variant="outline"
 							>
-								Cancel
+								{placeholders.length > 0 ? "Back" : "Cancel"}
 							</Button>
 							<Button disabled={loading} onClick={handleSubmit}>
 								{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

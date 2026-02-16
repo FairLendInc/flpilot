@@ -239,6 +239,53 @@ export const assignOrganizationRole = internalAction({
 	},
 });
 
+/**
+ * Fetches a single organization from WorkOS by ID and upserts it into Convex.
+ * Called from the organization_membership webhook to ensure the org record
+ * exists before the membership references it.
+ */
+export const syncSingleOrganization = internalAction({
+	args: v.object({
+		organizationId: v.string(),
+	}),
+	returns: v.object({
+		success: v.boolean(),
+	}),
+	handler: async (ctx, { organizationId }) => {
+		if (isTestEnv) return { success: true };
+		const workos = new WorkOS(env.WORKOS_API_KEY);
+
+		try {
+			const organization =
+				await workos.organizations.getOrganization(organizationId);
+			const organizationDomains =
+				(organization as { domains?: WorkOsDomain[] }).domains ?? [];
+
+			await ctx.runMutation(internal.organizations.createOrUpdateOrganization, {
+				id: organization.id,
+				name: organization.name,
+				external_id: organization.externalId || undefined,
+				metadata: organization.metadata,
+				created_at: organization.createdAt,
+				updated_at: organization.updatedAt,
+				domains: organizationDomains.map((domain) => ({
+					id: domain.id || `${organization.id}-${domain.domain}`,
+					domain: domain.domain,
+					organization_id: organization.id,
+					object: "organization_domain",
+					created_at: domain.createdAt,
+					updated_at: domain.updatedAt,
+				})),
+			});
+
+			return { success: true };
+		} catch (error) {
+			console.error("Failed to sync organization:", organizationId, error);
+			return { success: false };
+		}
+	},
+});
+
 export const syncUserOrganizations = internalAction({
 	args: v.object({
 		userId: v.string(),
